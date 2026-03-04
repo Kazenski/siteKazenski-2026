@@ -1,0 +1,109 @@
+/* Scrollbar Customizada (Azulada) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+/* Animações Globais */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+.tab-content { display: none; }
+.tab-content.active { display: flex; }
+
+.custom-scroll::-webkit-scrollbar { width: 6px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+/* ============================================================== */
+/* COMPONENTE: CARROSSEL 3D (PÁGINA INICIAL)                      */
+/* ============================================================== */
+
+.kaz-carousel-perspective {
+    width: 100%;
+    height: 70vh; 
+    min-height: 500px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1500px; /* Ativa a profundidade 3D */
+    
+    /* Efeito de fade nas bordas horizontais */
+    mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.8) 90%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.8) 90%, rgba(0,0,0,0) 100%);
+}
+
+.kaz-slide {
+    position: absolute;
+    width: 75%;
+    height: 85%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), z-index 0.8s, box-shadow 0.8s, border 0.8s, filter 0.8s;
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    border: 2px solid transparent;
+    will-change: transform;
+}
+
+/* Sombra e desfoque para os slides inativos (do fundo) */
+.kaz-slide:not(.active) {
+    filter: brightness(0.3) saturate(0.5);
+    cursor: pointer;
+}
+
+/* Foco total no slide ativo */
+.kaz-slide.active {
+    border: 2px solid #3b82f6; /* Blue-500 */
+    box-shadow: 0 0 30px rgba(0,0,0,0.9), inset 0 0 20px rgba(59, 130, 246, 0.3);
+    filter: brightness(1) saturate(1);
+}
+
+/* Película escura para dar legibilidade ao texto sobre a imagem */
+.kaz-slide::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(to right, rgba(15,23,42,0.95) 10%, rgba(15,23,42,0.6) 40%, transparent 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.kaz-content-layer {
+    position: relative;
+    z-index: 5;
+    padding: 3rem 5rem;
+    max-width: 55%;
+}
+
+/* Bolinhas de navegação */
+.kaz-nav-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.kaz-nav-dot.active {
+    background-color: #3b82f6;
+    transform: scale(1.4);
+    box-shadow: 0 0 10px #3b82f6;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 768px) {
+    .kaz-slide { width: 95%; height: 90%; justify-content: center; }
+    .kaz-slide::after { background: linear-gradient(to top, rgba(15,23,42,0.95) 10%, rgba(15,23,42,0.6) 60%, transparent 100%); }
+    .kaz-content-layer { max-width: 90%; padding: 2rem; text-align: center; margin-top: auto; }
+}

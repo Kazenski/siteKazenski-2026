@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prof. Kazenski | Developer & Educator</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        cinzel: ['Cinzel', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
+
+    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center px-6 shrink-0 z-50 shadow-lg">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-code text-blue-500 text-xl"></i>
+            <h1 class="font-cinzel font-bold text-xl text-blue-400 tracking-widest uppercase">Kazenski</h1>
+        </div>
+        <nav class="ml-auto flex gap-4">
+            <button onclick="window.showTab('inicio')" class="text-sm font-bold text-blue-500 uppercase tracking-widest hover:text-blue-300 transition">Início</button>
+            </nav>
+    </header>
+
+    <main id="app-main" class="flex-grow relative overflow-hidden">
+        <div id="inicio-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
