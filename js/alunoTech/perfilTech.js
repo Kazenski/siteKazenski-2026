@@ -49,35 +49,25 @@ export async function renderAlunoTechTab() {
 
         <div id="dashboard-aluno" class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-950 hidden">
             
-            <nav class="aluno-tabs-nav sticky top-0 z-50 shadow-2xl shrink-0 flex gap-1 p-3 bg-slate-900 border-b border-blue-900/50 justify-center overflow-x-auto no-scrollbar">
-                <button class="aluno-tab-btn active" onclick="window.perfilTech.switchTab('avisos')">Mural</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('boletim')">Boletim</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('frequencia')">Frequência</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('metricas')">Métricas</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('avaliacao360')">Avaliação 360</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('caderno')">Caderno</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('kanban')">Kanban</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('horario')">Horário</button>
-                <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('calendario')">Calendário</button>
-            </nav>
-
-            <div class="w-full flex flex-col flex-grow">
+            <div class="w-full flex flex-col flex-grow relative">
+                
                 <div class="banner-wrapper rounded-none mb-0">
                     <div class="cover-photo cursor-pointer" id="al-bg-cover">
                         <div class="cover-overlay"></div>
                         <button class="edit-btn btn-cover" onclick="document.getElementById('al-file-cover').click()"><i class="fas fa-camera"></i></button>
                         <button class="edit-btn btn-border" onclick="document.getElementById('al-input-color').click()"><i class="fas fa-palette"></i></button>
                     </div>
-                    <div class="header-content px-6 md:px-20 pb-10">
-                        <div class="profile-area">
+                    
+                    <div class="header-content px-6 md:px-20 pb-6 flex flex-col md:flex-row items-center md:items-end gap-6 w-full">
+                        <div class="profile-area shrink-0">
                             <img src="" id="al-img-profile" class="profile-img cursor-pointer" onclick="document.getElementById('al-file-profile').click()">
                             <button class="edit-btn btn-profile" onclick="document.getElementById('al-file-profile').click()"><i class="fas fa-camera"></i></button>
                         </div>
-                        <div class="student-info">
+                        <div class="student-info text-center md:text-left mb-4 md:mb-0">
                             <div id="al-badge-title" class="student-title-badge cursor-pointer" onclick="window.perfilTech.toggleTitleSelect()">Aspirante</div>
                             <select id="al-title-select" class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500" onchange="window.perfilTech.saveTitle(this.value)"></select>
-                            <h1 class="student-name text-4xl md:text-6xl font-black font-cinzel" id="al-txt-name">---</h1>
-                            <div class="student-class text-blue-400 font-bold" id="al-txt-class">---</div>
+                            <h1 class="student-name text-4xl md:text-5xl font-black font-cinzel mt-2 drop-shadow-md" id="al-txt-name">---</h1>
+                            <div class="student-class text-blue-400 font-bold mt-1" id="al-txt-class">---</div>
                         </div>
                     </div>
                 </div>
@@ -86,8 +76,19 @@ export async function renderAlunoTechTab() {
                 <input type="file" id="al-file-profile" class="hidden" onchange="window.perfilTech.handleUpload(this, 'profile')">
                 <input type="color" id="al-input-color" class="hidden" onchange="window.perfilTech.saveBorderColor(this.value)">
 
-                <div class="px-6 md:px-20 py-10">
-                    <div id="atab-avisos" class="aluno-tab-content active"><div id="al-avisos-list" class="space-y-4"></div></div>
+                <nav class="aluno-tabs-nav no-scrollbar">
+                    <button class="aluno-tab-btn active" onclick="window.perfilTech.switchTab('avisos')"><i class="fas fa-bullhorn"></i> Mural</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('boletim')"><i class="fas fa-file-invoice"></i> Boletim</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('frequencia')"><i class="fas fa-calendar-check"></i> Frequência</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('metricas')"><i class="fas fa-chart-line"></i> Métricas</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('avaliacao360')"><i class="fas fa-users-viewfinder"></i> Avaliação 360</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('caderno')"><i class="fas fa-book"></i> Caderno</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('kanban')"><i class="fas fa-columns"></i> Kanban</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('horario')"><i class="fas fa-clock"></i> Horário</button>
+                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('calendario')"><i class="fas fa-calendar-alt"></i> Calendário</button>
+                </nav>
+
+                <div class="px-6 md:px-20 py-10 pb-32"> <div id="atab-avisos" class="aluno-tab-content active"><div id="al-avisos-list" class="space-y-4"></div></div>
                     
                     <div id="atab-boletim" class="aluno-tab-content">
                         <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800 overflow-x-auto">
@@ -108,18 +109,15 @@ export async function renderAlunoTechTab() {
                                 <div id="al-freq-perc" class="text-6xl font-black text-green-400">100%</div>
                                 <div id="al-freq-total" class="text-red-500 mt-4 font-bold">0 Faltas</div>
                             </div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center relative min-h-[300px]"><canvas id="al-chart-freq"></canvas></div>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center"><canvas id="al-chart-freq"></canvas></div>
                         </div>
                     </div>
 
                     <div id="atab-metricas" class="aluno-tab-content">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 relative min-h-[300px]">
-                                <h4 class="text-xs text-slate-400 mb-4 text-center uppercase tracking-widest">Dispersão de Notas</h4>
-                                <canvas id="al-chart-scatter"></canvas>
-                            </div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 relative min-h-[300px]">
-                                <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded border border-slate-700 w-full" onchange="window.perfilTech.updateEvolChart(this.value)"></select>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800"><canvas id="al-chart-scatter"></canvas></div>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
+                                <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded" onchange="window.perfilTech.updateEvolChart(this.value)"></select>
                                 <canvas id="al-chart-evol"></canvas>
                             </div>
                         </div>
@@ -173,7 +171,7 @@ export async function renderAlunoTechTab() {
 
                     <div id="atab-calendario" class="aluno-tab-content">
                         <div class="calendar-controls flex justify-between items-center mb-6">
-                            <div class="flex items-center gap-4"><button onclick="window.perfilTech.changeCalMonth(-1)" class="p-2 bg-slate-800 rounded">&lt;</button><span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg">---</span><button onclick="window.perfilTech.changeCalMonth(1)" class="p-2 bg-slate-800 rounded">&gt;</button></div>
+                            <div class="flex items-center gap-4"><button onclick="window.perfilTech.changeCalMonth(-1)" class="p-2 bg-slate-800 rounded hover:bg-slate-700">&lt;</button><span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg">---</span><button onclick="window.perfilTech.changeCalMonth(1)" class="p-2 bg-slate-800 rounded hover:bg-slate-700">&gt;</button></div>
                             <button id="al-btn-add-evt" class="hidden bg-green-600 text-white px-4 py-2 rounded text-xs font-bold" onclick="window.perfilTech.openCalModal()">+ EVENTO</button>
                         </div>
                         <div id="al-cal-grid" class="calendar-grid"></div>
@@ -186,15 +184,11 @@ export async function renderAlunoTechTab() {
         <div id="al-modal-cal" class="cal-modal" style="display: none;">
             <div class="cal-modal-content">
                 <span class="cal-close" onclick="window.perfilTech.closeCalModal()">&times;</span>
-                <h3 class="text-blue-500 font-cinzel font-bold mb-4">Evento</h3>
+                <h3 class="text-blue-500 font-cinzel font-bold mb-4">Novo Evento</h3>
                 <input type="text" id="al-ev-title" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Título">
                 <input type="date" id="al-ev-date" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3">
                 <textarea id="al-ev-desc" rows="3" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Descrição"></textarea>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button id="al-btn-del-ev" onclick="window.perfilTech.deleteCalendarEvent()" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button>
-                    <button onclick="window.perfilTech.saveCalendarEvent()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button>
-                </div>
-                <input type="hidden" id="al-ev-id">
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800"><button id="al-btn-del-ev" onclick="window.perfilTech.deleteCalendarEvent()" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button><button onclick="window.perfilTech.saveCalendarEvent()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button></div>
             </div>
         </div>
     `;
@@ -265,15 +259,22 @@ async function initDashboard(user) {
 
 window.perfilTech = {
     switchTab: (id) => {
+        // 1. Remove active de todos os botões do menu
         document.querySelectorAll('.aluno-tab-btn').forEach(b => b.classList.remove('active'));
-        const activeBtn = Array.from(document.querySelectorAll('.aluno-tab-btn')).find(b => b.textContent.toLowerCase().includes(id.toLowerCase()) || b.getAttribute('onclick').includes(id));
+        
+        // 2. Acha o botão clicado e adiciona active
+        const activeBtn = Array.from(document.querySelectorAll('.aluno-tab-btn'))
+            .find(b => b.getAttribute('onclick').includes(id));
         if(activeBtn) activeBtn.classList.add('active');
 
+        // 3. Esconde todos os conteúdos
         document.querySelectorAll('.aluno-tab-content').forEach(c => c.classList.remove('active'));
+        
+        // 4. Mostra o conteúdo correto
         document.getElementById(`atab-${id}`).classList.add('active');
         
-        // Força atualização dos gráficos quando a aba fica visível
-        if(id==='metricas' || id==='frequencia') {
+        // 5. Redimensiona os gráficos caso a aba clicada os contenha
+        if(id==='metricas'||id==='frequencia') {
             setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         }
     },
