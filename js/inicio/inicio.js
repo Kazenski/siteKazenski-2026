@@ -1,191 +1,193 @@
 import { db } from '../core/firebase.js';
-import { collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, query, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { escapeHTML } from '../core/utils.js';
 
-// Imagem padrão do site do Professor Kazenski
-const DEFAULT_BG = 'imagens/background/background-oficial.jpg';
+let slides = [];
 
-let inicioState = {
-    slides: [],
-    currentIndex: 0,
-    interval: null
-};
+// CAMINHO LOCAL DA IMAGEM PADRÃO DO PROFESSOR
+const defaultBg = "imagens/background/background-oficial.jpg"; 
+
+let bgTimeout;
+let isViewingCard = false;
 
 export async function renderInicioTab() {
     const container = document.getElementById('inicio-content');
     if (!container) return;
 
-    // Layout Imersivo: Fundo Absoluto, Gradientes Escuros e Carrossel na Base
+    // Renderização do esqueleto HTML da página principal
+    // Ajustado para tons azuis/profissionais (blue-500, sky-300, etc.)
     container.innerHTML = `
-        <div class="relative w-full h-full flex flex-col justify-end bg-slate-950 overflow-hidden animate-fade-in">
+        <div class="relative w-full h-full overflow-hidden bg-slate-950 fade-in">
             
-            <div id="main-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 ease-in-out scale-105" 
-                 style="background-image: url('${DEFAULT_BG}');">
+            <div id="inicio-main-bg" class="absolute inset-0 bg-cover transition-all duration-1000 ease-in-out opacity-0" style="background-image: url('${defaultBg}'); background-position: center 20%;">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-95"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/80 to-transparent opacity-80"></div>
             </div>
-            
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent z-0"></div>
-            <div class="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/60 to-transparent z-0"></div>
 
-            <div class="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-12 pb-10 pt-20 flex-grow flex flex-col justify-end">
-                <div id="main-content" class="max-w-3xl transform transition-all duration-500 translate-y-0 opacity-100">
-                    <h1 id="slide-title" class="text-4xl md:text-6xl font-bold text-white font-cinzel mb-4 drop-shadow-lg leading-tight">
-                        Prof. Eduardo Kazenski
-                    </h1>
-                    <p id="slide-desc" class="text-lg md:text-xl text-blue-200 mb-8 drop-shadow-md leading-relaxed line-clamp-4">
-                        Inovação, ensino e desenvolvimento de software. Acompanhe os projetos, artigos e ferramentas criadas para transformar a educação tecnológica.
-                    </p>
-                    <div id="slide-action" class="h-14">
-                        </div>
+            <div id="inicio-default-text" class="relative z-10 flex flex-col justify-center h-[65%] px-10 md:px-24 transition-opacity duration-700">
+                <h1 class="text-5xl md:text-7xl lg:text-[7rem] font-cinzel font-black text-blue-500 tracking-widest drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)] leading-none">
+                    PROF. <br> <span class="text-white drop-shadow-[0_5px_15px_rgba(0,0,0,0.8)]">KAZENSKI</span>
+                </h1>
+                <p class="text-lg md:text-2xl text-slate-300 mt-6 drop-shadow-[0_2px_4px_rgba(0,0,0,1)] max-w-3xl leading-relaxed italic border-l-4 border-blue-500 pl-4">
+                    "Código, lógica e educação. Forjando a nova geração de desenvolvedores."
+                </p>
+            </div>
+
+            <div id="inicio-news-info" class="absolute top-[20%] md:top-1/3 left-10 md:left-24 z-20 text-left max-w-2xl opacity-0 translate-y-4 transition-all duration-700 pointer-events-none">
+                <h2 id="inicio-news-title" class="font-cinzel text-4xl md:text-5xl font-bold text-white drop-shadow-[0_4px_10px_rgba(0,0,0,1)] mb-4"></h2>
+                <p id="inicio-news-subtitle" class="text-slate-200 text-base md:text-lg drop-shadow-[0_2px_5px_rgba(0,0,0,1)] leading-relaxed"></p>
+                <a id="inicio-news-btn" href="#" target="_blank" class="inline-block mt-8 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest text-sm rounded-lg transition-colors pointer-events-auto shadow-[0_0_20px_rgba(37,99,235,0.4)] border border-blue-400">Ver Mais</a>
+            </div>
+
+            <div class="absolute bottom-0 left-0 w-full z-30 pb-6 px-10 md:px-24 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pt-12">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-2">
+                    <h3 class="text-blue-500 font-cinzel font-bold tracking-widest text-sm md:text-base uppercase drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+                        <i class="fas fa-newspaper mr-2"></i> Últimas Atualizações
+                    </h3>
+                    <span class="text-xs text-slate-400 italic drop-shadow-md">Selecione para expandir</span>
+                </div>
+                
+                <div id="inicio-cards-container" class="flex gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" style="scroll-behavior: smooth;">
+                    <div class="flex items-center justify-center w-full h-32">
+                        <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
                 </div>
             </div>
-
-            <div class="relative z-20 w-full bg-slate-950/80 backdrop-blur-md border-t border-blue-900/30 py-6 px-6 md:px-12 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-                <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-6">
-                    
-                    <div class="shrink-0">
-                        <h3 class="text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Central de Novidades</h3>
-                        <p class="text-[10px] text-slate-400">Selecione para expandir</p>
-                    </div>
-                    
-                    <div class="w-px h-12 bg-slate-800 hidden md:block"></div>
-
-                    <div id="thumbnails-container" class="flex gap-4 overflow-x-auto custom-scroll pb-2 pt-1 w-full snap-x">
-                        <div class="flex items-center gap-3 text-slate-500 text-sm italic font-bold">
-                            <i class="fas fa-spinner fa-spin text-blue-500"></i> Carregando banco de dados...
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
         </div>
     `;
 
-    await fetchSlides();
+    // Animação de entrada suave do Background inicial
+    setTimeout(() => {
+        const bgEl = document.getElementById('inicio-main-bg');
+        if (bgEl && !isViewingCard) {
+            bgEl.classList.remove('opacity-0');
+            bgEl.classList.add('opacity-100');
+        }
+    }, 50);
+
+    // Busca dados
+    await fetchNoticias();
 }
 
-async function fetchSlides() {
+async function fetchNoticias() {
+    const cardsContainer = document.getElementById('inicio-cards-container');
+    if (!cardsContainer) return;
+
     try {
         const q = query(collection(db, "atualizacoes"), where('ativa', '==', true), orderBy('ordem'));
         const snapshot = await getDocs(q);
         
-        inicioState.slides = snapshot.docs.map(doc => doc.data());
+        slides = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        if (inicioState.slides.length > 0) {
-            renderThumbnails();
-            window.kazInicio.selectSlide(0); // Força a primeira carta a abrir
-            startAutoPlay();
+        if (slides.length > 0) {
+            renderSmallCards();
         } else {
-            document.getElementById('thumbnails-container').innerHTML = `
-                <div class="text-slate-500 text-sm italic py-2">Nenhuma publicação ativa no momento. O sistema exibirá o perfil padrão.</div>
-            `;
+            cardsContainer.innerHTML = `<div class="text-slate-400 italic text-sm drop-shadow-md">Nenhuma novidade registrada no momento.</div>`;
         }
     } catch (error) {
-        console.error("Erro ao carregar atualizações:", error);
-        document.getElementById('thumbnails-container').innerHTML = `
-            <div class="text-red-500 text-sm font-bold py-2"><i class="fas fa-exclamation-triangle mr-2"></i> Falha ao carregar as notícias.</div>
-        `;
+        console.error("Erro ao buscar atualizações: ", error);
+        cardsContainer.innerHTML = `<div class="text-red-500 text-sm"><i class="fas fa-exclamation-triangle"></i> Falha ao acessar os arquivos do servidor.</div>`;
     }
 }
 
-function renderThumbnails() {
-    const container = document.getElementById('thumbnails-container');
+function renderSmallCards() {
+    const container = document.getElementById('inicio-cards-container');
     if (!container) return;
 
-    container.innerHTML = inicioState.slides.map((slide, index) => {
-        const bg = slide.imagemURL || DEFAULT_BG;
-        return `
-            <div id="thumb-${index}" onclick="window.kazInicio.selectSlide(${index})" class="thumb-card shrink-0 w-48 h-28 rounded-xl border-2 border-slate-800 opacity-50 hover:opacity-100 cursor-pointer overflow-hidden relative transition-all duration-300 snap-start group bg-slate-900">
-                <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style="background-image: url('${bg}');"></div>
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
-                <div class="absolute bottom-0 w-full p-3 border-t border-blue-500/0 group-hover:border-blue-500/50 transition-colors">
-                    <p class="text-slate-200 text-xs font-bold truncate drop-shadow-lg">${escapeHTML(slide.titulo)}</p>
+    container.innerHTML = '';
+    
+    slides.forEach((slide, index) => {
+        // Se não tiver imagem, carrega um placeholder de código/tecnologia
+        const imgUrl = slide.imagemURL || 'https://placehold.co/600x400/1e293b/a1a1aa?text=Atualizacao';
+        
+        const cardHTML = `
+            <div class="shrink-0 snap-start cursor-pointer group w-64 md:w-[22rem] h-36 md:h-44 relative rounded-xl overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.8)] border-2 border-slate-700 hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(59,130,246,0.3)]"
+                 onclick="window.inicio.changeBackground('${imgUrl}', ${index})">
+                
+                <img src="${imgUrl}" class="w-full h-full object-cover object-[center_20%] group-hover:scale-110 transition-transform duration-700">
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+                
+                <div class="absolute bottom-3 left-4 right-4">
+                    <span class="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-1 block drop-shadow-md">Novidade</span>
+                    <h4 class="text-white font-cinzel font-bold text-sm md:text-base leading-tight drop-shadow-md line-clamp-2">${escapeHTML(slide.titulo || 'Nova Atualização')}</h4>
                 </div>
             </div>
         `;
-    }).join('');
+        
+        container.innerHTML += cardHTML;
+    });
 }
 
 // ---------------------------------------------------------------------------
-// AÇÕES EXPOSTAS NO WINDOW (Para serem chamadas pelos eventos onClick do HTML)
+// AÇÕES EXPOSTAS NO WINDOW (OnClick do HTML)
 // ---------------------------------------------------------------------------
-window.kazInicio = {
-    selectSlide: (index) => {
-        inicioState.currentIndex = index;
-        const slide = inicioState.slides[index];
-        if (!slide) return;
+window.inicio = {
+    changeBackground: function(imgUrl, index) {
+        const bgEl = document.getElementById('inicio-main-bg');
+        const defaultTextEl = document.getElementById('inicio-default-text');
+        const infoEl = document.getElementById('inicio-news-info');
+        const titleEl = document.getElementById('inicio-news-title');
+        const subtitleEl = document.getElementById('inicio-news-subtitle');
+        const btnEl = document.getElementById('inicio-news-btn');
 
-        // 1. Atualizar Imagem de Fundo (com efeito de zoom out suave)
-        const bgEl = document.getElementById('main-bg');
-        if (bgEl) {
-            bgEl.classList.remove('scale-105');
-            bgEl.classList.add('scale-110', 'opacity-80'); // Cria um "piscar" e esticar
-            
-            setTimeout(() => {
-                bgEl.style.backgroundImage = `url('${slide.imagemURL || DEFAULT_BG}')`;
-                bgEl.classList.remove('scale-110', 'opacity-80');
-                bgEl.classList.add('scale-105');
-            }, 300); // Sincronizado com o CSS
+        if (!bgEl) return;
+
+        isViewingCard = true;
+
+        // Oculta o título grande padrão da página
+        if (defaultTextEl) {
+            defaultTextEl.classList.remove('opacity-100');
+            defaultTextEl.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // 2. Animar a troca de Textos
-        const contentEl = document.getElementById('main-content');
-        if (contentEl) {
-            contentEl.classList.remove('translate-y-0', 'opacity-100');
-            contentEl.classList.add('translate-y-4', 'opacity-0');
-
-            setTimeout(() => {
-                const titleEl = document.getElementById('slide-title');
-                const descEl = document.getElementById('slide-desc');
-                const actionEl = document.getElementById('slide-action');
-                
-                if (titleEl) titleEl.innerHTML = escapeHTML(slide.titulo || '');
-                if (descEl) descEl.innerHTML = escapeHTML(slide.subtitulo || '');
-                
-                if (actionEl) {
-                    if (slide.linkBotao && slide.textoBotao) {
-                        actionEl.innerHTML = `<a href="${escapeHTML(slide.linkBotao)}" target="_blank" class="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all hover:scale-105 uppercase tracking-widest text-sm border border-blue-400"><i class="fas fa-external-link-alt"></i> ${escapeHTML(slide.textoBotao)}</a>`;
-                    } else {
-                        actionEl.innerHTML = '';
-                    }
-                }
-
-                contentEl.classList.remove('translate-y-4', 'opacity-0');
-                contentEl.classList.add('translate-y-0', 'opacity-100');
-            }, 300);
-        }
-
-        // 3. Atualizar Estado das Thumbnails no rodapé
-        document.querySelectorAll('.thumb-card').forEach((el, i) => {
-            if (i === index) {
-                el.classList.add('border-blue-500', 'shadow-[0_0_15px_rgba(59,130,246,0.5)]', 'opacity-100');
-                el.classList.remove('border-slate-800', 'opacity-50');
+        // Troca o Background para a imagem da Notícia
+        bgEl.style.backgroundImage = `url('${imgUrl}')`;
+        bgEl.style.backgroundPosition = 'center 20%';
+        bgEl.classList.remove('opacity-0');
+        bgEl.classList.add('opacity-100');
+        
+        // Povoa os dados da notícia na lateral esquerda
+        const slide = slides[index];
+        if (slide) {
+            titleEl.textContent = slide.titulo || '';
+            subtitleEl.textContent = slide.subtitulo || '';
+            if (slide.linkBotao) {
+                btnEl.href = slide.linkBotao;
+                btnEl.textContent = slide.textoBotao || 'Ler Mais';
+                btnEl.style.display = 'inline-block';
             } else {
-                el.classList.remove('border-blue-500', 'shadow-[0_0_15px_rgba(59,130,246,0.5)]', 'opacity-100');
-                el.classList.add('border-slate-800', 'opacity-50');
+                btnEl.style.display = 'none';
             }
-        });
+            
+            // Animação de entrada do painel de notícias
+            infoEl.classList.remove('opacity-0', 'translate-y-4');
+            infoEl.classList.add('opacity-100', 'translate-y-0');
+        }
 
-        // 4. Resetar o relógio automático
-        resetAutoPlay();
+        // Reseta o temporizador que volta o fundo ao normal
+        clearTimeout(bgTimeout);
+
+        bgTimeout = setTimeout(() => {
+            isViewingCard = false;
+            
+            // Volta à imagem original
+            if (bgEl) {
+                bgEl.style.backgroundImage = `url('${defaultBg}')`;
+                bgEl.style.backgroundPosition = 'center 20%';
+            }
+            
+            // Volta a mostrar o texto padrão "Prof. Kazenski"
+            if (defaultTextEl) {
+                defaultTextEl.classList.remove('opacity-0', 'pointer-events-none');
+                defaultTextEl.classList.add('opacity-100');
+            }
+
+            // Oculta as informações da notícia
+            if (infoEl) {
+                infoEl.classList.remove('opacity-100', 'translate-y-0');
+                infoEl.classList.add('opacity-0', 'translate-y-4');
+            }
+        }, 20000); // 20 segundos e volta ao normal
     }
 };
-
-// Lógica de Autoplay
-function nextSlide() {
-    if (inicioState.slides.length <= 1) return;
-    const next = (inicioState.currentIndex + 1) % inicioState.slides.length;
-    window.kazInicio.selectSlide(next);
-}
-
-function startAutoPlay() {
-    if (inicioState.slides.length > 1) {
-        clearInterval(inicioState.interval);
-        inicioState.interval = setInterval(nextSlide, 8000); // 8 segundos por slide
-    }
-}
-
-function resetAutoPlay() {
-    clearInterval(inicioState.interval);
-    startAutoPlay();
-}
