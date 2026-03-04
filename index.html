@@ -13,7 +13,7 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <link rel="stylesheet" href="style.css">
 
@@ -24,55 +24,66 @@
                     fontFamily: {
                         inter: ['Inter', 'sans-serif'],
                         cinzel: ['Cinzel', 'serif'],
+                    },
+                    colors: {
+                        slate: {
+                            950: '#020617',
+                        }
                     }
                 }
             }
         }
     </script>
-    
 </head>
 <body class="bg-slate-950 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-lg">
+    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
         
-        <div class="flex items-center gap-3 shrink-0 cursor-pointer" onclick="window.showTab('inicio')">
-            <i class="fas fa-code text-blue-500 text-xl"></i>
-            <h1 class="font-cinzel font-bold text-xl text-blue-400 tracking-widest uppercase hidden md:block">Kazenski</h1>
+        <div class="flex items-center gap-3 shrink-0 cursor-pointer group" onclick="window.showTab('inicio')">
+            <div class="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-500 transition-colors">
+                <i class="fas fa-code text-white text-lg"></i>
+            </div>
+            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">
+                Kazenski
+            </h1>
         </div>
 
-        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-2 overflow-x-auto custom-scroll mx-4 mask-edges px-4">
+        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center">
             </nav>
 
         <div id="user-area" class="shrink-0 flex items-center gap-4">
-            <div id="user-loading" class="text-blue-500"><i class="fas fa-spinner fa-spin"></i></div>
+            <div id="user-loading" class="text-blue-500 animate-spin">
+                <i class="fas fa-circle-notch"></i>
+            </div>
+
             <div id="user-info" class="hidden items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p id="user-email" class="text-xs font-bold text-slate-200 leading-none"></p>
-                    <p id="user-role" class="text-[10px] text-blue-400 uppercase tracking-widest mt-1"></p>
+                    <p id="user-email" class="text-[10px] font-bold text-slate-400 leading-none truncate max-w-[150px]"></p>
+                    <p id="user-role" class="text-[9px] text-blue-500 uppercase font-black tracking-tighter mt-1"></p>
                 </div>
-                <button onclick="window.logout()" class="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors" title="Sair do Sistema">
+                <button onclick="window.logout()" class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Sair do Sistema">
                     <i class="fas fa-power-off text-lg"></i>
                 </button>
             </div>
             
-            <button id="btn-login-visitor" onclick="window.showTab('login')" class="hidden px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-widest rounded transition-colors">
-                Fazer Login
+            <button id="btn-login-visitor" onclick="window.showTab('login')" class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
+                Acessar Portal
             </button>
         </div>
     </header>
 
-    <main id="app-main" class="flex-grow relative overflow-hidden">
+    <main id="app-main" class="flex-grow relative overflow-hidden bg-slate-950">
         
-        <div id="inicio-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="conteudos-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="projetos-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="conexao-aluno-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="atualizacoes-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="inicio-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden"></div>
+        <div id="conteudos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="projetos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="conexao-aluno-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="atualizacoes-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         
-        <div id="aluno-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="moderador-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="professor-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
-        <div id="admin-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="aluno-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden"></div>
+        <div id="moderador-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="professor-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="admin-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 
     </main>
 

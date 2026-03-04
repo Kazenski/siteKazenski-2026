@@ -1,39 +1,36 @@
 import { auth, db } from './core/firebase.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
 import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
-// Em breve criaremos os outros:
-// import { renderAdminTechTab } from './adminTech/admin.js';
 
 // ============================================================================
-// HIERARQUIA DE PERMISSÕES (Baseado nos booleanos do Firebase)
+// HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
 // ============================================================================
 
-// Guarda o estado de permissões do usuário atual logado
 let userRoles = {
     Admin: false,
     Professor: false,
     Coordenacao: false,
     moderador: false,
     Aluno: false,
-    Visitante: true // Visitante é true por padrão se nada for satisfeito
+    Visitante: true 
 };
 
-// Aba que está atualmente aberta no navegador
 let activeTabId = 'inicio';
 
+// Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
-    // PÚBLICAS
-    { id: 'inicio', label: 'Início', showTo: (r) => true }, // Todos veem
+    { id: 'inicio', label: 'Início', showTo: (r) => true }, 
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
     { id: 'projetos', label: 'Projetos', showTo: (r) => true },
     { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
     
-    // RESTRITAS
+    // REGRAS DE OCULTAÇÃO SOLICITADAS:
+    // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
     { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador || r.Aluno },
     { id: 'moderador-tech', label: 'Moderador Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador },
     { id: 'professor-tech', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
@@ -41,7 +38,7 @@ const MENU_ARCHITECTURE = [
 ];
 
 // ============================================================================
-// GERENCIAMENTO DE AUTHENTICATION E CÁLCULO DE ROLE
+// GERENCIAMENTO DE AUTHENTICATION
 // ============================================================================
 
 onAuthStateChanged(auth, async (user) => {
@@ -51,38 +48,36 @@ onAuthStateChanged(auth, async (user) => {
     const roleEl = document.getElementById('user-role');
     const loginBtn = document.getElementById('btn-login-visitor');
 
-    // Reseta permissões
+    // Reset padrão
     userRoles = { Admin: false, Professor: false, Coordenacao: false, moderador: false, Aluno: false, Visitante: true };
     let displayRoleName = 'Visitante';
 
     if (user) {
         try {
-            // Busca o documento do usuário na coleção 'users'
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 
-                // Mapeia os campos booleanos do banco de dados para a memória local
-                userRoles.Admin = !!data.Admin;
-                userRoles.Professor = !!data.Professor;
-                userRoles.Coordenacao = !!data.Coordenacao;
-                userRoles.moderador = !!data.moderador;
-                userRoles.Aluno = !!data.Aluno;
+                // Mapeamento direto dos campos booleanos do seu Firebase
+                userRoles.Admin = data.Admin === true;
+                userRoles.Professor = data.Professor === true;
+                userRoles.Coordenacao = data.Coordenacao === true;
+                userRoles.moderador = data.moderador === true;
+                userRoles.Aluno = data.Aluno === true;
                 userRoles.Visitante = false;
 
-                // Determina qual é o nome mais alto da hierarquia para exibir na tela
-                if (userRoles.Admin) displayRoleName = 'Administrador';
+                // Define o rótulo de exibição baseado na maior autoridade
+                if (userRoles.Admin) displayRoleName = 'Admin';
                 else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
                 else if (userRoles.Professor) displayRoleName = 'Professor';
                 else if (userRoles.moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
             }
         } catch (error) {
-            console.error("Erro ao buscar perfil do usuário:", error);
+            console.error("Erro ao mapear permissões:", error);
         }
 
-        // Configura a UI para logado
         emailEl.textContent = user.email;
         roleEl.textContent = displayRoleName;
         loadingEl.classList.add('hidden');
@@ -90,34 +85,37 @@ onAuthStateChanged(auth, async (user) => {
         infoEl.classList.remove('hidden');
         infoEl.classList.add('flex');
     } else {
-        // Configura a UI para Visitante / Deslogado
         loadingEl.classList.add('hidden');
         infoEl.classList.add('hidden');
         infoEl.classList.remove('flex');
-        loginBtn.classList.remove('hidden'); // Mostra botão de login
+        loginBtn.classList.remove('hidden');
     }
 
-    // Com as roles definidas, desenhamos a barra de navegação
+    // Reconstrói o menu com as novas permissões
     buildTopMenu();
     
-    // Mostra a aba (se o visitante tentar atualizar numa aba restrita, o showTab vai bloqueá-lo)
+    // Força o carregamento da aba inicial ou da aba que estava aberta
     window.showTab(activeTabId);
 });
 
 // ============================================================================
-// CONSTRUÇÃO DO MENU SUPERIOR DINÂMICO
+// CONSTRUÇÃO DO MENU SUPERIOR
 // ============================================================================
 
 function buildTopMenu() {
     const navContainer = document.getElementById('top-nav-menu');
+    if (!navContainer) return;
     navContainer.innerHTML = '';
 
     MENU_ARCHITECTURE.forEach(item => {
-        // Verifica as permissões executando a função showTo passando os roles atuais
         if (item.showTo(userRoles)) {
             const btn = document.createElement('button');
             btn.textContent = item.label;
-            btn.className = `nav-item-btn px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${activeTabId === item.id ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'}`;
+            
+            // Estilização idêntica ao que você pediu
+            const isActive = activeTabId === item.id;
+            btn.className = `nav-item-btn px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${isActive ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
+            
             btn.onclick = () => window.showTab(item.id);
             btn.dataset.target = item.id;
             
@@ -126,81 +124,80 @@ function buildTopMenu() {
     });
 }
 
-function updateMenuStyles() {
-    document.querySelectorAll('.nav-item-btn').forEach(btn => {
-        if (btn.dataset.target === activeTabId) {
-            btn.classList.replace('border-transparent', 'border-blue-500');
-            btn.classList.replace('text-slate-400', 'text-blue-400');
-            btn.classList.add('bg-slate-800/50');
-        } else {
-            btn.classList.replace('border-blue-500', 'border-transparent');
-            btn.classList.replace('text-blue-400', 'text-slate-400');
-            btn.classList.remove('bg-slate-800/50');
-        }
-    });
-}
-
 // ============================================================================
-// ROTEADOR CENTRAL DA SPA (Troca de Páginas)
+// ROTEADOR CENTRAL (Troca de Abas)
 // ============================================================================
 
 window.showTab = function(tabId) {
-    // 1. Validação de Segurança - Garante que ninguém force a URL sem o Cargo exato
+    // Validação de Segurança
     const routeConfig = MENU_ARCHITECTURE.find(m => m.id === tabId);
     if (routeConfig && !routeConfig.showTo(userRoles)) {
-        alert("Acesso Negado: Você não possui a credencial necessária para acessar esta área.");
+        alert("Acesso Negado.");
         return window.showTab('inicio');
     }
 
-    // 2. Atualiza Estilo da Barra Superior
     activeTabId = tabId;
-    updateMenuStyles();
+    
+    // Atualiza visual dos botões do menu
+    document.querySelectorAll('.nav-item-btn').forEach(btn => {
+        const isTarget = btn.dataset.target === tabId;
+        btn.classList.toggle('border-blue-500', isTarget);
+        btn.classList.toggle('text-blue-400', isTarget);
+        btn.classList.toggle('bg-slate-800/50', isTarget);
+        btn.classList.toggle('border-transparent', !isTarget);
+        btn.classList.toggle('text-slate-400', !isTarget);
+    });
 
-    // 3. Oculta todos os painéis
+    // Gerencia visibilidade das seções
     document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
         tab.classList.remove('active');
     });
 
-    // 4. Mostra o contentor correto
     const targetContainer = document.getElementById(`${tabId}-content`);
     if (targetContainer) {
+        targetContainer.classList.remove('hidden');
         targetContainer.classList.add('active');
     }
 
-    // 5. Injeta a aplicação dentro do contentor apenas na primeira vez que for aberto (Lazy Load)
+    // GATILHOS DE RENDERIZAÇÃO
     if (tabId === 'inicio') {
-        if (targetContainer.innerHTML === '') renderInicioTab();
+        // Sempre chamamos o render para garantir que o carrossel e o background resetem
+        renderInicioTab();
     } 
     else if (tabId === 'aluno-tech') {
-        if (targetContainer.innerHTML === '') renderAlunoTechTab();
-    }
-    // As próximas serão adicionadas aqui...
-    else {
-        // Tela genérica de "Em Construção" para páginas não feitas
-        if (targetContainer) {
-            targetContainer.innerHTML = `
-                <div class="w-full h-full flex flex-col items-center justify-center text-slate-500 bg-slate-950 animate-fade-in">
-                    <i class="fas fa-hammer text-6xl mb-4 text-blue-900/50"></i>
-                    <h2 class="text-2xl font-cinzel text-slate-400 uppercase tracking-widest">Em Desenvolvimento</h2>
-                    <p class="text-sm mt-2">A página '${routeConfig?.label || tabId}' está sendo forjada.</p>
-                </div>
-            `;
+        // Se a aba estiver vazia, renderiza o perfil
+        if (targetContainer && targetContainer.innerHTML.trim() === '') {
+            renderAlunoTechTab();
         }
+    }
+    else if (tabId === 'login') {
+        renderLoginTab();
     }
 };
 
 // ============================================================================
-// FUNÇÕES GLOBAIS DE ACESSO RÁPIDO
+// LOGIN E LOGOUT
 // ============================================================================
 
+function renderLoginTab() {
+    const target = document.getElementById('app-main');
+    // Criar um modal ou aba de login caso o usuário clique em "Fazer Login"
+    // Por enquanto, usamos um prompt simples ou você pode direcionar para uma aba de login dedicada
+    const email = prompt("Email:");
+    const pass = prompt("Senha:");
+    if(email && pass) {
+        signInWithEmailAndPassword(auth, email, pass).catch(e => alert("Erro: " + e.message));
+    }
+}
+
 window.logout = async function() {
-    if (confirm("Deseja desconectar sua conta?")) {
+    if (confirm("Deseja sair?")) {
         try {
             await signOut(auth);
-            // Ao sair, o AuthState muda para Visitante, o menu é refeito, e nós voltamos pra home
             window.showTab('inicio');
         } catch (error) {
-            alert("Erro ao sair: " + error.message);
+            alert("Erro: " + error.message);
         }
     }
 };

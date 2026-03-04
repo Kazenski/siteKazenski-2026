@@ -33,6 +33,13 @@ export async function renderAlunoTechTab() {
     const container = document.getElementById('aluno-tech-content');
     if (!container) return;
 
+    // Carrega Chart.js dinamicamente se não existir
+    if (typeof Chart === 'undefined') {
+        const script = document.createElement('script');
+        script.src = "https://cdn.jsdelivr.net/npm/chart.js";
+        document.head.appendChild(script);
+    }
+
     // Estrutura HTML das 9 Sub-Abas + Perfil
     container.innerHTML = `
         <div id="loading-aluno" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-[100]">
@@ -101,15 +108,18 @@ export async function renderAlunoTechTab() {
                                 <div id="al-freq-perc" class="text-6xl font-black text-green-400">100%</div>
                                 <div id="al-freq-total" class="text-red-500 mt-4 font-bold">0 Faltas</div>
                             </div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center"><canvas id="al-chart-freq"></canvas></div>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center relative min-h-[300px]"><canvas id="al-chart-freq"></canvas></div>
                         </div>
                     </div>
 
                     <div id="atab-metricas" class="aluno-tab-content">
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800"><canvas id="al-chart-scatter"></canvas></div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
-                                <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded" onchange="window.perfilTech.updateEvolChart(this.value)"></select>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 relative min-h-[300px]">
+                                <h4 class="text-xs text-slate-400 mb-4 text-center uppercase tracking-widest">Dispersão de Notas</h4>
+                                <canvas id="al-chart-scatter"></canvas>
+                            </div>
+                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 relative min-h-[300px]">
+                                <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded border border-slate-700 w-full" onchange="window.perfilTech.updateEvolChart(this.value)"></select>
                                 <canvas id="al-chart-evol"></canvas>
                             </div>
                         </div>
@@ -163,7 +173,7 @@ export async function renderAlunoTechTab() {
 
                     <div id="atab-calendario" class="aluno-tab-content">
                         <div class="calendar-controls flex justify-between items-center mb-6">
-                            <div class="flex items-center gap-4"><button onclick="window.perfilTech.changeCalMonth(-1)">&lt;</button><span id="al-cal-month" class="font-bold text-white uppercase font-cinzel">---</span><button onclick="window.perfilTech.changeCalMonth(1)">&gt;</button></div>
+                            <div class="flex items-center gap-4"><button onclick="window.perfilTech.changeCalMonth(-1)" class="p-2 bg-slate-800 rounded">&lt;</button><span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg">---</span><button onclick="window.perfilTech.changeCalMonth(1)" class="p-2 bg-slate-800 rounded">&gt;</button></div>
                             <button id="al-btn-add-evt" class="hidden bg-green-600 text-white px-4 py-2 rounded text-xs font-bold" onclick="window.perfilTech.openCalModal()">+ EVENTO</button>
                         </div>
                         <div id="al-cal-grid" class="calendar-grid"></div>
@@ -173,19 +183,22 @@ export async function renderAlunoTechTab() {
             </div>
         </div>
 
-        <div id="al-modal-cal" class="cal-modal">
+        <div id="al-modal-cal" class="cal-modal" style="display: none;">
             <div class="cal-modal-content">
                 <span class="cal-close" onclick="window.perfilTech.closeCalModal()">&times;</span>
-                <h3 class="text-blue-500 font-cinzel font-bold mb-4">Novo Evento</h3>
+                <h3 class="text-blue-500 font-cinzel font-bold mb-4">Evento</h3>
                 <input type="text" id="al-ev-title" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Título">
                 <input type="date" id="al-ev-date" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3">
                 <textarea id="al-ev-desc" rows="3" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Descrição"></textarea>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800"><button id="al-btn-del-ev" onclick="window.perfilTech.deleteCalendarEvent()" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button><button onclick="window.perfilTech.saveCalendarEvent()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button></div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button id="al-btn-del-ev" onclick="window.perfilTech.deleteCalendarEvent()" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button>
+                    <button onclick="window.perfilTech.saveCalendarEvent()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button>
+                </div>
+                <input type="hidden" id="al-ev-id">
             </div>
         </div>
     `;
 
-    // --- MAPEAMENTO E INICIALIZAÇÃO ---
     mapearDOM();
 
     if (auth.currentUser) {
@@ -208,8 +221,6 @@ function mapearDOM() {
         bgCover: document.getElementById('al-bg-cover'),
         badgeTitle: document.getElementById('al-badge-title'),
         selTitle: document.getElementById('al-title-select'),
-        statPosts: document.getElementById('al-stat-posts'),
-        statXp: document.getElementById('al-stat-xp'),
         avisosList: document.getElementById('al-avisos-list'),
         boletimBody: document.getElementById('al-boletim-body'),
         noteTags: document.getElementById('al-note-tags'),
@@ -240,7 +251,7 @@ async function initDashboard(user) {
     renderBanner();
     await loadDisciplinesMap();
     loadAvisos();
-    loadBoletimAndMetrics();
+    await loadBoletimAndMetrics();
     loadFrequencia();
     initNotebookSystem();
     initKanbanSystem();
@@ -260,7 +271,11 @@ window.perfilTech = {
 
         document.querySelectorAll('.aluno-tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`atab-${id}`).classList.add('active');
-        if(id==='metricas'||id==='frequencia') window.dispatchEvent(new Event('resize'));
+        
+        // Força atualização dos gráficos quando a aba fica visível
+        if(id==='metricas' || id==='frequencia') {
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        }
     },
 
     toggleTitleSelect: () => {
@@ -313,25 +328,75 @@ window.perfilTech = {
         await updateDoc(doc(db, "kanban_atividades", id), { status, updatedAt: serverTimestamp() });
     },
 
-    // Calendário
+    updateEvolChart: (val) => renderEvolutionChart(val),
+
+    // Calendário - COMPLETO
     openCalModal: (ev=null, dt=null) => {
         document.getElementById('al-modal-cal').style.display='flex';
-        if(ev) { document.getElementById('al-ev-id').value=ev.id; document.getElementById('al-ev-title').value=ev.titulo; document.getElementById('al-ev-date').value=ev.dataInicio?.toDate().toISOString().split('T')[0]; }
+        if(ev) { 
+            document.getElementById('al-ev-id').value = ev.id; 
+            document.getElementById('al-ev-title').value = ev.titulo; 
+            document.getElementById('al-ev-date').value = ev.dataInicio?.toDate().toISOString().split('T')[0]; 
+            document.getElementById('al-ev-desc').value = ev.descricao || '';
+            document.getElementById('al-btn-del-ev').classList.remove('hidden');
+        } else {
+            document.getElementById('al-ev-id').value = ''; 
+            document.getElementById('al-ev-title').value = ''; 
+            document.getElementById('al-ev-date').value = dt || new Date().toISOString().split('T')[0];
+            document.getElementById('al-ev-desc').value = '';
+            document.getElementById('al-btn-del-ev').classList.add('hidden');
+        }
     },
     closeCalModal: () => document.getElementById('al-modal-cal').style.display='none',
     changeCalMonth: (dir) => { calDate.setMonth(calDate.getMonth() + dir); fetchCalendarEvents(); },
     switchCalView: (v) => { calView = v; window.renderCalendarGrid(); },
-    saveCalendarEvent: async () => { /* Logic */ },
-    deleteCalendarEvent: async () => { /* Logic */ }
+    saveCalendarEvent: async () => { 
+        const title = document.getElementById('al-ev-title').value;
+        const dateVal = document.getElementById('al-ev-date').value;
+        const desc = document.getElementById('al-ev-desc').value;
+        
+        if(!title || !dateVal) return alert("Título e Data são obrigatórios");
+        const [y, m, d] = dateVal.split('-').map(Number);
+        const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+
+        const payload = {
+            titulo: title,
+            dataInicio: Timestamp.fromDate(dateObj),
+            descricao: desc,
+            visibilidade: 'todos',
+            instrutorUID: currentUser.uid,
+            updatedAt: serverTimestamp()
+        };
+
+        const id = document.getElementById('al-ev-id').value;
+        if(id) await updateDoc(doc(db, "calendarioAnual", id), payload); 
+        else { payload.createdAt = serverTimestamp(); await addDoc(collection(db, "calendarioAnual"), payload); }
+        
+        window.perfilTech.closeCalModal(); 
+        fetchCalendarEvents();
+    },
+    deleteCalendarEvent: async () => { 
+        const id = document.getElementById('al-ev-id').value;
+        if(id && confirm("Excluir evento?")) {
+            await deleteDoc(doc(db, "calendarioAnual", id));
+            window.perfilTech.closeCalModal(); 
+            fetchCalendarEvents();
+        }
+    }
 };
 
 // ============================================================================
-// LOGICAS AUXILIARES (BOLETIM, FREQUENCIA, HORARIO)
+// LOGICAS AUXILIARES 
 // ============================================================================
 
 async function loadDisciplinesMap() {
     const snap = await getDocs(collection(db, "disciplinasCadastradas"));
-    snap.forEach(d => { const dt = d.data(); disciplineMap[dt.identificador] = dt.nomeExibicao; els.selEvol.add(new Option(dt.nomeExibicao, dt.identificador)); });
+    els.selEvol.innerHTML = '<option value="">Geral</option>';
+    snap.forEach(d => { 
+        const dt = d.data(); 
+        disciplineMap[dt.identificador] = dt.nomeExibicao; 
+        els.selEvol.add(new Option(dt.nomeExibicao, dt.identificador)); 
+    });
 }
 
 async function loadAvisos() {
@@ -344,8 +409,16 @@ async function loadBoletimAndMetrics() {
     const snap = await getDoc(doc(db, "notas", currentUser.uid));
     if(!snap.exists()) { els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Sem notas.</td></tr>'; return; }
     studentGradesData = snap.data().disciplinasComNotas || {};
-    els.boletimBody.innerHTML = Object.entries(studentGradesData).map(([id, tr]) => `<tr><td class="font-bold text-white text-xs p-3">${disciplineMap[id]||id}</td><td>${tr['1']?.nota1||'-'}</td><td>${tr['1']?.nota2||'-'}</td><td>${tr['1']?.nota3||'-'}</td><td>${tr['1']?.nota4||'-'}</td><td>${tr['2']?.nota1||'-'}</td><td>${tr['2']?.nota2||'-'}</td><td>${tr['2']?.nota3||'-'}</td><td>${tr['2']?.nota4||'-'}</td><td>${tr['3']?.nota1||'-'}</td><td>${tr['3']?.nota2||'-'}</td><td>${tr['3']?.nota3||'-'}</td><td>${tr['3']?.nota4||'-'}</td><td class="media-final-col">---</td></tr>`).join('');
-    renderCharts();
+    
+    let html = '';
+    for(const [id, tr] of Object.entries(studentGradesData)) {
+        html += `<tr><td class="font-bold text-white text-xs p-3">${disciplineMap[id]||id}</td><td>${tr['1']?.nota1||'-'}</td><td>${tr['1']?.nota2||'-'}</td><td>${tr['1']?.nota3||'-'}</td><td>${tr['1']?.nota4||'-'}</td><td>${tr['2']?.nota1||'-'}</td><td>${tr['2']?.nota2||'-'}</td><td>${tr['2']?.nota3||'-'}</td><td>${tr['2']?.nota4||'-'}</td><td>${tr['3']?.nota1||'-'}</td><td>${tr['3']?.nota2||'-'}</td><td>${tr['3']?.nota3||'-'}</td><td>${tr['3']?.nota4||'-'}</td><td class="media-final-col text-blue-500 font-bold">---</td></tr>`;
+    }
+    els.boletimBody.innerHTML = html;
+    
+    // Inicia os gráficos
+    renderScatterChart();
+    renderEvolutionChart();
 }
 
 async function loadFrequencia() {
@@ -354,8 +427,55 @@ async function loadFrequencia() {
     const snap = await getDocs(q);
     let p=0, f=0;
     snap.forEach(d => { const reg = d.data().registros || {}; if(reg[currentUser.uid]==='presente') p++; else if(reg[currentUser.uid]==='ausente') f++; });
-    const perc = (p+f) > 0 ? Math.round((p/(p+f))*100) : 100;
+    const total = p+f;
+    const perc = total > 0 ? Math.round((p/total)*100) : 100;
     els.freqPerc.textContent = `${perc}%`;
+    els.freqTotal.textContent = `${f} Faltas`;
+
+    // Gráfico de Frequência
+    if(chartInstances['freq']) chartInstances['freq'].destroy();
+    const ctx = document.getElementById('al-chart-freq').getContext('2d');
+    chartInstances['freq'] = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels: ['Presente', 'Faltas'], datasets: [{ data: [p, f], backgroundColor: ['#4ade80', '#ef4444'], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#cbd5e1' } } } }
+    });
+}
+
+function renderScatterChart() {
+    if(!studentGradesData) return;
+    const pts = [];
+    Object.entries(studentGradesData).forEach(([dId, tr]) => {
+        ['1','2','3'].forEach(t => ['nota1','nota2','nota3','nota4'].forEach((k,i) => {
+            const v = parseFloat((tr[t]||{})[k]);
+            if(!isNaN(v)) pts.push({x: Math.random()*10, y: v, label: `${disciplineMap[dId]||dId} (T${t}-N${i+1})`});
+        }));
+    });
+    const ctx = document.getElementById('al-chart-scatter').getContext('2d');
+    if(chartInstances['scatter']) chartInstances['scatter'].destroy();
+    chartInstances['scatter'] = new Chart(ctx, {
+        type: 'scatter', data: { datasets: [{ label: 'Notas', data: pts, backgroundColor: c=>c.raw?.y>=6?'#4ade80':'#ef4444', pointRadius: 5 }] },
+        options: { responsive:true, maintainAspectRatio:false, scales:{x:{display:false}, y:{min:0,max:10,grid:{color:'#334155'}}}, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>`${c.raw.label}: ${c.raw.y}`}}} }
+    });
+}
+
+function renderEvolutionChart(discId = "") {
+    if(!studentGradesData) return;
+    let dVals = [];
+    if(discId) {
+        const tr = studentGradesData[discId]||{};
+        ['1','2','3'].forEach(t => ['nota1','nota2','nota3','nota4'].forEach(k => { const v=parseFloat((tr[t]||{})[k]); dVals.push(isNaN(v)?null:v); }));
+    } else {
+        const s = Array(12).fill(0), c = Array(12).fill(0);
+        Object.values(studentGradesData).forEach(tr => { let idx=0; ['1','2','3'].forEach(t => ['nota1','nota2','nota3','nota4'].forEach(k => { const v=parseFloat((tr[t]||{})[k]); if(!isNaN(v)){s[idx]+=v; c[idx]++;} idx++; })); });
+        dVals = s.map((sm,i)=>c[i]?(sm/c[i]):null);
+    }
+    const ctx = document.getElementById('al-chart-evol').getContext('2d');
+    if(chartInstances['evol']) chartInstances['evol'].destroy();
+    chartInstances['evol'] = new Chart(ctx, {
+        type: 'line', data: { labels: ['T1N1','T1N2','T1N3','T1N4','T2N1','T2N2','T2N3','T2N4','T3N1','T3N2','T3N3','T3N4'], datasets: [{ label: discId?(disciplineMap[discId]||discId):'Média', data: dVals, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', fill: true, tension: 0.4 }] },
+        options: { responsive:true, maintainAspectRatio:false, scales:{y:{beginAtZero:true,max:10,grid:{color:'#334155'}},x:{grid:{color:'#334155'}}} }
+    });
 }
 
 function initNotebookSystem() {
@@ -419,13 +539,11 @@ window.renderCalendarGrid = () => {
     grid.innerHTML = '';
     const lastDay = new Date(calDate.getFullYear(), calDate.getMonth()+1, 0).getDate();
     for(let i=1; i<=lastDay; i++){
-        const cell = document.createElement('div'); cell.className = 'day-cell bg-slate-900 border border-slate-800 h-24 p-2';
-        cell.innerHTML = `<span class="day-number text-slate-600 font-bold text-xs">${i}</span>`;
+        const cell = document.createElement('div'); cell.className = 'day-cell bg-slate-900 border border-slate-800 h-24 p-2 relative';
+        cell.innerHTML = `<span class="day-number text-slate-600 font-bold text-xs absolute top-2 right-2">${i}</span>`;
         grid.appendChild(cell);
     }
 };
-
-function renderCharts() { /* Inicializa Chart.js Scatter e Evolução */ }
 
 async function renderBanner() {
     els.txtName.textContent = currentUser.nome || 'Membro';
@@ -444,11 +562,4 @@ async function uploadImage(file, type) {
     currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
     renderBanner();
     els.loading.classList.add('hidden');
-}
-
-async function loadUserStats() {
-    const q = query(collection(db, 'posts'), where("autorUID", "==", currentUser.uid));
-    const snap = await getDocs(q);
-    els.statPosts.textContent = snap.size;
-    els.statXp.textContent = currentUser.xp || 0;
 }
