@@ -30,18 +30,41 @@
 </head>
 <body class="bg-slate-950 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center px-6 shrink-0 z-50 shadow-lg">
-        <div class="flex items-center gap-3">
+    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-lg">
+        
+        <div class="flex items-center gap-3 shrink-0 cursor-pointer" onclick="window.showTab('inicio')">
             <i class="fas fa-code text-blue-500 text-xl"></i>
-            <h1 class="font-cinzel font-bold text-xl text-blue-400 tracking-widest uppercase">Kazenski</h1>
+            <h1 class="font-cinzel font-bold text-xl text-blue-400 tracking-widest uppercase hidden md:block">Kazenski</h1>
         </div>
-        <nav class="ml-auto flex gap-4">
-            <button onclick="window.showTab('inicio')" class="text-sm font-bold text-blue-500 uppercase tracking-widest hover:text-blue-300 transition">Início</button>
+
+        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-2 overflow-x-auto custom-scroll mx-4 mask-edges px-4">
             </nav>
+
+        <div id="user-area" class="shrink-0 flex items-center gap-4">
+            <div id="user-loading" class="text-blue-500"><i class="fas fa-spinner fa-spin"></i></div>
+            <div id="user-info" class="hidden items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p id="user-email" class="text-xs font-bold text-slate-200 leading-none"></p>
+                    <p id="user-role" class="text-[10px] text-blue-400 uppercase tracking-widest"></p>
+                </div>
+                <button onclick="window.logout()" class="p-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors" title="Sair">
+                    <i class="fas fa-power-off text-lg"></i>
+                </button>
+            </div>
+            </div>
     </header>
 
     <main id="app-main" class="flex-grow relative overflow-hidden">
         <div id="inicio-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="conteudos-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="projetos-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="conexao-aluno-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="atualizacoes-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        
+        <div id="aluno-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="moderador-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="professor-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
+        <div id="admin-tech-content" class="tab-content h-full w-full flex flex-col absolute inset-0"></div>
     </main>
 
     <script type="module" src="js/main.js"></script>
