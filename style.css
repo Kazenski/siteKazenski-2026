@@ -230,66 +230,66 @@
 .day-cell.today { background: rgba(59, 130, 246, 0.1); box-shadow: inset 0 0 10px rgba(59, 1
 
 
-/* Ajuste específico para as abas internas ficarem acima do banner */
+/* ============================================================== */
+/* ESTILOS DO MENU E BANNER DO ALUNO TECH                         */
+/* ============================================================== */
+
+/* Removemos o overflow: hidden para a foto de perfil não ser cortada */
+.banner-wrapper { 
+    position: relative; 
+    width: 100%; 
+    height: 320px; 
+    margin-bottom: 0px; 
+}
+
+/* Novo layout bonito para o menu (Abaixo do banner) */
 .aluno-tabs-nav {
     display: flex;
-    gap: 8px;
-    padding: 1rem;
-    background: #0f172a;
-    border-bottom: 1px solid #1e3a8a;
-    justify-content: center;
+    gap: 12px;
+    padding: 15px 20px;
+    background: rgba(2, 6, 23, 0.90); /* Fundo escuro transparente */
+    backdrop-filter: blur(10px); /* Efeito de vidro */
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    justify-content: flex-start;
     overflow-x: auto;
     white-space: nowrap;
+    /* Faz o menu grudar no topo quando rolar a tela */
+    position: sticky;
+    top: 0;
+    z-index: 50;
 }
 
+/* Centraliza os botões em telas grandes */
+@media (min-width: 1024px) {
+    .aluno-tabs-nav { justify-content: center; }
+}
+
+/* Design dos Botões (Estilo Pill / Gamer) */
 .aluno-tab-btn {
-    background: transparent;
-    border: none;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(51, 65, 85, 0.8);
     color: #94a3b8;
-    padding: 8px 16px;
+    padding: 10px 24px;
     font-size: 0.85rem;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
-    border-radius: 6px;
-    transition: 0.3s;
+    border-radius: 50px; /* Deixa arredondado */
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-.aluno-tab-btn:hover { background: rgba(59, 130, 246, 0.1); color: #f1f5f9; }
-.aluno-tab-btn.active { background: #3b82f6; color: #fff; box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
-
-/* Banner ocupando a largura total disponível */
-.banner-wrapper {
-    position: relative;
-    width: 100%;
-    height: 320px;
-    border-radius: 0 0 20px 20px;
-    overflow: hidden;
-    margin-bottom: 30px;
-}    
-
-/* ARQUIVO: style.css */
-
-/* Garantir que o hidden do Tailwind funcione e que o loading saia da frente */
-.hidden { display: none !important; }
-
-/* Modal do Calendário */
-.cal-modal {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.85); 
-    z-index: 1000; display: none; align-items: center; justify-content: center;
-    backdrop-filter: blur(5px);
+.aluno-tab-btn:hover {
+    background: rgba(51, 65, 85, 0.9);
+    color: #f1f5f9;
 }
-.cal-modal-content {
-    background: #1e293b; padding: 2rem; border-radius: 1rem;
-    width: 90%; max-width: 500px; border: 1px solid #334155;
-    position: relative;
+
+.aluno-tab-btn.active {
+    background: #3b82f6; /* Azul destaque */
+    color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); /* Brilho neon */
 }
-.cal-close { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: #94a3b8; }
-
-/* Grid do Calendário */
-.calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid #334155; background: #0f172a; }
-.day-cell { min-height: 100px; padding: 10px; border: 1px solid #1e293b; position: relative; }
-.day-cell.today { background: rgba(59, 130, 246, 0.1); }
-.day-number { font-size: 0.8rem; font-weight: bold; color: #475569; }
-.event-item { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 2px; cursor: pointer; color: white; }
-
-/* ... (Mantenha os estilos de banner e card enviados anteriormente) ... */
