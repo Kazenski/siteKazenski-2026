@@ -266,3 +266,30 @@
     overflow: hidden;
     margin-bottom: 30px;
 }    
+
+/* ARQUIVO: style.css */
+
+/* Garantir que o hidden do Tailwind funcione e que o loading saia da frente */
+.hidden { display: none !important; }
+
+/* Modal do Calendário */
+.cal-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85); 
+    z-index: 1000; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(5px);
+}
+.cal-modal-content {
+    background: #1e293b; padding: 2rem; border-radius: 1rem;
+    width: 90%; max-width: 500px; border: 1px solid #334155;
+    position: relative;
+}
+.cal-close { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: #94a3b8; }
+
+/* Grid do Calendário */
+.calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid #334155; background: #0f172a; }
+.day-cell { min-height: 100px; padding: 10px; border: 1px solid #1e293b; position: relative; }
+.day-cell.today { background: rgba(59, 130, 246, 0.1); }
+.day-number { font-size: 0.8rem; font-weight: bold; color: #475569; }
+.event-item { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 2px; cursor: pointer; color: white; }
+
+/* ... (Mantenha os estilos de banner e card enviados anteriormente) ... */
