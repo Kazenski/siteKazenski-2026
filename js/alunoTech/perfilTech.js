@@ -23,6 +23,7 @@ let currentTagFilter = 'all';
 let currentPage = 1;
 const itemsPerPage = 12;
 const noteColors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#eab308', '#64748b'];
+let usersCacheForShare = [];
 let selectedNoteColor = noteColors[0];
 let formIsPinned = false;
 let draggedTask = null;
@@ -179,8 +180,8 @@ function setupEventListeners() {
     document.getElementById('btn-note-save')?.addEventListener('click', saveNote);
     document.getElementById('btn-note-delete')?.addEventListener('click', deleteActiveNote);
     document.getElementById('btn-note-pin')?.addEventListener('click', toggleActiveNotePin);
-    document.getElementById('btn-note-share')?.addEventListener('click', shareActiveNote);
-    
+    document.getElementById('btn-note-share')?.addEventListener('click', window.openShareModal);
+
     // Seletor nativo de cor
     els.noteColorPicker?.addEventListener('input', (e) => { selectedNoteColor = e.target.value; });
 
@@ -691,6 +692,9 @@ let activeNoteId = null;
 function initNotebookSystem() {
     if(notesUnsubscribe) return; 
 
+    // Renderiza as 10 bolinhas de cor
+    renderColorPicker();
+
     const q = query(collection(db, "anotacoes_pessoais"), where("userId", "==", currentUser.uid));
 
     notesUnsubscribe = onSnapshot(q, (snapshot) => {
@@ -917,7 +921,121 @@ function showActiveNoteState() {
     els.noteActiveState.classList.remove('opacity-0', 'pointer-events-none');
 }
 
+// --- LÓGICA DE CORES FIXAS ---
+function renderColorPicker() {
+    const container = document.getElementById('al-note-colors');
+    if(!container) return;
+    container.innerHTML = noteColors.map(c => `
+        <button onclick="window.selectColor('${c}')" class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center shadow-md ${selectedNoteColor === c ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.6)]' : 'border-transparent'}" style="background-color: ${c}">
+            ${selectedNoteColor === c ? '<i class="fas fa-check text-[10px] text-white drop-shadow-md"></i>' : ''}
+        </button>
+    `).join('');
+}
 
+window.selectColor = (c) => {
+    selectedNoteColor = c;
+    renderColorPicker();
+    // Atualiza a borda do painel direito em tempo real
+    els.noteActiveState.style.borderTop = `4px solid ${c}`;
+};
+
+// --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS) ---
+window.openShareModal = async () => {
+    const noteId = els.noteActiveId.value;
+    if(!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
+    
+    document.getElementById('al-modal-share').classList.remove('hidden');
+    const resultsContainer = document.getElementById('al-share-results');
+    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Buscando rede de alunos...</div>';
+    
+    if(usersCacheForShare.length === 0) {
+        try {
+            const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
+            let usersQuery;
+            
+            // Admin/Prof = Todos os alunos. Aluno = Somente alunos da mesma turma.
+            if(isStaff) {
+                usersQuery = query(collection(db, "users"), where("Aluno", "==", true));
+            } else {
+                if(!currentUser.turma) throw new Error("Você não possui uma turma vinculada.");
+                usersQuery = query(collection(db, "users"), where("turma", "==", currentUser.turma));
+            }
+            
+            const snap = await getDocs(usersQuery);
+            usersCacheForShare = snap.docs.map(d => ({uid: d.id, ...d.data()})).filter(u => u.uid !== currentUser.uid);
+        } catch(e) {
+            resultsContainer.innerHTML = `<div class="text-red-400 text-center py-4 font-bold"><i class="fas fa-exclamation-triangle"></i> ${e.message}</div>`;
+            return;
+        }
+    }
+    
+    window.renderShareResults('');
+};
+
+window.closeShareModal = () => {
+    document.getElementById('al-modal-share').classList.add('hidden');
+    document.getElementById('al-share-search').value = '';
+};
+
+// Listener para a barra de pesquisa
+document.getElementById('al-share-search')?.addEventListener('input', (e) => window.renderShareResults(e.target.value));
+
+window.renderShareResults = (searchTerm) => {
+    const container = document.getElementById('al-share-results');
+    const term = searchTerm.toLowerCase();
+    const filtered = usersCacheForShare.filter(u => (u.nome || '').toLowerCase().includes(term));
+    
+    if(filtered.length === 0) {
+        container.innerHTML = '<div class="text-slate-500 text-center py-4 text-sm italic">Nenhum aluno encontrado.</div>';
+        return;
+    }
+    
+    const activeNote = myNotes.find(n => n.id === els.noteActiveId.value);
+    const sharedList = activeNote?.sharedWithUserIds || [];
+    
+    container.innerHTML = filtered.map(u => {
+        const isShared = sharedList.includes(u.uid);
+        const pic = u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=1e293b&color=3b82f6`;
+        
+        return `
+            <div class="flex items-center justify-between bg-slate-950 p-3 rounded-xl border ${isShared ? 'border-blue-500/50' : 'border-slate-800'} transition-colors">
+                <div class="flex items-center gap-3">
+                    <img src="${pic}" class="w-8 h-8 rounded-full border border-slate-700 object-cover">
+                    <div>
+                        <div class="text-white text-xs font-bold">${escapeHTML(u.nome)}</div>
+                        <div class="text-slate-500 text-[10px]"><i class="fas fa-users text-blue-500"></i> ${u.turma || 'Sem turma'}</div>
+                    </div>
+                </div>
+                <button onclick="window.toggleShareNote('${u.uid}')" class="${isShared ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30' : 'bg-slate-800 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white'} px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors w-24 text-center">
+                    ${isShared ? 'Remover' : 'Enviar'}
+                </button>
+            </div>
+        `;
+    }).join('');
+};
+
+window.toggleShareNote = async (targetUid) => {
+    const noteId = els.noteActiveId.value;
+    const note = myNotes.find(n => n.id === noteId);
+    if(!note) return;
+    
+    let sharedList = [...(note.sharedWithUserIds || [])]; // Copia o array
+    
+    if(sharedList.includes(targetUid)) {
+        sharedList = sharedList.filter(id => id !== targetUid);
+    } else {
+        sharedList.push(targetUid);
+    }
+    
+    try {
+        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { sharedWithUserIds: sharedList });
+        // O onSnapshot do banco vai atualizar a interface automaticamente, mas para o visual ser instantâneo:
+        note.sharedWithUserIds = sharedList; 
+        window.renderShareResults(document.getElementById('al-share-search').value);
+    } catch(e) {
+        alert("Erro de permissão: " + e.message);
+    }
+};
 
 
 
