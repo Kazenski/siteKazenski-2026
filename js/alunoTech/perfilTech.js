@@ -98,28 +98,35 @@ function mapearDOM() {
         bgCover: document.getElementById('al-bg-cover'),
         badgeTitle: document.getElementById('al-badge-title'),
         selTitle: document.getElementById('al-title-select'),
-        
-        // Novos inputs de arquivos
         inpCover: document.getElementById('al-file-cover'),
         inpProfile: document.getElementById('al-file-profile'),
         inpColor: document.getElementById('al-input-color'),
-        
         avisosList: document.getElementById('al-avisos-list'),
         boletimBody: document.getElementById('al-boletim-body'),
-        noteTags: document.getElementById('al-note-tags'),
-        noteSearch: document.getElementById('al-note-search'),
-        noteGrid: document.getElementById('al-notes-grid'),
-        noteForm: document.getElementById('al-note-form'),
-        noteTitle: document.getElementById('al-note-title'),
-        noteBody: document.getElementById('al-note-body'),
-        noteTagsInp: document.getElementById('al-note-tags-inp'),
-        colTodo: document.getElementById('al-col-todo'),
-        colDoing: document.getElementById('al-col-doing'),
-        colDone: document.getElementById('al-col-done'),
         freqPerc: document.getElementById('al-freq-perc'),
         freqTotal: document.getElementById('al-freq-total'),
         horarioMsg: document.getElementById('al-horario-msg'),
-        selEvol: document.getElementById('al-sel-evol')
+        selEvol: document.getElementById('al-sel-evol'),
+
+        // --- NOVOS IDS DO CADERNO DIGITAL (3 COLUNAS) ---
+        noteTags: document.getElementById('al-notebook-tags'),
+        noteTagsMobile: document.getElementById('al-notebook-tags-mobile'),
+        noteSearch: document.getElementById('al-note-search'),
+        noteList: document.getElementById('al-notes-list'),
+        
+        noteEmptyState: document.getElementById('al-note-empty-state'),
+        noteActiveState: document.getElementById('al-note-active-state'),
+        
+        noteActiveId: document.getElementById('al-note-active-id'),
+        noteActiveTitle: document.getElementById('al-note-active-title'),
+        noteActiveTags: document.getElementById('al-note-active-tags'),
+        noteActiveBody: document.getElementById('al-note-active-body'),
+        noteColorPicker: document.getElementById('al-note-color-picker'),
+
+        // --- IDS DO KANBAN ---
+        colTodo: document.getElementById('al-col-todo'),
+        colDoing: document.getElementById('al-col-doing'),
+        colDone: document.getElementById('al-col-done')
     };
 }
 
@@ -168,8 +175,14 @@ function setupEventListeners() {
     els.inpColor?.addEventListener('change', (e) => saveBorderColor(e.target.value));
 
     // Eventos do Caderno Digital
-    document.getElementById('btn-toggle-note-form')?.addEventListener('click', toggleNoteForm);
-    document.getElementById('btn-save-note')?.addEventListener('click', saveNote);
+    document.getElementById('btn-new-note')?.addEventListener('click', createNewNote);
+    document.getElementById('btn-note-save')?.addEventListener('click', saveNote);
+    document.getElementById('btn-note-delete')?.addEventListener('click', deleteActiveNote);
+    document.getElementById('btn-note-pin')?.addEventListener('click', toggleActiveNotePin);
+    document.getElementById('btn-note-share')?.addEventListener('click', shareActiveNote);
+    
+    // Seletor nativo de cor
+    els.noteColorPicker?.addEventListener('input', (e) => { selectedNoteColor = e.target.value; });
 
     // Eventos do Kanban
     document.getElementById('btn-toggle-kanban-form')?.addEventListener('click', toggleKanbanForm);
@@ -212,39 +225,6 @@ async function saveBorderColor(val) {
 
 function handleUpload(input, type) { 
     if(input.files[0]) uploadImage(input.files[0], type); 
-}
-
-// --- LÓGICA DO CADERNO ---
-function toggleNoteForm() { els.noteForm.classList.toggle('hidden'); }
-
-async function saveNote() {
-    const titulo = els.noteTitle.value.trim();
-    const conteudo = els.noteBody.value.trim();
-    if(!titulo && !conteudo) return alert("Escreva algo na anotação!");
-
-    const payload = { 
-        titulo: titulo, 
-        conteudo: conteudo, 
-        userId: currentUser.uid, 
-        color: selectedNoteColor, 
-        favorita: formIsPinned, 
-        updatedAt: serverTimestamp(), 
-        tags: els.noteTagsInp.value.split(',').map(t => t.trim()).filter(t => t) 
-    };
-    
-    const id = document.getElementById('al-note-id').value;
-    
-    if(id) {
-        await updateDoc(doc(db, "anotacoes_pessoais", id), payload); 
-    } else {
-        payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, "anotacoes_pessoais"), payload);
-    }
-    
-    toggleNoteForm();
-    els.noteTitle.value = '';
-    els.noteBody.value = '';
-    document.getElementById('al-note-id').value = '';
 }
 
 // Funções globais apenas para os botões gerados dinamicamente via innerHTML
@@ -702,58 +682,246 @@ function renderEvolutionChart(discId = "") {
     });
 }
 
+// ============================================================================
+// LÓGICA DO CADERNO DIGITAL (LAYOUT 3 COLUNAS)
+// ============================================================================
+
+let activeNoteId = null;
+
 function initNotebookSystem() {
-    const q = query(collection(db, "anotacoes_pessoais"), where("userId", "==", currentUser.uid), orderBy("updatedAt", "desc"));
-    notesUnsubscribe = onSnapshot(q, snap => {
-        myNotes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if(notesUnsubscribe) return; 
+
+    const q = query(collection(db, "anotacoes_pessoais"), where("userId", "==", currentUser.uid));
+
+    notesUnsubscribe = onSnapshot(q, (snapshot) => {
+        myNotes = [];
+        snapshot.forEach(doc => { myNotes.push({ id: doc.id, ...doc.data() }); });
+        
+        // Ordena da mais nova para a mais antiga (Evita erro de índice composto)
+        myNotes.sort((a, b) => {
+            const timeA = a.updatedAt && a.updatedAt.toMillis ? a.updatedAt.toMillis() : Date.now();
+            const timeB = b.updatedAt && b.updatedAt.toMillis ? b.updatedAt.toMillis() : Date.now();
+            return timeB - timeA;
+        });
+        
+        updateTagFilters();
         renderNotes();
+        
+        // Se não houver nenhuma nota sendo lida no painel direito, mostra o "Estado Vazio"
+        if(!activeNoteId) showEmptyNoteState();
     });
-    document.getElementById('al-color-picker').innerHTML = noteColors.map(c => `<div class="color-option" style="background-color:${c}; width:20px; height:20px; border-radius:50%; cursor:pointer;" onclick="window.perfilTech.selectColor('${c}')"></div>`).join('');
+
+    // Filtro de pesquisa digitado pelo aluno
+    els.noteSearch?.addEventListener('input', () => { renderNotes(); });
 }
 
-function renderNotes() {
-    const search = els.noteSearch.value.toLowerCase();
-    const filtered = myNotes.filter(n => (n.titulo||'').toLowerCase().includes(search) || (n.conteudo||'').toLowerCase().includes(search));
+// 1. Ao clicar em "+" Nova Anotação
+function createNewNote() {
+    activeNoteId = null;
+    formIsPinned = false;
+    selectedNoteColor = '#3b82f6';
     
-    // RESTAURAÇÃO DA PAGINAÇÃO
-    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
-    if(currentPage > totalPages) currentPage = totalPages;
-    const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    els.noteActiveId.value = '';
+    els.noteActiveTitle.value = '';
+    els.noteActiveBody.value = '';
+    els.noteActiveTags.value = '';
+    els.noteColorPicker.value = selectedNoteColor;
+    
+    updatePinIconVisuals();
+    showActiveNoteState();
+    
+    // Remove destaques da lista da coluna 2
+    document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
+    els.noteActiveTitle.focus();
+}
+
+// 2. Ao clicar numa anotação da lista (Coluna 2)
+window.selectNote = (id) => {
+    const n = myNotes.find(x => x.id === id);
+    if(!n) return;
+    
+    activeNoteId = n.id;
+    formIsPinned = !!n.favorita;
+    selectedNoteColor = n.color || '#3b82f6';
+    
+    // Preenche o painel da direita para edição imediata
+    els.noteActiveId.value = n.id;
+    els.noteActiveTitle.value = n.titulo;
+    els.noteActiveBody.value = n.conteudo;
+    els.noteActiveTags.value = (n.tags || []).join(', ');
+    els.noteColorPicker.value = selectedNoteColor;
+    
+    updatePinIconVisuals();
+    showActiveNoteState();
+    
+    // Coloca a bordinha azul na nota selecionada da lista
+    document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
+    document.getElementById(`note-item-${id}`)?.classList.add('ring-2', 'ring-blue-500');
+};
+
+// 3. Renderiza a Lista (Coluna 2)
+function renderNotes() {
+    if(!els.noteList) return;
+    
+    const search = els.noteSearch.value.toLowerCase();
+    const filtered = myNotes.filter(n => {
+        const textMatch = (n.titulo||'').toLowerCase().includes(search) || (n.conteudo||'').toLowerCase().includes(search);
+        const tagMatch = currentTagFilter === 'all' || (n.tags && n.tags.includes(currentTagFilter));
+        return textMatch && tagMatch;
+    });
+    
+    // Favoritas sempre no topo
+    filtered.sort((a,b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
 
     if(filtered.length === 0) {
-        els.noteGrid.innerHTML = '<div class="col-span-full text-center text-slate-500 py-10">Nenhuma anotação encontrada.</div>';
-        document.getElementById('notes-pagination').classList.add('hidden');
+        els.noteList.innerHTML = '<div class="text-center text-slate-500 py-10 italic text-sm">Caderno vazio.</div>';
         return;
     }
 
-    els.noteGrid.innerHTML = paginated.map(n => `
-        <div class="note-card p-5 bg-slate-800 border border-slate-700 rounded-xl relative shadow-lg transition hover:-translate-y-1" style="border-left: 5px solid ${n.color||'#3b82f6'}">
-            <i class="fas fa-thumbtack absolute top-4 right-4 cursor-pointer text-lg ${n.favorita ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]' : 'text-slate-600 hover:text-slate-400'}" onclick="window.togglePin('${n.id}', ${!n.favorita})"></i>
-            <h4 class="text-white font-cinzel font-bold text-lg mb-2 pr-6 truncate">${escapeHTML(n.titulo)}</h4>
-            <div class="flex gap-2 mb-3 flex-wrap">
-                ${(n.tags||[]).map(t => `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2 py-0.5 rounded">${escapeHTML(t)}</span>`).join('')}
+    els.noteList.innerHTML = filtered.map(n => {
+        const isActive = n.id === activeNoteId ? 'ring-2 ring-blue-500' : '';
+        return `
+        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="note-list-item p-3 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm flex flex-col gap-2 ${isActive}" style="border-left: 4px solid ${n.color||'#3b82f6'}">
+            <div class="flex justify-between items-start gap-2">
+                <h4 class="text-white font-bold text-sm truncate flex-grow">${escapeHTML(n.titulo || 'Sem Título')}</h4>
+                ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-xs shrink-0 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]"></i>' : ''}
             </div>
-            <p class="text-slate-400 text-sm line-clamp-4 flex-grow mb-4 whitespace-pre-wrap">${escapeHTML(n.conteudo)}</p>
-            <div class="pt-3 border-t border-slate-700/50 flex justify-end gap-3 mt-auto">
-                <button onclick="window.editNote('${n.id}')" class="text-slate-400 hover:text-blue-400 text-sm font-bold flex items-center gap-1 transition-colors"><i class="fas fa-edit"></i> Editar</button>
-                <button onclick="window.deleteNote('${n.id}')" class="text-slate-500 hover:text-red-500 text-sm font-bold flex items-center gap-1 transition-colors"><i class="fas fa-trash"></i></button>
+            <div class="flex gap-1 flex-wrap">
+                ${(n.tags||[]).slice(0,3).map(t => `<span class="bg-slate-800 text-slate-400 border border-slate-700 text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider truncate max-w-[80px]">${escapeHTML(t)}</span>`).join('')}
             </div>
         </div>
-    `).join('');
+    `}).join('');
+}
 
-    // Controles de Exibição da Paginação
-    const pagWrapper = document.getElementById('notes-pagination');
-    if(totalPages > 1) {
-        pagWrapper.classList.replace('hidden', 'flex');
-        document.getElementById('page-indicator').textContent = `Página ${currentPage} de ${totalPages}`;
-        document.getElementById('btn-prev-page').onclick = () => { currentPage--; renderNotes(); };
-        document.getElementById('btn-next-page').onclick = () => { currentPage++; renderNotes(); };
-        document.getElementById('btn-prev-page').disabled = currentPage === 1;
-        document.getElementById('btn-next-page').disabled = currentPage === totalPages;
-    } else {
-        pagWrapper.classList.replace('flex', 'hidden');
+// 4. Renderiza as Pastas/Tags (Coluna 1)
+function updateTagFilters() {
+    const allTags = new Set();
+    myNotes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
+    
+    const renderPill = (tag, label) => `
+        <button onclick="window.setNoteTag('${tag}')" class="w-full text-left px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all truncate ${currentTagFilter === tag ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-inner' : 'text-slate-500 hover:bg-slate-900 border border-transparent'}">
+            ${label}
+        </button>
+    `;
+    
+    let htmlDesktop = renderPill('all', '<i class="fas fa-layer-group mr-2"></i> Todas');
+    let htmlMobile = `<button onclick="window.setNoteTag('all')" class="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currentTagFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}">Todas</button>`;
+    
+    Array.from(allTags).sort().forEach(tag => {
+        htmlDesktop += renderPill(tag, `<span class="opacity-50 mr-1">#</span> ${tag}`);
+        htmlMobile += `<button onclick="window.setNoteTag('${tag}')" class="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currentTagFilter === tag ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}">#${tag}</button>`;
+    });
+    
+    if(els.noteTags) els.noteTags.innerHTML = htmlDesktop;
+    if(els.noteTagsMobile) els.noteTagsMobile.innerHTML = htmlMobile;
+}
+
+window.setNoteTag = (tag) => {
+    currentTagFilter = tag;
+    updateTagFilters();
+    renderNotes();
+};
+
+// 5. Salvar a nota atual
+async function saveNote() {
+    const titulo = els.noteActiveTitle.value.trim();
+    const conteudo = els.noteActiveBody.value.trim();
+    if(!titulo && !conteudo) return alert("Escreva algo na anotação!");
+
+    const payload = { 
+        titulo: titulo, 
+        conteudo: conteudo, 
+        userId: currentUser.uid, 
+        color: selectedNoteColor, 
+        favorita: formIsPinned, 
+        updatedAt: serverTimestamp(), 
+        tags: els.noteActiveTags.value.split(',').map(t => t.trim()).filter(t => t) 
+    };
+    
+    const id = els.noteActiveId.value;
+    
+    try {
+        if(id) {
+            await updateDoc(doc(db, "anotacoes_pessoais", id), payload); 
+        } else {
+            payload.createdAt = serverTimestamp();
+            const docRef = await addDoc(collection(db, "anotacoes_pessoais"), payload);
+            activeNoteId = docRef.id;
+            els.noteActiveId.value = activeNoteId;
+        }
+        
+        // Efeito de Botão Salvo
+        const btn = document.getElementById('btn-note-save');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+        btn.classList.replace('bg-blue-600', 'bg-green-600');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.replace('bg-green-600', 'bg-blue-600');
+        }, 2000);
+        
+    } catch(e) { alert("Erro ao salvar anotação."); }
+}
+
+// 6. Excluir nota atual
+async function deleteActiveNote() {
+    const id = els.noteActiveId.value;
+    if(!id) { showEmptyNoteState(); return; } // Se for nova e não salva, só limpa
+    if(confirm("Deseja apagar esta anotação permanentemente?")) {
+        await deleteDoc(doc(db, "anotacoes_pessoais", id));
+        activeNoteId = null;
+        showEmptyNoteState();
     }
 }
+
+// 7. Fixar nota atual (Pin)
+async function toggleActiveNotePin() {
+    const id = els.noteActiveId.value;
+    formIsPinned = !formIsPinned;
+    updatePinIconVisuals();
+    // Se a nota já existir no banco, salva o pin na hora
+    if(id) await updateDoc(doc(db, "anotacoes_pessoais", id), { favorita: formIsPinned });
+}
+
+function updatePinIconVisuals() {
+    const btn = document.getElementById('btn-note-pin');
+    if(formIsPinned) {
+        btn.classList.replace('text-slate-500', 'text-blue-400');
+        btn.classList.add('bg-blue-900/30', 'border', 'border-blue-500/50');
+    } else {
+        btn.classList.replace('text-blue-400', 'text-slate-500');
+        btn.classList.remove('bg-blue-900/30', 'border', 'border-blue-500/50');
+    }
+}
+
+// 8. Compartilhar
+function shareActiveNote() {
+    const id = els.noteActiveId.value;
+    if(!id) return alert("Salve a anotação antes de tentar compartilhar!");
+    
+    const email = prompt("Digite o e-mail do aluno que deseja compartilhar (ou código da turma):");
+    if(email) {
+        // Placeholder para sua futura função de cache de turmas!
+        alert(`O sistema está pronto para enviar a nota para ${email}. Lógica de cache será anexada na próxima sprint!`);
+    }
+}
+
+// Utilitários de Interface (Alternar entre as telas da 3ª Coluna)
+function showEmptyNoteState() {
+    els.noteEmptyState.classList.remove('hidden');
+    els.noteActiveState.classList.add('opacity-0', 'pointer-events-none');
+}
+
+function showActiveNoteState() {
+    els.noteEmptyState.classList.add('hidden');
+    els.noteActiveState.classList.remove('opacity-0', 'pointer-events-none');
+}
+
+
+
+
+
+
 
 function initKanbanSystem() {
     if(kanbanUnsub) return;
