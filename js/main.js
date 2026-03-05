@@ -5,6 +5,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-
 // IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
 import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
+import { renderConteudosTab } from './conteudos/conteudosAula.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
