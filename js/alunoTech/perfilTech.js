@@ -221,67 +221,131 @@ function handleUpload(input, type) {
 function toggleNoteForm() { els.noteForm.classList.toggle('hidden'); }
 
 async function saveNote() {
+    const titulo = els.noteTitle.value.trim();
+    const conteudo = els.noteBody.value.trim();
+    if(!titulo && !conteudo) return alert("Escreva algo na anotação!");
+
     const payload = { 
-        titulo: els.noteTitle.value, 
-        conteudo: els.noteBody.value, 
+        titulo: titulo, 
+        conteudo: conteudo, 
         userId: currentUser.uid, 
         color: selectedNoteColor, 
         favorita: formIsPinned, 
         updatedAt: serverTimestamp(), 
-        tags: els.noteTagsInp.value.split(',').map(t=>t.trim()) 
+        tags: els.noteTagsInp.value.split(',').map(t => t.trim()).filter(t => t) 
     };
+    
     const id = document.getElementById('al-note-id').value;
     
-    if(id) await updateDoc(doc(db, "anotacoes_pessoais", id), payload); 
-    else await addDoc(collection(db, "anotacoes_pessoais"), payload);
+    if(id) {
+        await updateDoc(doc(db, "anotacoes_pessoais", id), payload); 
+    } else {
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "anotacoes_pessoais"), payload);
+    }
     
     toggleNoteForm();
+    els.noteTitle.value = '';
+    els.noteBody.value = '';
+    document.getElementById('al-note-id').value = '';
 }
 
 // Funções globais apenas para os botões gerados dinamicamente via innerHTML
 window.editNote = (id) => { 
     const n = myNotes.find(x => x.id === id);
     if(!n) return;
-    toggleNoteForm(); 
+    
+    els.noteForm.classList.remove('hidden'); 
     document.getElementById('al-note-id').value = n.id; 
     els.noteTitle.value = n.titulo; 
     els.noteBody.value = n.conteudo; 
+    els.noteTagsInp.value = (n.tags || []).join(', ');
+    formIsPinned = n.favorita || false;
+    window.selectColor(n.color || noteColors[0]);
+    els.noteForm.scrollIntoView({ behavior: 'smooth' });
 };
-window.deleteNote = async (id) => { if(confirm("Apagar nota?")) await deleteDoc(doc(db, "anotacoes_pessoais", id)); };
+
+window.deleteNote = async (id) => { if(confirm("Apagar nota permanentemente?")) await deleteDoc(doc(db, "anotacoes_pessoais", id)); };
 window.togglePin = async (id, val) => { await updateDoc(doc(db, "anotacoes_pessoais", id), { favorita: !!val }); };
 window.selectColor = (c) => { selectedNoteColor = c; els.noteForm.style.borderLeft = `5px solid ${c}`; };
 window.setNoteTag = (t) => { currentTagFilter = t; renderNotes(); };
 
 // --- LÓGICA DO KANBAN ---
-function toggleKanbanForm() { document.getElementById('al-kanban-form').classList.toggle('hidden'); }
-
-async function saveKanban() {
-    const p = { 
-        titulo: document.getElementById('al-kanban-title').value, 
-        conteudo: document.getElementById('al-kanban-body').value, 
-        userIdCriador: currentUser.uid, 
-        status: 'a_fazer', 
-        createdAt: serverTimestamp() 
-    };
-    await addDoc(collection(db, "kanban_atividades"), p); 
-    toggleKanbanForm();
+function toggleKanbanForm() { 
+    const form = document.getElementById('al-kanban-form');
+    form.classList.toggle('hidden'); 
+    if(!form.classList.contains('hidden')) {
+        document.getElementById('al-kanban-id').value = '';
+        document.getElementById('al-kanban-title').value = '';
+        document.getElementById('al-kanban-body').value = '';
+    }
 }
 
+async function saveKanban() {
+    const titulo = document.getElementById('al-kanban-title').value.trim();
+    if(!titulo) return alert("A tarefa precisa de um título.");
+
+    const id = document.getElementById('al-kanban-id').value;
+    const payload = { 
+        titulo: titulo, 
+        conteudo: document.getElementById('al-kanban-body').value.trim(), 
+        userIdCriador: currentUser.uid,
+        updatedAt: serverTimestamp() 
+    };
+
+    if(id) {
+        await updateDoc(doc(db, "kanban_atividades", id), payload);
+    } else {
+        payload.status = 'a_fazer';
+        payload.createdAt = serverTimestamp();
+        await addDoc(collection(db, "kanban_atividades"), payload); 
+    }
+    
+    document.getElementById('al-kanban-form').classList.add('hidden');
+}
+
+function renderKanbanBoard() {
+    els.colTodo.innerHTML = ''; els.colDoing.innerHTML = ''; els.colDone.innerHTML = '';
+    myTasks.forEach(t => {
+        const div = document.createElement('div'); 
+        div.className = 'p-4 bg-slate-700 border border-slate-600 rounded-xl mb-3 cursor-grab shadow-lg hover:-translate-y-1 transition-transform relative group'; 
+        div.draggable = true;
+        
+        div.innerHTML = `
+            <div class="font-bold text-white text-sm pr-6 mb-2">${escapeHTML(t.titulo)}</div>
+            <div class="text-xs text-slate-300 whitespace-pre-wrap line-clamp-3">${escapeHTML(t.conteudo)}</div>
+            <div class="mt-3 pt-2 border-t border-slate-600/50 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onclick="window.editKanbanTask('${t.id}')" class="text-slate-400 hover:text-blue-400"><i class="fas fa-edit"></i></button>
+                <button onclick="window.deleteKanbanTask('${t.id}')" class="text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        
+        div.ondragstart = (e) => { e.dataTransfer.setData("text/plain", t.id); draggedTask = t; };
+        
+        if(t.status === 'a_fazer') els.colTodo.appendChild(div);
+        else if(t.status === 'em_progresso') els.colDoing.appendChild(div);
+        else els.colDone.appendChild(div);
+    });
+}
+
+// Funções Globais Kanban
 window.editKanbanTask = (id) => {
-    const t = myTasks.find(x => x.id === id); // Usando a variável global que será definida no seu initKanbanSystem
+    const t = myTasks.find(x => x.id === id); 
     if(!t) return;
-    toggleKanbanForm();
+    document.getElementById('al-kanban-form').classList.remove('hidden');
     document.getElementById('al-kanban-id').value = t.id;
     document.getElementById('al-kanban-title').value = t.titulo;
     document.getElementById('al-kanban-body').value = t.conteudo;
+    document.getElementById('al-kanban-form').scrollIntoView({ behavior: 'smooth' });
 };
-window.deleteKanbanTask = async (id) => { if(confirm("Apagar tarefa?")) await deleteDoc(doc(db, "kanban_atividades", id)); };
+window.deleteKanbanTask = async (id) => { if(confirm("Apagar tarefa do Kanban?")) await deleteDoc(doc(db, "kanban_atividades", id)); };
 
-// Drag & Drop Globais
 window.allowDrop = (e) => e.preventDefault();
 window.drop = async (e, status) => {
     const id = e.dataTransfer.getData("text/plain");
-    await updateDoc(doc(db, "kanban_atividades", id), { status, updatedAt: serverTimestamp() });
+    if(id && draggedTask && draggedTask.status !== status) {
+        await updateDoc(doc(db, "kanban_atividades", id), { status: status, updatedAt: serverTimestamp() });
+    }
 };
 
 // --- LÓGICA DO CALENDÁRIO ---
@@ -362,16 +426,43 @@ async function loadAvisos() {
 
 async function loadBoletimAndMetrics() {
     const snap = await getDoc(doc(db, "notas", currentUser.uid));
-    if(!snap.exists()) { els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Sem notas.</td></tr>'; return; }
+    
+    if(!snap.exists()) { 
+        els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Sem notas registradas.</td></tr>'; 
+        return; 
+    }
+    
     studentGradesData = snap.data().disciplinasComNotas || {};
+    
+    // --- NOVA LÓGICA DO SELETOR DE EVOLUÇÃO ---
+    els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
+    
+    if (currentUser.Admin) {
+        // Se for Admin, mostra todas as disciplinas cadastradas na escola
+        Object.entries(disciplineMap).forEach(([id, nome]) => {
+            els.selEvol.add(new Option(nome, id));
+        });
+    } else {
+        // Se for aluno, mostra apenas as disciplinas que ele tem no boletim
+        Object.keys(studentGradesData).forEach(discId => {
+            const nome = disciplineMap[discId] || discId;
+            els.selEvol.add(new Option(nome, discId));
+        });
+    }
+    // ------------------------------------------
     
     let html = '';
     for(const [id, tr] of Object.entries(studentGradesData)) {
-        html += `<tr><td class="font-bold text-white text-xs p-3">${disciplineMap[id]||id}</td><td>${tr['1']?.nota1||'-'}</td><td>${tr['1']?.nota2||'-'}</td><td>${tr['1']?.nota3||'-'}</td><td>${tr['1']?.nota4||'-'}</td><td>${tr['2']?.nota1||'-'}</td><td>${tr['2']?.nota2||'-'}</td><td>${tr['2']?.nota3||'-'}</td><td>${tr['2']?.nota4||'-'}</td><td>${tr['3']?.nota1||'-'}</td><td>${tr['3']?.nota2||'-'}</td><td>${tr['3']?.nota3||'-'}</td><td>${tr['3']?.nota4||'-'}</td><td class="media-final-col text-blue-500 font-bold">---</td></tr>`;
+        html += `<tr>
+            <td class="font-bold text-white text-xs p-3">${disciplineMap[id]||id}</td>
+            <td>${tr['1']?.nota1||'-'}</td><td>${tr['1']?.nota2||'-'}</td><td>${tr['1']?.nota3||'-'}</td><td>${tr['1']?.nota4||'-'}</td>
+            <td>${tr['2']?.nota1||'-'}</td><td>${tr['2']?.nota2||'-'}</td><td>${tr['2']?.nota3||'-'}</td><td>${tr['2']?.nota4||'-'}</td>
+            <td>${tr['3']?.nota1||'-'}</td><td>${tr['3']?.nota2||'-'}</td><td>${tr['3']?.nota3||'-'}</td><td>${tr['3']?.nota4||'-'}</td>
+            <td class="media-final-col text-blue-400 font-bold">---</td>
+        </tr>`;
     }
     els.boletimBody.innerHTML = html;
     
-    // Inicia os gráficos
     renderScatterChart();
     renderEvolutionChart();
 }
@@ -445,7 +536,26 @@ function initNotebookSystem() {
 function renderNotes() {
     const search = els.noteSearch.value.toLowerCase();
     const filtered = myNotes.filter(n => (n.titulo||'').toLowerCase().includes(search) || (n.conteudo||'').toLowerCase().includes(search));
-    els.noteGrid.innerHTML = filtered.map(n => `<div class="note-card p-4 bg-slate-900 border border-slate-800 rounded-xl" style="border-left: 5px solid ${n.color||'#3b82f6'}"><i class="fas fa-thumbtack note-pin ${n.favorita?'active':''}" onclick="window.perfilTech.togglePin('${n.id}', ${!n.favorita})"></i><h4 class="note-title text-white font-bold mb-2">${escapeHTML(n.titulo)}</h4><p class="note-body text-slate-400 text-xs line-clamp-3">${escapeHTML(n.conteudo)}</p><div class="note-footer mt-4 flex justify-end gap-2"><button onclick='window.perfilTech.editNote(${JSON.stringify(n).replace(/'/g, "&apos;")})' class="note-btn"><i class="fas fa-edit"></i></button><button onclick="window.perfilTech.deleteNote('${n.id}')" class="note-btn del"><i class="fas fa-trash"></i></button></div></div>`).join('');
+    
+    if(filtered.length === 0) {
+        els.noteGrid.innerHTML = '<div class="col-span-full text-center text-slate-500 py-10">Nenhuma anotação encontrada.</div>';
+        return;
+    }
+
+    els.noteGrid.innerHTML = filtered.map(n => `
+        <div class="note-card p-5 bg-slate-800 border border-slate-700 rounded-xl relative shadow-lg transition hover:-translate-y-1" style="border-left: 5px solid ${n.color||'#3b82f6'}">
+            <i class="fas fa-thumbtack absolute top-4 right-4 cursor-pointer text-lg ${n.favorita ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]' : 'text-slate-600 hover:text-slate-400'}" onclick="window.togglePin('${n.id}', ${!n.favorita})"></i>
+            <h4 class="text-white font-cinzel font-bold text-lg mb-2 pr-6 truncate">${escapeHTML(n.titulo)}</h4>
+            <div class="flex gap-2 mb-3 flex-wrap">
+                ${(n.tags||[]).map(t => `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] px-2 py-0.5 rounded">${escapeHTML(t)}</span>`).join('')}
+            </div>
+            <p class="text-slate-400 text-sm line-clamp-4 flex-grow mb-4 whitespace-pre-wrap">${escapeHTML(n.conteudo)}</p>
+            <div class="pt-3 border-t border-slate-700/50 flex justify-end gap-3 mt-auto">
+                <button onclick="window.editNote('${n.id}')" class="text-slate-400 hover:text-blue-400 text-sm font-bold flex items-center gap-1 transition-colors"><i class="fas fa-edit"></i> Editar</button>
+                <button onclick="window.deleteNote('${n.id}')" class="text-slate-500 hover:text-red-500 text-sm font-bold flex items-center gap-1 transition-colors"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>
+    `).join('');
 }
 
 function initKanbanSystem() {

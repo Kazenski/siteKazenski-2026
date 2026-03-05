@@ -35,7 +35,7 @@
         }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
+<body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
     <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
         
@@ -72,7 +72,7 @@
         </div>
     </header>
 
-    <main id="app-main" class="flex-grow relative overflow-hidden bg-slate-950">
+    <main id="app-main" class="flex-grow relative overflow-hidden bg-slate-900">
         
         <div id="inicio-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden"></div>
         <div id="conteudos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
@@ -82,17 +82,17 @@
         
         <div id="aluno-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden">
     
-            <div id="loading-aluno" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-[100]">
+            <div id="loading-aluno" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-[100]">
                 <div class="aluno-spinner"></div>
                 <p class="text-blue-500 font-cinzel tracking-widest mt-4">Sincronizando Mente...</p>
             </div>
 
-            <div id="dashboard-aluno" class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-950 hidden">
+            <div id="dashboard-aluno" class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-900 hidden">
                 <div class="w-full flex flex-col flex-grow relative">
                     
                     <div class="w-full relative px-4 md:px-10 pt-6">
                         <div class="w-full h-40 md:h-48 rounded-2xl relative overflow-hidden shadow-2xl cursor-pointer" id="al-bg-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent"></div>
                             <button id="btn-edit-cover" class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i class="fas fa-camera"></i></button>
                             <button id="btn-edit-border" class="absolute top-4 left-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i class="fas fa-palette"></i></button>
                         </div>
@@ -101,7 +101,7 @@
                             
                             <div class="flex flex-col md:flex-row items-center md:items-end gap-5">
                                 <div class="relative shrink-0">
-                                    <img src="" id="al-img-profile" class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900" style="border-color: #00e5ff;">
+                                    <img src="" id="al-img-profile" class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-900 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900" style="border-color: #00e5ff;">
                                     <button id="btn-edit-profile" class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg text-xs transition-all"><i class="fas fa-camera"></i></button>
                                 </div>
                                 <div class="text-center md:text-left mb-2">
@@ -147,25 +147,25 @@
                             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 
                                 <div class="col-span-1 flex flex-col gap-4">
-                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 text-center flex-grow flex flex-col justify-center">
-                                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest"><i class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
-                                        <div id="al-freq-perc" class="text-6xl font-black text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.2)]">100%</div>
-                                        <div id="al-freq-total" class="text-red-500 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">0 Faltas</div>
+                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center flex-grow flex flex-col justify-center shadow-lg">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest"><i class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
+                                        <div id="al-freq-perc" class="text-6xl font-black text-green-400 drop-shadow-md">100%</div>
+                                        <div id="al-freq-total" class="text-red-400 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">0 Faltas</div>
                                     </div>
-                                    <div class="bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60 flex items-center justify-center h-48">
+                                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-center h-48 shadow-lg">
                                         <canvas id="al-chart-freq"></canvas>
                                     </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-2 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 flex flex-col">
-                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4 border-b border-slate-800 pb-2"><i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
+                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2"><i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
                                     <div id="al-avisos-list" class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]">
                                         </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-3 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 overflow-x-auto shadow-lg mt-2">
-                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4"><i class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
-                                    <table class="boletim-table min-w-[900px] w-full">
+                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 overflow-x-auto shadow-lg mt-2">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
+                                    <table class="boletim-table min-w-[700px] w-full">
                                         <thead>
                                             <tr><th rowspan="2">Disciplina</th><th colspan="4">1º Trim</th><th colspan="4">2º Trim</th><th colspan="4">3º Trim</th><th rowspan="2">Média</th></tr>
                                             <tr><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th></tr>
@@ -174,24 +174,24 @@
                                     </table>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60">
-                                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest text-center">Dispersão de Notas</h4>
-                                        <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
-                                    </div>
-                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Evolução</h4>
-                                            <select id="al-sel-evol" class="bg-slate-950 text-white text-xs p-1.5 rounded border border-slate-700 outline-none"></select>
-                                        </div>
-                                        <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
+                                <div class="col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
+                                    <div id="al-eval-360-content" class="bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center">
+                                        Nenhuma avaliação pendente no momento.
                                     </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-3 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 mt-2">
-                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4"><i class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
-                                    <div id="al-eval-360-content" class="bg-slate-950/50 p-8 rounded-xl border border-dashed border-slate-700 text-center text-slate-500">
-                                        Nenhuma avaliação pendente no momento.
+                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest text-center">Dispersão de Notas</h4>
+                                        <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
+                                    </div>
+                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Evolução</h4>
+                                            <select id="al-sel-evol" class="bg-slate-900 text-slate-200 text-xs p-1.5 rounded border border-slate-600 outline-none"></select>
+                                        </div>
+                                        <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
                                     </div>
                                 </div>
 
@@ -202,16 +202,16 @@
                             <div class="flex flex-wrap gap-4 items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6">
                                 <div id="al-note-tags" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
                                 <div class="flex gap-2">
-                                    <input type="text" id="al-note-search" placeholder="Buscar..." class="bg-slate-950 border border-slate-700 rounded-full px-4 py-2 text-sm text-white outline-none">
+                                    <input type="text" id="al-note-search" placeholder="Buscar..." class="bg-slate-900 border border-slate-700 rounded-full px-4 py-2 text-sm text-white outline-none">
                                     <button id="btn-toggle-note-form" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg transition hover:scale-105"><i class="fas fa-plus"></i></button>
                                 </div>
                             </div>
                             <div id="al-note-form" class="note-form-panel hidden mb-6">
                                 <input type="hidden" id="al-note-id">
                                 <div class="flex justify-between mb-4"><input type="text" id="al-note-title" placeholder="Título" class="bg-transparent border-b border-slate-700 w-full text-white text-2xl font-bold outline-none"></div>
-                                <textarea id="al-note-body" class="bg-slate-950 p-4 rounded-xl w-full text-slate-300 min-h-[200px] outline-none" placeholder="O que você está pensando?"></textarea>
+                                <textarea id="al-note-body" class="bg-slate-900 p-4 rounded-xl w-full text-slate-300 min-h-[200px] outline-none" placeholder="O que você está pensando?"></textarea>
                                 <div class="flex flex-wrap gap-4 items-center mt-4">
-                                    <input type="text" id="al-note-tags-inp" placeholder="Tags..." class="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white">
+                                    <input type="text" id="al-note-tags-inp" placeholder="Tags..." class="bg-slate-900 border border-slate-700 p-2 rounded text-sm text-white">
                                     <div id="al-color-picker" class="flex gap-2"></div>
                                     <button id="btn-save-note" class="ml-auto bg-green-600 text-white px-8 py-2 rounded font-bold">Salvar</button>
                                 </div>
@@ -224,7 +224,7 @@
                             <div id="al-kanban-form" class="note-form-panel hidden border-purple-500 mb-8">
                                 <input type="hidden" id="al-kanban-id">
                                 <input type="text" id="al-kanban-title" placeholder="Tarefa" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none">
-                                <textarea id="al-kanban-body" class="bg-slate-950 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mt-4"></textarea>
+                                <textarea id="al-kanban-body" class="bg-slate-900 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mt-4"></textarea>
                                 <button id="btn-save-kanban" class="mt-4 bg-green-600 text-white px-8 py-2 rounded font-bold">Adicionar</button>
                             </div>
                             <div class="kanban-board">
@@ -265,9 +265,9 @@
                     <span id="btn-close-cal" class="cal-close">&times;</span>
                     <h3 class="text-blue-500 font-cinzel font-bold mb-4">Novo Evento</h3>
                     <input type="hidden" id="al-ev-id">
-                    <input type="text" id="al-ev-title" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Título">
-                    <input type="date" id="al-ev-date" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3">
-                    <textarea id="al-ev-desc" rows="3" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Descrição"></textarea>
+                    <input type="text" id="al-ev-title" class="bg-slate-900 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Título">
+                    <input type="date" id="al-ev-date" class="bg-slate-900 border border-slate-700 p-2 rounded w-full text-white mb-3">
+                    <textarea id="al-ev-desc" rows="3" class="bg-slate-900 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Descrição"></textarea>
                     <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                         <button id="al-btn-del-ev" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button>
                         <button id="btn-save-cal" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button>
