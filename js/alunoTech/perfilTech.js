@@ -830,13 +830,6 @@ async function loadHorarioEscolar() {
     });
 }
 
-async function fetchCalendarEvents() {
-    const q = query(collection(db, "calendarioAnual"), where("visibilidade", "==", "todos"));
-    const snap = await getDocs(q);
-    calEvents = snap.docs.map(d => ({id: d.id, ...d.data()}));
-    window.renderCalendarGrid();
-}
-
 window.renderCalendarGrid = () => {
     const grid = document.getElementById('al-cal-grid');
     document.getElementById('al-cal-month').textContent = calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
