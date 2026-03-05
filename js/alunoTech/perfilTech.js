@@ -40,160 +40,9 @@ export async function renderAlunoTechTab() {
         document.head.appendChild(script);
     }
 
-    // Estrutura HTML das 9 Sub-Abas + Perfil
-    container.innerHTML = `
-        <div id="loading-aluno" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center z-[100]">
-            <div class="aluno-spinner"></div>
-            <p class="text-blue-500 font-cinzel tracking-widest mt-4">Sincronizando Mente...</p>
-        </div>
-
-        <div id="dashboard-aluno" class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-950 hidden">
-            
-            <div class="w-full flex flex-col flex-grow relative">
-                
-                <div class="banner-wrapper rounded-none mb-0">
-                    <div class="cover-photo cursor-pointer" id="al-bg-cover">
-                        <div class="cover-overlay"></div>
-                        <button class="edit-btn btn-cover" onclick="document.getElementById('al-file-cover').click()"><i class="fas fa-camera"></i></button>
-                        <button class="edit-btn btn-border" onclick="document.getElementById('al-input-color').click()"><i class="fas fa-palette"></i></button>
-                    </div>
-                    
-                    <div class="header-content px-6 md:px-20 pb-6 flex flex-col md:flex-row items-center md:items-end gap-6 w-full">
-                        <div class="profile-area shrink-0">
-                            <img src="" id="al-img-profile" class="profile-img cursor-pointer" onclick="document.getElementById('al-file-profile').click()">
-                            <button class="edit-btn btn-profile" onclick="document.getElementById('al-file-profile').click()"><i class="fas fa-camera"></i></button>
-                        </div>
-                        <div class="student-info text-center md:text-left mb-4 md:mb-0">
-                            <div id="al-badge-title" class="student-title-badge cursor-pointer" onclick="window.perfilTech.toggleTitleSelect()">Aspirante</div>
-                            <select id="al-title-select" class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500" onchange="window.perfilTech.saveTitle(this.value)"></select>
-                            <h1 class="student-name text-4xl md:text-5xl font-black font-cinzel mt-2 drop-shadow-md" id="al-txt-name">---</h1>
-                            <div class="student-class text-blue-400 font-bold mt-1" id="al-txt-class">---</div>
-                        </div>
-                    </div>
-                </div>
-
-                <input type="file" id="al-file-cover" class="hidden" onchange="window.perfilTech.handleUpload(this, 'cover')">
-                <input type="file" id="al-file-profile" class="hidden" onchange="window.perfilTech.handleUpload(this, 'profile')">
-                <input type="color" id="al-input-color" class="hidden" onchange="window.perfilTech.saveBorderColor(this.value)">
-
-                <nav class="aluno-tabs-nav no-scrollbar">
-                    <button class="aluno-tab-btn active" onclick="window.perfilTech.switchTab('avisos')"><i class="fas fa-bullhorn"></i> Mural</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('boletim')"><i class="fas fa-file-invoice"></i> Boletim</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('frequencia')"><i class="fas fa-calendar-check"></i> Frequência</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('metricas')"><i class="fas fa-chart-line"></i> Métricas</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('avaliacao360')"><i class="fas fa-users-viewfinder"></i> Avaliação 360</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('caderno')"><i class="fas fa-book"></i> Caderno</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('kanban')"><i class="fas fa-columns"></i> Kanban</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('horario')"><i class="fas fa-clock"></i> Horário</button>
-                    <button class="aluno-tab-btn" onclick="window.perfilTech.switchTab('calendario')"><i class="fas fa-calendar-alt"></i> Calendário</button>
-                </nav>
-
-                <div class="px-6 md:px-20 py-10 pb-32"> <div id="atab-avisos" class="aluno-tab-content active"><div id="al-avisos-list" class="space-y-4"></div></div>
-                    
-                    <div id="atab-boletim" class="aluno-tab-content">
-                        <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800 overflow-x-auto">
-                            <table class="boletim-table min-w-[900px]">
-                                <thead>
-                                    <tr><th rowspan="2">Disciplina</th><th colspan="4">1º Trim</th><th colspan="4">2º Trim</th><th colspan="4">3º Trim</th><th rowspan="2">Média</th></tr>
-                                    <tr><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th></tr>
-                                </thead>
-                                <tbody id="al-boletim-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div id="atab-frequencia" class="aluno-tab-content">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div class="bg-slate-900 p-10 rounded-xl border border-slate-800 text-center">
-                                <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Presença</h4>
-                                <div id="al-freq-perc" class="text-6xl font-black text-green-400">100%</div>
-                                <div id="al-freq-total" class="text-red-500 mt-4 font-bold">0 Faltas</div>
-                            </div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center"><canvas id="al-chart-freq"></canvas></div>
-                        </div>
-                    </div>
-
-                    <div id="atab-metricas" class="aluno-tab-content">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800"><canvas id="al-chart-scatter"></canvas></div>
-                            <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
-                                <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded" onchange="window.perfilTech.updateEvolChart(this.value)"></select>
-                                <canvas id="al-chart-evol"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="atab-avaliacao360" class="aluno-tab-content">
-                        <div id="al-eval-360-content" class="bg-slate-900 p-10 rounded-xl border border-dashed border-slate-700 text-center text-slate-500">Nenhuma avaliação pendente.</div>
-                    </div>
-
-                    <div id="atab-caderno" class="aluno-tab-content">
-                        <div class="flex flex-wrap gap-4 items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-800 mb-6">
-                            <div id="al-note-tags" class="flex gap-2 overflow-x-auto no-scrollbar"></div>
-                            <div class="flex gap-2">
-                                <input type="text" id="al-note-search" placeholder="Buscar..." class="bg-slate-950 border border-slate-700 rounded-full px-4 py-2 text-sm text-white outline-none">
-                                <button onclick="window.perfilTech.toggleNoteForm()" class="bg-blue-600 text-white px-6 py-2 rounded-full font-bold shadow-lg transition hover:scale-105"><i class="fas fa-plus"></i></button>
-                            </div>
-                        </div>
-                        <div id="al-note-form" class="note-form-panel hidden mb-6">
-                            <input type="hidden" id="al-note-id">
-                            <div class="flex justify-between mb-4"><input type="text" id="al-note-title" placeholder="Título" class="bg-transparent border-b border-slate-700 w-full text-white text-2xl font-bold outline-none"></div>
-                            <textarea id="al-note-body" class="bg-slate-950 p-4 rounded-xl w-full text-slate-300 min-h-[200px] outline-none" placeholder="O que você está pensando?"></textarea>
-                            <div class="flex flex-wrap gap-4 items-center mt-4">
-                                <input type="text" id="al-note-tags-inp" placeholder="Tags..." class="bg-slate-950 border border-slate-700 p-2 rounded text-sm text-white">
-                                <div id="al-color-picker" class="flex gap-2"></div>
-                                <button onclick="window.perfilTech.saveNote()" class="ml-auto bg-green-600 text-white px-8 py-2 rounded font-bold">Salvar</button>
-                            </div>
-                        </div>
-                        <div id="al-notes-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-                    </div>
-
-                    <div id="atab-kanban" class="aluno-tab-content">
-                        <div class="flex justify-end mb-6"><button onclick="window.perfilTech.toggleKanbanForm()" class="bg-purple-600 text-white px-6 py-2 rounded-full font-bold shadow-lg">+ Tarefa</button></div>
-                        <div id="al-kanban-form" class="note-form-panel hidden border-purple-500 mb-8">
-                            <input type="hidden" id="al-kanban-id"><input type="text" id="al-kanban-title" placeholder="Tarefa" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none"><textarea id="al-kanban-body" class="bg-slate-950 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mt-4"></textarea>
-                            <button onclick="window.perfilTech.saveKanban()" class="mt-4 bg-green-600 text-white px-8 py-2 rounded font-bold">Adicionar</button>
-                        </div>
-                        <div class="kanban-board">
-                            <div class="kanban-column" ondragover="window.perfilTech.allowDrop(event)" ondrop="window.perfilTech.drop(event, 'a_fazer')"><div class="kanban-column-header">A FAZER</div><div id="al-col-todo" class="kanban-cards-area"></div></div>
-                            <div class="kanban-column" ondragover="window.perfilTech.allowDrop(event)" ondrop="window.perfilTech.drop(event, 'em_progresso')"><div class="kanban-column-header">EM EXECUÇÃO</div><div id="al-col-doing" class="kanban-cards-area"></div></div>
-                            <div class="kanban-column" ondragover="window.perfilTech.allowDrop(event)" ondrop="window.perfilTech.drop(event, 'concluido')"><div class="kanban-column-header">FEITO</div><div id="al-col-done" class="kanban-cards-area"></div></div>
-                        </div>
-                    </div>
-
-                    <div id="atab-horario" class="aluno-tab-content">
-                        <div class="bg-slate-900/50 p-8 rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
-                            <table class="horario-tabela"><thead><tr><th data-dia-id="segunda-feira">SEG</th><th data-dia-id="terca-feira">TER</th><th data-dia-id="quarta-feira">QUA</th><th data-dia-id="quinta-feira">QUI</th><th data-dia-id="sexta-feira">SEX</th></tr></thead>
-                            <tbody><tr><td id="cell-segunda-feira"></td><td id="cell-terca-feira"></td><td id="cell-quarta-feira"></td><td id="cell-quinta-feira"></td><td id="cell-sexta-feira"></td></tr></tbody></table>
-                            <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic">Carregando grade horária...</p>
-                        </div>
-                    </div>
-
-                    <div id="atab-calendario" class="aluno-tab-content">
-                        <div class="calendar-controls flex justify-between items-center mb-6">
-                            <div class="flex items-center gap-4"><button onclick="window.perfilTech.changeCalMonth(-1)" class="p-2 bg-slate-800 rounded hover:bg-slate-700">&lt;</button><span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg">---</span><button onclick="window.perfilTech.changeCalMonth(1)" class="p-2 bg-slate-800 rounded hover:bg-slate-700">&gt;</button></div>
-                            <button id="al-btn-add-evt" class="hidden bg-green-600 text-white px-4 py-2 rounded text-xs font-bold" onclick="window.perfilTech.openCalModal()">+ EVENTO</button>
-                        </div>
-                        <div id="al-cal-grid" class="calendar-grid"></div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
-
-        <div id="al-modal-cal" class="cal-modal" style="display: none;">
-            <div class="cal-modal-content">
-                <span class="cal-close" onclick="window.perfilTech.closeCalModal()">&times;</span>
-                <h3 class="text-blue-500 font-cinzel font-bold mb-4">Novo Evento</h3>
-                <input type="text" id="al-ev-title" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Título">
-                <input type="date" id="al-ev-date" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3">
-                <textarea id="al-ev-desc" rows="3" class="bg-slate-950 border border-slate-700 p-2 rounded w-full text-white mb-3" placeholder="Descrição"></textarea>
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800"><button id="al-btn-del-ev" onclick="window.perfilTech.deleteCalendarEvent()" class="hidden bg-red-900 text-white px-4 py-2 rounded text-xs">Excluir</button><button onclick="window.perfilTech.saveCalendarEvent()" class="bg-green-600 text-white px-6 py-2 rounded font-bold">Salvar</button></div>
-            </div>
-        </div>
-    `;
-
+    // O HTML JÁ ESTÁ NO INDEX.HTML AGORA!
     mapearDOM();
+    setupTabsNavigation();
 
     if (auth.currentUser) {
         initDashboard(auth.currentUser);
@@ -203,6 +52,38 @@ export async function renderAlunoTechTab() {
             else window.showTab('inicio');
         });
     }
+}
+
+// ============================================================================
+// SISTEMA DE NAVEGAÇÃO DAS ABAS INTERNAS (Sem sujar o HTML global)
+// ============================================================================
+function setupTabsNavigation() {
+    const tabButtons = document.querySelectorAll('.aluno-tab-btn');
+    const tabContents = document.querySelectorAll('.aluno-tab-content');
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // 1. Remove a classe 'active' de todos os botões e oculta os conteúdos
+            tabButtons.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // 2. Ativa o botão que foi clicado
+            btn.classList.add('active');
+
+            // 3. Lê o alvo (data-target) e mostra a aba correspondente
+            const targetId = btn.getAttribute('data-target');
+            const targetContent = document.getElementById(`atab-${targetId}`);
+            
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+
+            // 4. Correção para os Gráficos (Chart.js precisa de resize quando a aba abre)
+            if (targetId === 'metricas' || targetId === 'frequencia') {
+                setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+            }
+        });
+    });
 }
 
 function mapearDOM() {
