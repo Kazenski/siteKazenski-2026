@@ -798,7 +798,7 @@ window.selectNote = (id) => {
     activeNoteId = n.id;
     formIsPinned = !!n.favorita;
     selectedNoteColor = n.color || '#3b82f6';
-    
+     
     // Preenche o painel da direita para edição imediata
     els.noteActiveId.value = n.id;
     els.noteActiveTitle.value = n.titulo;
