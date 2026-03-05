@@ -43,6 +43,7 @@ export async function renderAlunoTechTab() {
     // O HTML JÁ ESTÁ NO INDEX.HTML AGORA!
     mapearDOM();
     setupTabsNavigation();
+    setupEventListeners();
 
     if (auth.currentUser) {
         initDashboard(auth.currentUser);
@@ -96,6 +97,12 @@ function mapearDOM() {
         bgCover: document.getElementById('al-bg-cover'),
         badgeTitle: document.getElementById('al-badge-title'),
         selTitle: document.getElementById('al-title-select'),
+        
+        // Novos inputs de arquivos
+        inpCover: document.getElementById('al-file-cover'),
+        inpProfile: document.getElementById('al-file-profile'),
+        inpColor: document.getElementById('al-input-color'),
+        
         avisosList: document.getElementById('al-avisos-list'),
         boletimBody: document.getElementById('al-boletim-body'),
         noteTags: document.getElementById('al-note-tags'),
@@ -138,134 +145,192 @@ async function initDashboard(user) {
 // MÓDULOS GLOBAIS EXPOSTOS (window.perfilTech)
 // ============================================================================
 
-window.perfilTech = {
-    switchTab: (id) => {
-        // 1. Remove active de todos os botões do menu
-        document.querySelectorAll('.aluno-tab-btn').forEach(b => b.classList.remove('active'));
-        
-        // 2. Acha o botão clicado e adiciona active
-        const activeBtn = Array.from(document.querySelectorAll('.aluno-tab-btn'))
-            .find(b => b.getAttribute('onclick').includes(id));
-        if(activeBtn) activeBtn.classList.add('active');
+// ============================================================================
+// SISTEMA DE EVENTOS E LÓGICA DE NEGÓCIO MODULARIZADA
+// ============================================================================
 
-        // 3. Esconde todos os conteúdos
-        document.querySelectorAll('.aluno-tab-content').forEach(c => c.classList.remove('active'));
-        
-        // 4. Mostra o conteúdo correto
-        document.getElementById(`atab-${id}`).classList.add('active');
-        
-        // 5. Redimensiona os gráficos caso a aba clicada os contenha
-        if(id==='metricas'||id==='frequencia') {
-            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
-        }
-    },
+function setupEventListeners() {
+    // Eventos do Banner e Perfil
+    document.getElementById('btn-edit-profile')?.addEventListener('click', () => els.inpProfile.click());
+    document.getElementById('btn-edit-cover')?.addEventListener('click', () => els.inpCover.click());
+    document.getElementById('btn-edit-border')?.addEventListener('click', () => els.inpColor.click());
+    
+    els.badgeTitle?.addEventListener('click', toggleTitleSelect);
+    els.selTitle?.addEventListener('change', (e) => saveTitle(e.target.value));
+    
+    els.inpProfile?.addEventListener('change', (e) => handleUpload(e.target, 'profile'));
+    els.inpCover?.addEventListener('change', (e) => handleUpload(e.target, 'cover'));
+    els.inpColor?.addEventListener('change', (e) => saveBorderColor(e.target.value));
 
-    toggleTitleSelect: () => {
-        els.badgeTitle.classList.add('hidden');
-        els.selTitle.classList.remove('hidden');
-        els.selTitle.focus();
-    },
+    // Eventos do Caderno Digital
+    document.getElementById('btn-toggle-note-form')?.addEventListener('click', toggleNoteForm);
+    document.getElementById('btn-save-note')?.addEventListener('click', saveNote);
 
-    saveTitle: async (val) => {
-        const titles = { ...currentUser.titulosConquistados };
-        Object.keys(titles).forEach(k => titles[k].tituloAtivadoUser = (k === val));
-        await updateDoc(doc(db, "users", currentUser.uid), { titulosConquistados: titles });
-        currentUser.titulosConquistados = titles;
-        els.selTitle.classList.add('hidden');
-        els.badgeTitle.classList.remove('hidden');
-        renderBanner();
-    },
+    // Eventos do Kanban
+    document.getElementById('btn-toggle-kanban-form')?.addEventListener('click', toggleKanbanForm);
+    document.getElementById('btn-save-kanban')?.addEventListener('click', saveKanban);
+    
+    // Eventos do Calendário
+    document.getElementById('al-btn-add-evt')?.addEventListener('click', () => openCalModal());
+    document.getElementById('btn-close-cal')?.addEventListener('click', closeCalModal);
+    document.getElementById('btn-save-cal')?.addEventListener('click', saveCalendarEvent);
+    document.getElementById('al-btn-del-ev')?.addEventListener('click', deleteCalendarEvent);
+    document.getElementById('btn-cal-prev')?.addEventListener('click', () => changeCalMonth(-1));
+    document.getElementById('btn-cal-next')?.addEventListener('click', () => changeCalMonth(1));
 
-    saveBorderColor: async (val) => {
-        els.imgProfile.style.borderColor = val;
-        els.imgProfile.style.boxShadow = `0 0 20px ${val}`;
-        await updateDoc(doc(db, "users", currentUser.uid), { profileBorderColor: val });
-    },
+    // Eventos de Filtros (Gráfico de Evolução)
+    els.selEvol?.addEventListener('change', (e) => renderEvolutionChart(e.target.value));
+}
 
-    handleUpload: (input, type) => { if(input.files[0]) uploadImage(input.files[0], type); },
+// --- LÓGICA DO BANNER ---
+function toggleTitleSelect() {
+    els.badgeTitle.classList.add('hidden');
+    els.selTitle.classList.remove('hidden');
+    els.selTitle.focus();
+}
 
-    // Caderno Digital
-    toggleNoteForm: () => els.noteForm.classList.toggle('hidden'),
-    saveNote: async () => {
-        const payload = { titulo: els.noteTitle.value, conteudo: els.noteBody.value, userId: currentUser.uid, color: selectedNoteColor, favorita: formIsPinned, updatedAt: serverTimestamp(), tags: els.noteTagsInp.value.split(',').map(t=>t.trim()) };
-        const id = document.getElementById('al-note-id').value;
-        if(id) await updateDoc(doc(db, "anotacoes_pessoais", id), payload); else await addDoc(collection(db, "anotacoes_pessoais"), payload);
-        window.perfilTech.toggleNoteForm();
-    },
-    editNote: (n) => { window.perfilTech.toggleNoteForm(); document.getElementById('al-note-id').value=n.id; els.noteTitle.value=n.titulo; els.noteBody.value=n.conteudo; },
-    deleteNote: async (id) => { if(confirm("Apagar?")) await deleteDoc(doc(db, "anotacoes_pessoais", id)); },
-    togglePin: async (id, val) => { await updateDoc(doc(db, "anotacoes_pessoais", id), { favorita: !!val }); },
-    selectColor: (c) => { selectedNoteColor = c; els.noteForm.style.borderLeft = `5px solid ${c}`; },
-    setNoteTag: (t) => { currentTagFilter = t; renderNotes(); },
+async function saveTitle(val) {
+    const titles = { ...currentUser.titulosConquistados };
+    Object.keys(titles).forEach(k => titles[k].tituloAtivadoUser = (k === val));
+    await updateDoc(doc(db, "users", currentUser.uid), { titulosConquistados: titles });
+    currentUser.titulosConquistados = titles;
+    els.selTitle.classList.add('hidden');
+    els.badgeTitle.classList.remove('hidden');
+    renderBanner();
+}
 
-    // Kanban
-    toggleKanbanForm: () => document.getElementById('al-kanban-form').classList.toggle('hidden'),
-    saveKanban: async () => {
-        const p = { titulo: document.getElementById('al-kanban-title').value, conteudo: document.getElementById('al-kanban-body').value, userIdCriador: currentUser.uid, status: 'a_fazer', createdAt: serverTimestamp() };
-        await addDoc(collection(db, "kanban_atividades"), p); window.perfilTech.toggleKanbanForm();
-    },
-    allowDrop: (e) => e.preventDefault(),
-    drop: async (e, status) => {
-        const id = e.dataTransfer.getData("text/plain");
-        await updateDoc(doc(db, "kanban_atividades", id), { status, updatedAt: serverTimestamp() });
-    },
+async function saveBorderColor(val) {
+    els.imgProfile.style.borderColor = val;
+    els.imgProfile.style.boxShadow = `0 0 20px ${val}`;
+    await updateDoc(doc(db, "users", currentUser.uid), { profileBorderColor: val });
+}
 
-    updateEvolChart: (val) => renderEvolutionChart(val),
+function handleUpload(input, type) { 
+    if(input.files[0]) uploadImage(input.files[0], type); 
+}
 
-    // Calendário - COMPLETO
-    openCalModal: (ev=null, dt=null) => {
-        document.getElementById('al-modal-cal').style.display='flex';
-        if(ev) { 
-            document.getElementById('al-ev-id').value = ev.id; 
-            document.getElementById('al-ev-title').value = ev.titulo; 
-            document.getElementById('al-ev-date').value = ev.dataInicio?.toDate().toISOString().split('T')[0]; 
-            document.getElementById('al-ev-desc').value = ev.descricao || '';
-            document.getElementById('al-btn-del-ev').classList.remove('hidden');
-        } else {
-            document.getElementById('al-ev-id').value = ''; 
-            document.getElementById('al-ev-title').value = ''; 
-            document.getElementById('al-ev-date').value = dt || new Date().toISOString().split('T')[0];
-            document.getElementById('al-ev-desc').value = '';
-            document.getElementById('al-btn-del-ev').classList.add('hidden');
-        }
-    },
-    closeCalModal: () => document.getElementById('al-modal-cal').style.display='none',
-    changeCalMonth: (dir) => { calDate.setMonth(calDate.getMonth() + dir); fetchCalendarEvents(); },
-    switchCalView: (v) => { calView = v; window.renderCalendarGrid(); },
-    saveCalendarEvent: async () => { 
-        const title = document.getElementById('al-ev-title').value;
-        const dateVal = document.getElementById('al-ev-date').value;
-        const desc = document.getElementById('al-ev-desc').value;
-        
-        if(!title || !dateVal) return alert("Título e Data são obrigatórios");
-        const [y, m, d] = dateVal.split('-').map(Number);
-        const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+// --- LÓGICA DO CADERNO ---
+function toggleNoteForm() { els.noteForm.classList.toggle('hidden'); }
 
-        const payload = {
-            titulo: title,
-            dataInicio: Timestamp.fromDate(dateObj),
-            descricao: desc,
-            visibilidade: 'todos',
-            instrutorUID: currentUser.uid,
-            updatedAt: serverTimestamp()
-        };
+async function saveNote() {
+    const payload = { 
+        titulo: els.noteTitle.value, 
+        conteudo: els.noteBody.value, 
+        userId: currentUser.uid, 
+        color: selectedNoteColor, 
+        favorita: formIsPinned, 
+        updatedAt: serverTimestamp(), 
+        tags: els.noteTagsInp.value.split(',').map(t=>t.trim()) 
+    };
+    const id = document.getElementById('al-note-id').value;
+    
+    if(id) await updateDoc(doc(db, "anotacoes_pessoais", id), payload); 
+    else await addDoc(collection(db, "anotacoes_pessoais"), payload);
+    
+    toggleNoteForm();
+}
 
-        const id = document.getElementById('al-ev-id').value;
-        if(id) await updateDoc(doc(db, "calendarioAnual", id), payload); 
-        else { payload.createdAt = serverTimestamp(); await addDoc(collection(db, "calendarioAnual"), payload); }
-        
-        window.perfilTech.closeCalModal(); 
-        fetchCalendarEvents();
-    },
-    deleteCalendarEvent: async () => { 
-        const id = document.getElementById('al-ev-id').value;
-        if(id && confirm("Excluir evento?")) {
-            await deleteDoc(doc(db, "calendarioAnual", id));
-            window.perfilTech.closeCalModal(); 
-            fetchCalendarEvents();
-        }
-    }
+// Funções globais apenas para os botões gerados dinamicamente via innerHTML
+window.editNote = (id) => { 
+    const n = myNotes.find(x => x.id === id);
+    if(!n) return;
+    toggleNoteForm(); 
+    document.getElementById('al-note-id').value = n.id; 
+    els.noteTitle.value = n.titulo; 
+    els.noteBody.value = n.conteudo; 
 };
+window.deleteNote = async (id) => { if(confirm("Apagar nota?")) await deleteDoc(doc(db, "anotacoes_pessoais", id)); };
+window.togglePin = async (id, val) => { await updateDoc(doc(db, "anotacoes_pessoais", id), { favorita: !!val }); };
+window.selectColor = (c) => { selectedNoteColor = c; els.noteForm.style.borderLeft = `5px solid ${c}`; };
+window.setNoteTag = (t) => { currentTagFilter = t; renderNotes(); };
+
+// --- LÓGICA DO KANBAN ---
+function toggleKanbanForm() { document.getElementById('al-kanban-form').classList.toggle('hidden'); }
+
+async function saveKanban() {
+    const p = { 
+        titulo: document.getElementById('al-kanban-title').value, 
+        conteudo: document.getElementById('al-kanban-body').value, 
+        userIdCriador: currentUser.uid, 
+        status: 'a_fazer', 
+        createdAt: serverTimestamp() 
+    };
+    await addDoc(collection(db, "kanban_atividades"), p); 
+    toggleKanbanForm();
+}
+
+window.editKanbanTask = (id) => {
+    const t = myTasks.find(x => x.id === id); // Usando a variável global que será definida no seu initKanbanSystem
+    if(!t) return;
+    toggleKanbanForm();
+    document.getElementById('al-kanban-id').value = t.id;
+    document.getElementById('al-kanban-title').value = t.titulo;
+    document.getElementById('al-kanban-body').value = t.conteudo;
+};
+window.deleteKanbanTask = async (id) => { if(confirm("Apagar tarefa?")) await deleteDoc(doc(db, "kanban_atividades", id)); };
+
+// Drag & Drop Globais
+window.allowDrop = (e) => e.preventDefault();
+window.drop = async (e, status) => {
+    const id = e.dataTransfer.getData("text/plain");
+    await updateDoc(doc(db, "kanban_atividades", id), { status, updatedAt: serverTimestamp() });
+};
+
+// --- LÓGICA DO CALENDÁRIO ---
+function openCalModal(ev=null, dt=null) {
+    document.getElementById('al-modal-cal').style.display='flex';
+    if(ev) { 
+        document.getElementById('al-ev-id').value = ev.id; 
+        document.getElementById('al-ev-title').value = ev.titulo; 
+        document.getElementById('al-ev-date').value = ev.dataInicio?.toDate().toISOString().split('T')[0]; 
+        document.getElementById('al-ev-desc').value = ev.descricao || '';
+        document.getElementById('al-btn-del-ev').classList.remove('hidden');
+    } else {
+        document.getElementById('al-ev-id').value = ''; 
+        document.getElementById('al-ev-title').value = ''; 
+        document.getElementById('al-ev-date').value = dt || new Date().toISOString().split('T')[0];
+        document.getElementById('al-ev-desc').value = '';
+        document.getElementById('al-btn-del-ev').classList.add('hidden');
+    }
+}
+
+function closeCalModal() { document.getElementById('al-modal-cal').style.display='none'; }
+function changeCalMonth(dir) { calDate.setMonth(calDate.getMonth() + dir); fetchCalendarEvents(); }
+
+async function saveCalendarEvent() { 
+    const title = document.getElementById('al-ev-title').value;
+    const dateVal = document.getElementById('al-ev-date').value;
+    const desc = document.getElementById('al-ev-desc').value;
+    
+    if(!title || !dateVal) return alert("Título e Data são obrigatórios");
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+
+    const payload = {
+        titulo: title,
+        dataInicio: Timestamp.fromDate(dateObj),
+        descricao: desc,
+        visibilidade: 'todos',
+        instrutorUID: currentUser.uid,
+        updatedAt: serverTimestamp()
+    };
+
+    const id = document.getElementById('al-ev-id').value;
+    if(id) await updateDoc(doc(db, "calendarioAnual", id), payload); 
+    else { payload.createdAt = serverTimestamp(); await addDoc(collection(db, "calendarioAnual"), payload); }
+    
+    closeCalModal(); 
+    fetchCalendarEvents();
+}
+
+async function deleteCalendarEvent() { 
+    const id = document.getElementById('al-ev-id').value;
+    if(id && confirm("Excluir evento?")) {
+        await deleteDoc(doc(db, "calendarioAnual", id));
+        closeCalModal(); 
+        fetchCalendarEvents();
+    }
+}
 
 // ============================================================================
 // LOGICAS AUXILIARES 
