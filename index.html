@@ -65,117 +65,120 @@
         
         <div id="inicio-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden"></div>
         
-        <div class="h-full flex flex-col pb-20">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 border-b border-slate-800 pb-4 shrink-0">
-                <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase shrink-0">
-                    <i class="fas fa-book-reader text-blue-500 mr-2"></i> Acervo Acadêmico
-                </h2>
-                
-                <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
-                    <button class="cont-tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30" data-target="materiais"><i class="fas fa-scroll mr-2"></i> Conteúdos</button>
-                    <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="musicas"><i class="fas fa-music mr-2"></i> Músicas</button>
-                    <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="podcasts"><i class="fas fa-microphone mr-2"></i> Podcasts</button>
-                </div>
-            </div>
-
-            <div id="ctab-materiais" class="cont-tab-content active flex-grow flex flex-col space-y-6 fade-in h-full">
-                
-                <div id="cont-admin-mat" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg shrink-0">
-                    <h3 class="text-blue-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-plus-circle mr-2"></i> Registrar Novo Conhecimento</h3>
-                    <form id="form-material" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título</label><input type="text" id="mat-titulo" required placeholder="Ex: Fundamentos da Magia" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Disciplina</label><select id="mat-disciplina" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></select></div>
-                        </div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Conteúdo Completo</label><textarea id="mat-texto" placeholder="Descreva os segredos desta lição..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Imagem)</label><input type="file" id="mat-file-image" accept="image/*" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pergaminho (PDF)</label><input type="file" id="mat-file-pdf" accept=".pdf" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-500 cursor-pointer"></div>
-                        </div>
-                        <div id="mat-link-inputs-container" class="space-y-2">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes Externas (Links)</label>
-                            <input type="url" class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none" placeholder="https://...">
-                        </div>
-                        <div class="flex flex-wrap gap-3 pt-2">
-                            <button type="button" id="btn-add-link" class="px-6 py-3 border border-dashed border-blue-500 text-blue-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-500/10 transition-colors">+ Link</button>
-                            <button type="submit" id="btn-submit-mat" class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg ml-auto">Salvar no Grimório</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0">
-                    <div class="relative flex-grow">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="text" id="cont-search-mat" placeholder="Buscar por título ou conteúdo..." class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
-                    </div>
-                    <select id="cont-filter-disc" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todas as Disciplinas</option></select>
-                    <select id="cont-filter-prof" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todos os Professores</option></select>
-                </div>
-
-                <div id="cont-mat-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pb-6"></div>
-                <div id="cont-mat-pagination" class="hidden justify-center items-center gap-4 py-4 shrink-0"></div>
-            </div>
-
-            <div id="ctab-musicas" class="cont-tab-content hidden h-full fade-in flex flex-col">
-                <div id="cont-admin-mus" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-emerald-500 shadow-lg mb-6 shrink-0">
-                    <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-music mr-2"></i> Adicionar Trilha Sonora</h3>
-                    <form id="form-music" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título da Música</label><input type="text" id="mus-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Compositor / Bardo</label><input type="text" id="mus-artista" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
-                        </div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Letra da Música</label><textarea id="mus-letra" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-emerald-500 outline-none custom-scroll"></textarea></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="mus-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="mus-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
-                        </div>
-                        <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-mus" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Registrar Trilha</button></div>
-                    </form>
-                </div>
-
-                <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                    <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
-                        <div class="p-4 border-b border-slate-800"><input type="text" id="search-music-input" placeholder="Buscar trilha..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
-                        <ul id="music-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
-                    </div>
-                    <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
-                        <div id="music-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
-                            <i class="fas fa-compact-disc fa-spin fa-5x mb-4 opacity-50"></i>
-                            <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Grimório Musical</h2>
-                        </div>
-                        <div id="music-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+        <div id="conteudos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 pt-10 md:p-12 md:pt-14">
+            
+            <div class="h-full flex flex-col pb-20">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
+                    <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase shrink-0">
+                        <i class="fas fa-book-reader text-blue-500 mr-2"></i> Acervo Acadêmico
+                    </h2>
+                    
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
+                        <button class="cont-tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30" data-target="materiais"><i class="fas fa-scroll mr-2"></i> Conteúdos</button>
+                        <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="musicas"><i class="fas fa-music mr-2"></i> Músicas</button>
+                        <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="podcasts"><i class="fas fa-microphone mr-2"></i> Podcasts</button>
                     </div>
                 </div>
-            </div>
 
-            <div id="ctab-podcasts" class="cont-tab-content hidden h-full fade-in flex flex-col">
-                <div id="cont-admin-pod" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 shrink-0">
-                    <h3 class="text-purple-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-broadcast-tower mr-2"></i> Emitir Novo Episódio</h3>
-                    <form id="form-podcast" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título do Episódio</label><input type="text" id="pod-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Professor / Host</label><input type="text" id="pod-professor" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
+                <div id="ctab-materiais" class="cont-tab-content active flex-grow flex flex-col space-y-6 fade-in h-full">
+                    
+                    <div id="cont-admin-mat" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg shrink-0">
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-plus-circle mr-2"></i> Registrar Novo Conhecimento</h3>
+                        <form id="form-material" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título</label><input type="text" id="mat-titulo" required placeholder="Ex: Fundamentos da Magia" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Disciplina</label><select id="mat-disciplina" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></select></div>
+                            </div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Conteúdo Completo</label><textarea id="mat-texto" placeholder="Descreva os segredos desta lição..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Imagem)</label><input type="file" id="mat-file-image" accept="image/*" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pergaminho (PDF)</label><input type="file" id="mat-file-pdf" accept=".pdf" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-500 cursor-pointer"></div>
+                            </div>
+                            <div id="mat-link-inputs-container" class="space-y-2">
+                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes Externas (Links)</label>
+                                <input type="url" class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none" placeholder="https://...">
+                            </div>
+                            <div class="flex flex-wrap gap-3 pt-2">
+                                <button type="button" id="btn-add-link" class="px-6 py-3 border border-dashed border-blue-500 text-blue-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-500/10 transition-colors">+ Link</button>
+                                <button type="submit" id="btn-submit-mat" class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg ml-auto">Salvar no Grimório</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0">
+                        <div class="relative flex-grow">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="text" id="cont-search-mat" placeholder="Buscar por título ou conteúdo..." class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
                         </div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pauta / Resumo</label><textarea id="pod-descricao" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-purple-500 outline-none custom-scroll"></textarea></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="pod-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer"></div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="pod-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
-                        </div>
-                        <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-pod" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Podcast</button></div>
-                    </form>
+                        <select id="cont-filter-disc" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todas as Disciplinas</option></select>
+                        <select id="cont-filter-prof" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todos os Professores</option></select>
+                    </div>
+
+                    <div id="cont-mat-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pb-6"></div>
+                    <div id="cont-mat-pagination" class="hidden justify-center items-center gap-4 py-4 shrink-0"></div>
                 </div>
 
-                <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                    <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
-                        <div class="p-4 border-b border-slate-800"><input type="text" id="search-podcast-input" placeholder="Buscar podcast..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-purple-500 outline-none"></div>
-                        <ul id="podcast-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
+                <div id="ctab-musicas" class="cont-tab-content hidden h-full fade-in flex flex-col">
+                    <div id="cont-admin-mus" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-emerald-500 shadow-lg mb-6 shrink-0">
+                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-music mr-2"></i> Adicionar Trilha Sonora</h3>
+                        <form id="form-music" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título da Música</label><input type="text" id="mus-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Compositor / Bardo</label><input type="text" id="mus-artista" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                            </div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Letra da Música</label><textarea id="mus-letra" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-emerald-500 outline-none custom-scroll"></textarea></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="mus-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="mus-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
+                            </div>
+                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-mus" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Registrar Trilha</button></div>
+                        </form>
                     </div>
-                    <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
-                        <div id="podcast-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
-                            <i class="fas fa-broadcast-tower fa-5x mb-4 opacity-50"></i>
-                            <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Biblioteca de Podcasts</h2>
+
+                    <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
+                        <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
+                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-music-input" placeholder="Buscar trilha..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
+                            <ul id="music-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
                         </div>
-                        <div id="podcast-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+                        <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
+                            <div id="music-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+                                <i class="fas fa-compact-disc fa-spin fa-5x mb-4 opacity-50"></i>
+                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Grimório Musical</h2>
+                            </div>
+                            <div id="music-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="ctab-podcasts" class="cont-tab-content hidden h-full fade-in flex flex-col">
+                    <div id="cont-admin-pod" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 shrink-0">
+                        <h3 class="text-purple-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-broadcast-tower mr-2"></i> Emitir Novo Episódio</h3>
+                        <form id="form-podcast" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título do Episódio</label><input type="text" id="pod-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Professor / Host</label><input type="text" id="pod-professor" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
+                            </div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pauta / Resumo</label><textarea id="pod-descricao" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-purple-500 outline-none custom-scroll"></textarea></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="pod-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="pod-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
+                            </div>
+                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-pod" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Podcast</button></div>
+                        </form>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
+                        <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
+                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-podcast-input" placeholder="Buscar podcast..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-purple-500 outline-none"></div>
+                            <ul id="podcast-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
+                        </div>
+                        <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
+                            <div id="podcast-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+                                <i class="fas fa-broadcast-tower fa-5x mb-4 opacity-50"></i>
+                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Biblioteca de Podcasts</h2>
+                            </div>
+                            <div id="podcast-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -191,8 +194,7 @@
                         <button onclick="window.conteudosAPI.fecharMat()" class="text-slate-500 hover:text-white text-xl transition-colors"><i class="fas fa-times"></i></button>
                     </div>
                     <div class="p-6 flex-grow overflow-y-auto custom-scroll text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-inter" id="mat-det-body"></div>
-                    <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex flex-wrap gap-3 items-center" id="mat-det-footer">
-                        </div>
+                    <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex flex-wrap gap-3 items-center" id="mat-det-footer"></div>
                 </div>
             </div>
 
@@ -226,6 +228,7 @@
                     </div>
                 </div>
             </div>
+
         </div>
         
         <div id="projetos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
