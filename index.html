@@ -134,58 +134,68 @@
                     <input type="color" id="al-input-color" class="hidden">
 
                     <nav class="aluno-tabs-nav flex gap-6 px-8 md:px-14 border-b border-slate-800/60 overflow-x-auto no-scrollbar whitespace-nowrap">
-                        <button id="btn-tab-avisos" class="aluno-tab-btn active" data-target="avisos">Mural de Avisos</button>
-                        <button id="btn-tab-boletim" class="aluno-tab-btn" data-target="boletim">Boletim Escolar</button>
-                        <button id="btn-tab-frequencia" class="aluno-tab-btn" data-target="frequencia">Minha Frequência</button>
-                        <button id="btn-tab-metricas" class="aluno-tab-btn" data-target="metricas">Minhas Métricas</button>
-                        <button id="btn-tab-avaliacao360" class="aluno-tab-btn" data-target="avaliacao360">Avaliação 360º</button>
+                        <button id="btn-tab-geral" class="aluno-tab-btn active" data-target="geral">Visão Geral</button>
                         <button id="btn-tab-caderno" class="aluno-tab-btn" data-target="caderno">Caderno Digital</button>
                         <button id="btn-tab-kanban" class="aluno-tab-btn" data-target="kanban">Kanban Atividades</button>
                         <button id="btn-tab-horario" class="aluno-tab-btn" data-target="horario">Horário Escolar</button>
                         <button id="btn-tab-calendario" class="aluno-tab-btn" data-target="calendario">Calendário</button>
                     </nav>
 
-                    <div class="px-6 md:px-20 py-6 pb-32"> 
+                    <div class="px-6 md:px-14 py-6 pb-32"> 
                         
-                        <div id="atab-avisos" class="aluno-tab-content active"><div id="al-avisos-list" class="space-y-4"></div></div>
-                        
-                        <div id="atab-boletim" class="aluno-tab-content">
-                            <div class="bg-slate-900/50 p-6 rounded-xl border border-slate-800 overflow-x-auto">
-                                <table class="boletim-table min-w-[900px]">
-                                    <thead>
-                                        <tr><th rowspan="2">Disciplina</th><th colspan="4">1º Trim</th><th colspan="4">2º Trim</th><th colspan="4">3º Trim</th><th rowspan="2">Média</th></tr>
-                                        <tr><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th></tr>
-                                    </thead>
-                                    <tbody id="al-boletim-body"></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div id="atab-frequencia" class="aluno-tab-content">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div class="bg-slate-900 p-10 rounded-xl border border-slate-800 text-center">
-                                    <h4 class="text-xs font-bold text-slate-500 uppercase mb-4">Presença</h4>
-                                    <div id="al-freq-perc" class="text-6xl font-black text-green-400">100%</div>
-                                    <div id="al-freq-total" class="text-red-500 mt-4 font-bold">0 Faltas</div>
+                        <div id="atab-geral" class="aluno-tab-content active">
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                
+                                <div class="col-span-1 flex flex-col gap-4">
+                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 text-center flex-grow flex flex-col justify-center">
+                                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest"><i class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
+                                        <div id="al-freq-perc" class="text-6xl font-black text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.2)]">100%</div>
+                                        <div id="al-freq-total" class="text-red-500 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">0 Faltas</div>
+                                    </div>
+                                    <div class="bg-slate-900/40 p-4 rounded-2xl border border-slate-800/60 flex items-center justify-center h-48">
+                                        <canvas id="al-chart-freq"></canvas>
+                                    </div>
                                 </div>
-                                <div class="bg-slate-900 p-6 rounded-xl border border-slate-800 flex items-center justify-center">
-                                    <canvas id="al-chart-freq"></canvas>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div id="atab-metricas" class="aluno-tab-content">
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div class="bg-slate-900 p-6 rounded-xl border border-slate-800"><canvas id="al-chart-scatter"></canvas></div>
-                                <div class="bg-slate-900 p-6 rounded-xl border border-slate-800">
-                                    <select id="al-sel-evol" class="mb-4 bg-slate-950 text-white text-xs p-2 rounded"></select>
-                                    <canvas id="al-chart-evol"></canvas>
+                                <div class="col-span-1 lg:col-span-2 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 flex flex-col">
+                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4 border-b border-slate-800 pb-2"><i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
+                                    <div id="al-avisos-list" class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]">
+                                        </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div id="atab-avaliacao360" class="aluno-tab-content">
-                            <div id="al-eval-360-content" class="bg-slate-900 p-10 rounded-xl border border-dashed border-slate-700 text-center text-slate-500">Nenhuma avaliação pendente.</div>
+                                <div class="col-span-1 lg:col-span-3 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 overflow-x-auto shadow-lg mt-2">
+                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4"><i class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
+                                    <table class="boletim-table min-w-[900px] w-full">
+                                        <thead>
+                                            <tr><th rowspan="2">Disciplina</th><th colspan="4">1º Trim</th><th colspan="4">2º Trim</th><th colspan="4">3º Trim</th><th rowspan="2">Média</th></tr>
+                                            <tr><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th></tr>
+                                        </thead>
+                                        <tbody id="al-boletim-body"></tbody>
+                                    </table>
+                                </div>
+
+                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60">
+                                        <h4 class="text-xs font-bold text-slate-500 uppercase mb-4 tracking-widest text-center">Dispersão de Notas</h4>
+                                        <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
+                                    </div>
+                                    <div class="bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Evolução</h4>
+                                            <select id="al-sel-evol" class="bg-slate-950 text-white text-xs p-1.5 rounded border border-slate-700 outline-none"></select>
+                                        </div>
+                                        <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
+                                    </div>
+                                </div>
+
+                                <div class="col-span-1 lg:col-span-3 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 mt-2">
+                                    <h3 class="text-blue-500 font-cinzel font-bold text-lg mb-4"><i class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
+                                    <div id="al-eval-360-content" class="bg-slate-950/50 p-8 rounded-xl border border-dashed border-slate-700 text-center text-slate-500">
+                                        Nenhuma avaliação pendente no momento.
+                                    </div>
+                                </div>
+
+                            </div>
                         </div>
 
                         <div id="atab-caderno" class="aluno-tab-content">
