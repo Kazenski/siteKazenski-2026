@@ -109,21 +109,18 @@ function mapearDOM() {
         horarioMsg: document.getElementById('al-horario-msg'),
         selEvol: document.getElementById('al-sel-evol'),
 
-        // --- IDS DO NOVO CADERNO DIGITAL (3 COLUNAS) ---
-        noteTags: document.getElementById('al-notebook-tags'),        
-        noteTagsMobile: document.getElementById('al-notebook-tags-mobile'), 
+        // --- IDS DA ARQUITETURA DE 3 COLUNAS ---
+        noteTags: document.getElementById('al-notebook-tags'),          
         noteSearch: document.getElementById('al-note-search'),          
         noteList: document.getElementById('al-notes-list'),             
-        
         noteEmptyState: document.getElementById('al-note-empty-state'), 
         noteActiveState: document.getElementById('al-note-active-state'),
-        noteActiveId: document.getElementById('al-note-active-id'),     
+        noteActiveId: document.getElementById('al-note-active-id'),
         noteActiveTitle: document.getElementById('al-note-active-title'),
-        noteActiveTags: document.getElementById('al-note-active-tags'),  
-        noteActiveBody: document.getElementById('al-note-active-body'),  
-        noteColorPicker: document.getElementById('al-note-colors'),      
+        noteActiveTags: document.getElementById('al-note-active-tags'),
+        noteActiveBody: document.getElementById('al-note-active-body'),
+        noteColorPicker: document.getElementById('al-note-colors'),
 
-        // --- IDS DO KANBAN ---
         colTodo: document.getElementById('al-col-todo'),
         colDoing: document.getElementById('al-col-doing'),
         colDone: document.getElementById('al-col-done')
@@ -820,35 +817,48 @@ window.selectNote = (id) => {
 // 3. Renderiza a Lista (Coluna 2)
 function renderNotes() {
     if(!els.noteList) return;
-    
     const search = els.noteSearch.value.toLowerCase();
+    
     const filtered = myNotes.filter(n => {
         const textMatch = (n.titulo||'').toLowerCase().includes(search) || (n.conteudo||'').toLowerCase().includes(search);
         const tagMatch = currentTagFilter === 'all' || (n.tags && n.tags.includes(currentTagFilter));
         return textMatch && tagMatch;
     });
-    
-    // Favoritas sempre no topo
     filtered.sort((a,b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
 
-    if(filtered.length === 0) {
-        els.noteList.innerHTML = '<div class="text-center text-slate-500 py-10 italic text-sm">Caderno vazio.</div>';
-        return;
+    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    if(currentPage > totalPages) currentPage = totalPages;
+    const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+    if(filtered.length === 0) { 
+        els.noteList.innerHTML = '<div class="text-center text-slate-500 py-10 italic text-sm">Nenhuma nota aqui.</div>'; 
+        document.getElementById('notes-pagination').classList.add('hidden');
+        return; 
     }
 
-    els.noteList.innerHTML = filtered.map(n => {
-        const isActive = n.id === activeNoteId ? 'ring-2 ring-blue-500' : '';
+    els.noteList.innerHTML = paginated.map(n => {
+        const isActive = n.id === activeNoteId ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-700/80';
         return `
-        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="note-list-item p-3 bg-slate-900 border border-slate-700 hover:bg-slate-800 rounded-xl cursor-pointer transition-all shadow-sm flex flex-col gap-2 ${isActive}" style="border-left: 4px solid ${n.color||'#3b82f6'}">
+        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color||'#3b82f6'}">
             <div class="flex justify-between items-start gap-2">
-                <h4 class="text-white font-bold text-sm truncate flex-grow">${escapeHTML(n.titulo || 'Sem Título')}</h4>
-                ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-xs shrink-0 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]"></i>' : ''}
+                <h4 class="text-white font-bold text-xs truncate flex-grow">${escapeHTML(n.titulo || 'Sem Título')}</h4>
+                ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-[10px] shrink-0"></i>' : ''}
             </div>
-            <div class="flex gap-1 flex-wrap">
-                ${(n.tags||[]).slice(0,3).map(t => `<span class="bg-slate-800 text-slate-400 border border-slate-700 text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider truncate max-w-[80px]">${escapeHTML(t)}</span>`).join('')}
-            </div>
+            <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight">${escapeHTML(n.conteudo)}</div>
         </div>
     `}).join('');
+    
+    const pagWrapper = document.getElementById('notes-pagination');
+    if(totalPages > 1) {
+        pagWrapper.classList.replace('hidden', 'flex');
+        document.getElementById('page-indicator').textContent = `${currentPage} / ${totalPages}`;
+        document.getElementById('btn-prev-page').onclick = () => { currentPage--; renderNotes(); };
+        document.getElementById('btn-next-page').onclick = () => { currentPage++; renderNotes(); };
+        document.getElementById('btn-prev-page').disabled = currentPage === 1;
+        document.getElementById('btn-next-page').disabled = currentPage === totalPages;
+    } else {
+        pagWrapper.classList.replace('flex', 'hidden');
+    }
 }
 
 // 4. Renderiza as Pastas/Tags (Coluna 1)
@@ -856,22 +866,19 @@ function updateTagFilters() {
     const allTags = new Set();
     myNotes.forEach(n => (n.tags || []).forEach(t => allTags.add(t)));
     
-    const renderPill = (tag, label) => `
-        <button onclick="window.setNoteTag('${tag}')" class="w-full text-left px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all truncate ${currentTagFilter === tag ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-inner' : 'text-slate-500 hover:bg-slate-900 border border-transparent'}">
-            ${label}
+    const renderFolder = (tag, label, icon) => `
+        <button onclick="window.setNoteTag('${tag}')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${currentTagFilter === tag ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' : 'text-slate-400 hover:bg-slate-700 hover:text-white border border-transparent'}">
+            <i class="${icon} w-4 text-center"></i> <span class="truncate">${label}</span>
         </button>
     `;
     
-    let htmlDesktop = renderPill('all', '<i class="fas fa-layer-group mr-2"></i> Todas');
-    let htmlMobile = `<button onclick="window.setNoteTag('all')" class="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currentTagFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}">Todas</button>`;
+    let html = renderFolder('all', 'Todas as Notas', 'fas fa-book');
     
     Array.from(allTags).sort().forEach(tag => {
-        htmlDesktop += renderPill(tag, `<span class="opacity-50 mr-1">#</span> ${tag}`);
-        htmlMobile += `<button onclick="window.setNoteTag('${tag}')" class="shrink-0 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all ${currentTagFilter === tag ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}">#${tag}</button>`;
+        html += renderFolder(tag, tag.toUpperCase(), 'fas fa-hashtag opacity-50');
     });
     
-    if(els.noteTags) els.noteTags.innerHTML = htmlDesktop;
-    if(els.noteTagsMobile) els.noteTagsMobile.innerHTML = htmlMobile;
+    if(els.noteTags) els.noteTags.innerHTML = html;
 }
 
 window.setNoteTag = (tag) => {
