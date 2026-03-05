@@ -18,6 +18,7 @@ let els = {}; // Cache de Elementos DOM
 let notesUnsubscribe = null;
 let kanbanUnsub = null;
 let myNotes = [];
+let myTasks = [];
 let currentTagFilter = 'all';
 let currentPage = 1;
 const itemsPerPage = 12;
@@ -559,18 +560,27 @@ function renderNotes() {
 }
 
 function initKanbanSystem() {
-    const q = query(collection(db, "kanban_atividades"), where("userIdCriador", "==", currentUser.uid));
-    kanbanUnsub = onSnapshot(q, snap => {
-        els.colTodo.innerHTML = ''; els.colDoing.innerHTML = ''; els.colDone.innerHTML = '';
-        snap.docs.forEach(doc => {
-            const t = doc.data(); const id = doc.id;
-            const div = document.createElement('div'); div.className = 'kanban-card p-4 bg-slate-800 border border-slate-700 rounded-xl mb-3 cursor-grab shadow-lg'; div.draggable = true;
-            div.innerHTML = `<div class="font-bold text-white text-sm">${escapeHTML(t.titulo)}</div>`;
-            div.ondragstart = (e) => { e.dataTransfer.setData("text/plain", id); draggedTask = {id, ...t}; };
-            if(t.status==='a_fazer') els.colTodo.appendChild(div);
-            else if(t.status==='em_progresso') els.colDoing.appendChild(div);
-            else els.colDone.appendChild(div);
+    if(kanbanUnsub) return;
+    
+    const q = query(collection(db, "kanban_atividades"), 
+        where("userIdCriador", "==", currentUser.uid)
+    );
+
+    kanbanUnsub = onSnapshot(q, (snap) => {
+        myTasks = [];
+        snap.forEach(doc => myTasks.push({ id: doc.id, ...doc.data() }));
+        
+        // Ordena as tarefas da mais recente para a mais antiga localmente (evita erro de índice no Firebase)
+        myTasks.sort((a, b) => {
+            const timeA = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : Date.now();
+            const timeB = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Date.now();
+            return timeB - timeA;
         });
+
+        // Chama a função que desenha o quadro com o visual novo!
+        renderKanbanBoard();
+    }, (error) => {
+        console.error("Erro ao carregar o Kanban:", error);
     });
 }
 
