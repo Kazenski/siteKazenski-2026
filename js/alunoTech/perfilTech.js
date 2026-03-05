@@ -938,7 +938,7 @@ window.selectColor = (c) => {
     // Atualiza a borda do painel direito em tempo real
     els.noteActiveState.style.borderTop = `4px solid ${c}`;
 };
-
+ 
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
 window.openShareModal = async () => {
     const noteId = els.noteActiveId.value;
