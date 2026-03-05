@@ -353,10 +353,6 @@ window.drop = async (e, status) => {
 // LÓGICA DO CALENDÁRIO ESCOLAR (COM PAINEL LATERAL MODERNO)
 // ============================================================================
 
-let calDate = new Date();
-let calEvents = [];
-let calView = 'month'; // 'month' ou 'week'
-
 async function initCalendarSystem() {
     // Exibe botões de Admin/Professor
     const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
