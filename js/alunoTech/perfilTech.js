@@ -251,7 +251,6 @@ window.setNoteTag = (t) => { currentTagFilter = t; renderNotes(); };
 // ============================================================================
 // LÓGICA DO KANBAN DE ATIVIDADES
 // ============================================================================
-let draggedTask = null; // Variável vital para o Drag & Drop
 
 function toggleKanbanForm() { 
     const form = document.getElementById('al-kanban-form');
