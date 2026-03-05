@@ -20,6 +20,7 @@ let userRoles = {
 };
 
 let activeTabId = 'inicio';
+let isAlunoTechLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -162,13 +163,13 @@ window.showTab = function(tabId) {
 
     // GATILHOS DE RENDERIZAÇÃO
     if (tabId === 'inicio') {
-        // Sempre chamamos o render para garantir que o carrossel e o background resetem
         renderInicioTab();
     } 
     else if (tabId === 'aluno-tech') {
-        // Se a aba estiver vazia, renderiza o perfil
-        if (targetContainer && targetContainer.innerHTML.trim() === '') {
+        // Agora verificamos a variável em vez do HTML vazio
+        if (!isAlunoTechLoaded) {
             renderAlunoTechTab();
+            isAlunoTechLoaded = true; // Trava para não carregar o JS duas vezes
         }
     }
     else if (tabId === 'login') {

@@ -124,7 +124,15 @@ function mapearDOM() {
 
 async function initDashboard(user) {
     const userDoc = await getDoc(doc(db, "users", user.uid));
-    if (!userDoc.exists()) return;
+    
+    // REDE DE SEGURANÇA: Esconde o loading mesmo se o usuário não for achado no banco
+    if (!userDoc.exists()) {
+        els.loading.classList.add('hidden');
+        els.dashboard.innerHTML = '<div class="text-white text-center mt-20">Usuário não encontrado no banco de dados.</div>';
+        els.dashboard.classList.remove('hidden');
+        return; 
+    }
+    
     currentUser = { uid: user.uid, ...userDoc.data() };
 
     els.loading.classList.add('hidden');
