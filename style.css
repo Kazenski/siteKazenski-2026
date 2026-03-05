@@ -201,3 +201,32 @@
 .day-number { font-size: 0.8rem; font-weight: bold; color: #475569; }
 .event-item { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 2px; cursor: pointer; color: white; }
 
+/* ============================================================== */
+/* COMPONENTE: CONTEÚDOS AULA (MATERIAIS, AUDIO PLAYER)           */
+/* ============================================================== */
+
+/* Estilização da barra de progresso do áudio nativo para combinar com Tailwind */
+.custom-range::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #3b82f6; /* Azul padrão */
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.custom-range::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+}
+.custom-range::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+}
+
+/* Transição suave entre as sub-abas */
+.cont-tab-content { display: none; }
+.cont-tab-content.active { display: block; animation: fadeIn 0.4s ease-out forwards; }

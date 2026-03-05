@@ -175,6 +175,14 @@ window.showTab = function(tabId) {
     else if (tabId === 'login') {
         renderLoginTab();
     }
+
+    else if (tabId === 'conteudos') {
+        if (!isConteudosLoaded) {
+            renderConteudosTab();
+            isConteudosLoaded = true;
+        }
+    }
+    
 };
 
 
