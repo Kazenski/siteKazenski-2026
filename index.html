@@ -79,7 +79,7 @@
         <div id="projetos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         <div id="conexao-aluno-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         <div id="atualizacoes-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        
+        <div id="login-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto p-6 flex items-center justify-center bg-slate-950"></div>
         <div id="aluno-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden">
     
             <div id="loading-aluno" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-[100]">
@@ -163,12 +163,23 @@
                                         </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 overflow-x-auto shadow-lg mt-2">
+                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 overflow-x-auto shadow-lg mt-2 custom-scroll">
                                     <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
-                                    <table class="boletim-table min-w-[700px] w-full">
+                                    
+                                    <table class="boletim-table min-w-[1100px] w-full text-sm">
                                         <thead>
-                                            <tr><th rowspan="2">Disciplina</th><th colspan="4">1º Trim</th><th colspan="4">2º Trim</th><th colspan="4">3º Trim</th><th rowspan="2">Média</th></tr>
-                                            <tr><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th><th>N1</th><th>N2</th><th>N3</th><th>N4</th></tr>
+                                            <tr>
+                                                <th rowspan="2" class="w-[20%] text-left pl-4">Disciplina</th>
+                                                <th colspan="4" class="w-[20%] border-l border-slate-700">1º Trimestre</th>
+                                                <th colspan="4" class="w-[20%] border-l border-slate-700">2º Trimestre</th>
+                                                <th colspan="4" class="w-[20%] border-l border-slate-700">3º Trimestre</th>
+                                                <th rowspan="2" class="w-[20%] border-l border-slate-700">Média Final</th>
+                                            </tr>
+                                            <tr class="text-xs text-slate-500">
+                                                <th class="border-l border-slate-700">N1</th><th>N2</th><th>N3</th><th>N4</th>
+                                                <th class="border-l border-slate-700">N1</th><th>N2</th><th>N3</th><th>N4</th>
+                                                <th class="border-l border-slate-700">N1</th><th>N2</th><th>N3</th><th>N4</th>
+                                            </tr>
                                         </thead>
                                         <tbody id="al-boletim-body"></tbody>
                                     </table>

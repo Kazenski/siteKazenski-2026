@@ -177,20 +177,112 @@ window.showTab = function(tabId) {
     }
 };
 
+
 // ============================================================================
-// LOGIN E LOGOUT
+// TELA DE LOGIN DEDICADA
 // ============================================================================
 
 function renderLoginTab() {
-    const target = document.getElementById('app-main');
-    // Criar um modal ou aba de login caso o usuário clique em "Fazer Login"
-    // Por enquanto, usamos um prompt simples ou você pode direcionar para uma aba de login dedicada
-    const email = prompt("Email:");
-    const pass = prompt("Senha:");
-    if(email && pass) {
-        signInWithEmailAndPassword(auth, email, pass).catch(e => alert("Erro: " + e.message));
-    }
+    const container = document.getElementById('login-content');
+    if (!container) return;
+
+    // Constrói uma interface de Login moderna e limpa
+    container.innerHTML = `
+        <div class="w-full max-w-md bg-slate-800 p-8 md:p-10 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden fade-in">
+            
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600"></div>
+            
+            <div class="text-center mb-8 pt-2">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-700 mb-4 shadow-inner">
+                    <i class="fas fa-user-astronaut text-2xl text-blue-500"></i>
+                </div>
+                <h2 class="text-3xl font-cinzel font-bold text-white">Acesso Restrito</h2>
+                <p class="text-slate-400 text-sm mt-2 font-medium">Insira suas credenciais para continuar</p>
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Email</label>
+                    <div class="relative">
+                        <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="email" id="login-email" required 
+                               class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600" 
+                               placeholder="seu@email.com">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Senha</label>
+                    <div class="relative">
+                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="password" id="login-pass" required 
+                               class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600" 
+                               placeholder="••••••••">
+                    </div>
+                </div>
+
+                <div id="login-error" class="hidden bg-red-500/10 border border-red-500/50 text-red-400 text-xs p-3 rounded-lg text-center font-bold"></div>
+
+                <button type="submit" id="btn-submit-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-3 mt-4">
+                    <span>Entrar no Portal</span>
+                    <i class="fas fa-sign-in-alt"></i>
+                </button>
+            </form>
+            
+            <div class="mt-8 text-center border-t border-slate-700/50 pt-6">
+                <button onclick="window.showTab('inicio')" class="text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 w-full">
+                    <i class="fas fa-arrow-left"></i> Voltar para o Início
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Lógica de Submissão
+    const form = document.getElementById('login-form');
+    const errorDiv = document.getElementById('login-error');
+    const btnSubmit = document.getElementById('btn-submit-login');
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const pass = document.getElementById('login-pass').value.trim();
+
+        if (!email || !pass) return;
+
+        // Animação de Loading no botão
+        btnSubmit.innerHTML = '<i class="fas fa-circle-notch fa-spin text-xl"></i>';
+        btnSubmit.disabled = true;
+        btnSubmit.classList.add('opacity-70');
+        errorDiv.classList.add('hidden');
+
+        try {
+            // Tenta autenticar
+            await signInWithEmailAndPassword(auth, email, pass);
+            
+            // Sucesso! A função onAuthStateChanged vai rodar sozinha e exibir o painel do usuário.
+            // Vamos apenas redirecioná-lo para a tela Início para ele ver as abas liberadas.
+            window.showTab('inicio');
+            
+        } catch (error) {
+            // Falha. Restaura o botão e mostra o erro
+            btnSubmit.innerHTML = '<span>Entrar no Portal</span><i class="fas fa-sign-in-alt"></i>';
+            btnSubmit.disabled = false;
+            btnSubmit.classList.remove('opacity-70');
+            
+            errorDiv.classList.remove('hidden');
+            
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Credenciais inválidas.';
+            } else {
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Erro ao conectar. Tente novamente.';
+            }
+        }
+    });
 }
+
+// ============================================================================
+// LOGOUT
+// ============================================================================
 
 window.logout = async function() {
     if (confirm("Deseja sair?")) {

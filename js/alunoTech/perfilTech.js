@@ -585,13 +585,52 @@ function initKanbanSystem() {
 }
 
 async function loadHorarioEscolar() {
-    ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].forEach(d => document.getElementById(`cell-${d}-feira`).innerHTML = '');
+    // 1. Limpa a tabela
+    ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].forEach(d => {
+        const cell = document.getElementById(`cell-${d}-feira`);
+        if(cell) cell.innerHTML = '';
+    });
+
+    // 2. Lógica para destacar o dia de hoje
+    const diasIds = ['segunda-feira', 'terca-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira'];
+    const diaHoje = new Date().getDay(); // 0 = Dom, 1 = Seg ... 5 = Sex
+    
+    // Remove destaques anteriores (caso a aba seja recarregada)
+    document.querySelectorAll('.horario-tabela th').forEach(th => th.classList.remove('bg-blue-600', 'text-white'));
+    document.querySelectorAll('.horario-tabela td').forEach(td => td.classList.remove('bg-blue-900/20'));
+
+    // Aplica o destaque se for dia de semana
+    if(diaHoje >= 1 && diaHoje <= 5) {
+        const idHoje = diasIds[diaHoje - 1];
+        const th = document.querySelector(`th[data-dia-id="${idHoje}"]`);
+        const td = document.getElementById(`cell-${idHoje}`);
+        
+        if(th) {
+            th.classList.add('bg-blue-600', 'text-white');
+            th.style.color = '#ffffff'; // Força a cor por cima do CSS
+        }
+        if(td) td.classList.add('bg-blue-900/20'); // Fundo azul translúcido na coluna
+    }
+
+    // 3. Busca os dados no Firebase
     const q = query(collection(db, "aulas"), where("turmaId", "==", currentUser.turma || '---'), orderBy("ordem"));
     const snap = await getDocs(q);
+    
     els.horarioMsg.style.display = snap.empty ? 'block' : 'none';
+    
+    // 4. Preenche as aulas
     snap.forEach(doc => {
-        const a = doc.data(); const cell = document.getElementById(`cell-${a.diaSemana}`);
-        if(cell) cell.innerHTML += `<div class="aula-card p-3 bg-blue-900/10 border-l-4 border-blue-500 mb-3 rounded shadow-md"><h4 class="text-xs font-bold text-blue-100">${a.ordem}ª - ${disciplineMap[a.disciplina]||a.disciplina}</h4><p class="text-[10px] text-slate-500 mt-1">${a.professorNome}</p></div>`;
+        const a = doc.data(); 
+        const cell = document.getElementById(`cell-${a.diaSemana}`);
+        
+        if(cell) {
+            cell.innerHTML += `
+                <div class="aula-card p-3 bg-slate-900/80 border-l-4 border-blue-500 mb-3 rounded-lg shadow-md transition hover:-translate-y-1">
+                    <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${a.ordem}ª - ${disciplineMap[a.disciplina]||a.disciplina}</h4>
+                    <p class="text-[10px] font-bold text-blue-400 mt-1.5"><i class="fas fa-chalkboard-teacher mr-1"></i> ${a.professorNome}</p>
+                </div>
+            `;
+        }
     });
 }
 
