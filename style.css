@@ -110,10 +110,72 @@
 
 
 /* ============================================================== */
+/* CONFIGURAÇÕES GLOBAIS E SCROLLBAR                              */
+/* ============================================================== */
+
+/* Scrollbar Customizada (Azulada) */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #1e3a8a; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+/* Animações Globais */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+.tab-content { display: none; }
+.tab-content.active { display: flex; }
+
+.custom-scroll::-webkit-scrollbar { width: 6px; }
+.custom-scroll::-webkit-scrollbar-track { background: transparent; }
+.custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+/* Utilitário importante para forçar o Tailwind a esconder elementos corretamente */
+.hidden { display: none !important; }
+
+/* ============================================================== */
+/* COMPONENTE: CARROSSEL 3D (PÁGINA INICIAL)                      */
+/* ============================================================== */
+
+.kaz-carousel-perspective {
+    width: 100%; height: 70vh; min-height: 500px; position: relative;
+    display: flex; align-items: center; justify-content: center; perspective: 1500px; 
+    mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.8) 90%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 10%, rgba(0,0,0,1) 20%, rgba(0,0,0,1) 80%, rgba(0,0,0,0.8) 90%, rgba(0,0,0,0) 100%);
+}
+
+.kaz-slide {
+    position: absolute; width: 75%; height: 85%; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), z-index 0.8s, box-shadow 0.8s, border 0.8s, filter 0.8s;
+    background-size: cover; background-position: center;
+    display: flex; align-items: center; justify-content: flex-start;
+    border: 2px solid transparent; will-change: transform;
+}
+
+.kaz-slide:not(.active) { filter: brightness(0.3) saturate(0.5); cursor: pointer; }
+.kaz-slide.active { border: 2px solid #3b82f6; box-shadow: 0 0 30px rgba(0,0,0,0.9), inset 0 0 20px rgba(59, 130, 246, 0.3); filter: brightness(1) saturate(1); }
+.kaz-slide::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to right, rgba(15,23,42,0.95) 10%, rgba(15,23,42,0.6) 40%, transparent 100%); z-index: 1; pointer-events: none; }
+
+.kaz-content-layer { position: relative; z-index: 5; padding: 3rem 5rem; max-width: 55%; }
+
+.kaz-nav-dot { width: 12px; height: 12px; border-radius: 50%; background-color: rgba(255,255,255,0.2); cursor: pointer; transition: all 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+.kaz-nav-dot.active { background-color: #3b82f6; transform: scale(1.4); box-shadow: 0 0 10px #3b82f6; }
+
+@media (max-width: 768px) {
+    .kaz-slide { width: 95%; height: 90%; justify-content: center; }
+    .kaz-slide::after { background: linear-gradient(to top, rgba(15,23,42,0.95) 10%, rgba(15,23,42,0.6) 60%, transparent 100%); }
+    .kaz-content-layer { max-width: 90%; padding: 2rem; text-align: center; margin-top: auto; }
+}
+
+/* ============================================================== */
 /* COMPONENTE: ALUNO TECH (PERFIL E FERRAMENTAS)                  */
 /* ============================================================== */
 
-/* LOADING OVERLAY (LOCAL PARA O ALUNO) */
+/* LOADING OVERLAY */
 .aluno-spinner {
     width: 50px; height: 50px; border: 5px solid #334155;
     border-top-color: #3b82f6; border-radius: 50%;
@@ -121,32 +183,20 @@
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* BANNER E PERFIL */
-.banner-wrapper { position: relative; width: 100%; height: 320px; margin-bottom: 20px; }
-.cover-photo { width: 100%; height: 100%; background-size: cover; background-position: center; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-.cover-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(2,6,23,1) 0%, rgba(2,6,23,0.4) 50%, rgba(2,6,23,0.1) 100%); border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
-.header-content { position: absolute; bottom: 0; left: 0; width: 100%; padding: 20px 40px; display: flex; align-items: flex-end; gap: 30px; }
-.profile-area { position: relative; margin-bottom: -15px; flex-shrink: 0; }
-.profile-img { width: 160px; height: 160px; border-radius: 50%; object-fit: cover; background: #000; border: 4px solid #00e5ff; box-shadow: 0 0 20px #00e5ff; transition: all 0.3s ease; }
-.profile-img:hover { transform: scale(1.02); }
-.edit-btn { position: absolute; width: 35px; height: 35px; border-radius: 50%; background: rgba(0,0,0,0.6); color: white; border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; backdrop-filter: blur(4px); z-index: 20; }
-.edit-btn:hover { background: #3b82f6; color: black; border-color: #3b82f6; }
-.btn-cover { top: 20px; right: 20px; position: absolute; }
-.btn-border { top: 20px; left: 20px; position: absolute; }
-.btn-profile { bottom: 5px; right: 5px; background: #3b82f6; color: white; } 
+/* MENU DE ABAS DO ALUNO (ESTILO CLEAN / DASHBOARD) */
+.aluno-tab-btn {
+    color: #64748b; 
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding-bottom: 12px;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: transparent;
+}
+.aluno-tab-btn:hover { color: #f1f5f9; border-bottom-color: #475569; }
+.aluno-tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
 
-.student-info { flex-grow: 1; padding-bottom: 10px; z-index: 10; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-.student-title-badge { display: inline-block; background: linear-gradient(45deg, #f59e0b, #d97706); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); margin-bottom: 8px; cursor: pointer; transition: transform 0.2s; z-index: 50; position: relative; }
-.student-title-badge:hover { transform: scale(1.05); filter: brightness(1.1); }
-.student-name { font-family: 'Cinzel', serif; font-size: 2.2rem; margin: 0; font-weight: 700; line-height: 1.1; color: white; }
-.student-class { color: #cbd5e1; font-size: 1rem; margin-top: 5px; font-weight: 500; }
-
-.header-actions { display: flex; align-items: center; gap: 20px; padding-bottom: 15px; z-index: 10; }
-.stat-box { text-align: center; }
-.stat-num { font-size: 1.2rem; font-weight: bold; color: #3b82f6; display: block; }
-.stat-label { font-size: 0.7rem; color: #64748b; text-transform: uppercase; }
-
-/* ABAS INTERNAS (Sub-Menu Aluno) */
 .aluno-tab-content { display: none; animation: fadeIn 0.4s; }
 .aluno-tab-content.active { display: block; }
 
@@ -172,10 +222,12 @@
 .tag-pill:hover, .tag-pill.active { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59, 130, 246, 0.2); }
 .note-form-panel { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 25px; margin-bottom: 20px; display: none; animation: slideDown 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-left: 5px solid #3b82f6; }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
 .color-selector { display: flex; gap: 10px; margin: 15px 0; flex-wrap: wrap; }
 .color-option { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform 0.2s; }
 .color-option:hover { transform: scale(1.2); }
 .color-option.selected { border-color: white; box-shadow: 0 0 10px white; transform: scale(1.1); }
+
 .note-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; min-height: 220px; display: flex; flex-direction: column; position: relative; transition: all 0.3s ease; overflow: hidden; border-left-width: 5px; }
 .note-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
 .note-card.pinned { background: rgba(59, 130, 246, 0.05); }
@@ -189,6 +241,7 @@
 .note-btn { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 4px; transition: 0.2s; }
 .note-btn:hover { background: rgba(255,255,255,0.05); color: white; }
 .note-btn.del:hover { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
 .page-btn { background: #1e293b; border: 1px solid #334155; color: #f1f5f9; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: 0.2s; display: flex; justify-content: center; align-items: center; }
 .page-btn:hover:not(:disabled) { background: #3b82f6; color: white; border-color: #3b82f6; }
 .page-btn:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(0,0,0,0.2); }
@@ -220,80 +273,6 @@
 .aula-card h4 { margin: 0 0 4px 0; color: white; font-size: 0.85rem; line-height: 1.2; white-space: normal; }
 
 /* CALENDÁRIO */
-.calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid #334155; border-top: none; background: #1e293b; border-radius: 0 0 8px 8px; }
-.calendar-grid.week-view { display: flex; flex-direction: column; gap: 10px; border: none; background: transparent; }
-.calendar-grid.week-view .day-cell { border-radius: 8px; border: 1px solid #334155; min-height: 100px; }
-.day-cell { background: #1e293b; min-height: 120px; padding: 10px; border-right: 1px solid #334155; border-bottom: 1px solid #334155; display: flex; flex-direction: column; position: relative; }
-.day-cell:nth-child(5n) { border-right: none; }
-.day-cell.empty { background: rgba(0,0,0,0.2); pointer-events: none; }
-.day-cell .day-number { align-self: flex-end; font-size: 0.9rem; color: #94a3b8; font-weight: bold; margin-bottom: 5px; }
-.day-cell.today { background: rgba(59, 130, 246, 0.1); box-shadow: inset 0 0 10px rgba(59, 1
-
-
-/* ============================================================== */
-/* ESTILOS DO MENU DE ABAS DO ALUNO TECH                          */
-/* ============================================================== */
-
-/* Menu grudado logo abaixo do banner */
-.aluno-tabs-nav {
-    display: flex;
-    gap: 12px;
-    padding: 15px 20px;
-    background: rgba(2, 6, 23, 0.90); /* Fundo escuro transparente */
-    backdrop-filter: blur(10px); /* Efeito de vidro */
-    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
-    justify-content: flex-start;
-    overflow-x: auto; /* Permite rolar no celular */
-    white-space: nowrap;
-}
-
-/* Centraliza os botões em telas grandes */
-@media (min-width: 1024px) {
-    .aluno-tabs-nav { justify-content: center; }
-}
-
-/* Design dos Botões Arredondados */
-.aluno-tab-btn {
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(51, 65, 85, 0.8);
-    color: #94a3b8;
-    padding: 10px 24px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    cursor: pointer;
-    border-radius: 50px; /* Deixa arredondado igual pílula */
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Efeito ao passar o mouse */
-.aluno-tab-btn:hover {
-    background: rgba(51, 65, 85, 0.9);
-    color: #f1f5f9;
-}
-
-/* Botão Ativo (Aba selecionada) */
-.aluno-tab-btn.active {
-    background: #3b82f6; /* Azul destaque */
-    color: #ffffff;
-    border-color: #3b82f6;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); /* Brilho do botão */
-}
-
-/* Controle de exibição do conteúdo das abas */
-.aluno-tab-content { display: none; animation: fadeIn 0.4s; }
-.aluno-tab-content.active { display: block; }
-
-/* ARQUIVO: style.css */
-
-/* Garantir que o hidden do Tailwind funcione e que o loading saia da frente */
-.hidden { display: none !important; }
-
-/* Modal do Calendário */
 .cal-modal {
     position: fixed; inset: 0; background: rgba(0,0,0,0.85); 
     z-index: 1000; display: none; align-items: center; justify-content: center;
@@ -306,10 +285,8 @@
 }
 .cal-close { position: absolute; top: 1rem; right: 1rem; cursor: pointer; color: #94a3b8; }
 
-/* Grid do Calendário */
 .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid #334155; background: #0f172a; }
 .day-cell { min-height: 100px; padding: 10px; border: 1px solid #1e293b; position: relative; }
 .day-cell.today { background: rgba(59, 130, 246, 0.1); }
 .day-number { font-size: 0.8rem; font-weight: bold; color: #475569; }
 .event-item { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-top: 2px; cursor: pointer; color: white; }
-
