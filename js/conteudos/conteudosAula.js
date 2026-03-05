@@ -100,20 +100,17 @@ function setupSubTabs() {
 
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Estilização dos botões
             btns.forEach(b => {
-                b.classList.remove('active', 'text-blue-400', 'border-blue-500');
-                b.classList.add('text-slate-500', 'border-transparent');
+                b.classList.remove('active', 'bg-blue-600', 'text-white');
+                b.classList.add('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
             });
-            btn.classList.add('active', 'text-blue-400', 'border-blue-500');
-            btn.classList.remove('text-slate-500', 'border-transparent');
+            btn.classList.add('active', 'bg-blue-600', 'text-white');
+            btn.classList.remove('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
 
-            // Troca de conteúdo
-            contents.forEach(c => c.classList.replace('block', 'hidden'));
+            contents.forEach(c => c.classList.replace('flex', 'hidden'));
             const targetId = btn.getAttribute('data-target');
-            document.getElementById(`ctab-${targetId}`).classList.replace('hidden', 'block');
+            document.getElementById(`ctab-${targetId}`).classList.replace('hidden', 'flex');
 
-            // Lógica do Player (Esconder nos materiais, mostrar nas trilhas se houver src)
             if(targetId === 'materiais') {
                 els.playerBox.classList.add('hidden');
             } else if (els.audioEngine.src) {
@@ -362,42 +359,47 @@ function formatSeg(s) {
 // API GLOBAL (Injetada no Window para os botões do HTML)
 // ==========================================
 window.conteudosAPI = {
-    // Ações de Materiais
     mudarPaginaMat: (dir) => { currentPage += dir; renderMaterials(); },
     
+    // Abre a gaveta lateral (modal) do Material
     expandir: (id) => {
-        document.querySelectorAll('.expanded-mat-wrapper').forEach(e => e.remove());
         const mat = materialsCache.find(m => m.id === id);
         if(!mat) return;
         
-        const card = document.getElementById(`mat-card-${id}`);
-        const wrapper = document.createElement('div');
-        wrapper.className = 'expanded-mat-wrapper col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 bg-slate-900 border border-blue-500 rounded-2xl p-6 shadow-2xl shadow-blue-900/20 mt-2 mb-6 fade-in';
+        document.getElementById('mat-det-meta').textContent = `${mat.disciplina} | Prof. ${mat.autorNome}`;
+        document.getElementById('mat-det-title').textContent = mat.titulo;
+        document.getElementById('mat-det-body').textContent = mat.texto || 'Nenhum conteúdo textual fornecido.';
         
-        const canEdit = currentUser && (currentUser.Admin || currentUser.uid === mat.autorUID);
+        let footerHtml = '';
+        if(mat.urlPdf) footerHtml += `<a href="${mat.urlPdf}" target="_blank" class="px-5 py-2.5 bg-red-600/20 border border-red-500 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-file-pdf mr-1"></i> Abrir PDF</a>`;
         
-        let linksHtml = (mat.links || []).map((l, i) => `<a href="${l}" target="_blank" class="px-4 py-2 border border-blue-500/50 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/10 transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i+1}</a>`).join('');
+        (mat.links || []).forEach((l, i) => {
+            footerHtml += `<a href="${l}" target="_blank" class="px-5 py-2.5 border border-blue-500/50 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i+1}</a>`;
+        });
+        
+        const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.uid === mat.autorUID);
+        if(canEdit) {
+            footerHtml += `<div class="ml-auto flex gap-2"><button onclick="window.conteudosAPI.editarMat('${mat.id}')" class="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-colors"><i class="fas fa-edit"></i></button><button onclick="window.conteudosAPI.excluirMat('${mat.id}')" class="px-4 py-2 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-trash"></i></button></div>`;
+        }
+        
+        document.getElementById('mat-det-footer').innerHTML = footerHtml;
+        
+        // Exibe o modal com animação
+        const modal = document.getElementById('cont-modal-mat');
+        const panel = document.getElementById('cont-modal-panel');
+        modal.classList.remove('hidden');
+        setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+    },
 
-        wrapper.innerHTML = `
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <div class="text-blue-400 text-xs font-bold tracking-widest uppercase mb-1">${mat.disciplina} | Prof. ${mat.autorNome}</div>
-                    <h3 class="text-white font-cinzel font-black text-2xl">${escapeHTML(mat.titulo)}</h3>
-                </div>
-                <button onclick="this.closest('.expanded-mat-wrapper').remove()" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            <div class="text-slate-300 whitespace-pre-wrap leading-relaxed mb-8">${escapeHTML(mat.texto || '')}</div>
-            <div class="flex flex-wrap gap-3 pt-4 border-t border-slate-800">
-                ${mat.urlPdf ? `<a href="${mat.urlPdf}" target="_blank" class="px-5 py-2 bg-red-600/20 border border-red-500 text-red-400 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-file-pdf mr-1"></i> Ler PDF</a>` : ''}
-                ${linksHtml}
-                ${canEdit ? `<div class="ml-auto flex gap-2"><button onclick="window.conteudosAPI.editarMat('${mat.id}')" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 transition-colors"><i class="fas fa-edit"></i></button><button onclick="window.conteudosAPI.excluirMat('${mat.id}')" class="px-4 py-2 bg-red-900/50 text-red-400 rounded-lg text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-trash"></i></button></div>` : ''}
-            </div>
-        `;
-        card.insertAdjacentElement('afterend', wrapper);
-        wrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    fecharMat: () => {
+        const modal = document.getElementById('cont-modal-mat');
+        const panel = document.getElementById('cont-modal-panel');
+        panel.classList.add('translate-x-full');
+        setTimeout(() => modal.classList.add('hidden'), 300);
     },
     
     editarMat: (id) => {
+        window.conteudosAPI.fecharMat(); // Fecha a gaveta para editar
         const mat = materialsCache.find(m => m.id === id);
         if(!mat) return;
         currentMaterialEditId = id;
@@ -422,16 +424,14 @@ window.conteudosAPI = {
     excluirMat: async (id) => {
         if(confirm("Apagar permanentemente este conhecimento?")) {
             await deleteDoc(doc(db, "materiaisDidaticos", id));
-            document.querySelectorAll('.expanded-mat-wrapper').forEach(e => e.remove());
+            window.conteudosAPI.fecharMat();
         }
     },
 
-    // Ações de Áudio (Player)
     tocarMedia: (idx, tipo) => {
         const lista = tipo === 'musica' ? musicasGrimorio : podcastsGrimorio;
         const term = tipo === 'musica' ? els.searchMus.value.toLowerCase() : els.searchPod.value.toLowerCase();
         
-        // Aplica o filtro atual para tocar a música correta da lista filtrada
         activeAudioList = lista.filter(item => {
             if(tipo === 'musica') return item.titulo.toLowerCase().includes(term) || item.artista.toLowerCase().includes(term);
             return item.titulo.toLowerCase().includes(term) || (item.criador || item.professor).toLowerCase().includes(term);
@@ -441,7 +441,6 @@ window.conteudosAPI = {
         const item = activeAudioList[idx];
         if(!item) return;
 
-        // Atualiza a View Principal
         const isMus = tipo === 'musica';
         const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
         const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
@@ -453,6 +452,7 @@ window.conteudosAPI = {
         const cor = isMus ? 'emerald' : 'purple';
         const iconeDL = isMus ? '<i class="fas fa-file-alt"></i> Baixar Letra' : '<i class="fas fa-file-alt"></i> Resumo';
 
+        // Aqui a classe da letra foi ajustada para text-sm e opacity suave
         view.innerHTML = `
             <div class="flex flex-col h-full fade-in">
                 <div class="flex items-end gap-6 mb-8 shrink-0">
@@ -465,17 +465,16 @@ window.conteudosAPI = {
                 </div>
                 
                 <div class="flex gap-3 mb-6 shrink-0 border-b border-slate-800 pb-6">
-                    <a href="${item.audioURL}" target="_blank" download class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors"><i class="fas fa-download"></i> MP3</a>
-                    <button onclick="window.conteudosAPI.dlTexto('${escapeHTML(item.titulo)}', '${escapeHTML(item.letra || item.descricao || '')}')" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors">${iconeDL}</button>
+                    <a href="${item.audioURL}" target="_blank" download class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors"><i class="fas fa-download mr-2"></i> MP3</a>
+                    <button onclick="window.conteudosAPI.dlTexto('${escapeHTML(item.titulo)}', '${escapeHTML(item.letra || item.descricao || '')}')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors">${iconeDL}</button>
                 </div>
                 
                 <div class="flex-grow bg-slate-900/50 border border-slate-800 rounded-xl p-6 overflow-y-auto custom-scroll">
-                    <pre class="font-inter text-slate-300 whitespace-pre-wrap leading-relaxed">${escapeHTML(item.letra || item.descricao || 'Nenhum registro detalhado fornecido.')}</pre>
+                    <pre class="font-inter text-sm text-slate-300/80 whitespace-pre-wrap leading-relaxed">${escapeHTML(item.letra || item.descricao || 'Nenhum registro detalhado fornecido.')}</pre>
                 </div>
             </div>
         `;
 
-        // Inicia o Player Global
         els.playerBox.classList.remove('hidden');
         els.thumb.src = item.albumArtUrl || item.coverArtUrl || '';
         els.thumb.classList.remove('hidden');
@@ -484,12 +483,12 @@ window.conteudosAPI = {
         
         els.audioEngine.src = item.audioURL;
         els.audioEngine.play();
-        els.btnPlayPause.innerHTML = '<i class="fas fa-pause"></i>';
+        els.btnPlayPause.innerHTML = '<i class="fas fa-pause ml-0"></i>';
     },
 
     togglePlay: () => {
         if(!els.audioEngine.src) return;
-        if(els.audioEngine.paused) { els.audioEngine.play(); els.btnPlayPause.innerHTML = '<i class="fas fa-pause"></i>'; }
+        if(els.audioEngine.paused) { els.audioEngine.play(); els.btnPlayPause.innerHTML = '<i class="fas fa-pause ml-0"></i>'; }
         else { els.audioEngine.pause(); els.btnPlayPause.innerHTML = '<i class="fas fa-play ml-1"></i>'; }
     },
     
