@@ -109,20 +109,19 @@ function mapearDOM() {
         horarioMsg: document.getElementById('al-horario-msg'),
         selEvol: document.getElementById('al-sel-evol'),
 
-        // --- NOVOS IDS DO CADERNO DIGITAL (3 COLUNAS) ---
-        noteTags: document.getElementById('al-notebook-tags'),
-        noteTagsMobile: document.getElementById('al-notebook-tags-mobile'),
-        noteSearch: document.getElementById('al-note-search'),
-        noteList: document.getElementById('al-notes-list'),
+        // --- IDS DO NOVO CADERNO DIGITAL (3 COLUNAS) ---
+        noteTags: document.getElementById('al-notebook-tags'),        
+        noteTagsMobile: document.getElementById('al-notebook-tags-mobile'), 
+        noteSearch: document.getElementById('al-note-search'),          
+        noteList: document.getElementById('al-notes-list'),             
         
-        noteEmptyState: document.getElementById('al-note-empty-state'),
+        noteEmptyState: document.getElementById('al-note-empty-state'), 
         noteActiveState: document.getElementById('al-note-active-state'),
-        
-        noteActiveId: document.getElementById('al-note-active-id'),
+        noteActiveId: document.getElementById('al-note-active-id'),     
         noteActiveTitle: document.getElementById('al-note-active-title'),
-        noteActiveTags: document.getElementById('al-note-active-tags'),
-        noteActiveBody: document.getElementById('al-note-active-body'),
-        noteColorPicker: document.getElementById('al-note-color-picker'),
+        noteActiveTags: document.getElementById('al-note-active-tags'),  
+        noteActiveBody: document.getElementById('al-note-active-body'),  
+        noteColorPicker: document.getElementById('al-note-colors'),      
 
         // --- IDS DO KANBAN ---
         colTodo: document.getElementById('al-col-todo'),
