@@ -188,7 +188,7 @@ function setupEventListeners() {
     // Eventos do Kanban
     document.getElementById('btn-toggle-kanban-form')?.addEventListener('click', toggleKanbanForm);
     document.getElementById('btn-save-kanban')?.addEventListener('click', saveKanban);
-    
+
     // Eventos do Calendário
     document.getElementById('al-btn-add-evt')?.addEventListener('click', () => openCalModal());
     document.getElementById('btn-close-cal')?.addEventListener('click', closeCalModal);
@@ -248,68 +248,101 @@ window.togglePin = async (id, val) => { await updateDoc(doc(db, "anotacoes_pesso
 window.selectColor = (c) => { selectedNoteColor = c; els.noteForm.style.borderLeft = `5px solid ${c}`; };
 window.setNoteTag = (t) => { currentTagFilter = t; renderNotes(); };
 
-// --- LÓGICA DO KANBAN ---
+// ============================================================================
+// LÓGICA DO KANBAN DE ATIVIDADES
+// ============================================================================
+let draggedTask = null; // Variável vital para o Drag & Drop
+
 function toggleKanbanForm() { 
     const form = document.getElementById('al-kanban-form');
     form.classList.toggle('hidden'); 
+    
+    // Limpa os campos se estiver abrindo o form
     if(!form.classList.contains('hidden')) {
         document.getElementById('al-kanban-id').value = '';
         document.getElementById('al-kanban-title').value = '';
         document.getElementById('al-kanban-body').value = '';
+        document.getElementById('al-kanban-title').focus();
     }
 }
 
 async function saveKanban() {
     const titulo = document.getElementById('al-kanban-title').value.trim();
+    const conteudo = document.getElementById('al-kanban-body').value.trim();
+    const id = document.getElementById('al-kanban-id').value;
+
     if(!titulo) return alert("A tarefa precisa de um título.");
 
-    const id = document.getElementById('al-kanban-id').value;
     const payload = { 
         titulo: titulo, 
-        conteudo: document.getElementById('al-kanban-body').value.trim(), 
+        conteudo: conteudo, 
         userIdCriador: currentUser.uid,
         updatedAt: serverTimestamp() 
     };
 
-    if(id) {
-        await updateDoc(doc(db, "kanban_atividades", id), payload);
-    } else {
-        payload.status = 'a_fazer';
-        payload.createdAt = serverTimestamp();
-        await addDoc(collection(db, "kanban_atividades"), payload); 
+    try {
+        if(id) {
+            await updateDoc(doc(db, "kanban_atividades", id), payload);
+        } else {
+            payload.status = 'a_fazer';
+            payload.createdAt = serverTimestamp();
+            await addDoc(collection(db, "kanban_atividades"), payload); 
+        }
+        document.getElementById('al-kanban-form').classList.add('hidden');
+    } catch(e) {
+        console.error("Erro Kanban:", e);
+        alert("Erro ao salvar tarefa.");
     }
-    
-    document.getElementById('al-kanban-form').classList.add('hidden');
 }
 
 function renderKanbanBoard() {
-    els.colTodo.innerHTML = ''; els.colDoing.innerHTML = ''; els.colDone.innerHTML = '';
+    const colTodo = document.getElementById('al-col-todo');
+    const colDoing = document.getElementById('al-col-doing');
+    const colDone = document.getElementById('al-col-done');
+    
+    if(!colTodo || !colDoing || !colDone) return;
+
+    colTodo.innerHTML = ''; colDoing.innerHTML = ''; colDone.innerHTML = '';
+    
     myTasks.forEach(t => {
         const div = document.createElement('div'); 
-        div.className = 'p-4 bg-slate-700 border border-slate-600 rounded-xl mb-3 cursor-grab shadow-lg hover:-translate-y-1 transition-transform relative group'; 
+        div.className = 'p-4 bg-slate-900 border border-slate-700 rounded-xl cursor-grab shadow-lg hover:-translate-y-1 transition-all relative group'; 
         div.draggable = true;
         
+        // Se a descrição for longa, permite expandir/encolher (o escapeHTML previne quebra de layout)
+        const safeTitle = t.titulo ? t.titulo.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+        const safeBody = t.conteudo ? t.conteudo.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
+
         div.innerHTML = `
-            <button class="absolute top-3 right-3 text-slate-500 hover:text-white" onclick="this.parentElement.querySelector('.k-desc').classList.toggle('line-clamp-3'); this.parentElement.classList.toggle('bg-slate-600')">
-                <i class="fas fa-chevron-down"></i>
-            </button>
-            <div class="font-bold text-white text-sm pr-6 mb-2">${escapeHTML(t.titulo)}</div>
-            <div class="k-desc text-xs text-slate-300 whitespace-pre-wrap line-clamp-3 transition-all">${escapeHTML(t.conteudo)}</div>
-            <div class="mt-3 pt-2 border-t border-slate-600/50 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="font-bold text-white text-sm pr-6 mb-2 truncate">${safeTitle}</div>
+            <div class="k-desc text-xs text-slate-400 whitespace-pre-wrap line-clamp-3 transition-all">${safeBody}</div>
+            
+            <div class="mt-3 pt-2 border-t border-slate-800 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onclick="window.editKanbanTask('${t.id}')" class="text-slate-400 hover:text-blue-400"><i class="fas fa-edit"></i></button>
                 <button onclick="window.deleteKanbanTask('${t.id}')" class="text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
             </div>
         `;
         
-        div.ondragstart = (e) => { e.dataTransfer.setData("text/plain", t.id); draggedTask = t; };
+        // Efeitos de clicar e segurar (Drag Start)
+        div.ondragstart = (e) => { 
+            e.dataTransfer.setData("text/plain", t.id); 
+            draggedTask = t; 
+            setTimeout(() => div.classList.add('opacity-40', 'scale-95', 'border-purple-500'), 0);
+        };
+        // Ao soltar (Drag End)
+        div.ondragend = () => {
+            draggedTask = null;
+            div.classList.remove('opacity-40', 'scale-95', 'border-purple-500');
+        };
         
-        if(t.status === 'a_fazer') els.colTodo.appendChild(div);
-        else if(t.status === 'em_progresso') els.colDoing.appendChild(div);
-        else els.colDone.appendChild(div);
+        // Distribui nas colunas baseando-se no status
+        if(t.status === 'a_fazer') colTodo.appendChild(div);
+        else if(t.status === 'em_progresso') colDoing.appendChild(div);
+        else colDone.appendChild(div);
     });
 }
 
-// Funções Globais Kanban
+// Funções Globais expostas para os botões do Card e para as Colunas
 window.editKanbanTask = (id) => {
     const t = myTasks.find(x => x.id === id); 
     if(!t) return;
@@ -319,13 +352,36 @@ window.editKanbanTask = (id) => {
     document.getElementById('al-kanban-body').value = t.conteudo;
     document.getElementById('al-kanban-form').scrollIntoView({ behavior: 'smooth' });
 };
-window.deleteKanbanTask = async (id) => { if(confirm("Apagar tarefa do Kanban?")) await deleteDoc(doc(db, "kanban_atividades", id)); };
 
-window.allowDrop = (e) => e.preventDefault();
-window.drop = async (e, status) => {
+window.deleteKanbanTask = async (id) => { 
+    if(confirm("Apagar tarefa permanentemente?")) {
+        await deleteDoc(doc(db, "kanban_atividades", id)); 
+    }
+};
+
+window.allowDrop = (e) => {
+    e.preventDefault(); // Necessário para o navegador permitir o "Drop"
+};
+
+window.drop = async (e, novoStatus) => {
+    e.preventDefault();
     const id = e.dataTransfer.getData("text/plain");
-    if(id && draggedTask && draggedTask.status !== status) {
-        await updateDoc(doc(db, "kanban_atividades", id), { status: status, updatedAt: serverTimestamp() });
+    
+    if(id && draggedTask && draggedTask.status !== novoStatus) {
+        try {
+            // Atualiza visualmente na mesma hora para o aluno não sentir lag (Opcional, mas muito bom para UX)
+            draggedTask.status = novoStatus;
+            renderKanbanBoard(); 
+            
+            // Grava no banco de dados Firebase no background
+            await updateDoc(doc(db, "kanban_atividades", id), { 
+                status: novoStatus, 
+                updatedAt: serverTimestamp() 
+            });
+        } catch(error) {
+            console.error(error);
+            alert("Erro de conexão ao mover a tarefa.");
+        }
     }
 };
 

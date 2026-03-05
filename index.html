@@ -264,18 +264,49 @@
                             </div>
                         </div>
 
-                        <div id="atab-kanban" class="aluno-tab-content">
-                            <div class="flex justify-end mb-6"><button id="btn-toggle-kanban-form" class="bg-purple-600 text-white px-6 py-2 rounded-full font-bold shadow-lg">+ Tarefa</button></div>
-                            <div id="al-kanban-form" class="note-form-panel hidden border-purple-500 mb-8">
-                                <input type="hidden" id="al-kanban-id">
-                                <input type="text" id="al-kanban-title" placeholder="Tarefa" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none">
-                                <textarea id="al-kanban-body" class="bg-slate-900 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mt-4"></textarea>
-                                <button id="btn-save-kanban" class="mt-4 bg-green-600 text-white px-8 py-2 rounded font-bold">Adicionar</button>
+                        <div id="atab-kanban" class="aluno-tab-content h-full">
+                            <div class="flex justify-end mb-6">
+                                <button id="btn-toggle-kanban-form" class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
+                                    <i class="fas fa-plus"></i> Nova Tarefa
+                                </button>
                             </div>
-                            <div class="kanban-board">
-                                <div class="kanban-column" id="col-a_fazer"><div class="kanban-column-header">A FAZER</div><div id="al-col-todo" class="kanban-cards-area min-h-[150px]"></div></div>
-                                <div class="kanban-column" id="col-em_progresso"><div class="kanban-column-header">EM EXECUÇÃO</div><div id="al-col-doing" class="kanban-cards-area min-h-[150px]"></div></div>
-                                <div class="kanban-column" id="col-concluido"><div class="kanban-column-header">FEITO</div><div id="al-col-done" class="kanban-cards-area min-h-[150px]"></div></div>
+
+                            <div id="al-kanban-form" class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-8 fade-in">
+                                <input type="hidden" id="al-kanban-id">
+                                <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
+                                <textarea id="al-kanban-body" placeholder="Adicione detalhes, links ou observações..." class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
+                                <div class="flex justify-end gap-3">
+                                    <button onclick="document.getElementById('al-kanban-form').classList.add('hidden')" class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
+                                    <button id="btn-save-kanban" class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar Tarefa</button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[600px]">
+                                
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A FAZER</span>
+                                        <i class="fas fa-clipboard-list text-slate-600"></i>
+                                    </div>
+                                    <div id="al-col-todo" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                </div>
+
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM EXECUÇÃO</span>
+                                        <i class="fas fa-spinner text-slate-600"></i>
+                                    </div>
+                                    <div id="al-col-doing" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                </div>
+
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span>
+                                        <i class="fas fa-check-circle text-slate-600"></i>
+                                    </div>
+                                    <div id="al-col-done" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                </div>
+
                             </div>
                         </div>
 
