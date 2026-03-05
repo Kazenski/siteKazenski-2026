@@ -242,7 +242,7 @@ window.editNote = (id) => {
     window.selectColor(n.color || noteColors[0]);
     els.noteForm.scrollIntoView({ behavior: 'smooth' });
 };
-
+ 
 window.deleteNote = async (id) => { if(confirm("Apagar nota permanentemente?")) await deleteDoc(doc(db, "anotacoes_pessoais", id)); };
 window.togglePin = async (id, val) => { await updateDoc(doc(db, "anotacoes_pessoais", id), { favorita: !!val }); };
 window.selectColor = (c) => { selectedNoteColor = c; els.noteForm.style.borderLeft = `5px solid ${c}`; };
