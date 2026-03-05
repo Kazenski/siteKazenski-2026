@@ -349,58 +349,238 @@ window.drop = async (e, status) => {
     }
 };
 
-// --- LÓGICA DO CALENDÁRIO ---
-function openCalModal(ev=null, dt=null) {
-    document.getElementById('al-modal-cal').style.display='flex';
-    if(ev) { 
-        document.getElementById('al-ev-id').value = ev.id; 
-        document.getElementById('al-ev-title').value = ev.titulo; 
-        document.getElementById('al-ev-date').value = ev.dataInicio?.toDate().toISOString().split('T')[0]; 
-        document.getElementById('al-ev-desc').value = ev.descricao || '';
-        document.getElementById('al-btn-del-ev').classList.remove('hidden');
-    } else {
-        document.getElementById('al-ev-id').value = ''; 
-        document.getElementById('al-ev-title').value = ''; 
-        document.getElementById('al-ev-date').value = dt || new Date().toISOString().split('T')[0];
-        document.getElementById('al-ev-desc').value = '';
-        document.getElementById('al-btn-del-ev').classList.add('hidden');
+// ============================================================================
+// LÓGICA DO CALENDÁRIO ESCOLAR (COM PAINEL LATERAL MODERNO)
+// ============================================================================
+
+let calDate = new Date();
+let calEvents = [];
+let calView = 'month'; // 'month' ou 'week'
+
+async function initCalendarSystem() {
+    // Exibe botões de Admin/Professor
+    const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
+    if(isStaff) {
+        document.getElementById('al-btn-add-evt').classList.remove('hidden');
+        document.getElementById('al-ev-visib-container').classList.remove('hidden');
     }
+
+    // Botões de Visualização (Mês/Semana)
+    document.getElementById('btn-view-month').addEventListener('click', () => switchCalView('month'));
+    document.getElementById('btn-view-week').addEventListener('click', () => switchCalView('week'));
+
+    await fetchCalendarEvents();
 }
 
-function closeCalModal() { document.getElementById('al-modal-cal').style.display='none'; }
-function changeCalMonth(dir) { calDate.setMonth(calDate.getMonth() + dir); fetchCalendarEvents(); }
+async function fetchCalendarEvents() {
+    // Restaura a lógica poderosa do código antigo
+    let queries = [];
+    const calRef = collection(db, "calendarioAnual");
 
-async function saveCalendarEvent() { 
+    // 1. Eventos Globais
+    queries.push(query(calRef, where("visibilidade", "in", ["publico", "todos"])));
+
+    // 2. Eventos da Turma (se aluno)
+    if(currentUser.turma && currentUser.role === 'aluno') {
+        queries.push(query(calRef, where("visibilidade", "==", "turmas_especificas"), where("turmasAlvo", "array-contains", currentUser.turma)));
+    }
+
+    // 3. Meus Eventos (se Professor/Admin ver os que ele mesmo criou)
+    if(currentUser.Admin || currentUser.Professor || currentUser.Coordenacao) {
+        queries.push(query(calRef, where("instrutorUID", "==", currentUser.uid)));
+    }
+
+    try {
+        const results = await Promise.all(queries.map(q => getDocs(q)));
+        const uniqueEvents = new Map();
+
+        results.forEach(snap => {
+            snap.forEach(doc => uniqueEvents.set(doc.id, { id: doc.id, ...doc.data() }));
+        });
+
+        calEvents = Array.from(uniqueEvents.values());
+        renderCalendarGrid();
+    } catch(e) { console.error("Erro no calendário:", e); }
+}
+
+function renderCalendarGrid() {
+    const grid = document.getElementById('al-cal-grid');
+    const title = document.getElementById('al-cal-month');
+    grid.innerHTML = '';
+    title.textContent = calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+
+    let daysToRender = [];
+    
+    if(calView === 'month') {
+        const year = calDate.getFullYear();
+        const month = calDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        let startDay = firstDay.getDay() - 1; 
+        if(startDay < 0) startDay = 6; 
+        
+        for(let i=0; i < startDay; i++) if(i < 5) daysToRender.push(null); 
+        for(let d=1; d <= lastDay.getDate(); d++) {
+            const current = new Date(year, month, d);
+            if(current.getDay() >= 1 && current.getDay() <= 5) daysToRender.push(current);
+        }
+        document.getElementById('cal-header-row').classList.remove('hidden');
+        grid.className = 'grid grid-cols-5 bg-slate-900 border border-slate-700 rounded-b-xl overflow-hidden';
+    } else {
+        document.getElementById('cal-header-row').classList.add('hidden');
+        grid.className = 'flex flex-col gap-3 bg-transparent border-none';
+        
+        const current = new Date(calDate);
+        const day = current.getDay();
+        const diff = current.getDate() - day + (day === 0 ? -6 : 1); 
+        const monday = new Date(current.setDate(diff));
+        
+        for(let i=0; i<5; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            daysToRender.push(d);
+        }
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    daysToRender.forEach(date => {
+        const cell = document.createElement('div');
+        
+        if(!date) {
+            cell.className = 'min-h-[120px] bg-slate-900/30 border-r border-b border-slate-800 pointer-events-none';
+        } else {
+            const dateStr = date.toISOString().split('T')[0];
+            const isToday = dateStr === todayStr;
+            
+            // Classes do Tailwind para a célula do calendário
+            cell.className = `min-h-[120px] p-2 border-r border-b border-slate-700 relative flex flex-col cursor-pointer transition-colors ${calView === 'week' ? 'rounded-xl border' : ''} hover:bg-slate-800/50 ${isToday ? 'bg-blue-900/20' : 'bg-slate-900'}`;
+            
+            // Renderiza o dia
+            const num = document.createElement('span');
+            num.className = `self-end text-sm font-bold mb-2 ${isToday ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]' : 'text-slate-500'}`;
+            num.textContent = calView === 'week' ? date.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' }) : date.getDate();
+            cell.appendChild(num);
+
+            // Filtra e renderiza eventos do dia
+            const dayEvents = calEvents.filter(ev => {
+                if (!ev.dataInicio) return false;
+                try {
+                    const evDate = ev.dataInicio.toDate ? ev.dataInicio.toDate() : new Date(ev.dataInicio);
+                    return evDate.toISOString().split('T')[0] === dateStr;
+                } catch(e) { return false; }
+            });
+
+            dayEvents.forEach(ev => {
+                const badge = document.createElement('div');
+                badge.className = 'text-[11px] font-bold text-white px-2 py-1 rounded shadow-sm mb-1 truncate hover:brightness-110 transition-all';
+                badge.style.backgroundColor = ev.cor || '#3b82f6';
+                badge.textContent = ev.titulo;
+                badge.onclick = (e) => { e.stopPropagation(); openCalModal(ev); };
+                cell.appendChild(badge);
+            });
+
+            cell.onclick = () => openCalModal(null, dateStr);
+        }
+        grid.appendChild(cell);
+    });
+}
+
+function switchCalView(view) {
+    calView = view;
+    document.getElementById('btn-view-month').className = view === 'month' ? 'px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors' : 'px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors';
+    document.getElementById('btn-view-week').className = view === 'week' ? 'px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors' : 'px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors';
+    renderCalendarGrid();
+}
+
+function changeCalMonth(dir) {
+    if(calView === 'month') calDate.setMonth(calDate.getMonth() + dir);
+    else calDate.setDate(calDate.getDate() + (dir * 7));
+    fetchCalendarEvents();
+}
+
+// === PAINEL LATERAL DO CALENDÁRIO ===
+window.openCalModal = (event = null, dateStr = null) => {
+    const modal = document.getElementById('al-modal-cal');
+    const panel = document.getElementById('al-modal-panel');
+    const isStaff = currentUser.Admin || currentUser.Coordenacao || currentUser.Professor;
+    
+    if(!event && !isStaff) return; // Aluno não cria
+
+    // Limpa / Preenche campos
+    const inps = ['al-ev-title', 'al-ev-date', 'al-ev-desc', 'al-ev-color', 'al-ev-visib'];
+    
+    if(event) {
+        document.getElementById('al-ev-id').value = event.id;
+        document.getElementById('al-ev-title').value = event.titulo;
+        document.getElementById('al-ev-date').value = event.dataInicio?.toDate().toISOString().split('T')[0];
+        document.getElementById('al-ev-desc').value = event.descricao || '';
+        document.getElementById('al-ev-color').value = event.cor || '#3b82f6';
+        document.getElementById('al-ev-visib').value = event.visibilidade || 'todos';
+        
+        const canEdit = isStaff && (currentUser.Admin || event.instrutorUID === currentUser.uid);
+        document.getElementById('al-btn-del-ev').classList.toggle('hidden', !canEdit);
+        document.getElementById('btn-save-cal').classList.toggle('hidden', !canEdit);
+        inps.forEach(id => document.getElementById(id).disabled = !canEdit);
+    } else {
+        document.getElementById('al-ev-id').value = '';
+        document.getElementById('al-ev-title').value = '';
+        document.getElementById('al-ev-date').value = dateStr || new Date().toISOString().split('T')[0];
+        document.getElementById('al-ev-desc').value = '';
+        document.getElementById('al-ev-color').value = '#3b82f6';
+        
+        document.getElementById('al-btn-del-ev').classList.add('hidden');
+        document.getElementById('btn-save-cal').classList.remove('hidden');
+        inps.forEach(id => document.getElementById(id).disabled = false);
+    }
+
+    // Exibe o modal com animação
+    modal.classList.remove('hidden');
+    setTimeout(() => panel.classList.remove('translate-x-full'), 10); // Animação de entrar pela direita
+};
+
+window.closeCalModal = () => {
+    const modal = document.getElementById('al-modal-cal');
+    const panel = document.getElementById('al-modal-panel');
+    
+    panel.classList.add('translate-x-full'); // Animação de sair pela direita
+    setTimeout(() => modal.classList.add('hidden'), 300); // Aguarda animação terminar
+};
+
+async function saveCalendarEvent() {
     const title = document.getElementById('al-ev-title').value;
     const dateVal = document.getElementById('al-ev-date').value;
-    const desc = document.getElementById('al-ev-desc').value;
-    
     if(!title || !dateVal) return alert("Título e Data são obrigatórios");
+
     const [y, m, d] = dateVal.split('-').map(Number);
     const dateObj = new Date(y, m - 1, d, 12, 0, 0);
+    const visib = document.getElementById('al-ev-visib').value;
 
     const payload = {
         titulo: title,
         dataInicio: Timestamp.fromDate(dateObj),
-        descricao: desc,
-        visibilidade: 'todos',
+        descricao: document.getElementById('al-ev-desc').value,
+        cor: document.getElementById('al-ev-color').value,
+        visibilidade: visib,
         instrutorUID: currentUser.uid,
         updatedAt: serverTimestamp()
     };
 
+    if(visib === 'turmas_especificas' && currentUser.turma) payload.turmasAlvo = [currentUser.turma];
+
     const id = document.getElementById('al-ev-id').value;
-    if(id) await updateDoc(doc(db, "calendarioAnual", id), payload); 
+    if(id) await updateDoc(doc(db, "calendarioAnual", id), payload);
     else { payload.createdAt = serverTimestamp(); await addDoc(collection(db, "calendarioAnual"), payload); }
-    
-    closeCalModal(); 
+
+    closeCalModal();
     fetchCalendarEvents();
 }
 
-async function deleteCalendarEvent() { 
+async function deleteCalendarEvent() {
     const id = document.getElementById('al-ev-id').value;
-    if(id && confirm("Excluir evento?")) {
+    if(id && confirm("Excluir evento do calendário?")) {
         await deleteDoc(doc(db, "calendarioAnual", id));
-        closeCalModal(); 
+        closeCalModal();
         fetchCalendarEvents();
     }
 }
