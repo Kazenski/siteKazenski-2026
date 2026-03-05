@@ -939,32 +939,49 @@ window.selectColor = (c) => {
     els.noteActiveState.style.borderTop = `4px solid ${c}`;
 };
 
-// --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS) ---
+// --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
 window.openShareModal = async () => {
     const noteId = els.noteActiveId.value;
     if(!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
     
     document.getElementById('al-modal-share').classList.remove('hidden');
     const resultsContainer = document.getElementById('al-share-results');
-    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Buscando rede de alunos...</div>';
+    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Buscando usuários...</div>';
     
     if(usersCacheForShare.length === 0) {
         try {
             const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
-            let usersQuery;
+            let fetchedUsers = [];
             
-            // Admin/Prof = Todos os alunos. Aluno = Somente alunos da mesma turma.
             if(isStaff) {
-                usersQuery = query(collection(db, "users"), where("Aluno", "==", true));
+                // Staff (Professor/Admin) vê todo mundo cadastrado
+                const snap = await getDocs(collection(db, "users"));
+                fetchedUsers = snap.docs.map(d => ({uid: d.id, ...d.data()}));
             } else {
+                // Aluno vê a própria turma + Todos os Professores
                 if(!currentUser.turma) throw new Error("Você não possui uma turma vinculada.");
-                usersQuery = query(collection(db, "users"), where("turma", "==", currentUser.turma));
+                
+                const qTurma = query(collection(db, "users"), where("turma", "==", currentUser.turma));
+                const qProfs = query(collection(db, "users"), where("Professor", "==", true));
+                
+                const [snapTurma, snapProfs] = await Promise.all([getDocs(qTurma), getDocs(qProfs)]);
+                
+                // Usa um Map para evitar professores que já caíram na regra da turma (duplicatas)
+                const mapUsers = new Map();
+                snapTurma.forEach(d => mapUsers.set(d.id, {uid: d.id, ...d.data()}));
+                snapProfs.forEach(d => mapUsers.set(d.id, {uid: d.id, ...d.data()}));
+                
+                fetchedUsers = Array.from(mapUsers.values());
             }
             
-            const snap = await getDocs(usersQuery);
-            usersCacheForShare = snap.docs.map(d => ({uid: d.id, ...d.data()})).filter(u => u.uid !== currentUser.uid);
+            // Remove o próprio usuário da lista
+            usersCacheForShare = fetchedUsers.filter(u => u.uid !== currentUser.uid);
+            
+            // Coloca os professores primeiro na lista
+            usersCacheForShare.sort((a, b) => (b.Professor ? 1 : 0) - (a.Professor ? 1 : 0));
+            
         } catch(e) {
-            resultsContainer.innerHTML = `<div class="text-red-400 text-center py-4 font-bold"><i class="fas fa-exclamation-triangle"></i> ${e.message}</div>`;
+            resultsContainer.innerHTML = `<div class="text-red-400 text-center py-4 font-bold"><i class="fas fa-exclamation-triangle"></i> Erro: ${e.message}</div>`;
             return;
         }
     }
