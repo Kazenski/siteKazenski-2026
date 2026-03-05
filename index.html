@@ -190,16 +190,17 @@
                         </div>
 
                         <div id="atab-caderno" class="aluno-tab-content h-full">
-                            
-                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-280px)] min-h-[600px]">
+                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 h-[calc(100vh-280px)] min-h-[600px]">
                                 
-                                <div class="hidden lg:flex lg:col-span-2 bg-slate-800/80 rounded-2xl border border-slate-700 p-4 flex-col shadow-lg overflow-hidden">
-                                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2 shrink-0"><i class="fas fa-tags mr-2"></i> Cadernos</h3>
+                                <div class="hidden md:flex md:col-span-3 lg:col-span-2 bg-slate-800/80 rounded-2xl border border-slate-700 p-4 flex-col shadow-lg overflow-hidden">
+                                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2 shrink-0">
+                                        <i class="fas fa-tags mr-2"></i> Cadernos
+                                    </h3>
                                     <div id="al-notebook-tags" class="flex flex-col gap-2 overflow-y-auto custom-scroll pr-1 flex-grow">
                                         </div>
                                 </div>
 
-                                <div class="lg:col-span-3 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden">
+                                <div class="md:col-span-4 lg:col-span-3 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden">
                                     <div class="p-4 border-b border-slate-700 bg-slate-800/50 flex flex-col gap-4 shrink-0">
                                         <div class="flex justify-between items-center">
                                             <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-book-open mr-2"></i> Anotações</h3>
@@ -211,14 +212,13 @@
                                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                                             <input type="text" id="al-note-search" placeholder="Pesquisar..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
                                         </div>
-                                        <div id="al-notebook-tags-mobile" class="lg:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+                                        <div id="al-notebook-tags-mobile" class="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
                                     </div>
-                                    
                                     <div id="al-notes-list" class="flex-grow overflow-y-auto custom-scroll p-3 space-y-2 bg-slate-900/30">
                                         </div>
                                 </div>
 
-                                <div class="lg:col-span-7 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
+                                <div class="md:col-span-5 lg:col-span-7 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
                                     
                                     <div id="al-note-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-800/80 z-10">
                                         <i class="fas fa-book text-6xl mb-4 opacity-20"></i>
@@ -253,10 +253,9 @@
                                             <button id="btn-note-save" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all flex items-center gap-2">
                                                 <i class="fas fa-check"></i> Salvar Anotação
                                             </button>
-                                        </div> 
+                                        </div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
