@@ -151,10 +151,6 @@ async function initDashboard(user) {
 }
 
 // ============================================================================
-// MÓDULOS GLOBAIS EXPOSTOS (window.perfilTech)
-// ============================================================================
-
-// ============================================================================
 // SISTEMA DE EVENTOS E LÓGICA DE NEGÓCIO MODULARIZADA
 // ============================================================================
 
@@ -313,8 +309,11 @@ function renderKanbanBoard() {
         div.draggable = true;
         
         div.innerHTML = `
+            <button class="absolute top-3 right-3 text-slate-500 hover:text-white" onclick="this.parentElement.querySelector('.k-desc').classList.toggle('line-clamp-3'); this.parentElement.classList.toggle('bg-slate-600')">
+                <i class="fas fa-chevron-down"></i>
+            </button>
             <div class="font-bold text-white text-sm pr-6 mb-2">${escapeHTML(t.titulo)}</div>
-            <div class="text-xs text-slate-300 whitespace-pre-wrap line-clamp-3">${escapeHTML(t.conteudo)}</div>
+            <div class="k-desc text-xs text-slate-300 whitespace-pre-wrap line-clamp-3 transition-all">${escapeHTML(t.conteudo)}</div>
             <div class="mt-3 pt-2 border-t border-slate-600/50 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onclick="window.editKanbanTask('${t.id}')" class="text-slate-400 hover:text-blue-400"><i class="fas fa-edit"></i></button>
                 <button onclick="window.deleteKanbanTask('${t.id}')" class="text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
@@ -630,12 +629,14 @@ async function loadBoletimAndMetrics() {
     
     let html = '';
     for(const [id, tr] of Object.entries(studentGradesData)) {
-        html += `<tr>
-            <td class="font-bold text-white text-xs p-3">${disciplineMap[id]||id}</td>
-            <td>${tr['1']?.nota1||'-'}</td><td>${tr['1']?.nota2||'-'}</td><td>${tr['1']?.nota3||'-'}</td><td>${tr['1']?.nota4||'-'}</td>
-            <td>${tr['2']?.nota1||'-'}</td><td>${tr['2']?.nota2||'-'}</td><td>${tr['2']?.nota3||'-'}</td><td>${tr['2']?.nota4||'-'}</td>
-            <td>${tr['3']?.nota1||'-'}</td><td>${tr['3']?.nota2||'-'}</td><td>${tr['3']?.nota3||'-'}</td><td>${tr['3']?.nota4||'-'}</td>
-            <td class="media-final-col text-blue-400 font-bold">---</td>
+        // Usa title para mostrar o nome completo se o mouse passar por cima
+        const nome = disciplineMap[id]||id;
+        html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
+            <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3||'-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4||'-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota1||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota2||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota3||'-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['2']?.nota4||'-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota1||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota2||'-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota3||'-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['3']?.nota4||'-'}</td>
+            <td class="media-final-col text-blue-400 font-bold border border-slate-700 text-center py-2 bg-blue-900/10">---</td>
         </tr>`;
     }
     els.boletimBody.innerHTML = html;
@@ -714,12 +715,18 @@ function renderNotes() {
     const search = els.noteSearch.value.toLowerCase();
     const filtered = myNotes.filter(n => (n.titulo||'').toLowerCase().includes(search) || (n.conteudo||'').toLowerCase().includes(search));
     
+    // RESTAURAÇÃO DA PAGINAÇÃO
+    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    if(currentPage > totalPages) currentPage = totalPages;
+    const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
     if(filtered.length === 0) {
         els.noteGrid.innerHTML = '<div class="col-span-full text-center text-slate-500 py-10">Nenhuma anotação encontrada.</div>';
+        document.getElementById('notes-pagination').classList.add('hidden');
         return;
     }
 
-    els.noteGrid.innerHTML = filtered.map(n => `
+    els.noteGrid.innerHTML = paginated.map(n => `
         <div class="note-card p-5 bg-slate-800 border border-slate-700 rounded-xl relative shadow-lg transition hover:-translate-y-1" style="border-left: 5px solid ${n.color||'#3b82f6'}">
             <i class="fas fa-thumbtack absolute top-4 right-4 cursor-pointer text-lg ${n.favorita ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.8)]' : 'text-slate-600 hover:text-slate-400'}" onclick="window.togglePin('${n.id}', ${!n.favorita})"></i>
             <h4 class="text-white font-cinzel font-bold text-lg mb-2 pr-6 truncate">${escapeHTML(n.titulo)}</h4>
@@ -733,6 +740,19 @@ function renderNotes() {
             </div>
         </div>
     `).join('');
+
+    // Controles de Exibição da Paginação
+    const pagWrapper = document.getElementById('notes-pagination');
+    if(totalPages > 1) {
+        pagWrapper.classList.replace('hidden', 'flex');
+        document.getElementById('page-indicator').textContent = `Página ${currentPage} de ${totalPages}`;
+        document.getElementById('btn-prev-page').onclick = () => { currentPage--; renderNotes(); };
+        document.getElementById('btn-next-page').onclick = () => { currentPage++; renderNotes(); };
+        document.getElementById('btn-prev-page').disabled = currentPage === 1;
+        document.getElementById('btn-next-page').disabled = currentPage === totalPages;
+    } else {
+        pagWrapper.classList.replace('flex', 'hidden');
+    }
 }
 
 function initKanbanSystem() {
@@ -819,14 +839,76 @@ async function fetchCalendarEvents() {
 
 window.renderCalendarGrid = () => {
     const grid = document.getElementById('al-cal-grid');
-    document.getElementById('al-cal-month').textContent = calDate.toLocaleDateString('pt-BR', {month:'long', year:'numeric'});
+    document.getElementById('al-cal-month').textContent = calDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
     grid.innerHTML = '';
-    const lastDay = new Date(calDate.getFullYear(), calDate.getMonth()+1, 0).getDate();
-    for(let i=1; i<=lastDay; i++){
-        const cell = document.createElement('div'); cell.className = 'day-cell bg-slate-900 border border-slate-800 h-24 p-2 relative';
-        cell.innerHTML = `<span class="day-number text-slate-600 font-bold text-xs absolute top-2 right-2">${i}</span>`;
-        grid.appendChild(cell);
+
+    let daysToRender = [];
+    
+    if(calView === 'month') {
+        const year = calDate.getFullYear(), month = calDate.getMonth();
+        const firstDay = new Date(year, month, 1), lastDay = new Date(year, month + 1, 0);
+        let startDay = firstDay.getDay() - 1; 
+        if(startDay < 0) startDay = 6; 
+        
+        for(let i=0; i < startDay; i++) if(i < 5) daysToRender.push(null); 
+        for(let d=1; d <= lastDay.getDate(); d++) {
+            const current = new Date(year, month, d);
+            if(current.getDay() >= 1 && current.getDay() <= 5) daysToRender.push(current);
+        }
+        document.getElementById('cal-header-row').classList.remove('hidden');
+        grid.className = 'grid grid-cols-5 bg-slate-900 border border-slate-700 rounded-b-xl overflow-hidden';
+    } else {
+        document.getElementById('cal-header-row').classList.add('hidden');
+        grid.className = 'flex flex-col gap-3 bg-transparent border-none';
+        
+        const current = new Date(calDate), day = current.getDay();
+        const diff = current.getDate() - day + (day === 0 ? -6 : 1); 
+        const monday = new Date(current.setDate(diff));
+        
+        for(let i=0; i<5; i++) {
+            const d = new Date(monday); d.setDate(monday.getDate() + i); daysToRender.push(d);
+        }
     }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    daysToRender.forEach(date => {
+        const cell = document.createElement('div');
+        if(!date) {
+            cell.className = 'min-h-[120px] bg-slate-900/30 border-r border-b border-slate-800 pointer-events-none';
+        } else {
+            const dateStr = date.toISOString().split('T')[0];
+            const isToday = dateStr === todayStr;
+            
+            cell.className = `min-h-[120px] p-2 border-r border-b border-slate-700 relative flex flex-col cursor-pointer transition-colors ${calView === 'week' ? 'rounded-xl border' : ''} hover:bg-slate-800/50 ${isToday ? 'bg-blue-900/20' : 'bg-slate-900'}`;
+            
+            cell.innerHTML = `<span class="self-end text-sm font-bold mb-2 ${isToday ? 'text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]' : 'text-slate-500'}">${calView === 'week' ? date.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' }) : date.getDate()}</span>`;
+
+            // Verifica e Injeta os Eventos
+            const dayEvents = calEvents.filter(ev => {
+                if (!ev.dataInicio) return false;
+                try {
+                    const evDate = ev.dataInicio.toDate ? ev.dataInicio.toDate() : new Date(ev.dataInicio);
+                    return evDate.toISOString().split('T')[0] === dateStr;
+                } catch(e) { return false; }
+            });
+
+            dayEvents.forEach(ev => {
+                const badge = document.createElement('div');
+                badge.className = 'text-[10px] font-bold text-white px-2 py-1.5 rounded shadow-md mb-1 truncate flex items-center justify-between group hover:brightness-110 transition-all';
+                badge.style.backgroundColor = ev.cor || '#3b82f6';
+                badge.innerHTML = `<span>${ev.titulo}</span> <span class="hidden group-hover:inline opacity-70"><i class="fas fa-eye"></i></span>`;
+                
+                // Aqui removemos o perfilTech, usamos a função direta
+                badge.onclick = (e) => { e.stopPropagation(); openCalModal(ev); };
+                cell.appendChild(badge);
+            });
+
+            // Aqui também removemos o perfilTech
+            cell.onclick = () => openCalModal(null, dateStr);
+        }
+        grid.appendChild(cell);
+    });
 };
 
 async function renderBanner() {
