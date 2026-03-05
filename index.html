@@ -23,9 +23,7 @@
                         cinzel: ['Cinzel', 'serif'],
                     },
                     colors: {
-                        slate: {
-                            950: '#020617',
-                        }
+                        slate: { 950: '#020617', }
                     }
                 }
             }
@@ -35,23 +33,17 @@
 <body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
     <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
-        
         <div class="flex items-center gap-3 shrink-0 cursor-pointer group" onclick="window.showTab('inicio')">
             <div class="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-500 transition-colors">
                 <i class="fas fa-code text-white text-lg"></i>
             </div>
-            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">
-                Kazenski
-            </h1>
+            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">Kazenski</h1>
         </div>
 
-        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center">
-            </nav>
+        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center"></nav>
 
         <div id="user-area" class="shrink-0 flex items-center gap-4">
-            <div id="user-loading" class="text-blue-500 animate-spin">
-                <i class="fas fa-circle-notch"></i>
-            </div>
+            <div id="user-loading" class="text-blue-500 animate-spin"><i class="fas fa-circle-notch"></i></div>
 
             <div id="user-info" class="hidden items-center gap-3">
                 <div class="text-right hidden sm:block">
@@ -79,7 +71,7 @@
         <div id="login-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto p-6 flex items-center justify-center bg-slate-950"></div>
         
         <div id="aluno-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden">
-    
+            
             <div id="loading-aluno" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-[100]">
                 <div class="aluno-spinner"></div>
                 <p class="text-blue-500 font-cinzel tracking-widest mt-4">Sincronizando Mente...</p>
@@ -194,23 +186,24 @@
                                         <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
                                     </div>
                                 </div>
-
                             </div>
                         </div>
 
                         <div id="atab-caderno" class="aluno-tab-content h-full">
-                            <div class="flex flex-col md:flex-row gap-4 h-[calc(100vh-220px)] min-h-[500px]">
+                            
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-280px)] min-h-[600px]">
                                 
-                                <div class="hidden md:flex w-full md:w-1/5 bg-slate-800/80 rounded-2xl border border-slate-700 p-4 flex-col shadow-lg shrink-0">
-                                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2"><i class="fas fa-tags mr-2"></i> Seus Cadernos</h3>
-                                    <div id="al-notebook-tags" class="flex flex-col gap-1 overflow-y-auto custom-scroll pr-1 flex-grow"></div>
+                                <div class="hidden lg:flex lg:col-span-2 bg-slate-800/80 rounded-2xl border border-slate-700 p-4 flex-col shadow-lg overflow-hidden">
+                                    <h3 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-700 pb-2 shrink-0"><i class="fas fa-tags mr-2"></i> Cadernos</h3>
+                                    <div id="al-notebook-tags" class="flex flex-col gap-2 overflow-y-auto custom-scroll pr-1 flex-grow">
+                                        </div>
                                 </div>
 
-                                <div class="w-full md:w-1/3 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg shrink-0 overflow-hidden">
+                                <div class="lg:col-span-3 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden">
                                     <div class="p-4 border-b border-slate-700 bg-slate-800/50 flex flex-col gap-4 shrink-0">
                                         <div class="flex justify-between items-center">
                                             <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-book-open mr-2"></i> Anotações</h3>
-                                            <button id="btn-new-note" class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-full shadow-lg shadow-blue-900/50 transition-transform hover:scale-105 flex items-center justify-center" title="Nova Anotação">
+                                            <button id="btn-new-note" class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center justify-center" title="Nova Anotação">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
@@ -218,12 +211,14 @@
                                             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
                                             <input type="text" id="al-note-search" placeholder="Pesquisar..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm text-white outline-none focus:border-blue-500 transition-colors placeholder-slate-600">
                                         </div>
-                                        <div id="al-notebook-tags-mobile" class="md:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+                                        <div id="al-notebook-tags-mobile" class="lg:hidden flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
                                     </div>
-                                    <div id="al-notes-list" class="flex-grow overflow-y-auto custom-scroll p-3 space-y-2 bg-slate-900/30"></div>
+                                    
+                                    <div id="al-notes-list" class="flex-grow overflow-y-auto custom-scroll p-3 space-y-2 bg-slate-900/30">
+                                        </div>
                                 </div>
 
-                                <div class="w-full flex-grow bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
+                                <div class="lg:col-span-7 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
                                     
                                     <div id="al-note-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-800/80 z-10">
                                         <i class="fas fa-book text-6xl mb-4 opacity-20"></i>
@@ -231,11 +226,11 @@
                                     </div>
 
                                     <div id="al-note-active-state" class="flex-col h-full flex opacity-0 pointer-events-none transition-opacity duration-300">
-                                        
                                         <input type="hidden" id="al-note-active-id">
                                         
-                                        <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex flex-wrap justify-between items-center gap-4 shrink-0">
+                                        <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex flex-wrap justify-between items-center gap-4 shrink-0 transition-all duration-300" id="al-note-header-bar">
                                             <div id="al-note-colors" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
+                                            
                                             <div class="flex items-center gap-2 ml-auto">
                                                 <button id="btn-note-pin" class="text-slate-500 hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700" title="Fixar no topo"><i class="fas fa-thumbtack"></i></button>
                                                 <button id="btn-note-share" class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i class="fas fa-share-alt"></i> <span class="hidden xl:inline">Compartilhar</span></button>
@@ -261,6 +256,7 @@
                                         </div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
 
@@ -270,7 +266,6 @@
                                     <i class="fas fa-plus"></i> Nova Tarefa
                                 </button>
                             </div>
-
                             <div id="al-kanban-form" class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-8 fade-in">
                                 <input type="hidden" id="al-kanban-id">
                                 <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
@@ -280,39 +275,25 @@
                                     <button id="btn-save-kanban" class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar Tarefa</button>
                                 </div>
                             </div>
-
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[600px]">
-                                
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A FAZER</span>
-                                        <i class="fas fa-clipboard-list text-slate-600"></i>
-                                    </div>
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-blue-400">A FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i></div>
                                     <div id="al-col-todo" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
                                 </div>
-
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM EXECUÇÃO</span>
-                                        <i class="fas fa-spinner text-slate-600"></i>
-                                    </div>
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-amber-400">EM EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i></div>
                                     <div id="al-col-doing" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
                                 </div>
-
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
-                                        <span class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span>
-                                        <i class="fas fa-check-circle text-slate-600"></i>
-                                    </div>
+                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i class="fas fa-check-circle text-slate-600"></i></div>
                                     <div id="al-col-done" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
                                 </div>
-
                             </div>
                         </div>
 
                         <div id="atab-horario" class="aluno-tab-content">
-                            <div class="bg-slate-900/50 p-8 rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
-                                <table class="horario-tabela">
+                            <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl">
+                                <table class="horario-tabela w-full min-w-[900px]">
                                     <thead><tr><th data-dia-id="segunda-feira">SEG</th><th data-dia-id="terca-feira">TER</th><th data-dia-id="quarta-feira">QUA</th><th data-dia-id="quinta-feira">QUI</th><th data-dia-id="sexta-feira">SEX</th></tr></thead>
                                     <tbody><tr><td id="cell-segunda-feira"></td><td id="cell-terca-feira"></td><td id="cell-quarta-feira"></td><td id="cell-quinta-feira"></td><td id="cell-sexta-feira"></td></tr></tbody>
                                 </table>
@@ -333,7 +314,7 @@
                                             <button id="btn-view-month" class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
                                             <button id="btn-view-week" class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
                                         </div>
-                                        <button id="al-btn-add-evt" class="hidden bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i class="fas fa-plus mr-2"></i> Novo Evento</button>
+                                        <button id="al-btn-add-evt" class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i class="fas fa-plus mr-2"></i> Evento</button>
                                     </div>
                                 </div>
                                 <div id="cal-header-row" class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0">
@@ -396,6 +377,7 @@
             </div>
 
         </div>
+                
         <div id="moderador-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         <div id="professor-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         <div id="admin-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
