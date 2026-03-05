@@ -810,12 +810,6 @@ async function loadHorarioEscolar() {
     });
 }
 
-async function initCalendarSystem() {
-    const isStaff = currentUser.Admin || currentUser.Professor;
-    if(isStaff) document.getElementById('al-btn-add-evt').classList.remove('hidden');
-    fetchCalendarEvents();
-}
-
 async function fetchCalendarEvents() {
     const q = query(collection(db, "calendarioAnual"), where("visibilidade", "==", "todos"));
     const snap = await getDocs(q);
