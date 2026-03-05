@@ -4,6 +4,7 @@ import { getStorage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-s
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const firebaseConfig = {
+    apiKey: "AIzaSyDLvrHJrPvmqR5PTbn4B9FZO2nIt0iTTU0",
     authDomain: "kazenski-a1bb2.firebaseapp.com",
     projectId: "kazenski-a1bb2",
     storageBucket: "kazenski-a1bb2.firebasestorage.app",
