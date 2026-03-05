@@ -21,6 +21,7 @@ let userRoles = {
 
 let activeTabId = 'inicio';
 let isAlunoTechLoaded = false;
+let isConteudosLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -166,23 +167,20 @@ window.showTab = function(tabId) {
         renderInicioTab();
     } 
     else if (tabId === 'aluno-tech') {
-        // Agora verificamos a variável em vez do HTML vazio
         if (!isAlunoTechLoaded) {
             renderAlunoTechTab();
-            isAlunoTechLoaded = true; // Trava para não carregar o JS duas vezes
+            isAlunoTechLoaded = true; 
+        }
+    }
+    else if (tabId === 'conteudos') {
+        if (!isConteudosLoaded) {
+            renderConteudosTab();
+            isConteudosLoaded = true; 
         }
     }
     else if (tabId === 'login') {
         renderLoginTab();
     }
-
-    else if (tabId === 'conteudos') {
-        if (!isConteudosLoaded) {
-            renderConteudosTab();
-            isConteudosLoaded = true;
-        }
-    }
-    
 };
 
 
