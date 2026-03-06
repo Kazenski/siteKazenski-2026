@@ -2,6 +2,7 @@ import { app, db, auth } from '../core/firebase.js';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { escapeHTML } from '../core/utils.js';
+window.profAPI = window.profAPI || {};
 
 let state = {
     filters: { school: '', classId: '', disciplineId: '', quarter: '1' },
@@ -501,7 +502,6 @@ function renderChamadaList() {
 }
 
 window.profAPI.saveChamada = async () => {
-    const { classId, disciplineId } = state.filters;
     const date = els.inputDate.value;
     const docId = `${classId}_${disciplineId}_${date}`;
     
@@ -521,8 +521,6 @@ window.profAPI.saveChamada = async () => {
         alert("Chamada Salva no Firebase!"); 
     } catch(e) { 
         alert("Erro: " + e.message); 
-    } finally { 
-        els.btnSaveChamada.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Registro'; 
     }
 }
 
