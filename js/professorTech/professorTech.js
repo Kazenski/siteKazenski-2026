@@ -2992,7 +2992,7 @@ window.profAPI = {
 
         const payload = {
             escolaId: school, turmaId: classId, turmaNome: turmaName,
-            diaSemana, ordem, disciplinaId: disciplina, disciplina: disciplina,, 
+            diaSemana, ordem, disciplinaId: disciplina, disciplina: disciplina, 
             professorId, professorNome,
             conteudo: els.horarioConteudo.value
         };
