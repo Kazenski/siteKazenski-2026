@@ -54,6 +54,9 @@ function mapearDOM() {
         adminMus: document.getElementById('cont-admin-mus'),
         adminPod: document.getElementById('cont-admin-pod'),
         
+        // Botão Novo (Toggle)
+        btnToggleAdmin: document.getElementById('btn-toggle-admin-cont'),
+        
         // Formulários
         formMat: document.getElementById('form-material'),
         formMus: document.getElementById('form-music'),
@@ -90,15 +93,30 @@ function mapearDOM() {
 function aplicarPermissoes() {
     const isStaff = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao);
     if (isStaff) {
-        els.adminMat?.classList.remove('hidden');
-        els.adminMus?.classList.remove('hidden');
-        els.adminPod?.classList.remove('hidden');
+        // Ao invés de mostrar os painéis abertos, mostra APENAS o botão "+ Novo"
+        els.btnToggleAdmin?.classList.remove('hidden');
     }
 }
 
 function setupSubTabs() {
     const btns = document.querySelectorAll('.cont-tab-btn');
     const contents = document.querySelectorAll('.cont-tab-content');
+
+    // MAGIA DO BOTÃO "+ NOVO"
+    // Ele identifica qual aba está aberta e revela apenas o form dela!
+    els.btnToggleAdmin?.addEventListener('click', () => {
+        const activeTab = document.querySelector('.cont-tab-content.active');
+        if (!activeTab) return;
+        
+        const adminPanel = activeTab.querySelector('[id^="cont-admin-"]');
+        if (adminPanel) {
+            adminPanel.classList.toggle('hidden');
+            // Rola suavemente para o formulário ao abrir
+            if(!adminPanel.classList.contains('hidden')) {
+                adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    });
 
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -112,6 +130,11 @@ function setupSubTabs() {
             contents.forEach(c => c.classList.replace('flex', 'hidden'));
             const targetId = btn.getAttribute('data-target');
             document.getElementById(`ctab-${targetId}`).classList.replace('hidden', 'flex');
+
+            // ESCONDE TODOS OS FORMULÁRIOS AO TROCAR DE ABA
+            els.adminMat?.classList.add('hidden');
+            els.adminMus?.classList.add('hidden');
+            els.adminPod?.classList.add('hidden');
 
             if(targetId === 'materiais') {
                 els.playerBox.classList.add('hidden');
