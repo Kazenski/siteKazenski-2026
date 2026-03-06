@@ -185,6 +185,13 @@ window.showTab = function(tabId) {
     else if (tabId === 'login') {
         renderLoginTab();
     }
+
+    else if (tabId === 'professor') {
+        if (!isProfessorLoaded) {
+            renderProfessorTab();
+            isProfessorLoaded = true;
+        }
+    }
 };
 
 

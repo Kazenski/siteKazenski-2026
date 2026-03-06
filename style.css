@@ -230,3 +230,139 @@
 /* Transição suave entre as sub-abas */
 .cont-tab-content { display: none; }
 .cont-tab-content.active { display: block; animation: fadeIn 0.4s ease-out forwards; }
+
+/* ============================================================== */
+/* COMPONENTE: MESTRE LEOMA (PORTAL DO PROFESSOR)                 */
+/* ============================================================== */
+
+/* Botões da Sub-Aba Professor */
+.prof-subtab-btn { border-bottom: 2px solid transparent; }
+.prof-subtab-btn.active { border-bottom-color: #f59e0b; /* Amber 500 */ }
+.prof-tab-content { display: none; }
+.prof-tab-content.active { display: flex; animation: fadeIn 0.3s ease-out forwards; }
+
+/* Linhas da Chamada */
+.student-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem;
+    background-color: rgba(30, 41, 59, 0.5); border: 1px solid #334155; margin-bottom: 0.5rem; border-radius: 0.75rem;
+    transition: all 0.2s;
+}
+.student-row:hover { background-color: rgba(30, 41, 59, 0.8); border-color: #475569; }
+.student-row.inactive { opacity: 0.5; border-style: dashed; filter: grayscale(1); }
+
+/* Botões de Presença (P/A/J) */
+.p-btn {
+    width: 38px; height: 38px; border-radius: 0.5rem; font-weight: 800; font-size: 0.9rem;
+    border: 1px solid #475569; background: transparent; color: #94a3b8;
+    cursor: pointer; margin-left: 6px; transition: all 0.2s;
+}
+.p-btn:hover:not(:disabled) { border-color: #94a3b8; color: #cbd5e1; }
+.p-btn.presente.selected { background-color: #16a34a; color: white; border-color: #16a34a; box-shadow: 0 0 10px rgba(22,163,74,0.3); }
+.p-btn.ausente.selected { background-color: #dc2626; color: white; border-color: #dc2626; box-shadow: 0 0 10px rgba(220,38,38,0.3); }
+.p-btn.justificado.selected { background-color: #f59e0b; color: #0f172a; border-color: #f59e0b; box-shadow: 0 0 10px rgba(245,158,11,0.3); }
+
+/* Inputs de Nota */
+.nota-input { 
+    width: 100%; padding: 8px 4px; text-align: center; background: transparent; 
+    border: 1px solid transparent; color: inherit; border-radius: 0.5rem; 
+    transition: 0.2s; font-size: 1rem; font-weight: bold; outline: none;
+}
+.nota-input:focus { background: rgba(15, 23, 42, 0.8); border-color: #f59e0b; }
+.nota-input:hover:not(:disabled) { border-color: #475569; }
+
+.nota-aprovado { color: #4ade80; }
+.nota-atencao { color: #facc15; } 
+.nota-reprovado { color: #f87171; } 
+
+/* Status de Lançamento */
+.launch-btn.selected[data-val="true"] { background-color: rgba(22, 163, 74, 0.2); border-color: #16a34a; color: #4ade80; }
+.launch-btn.selected[data-val="false"] { background-color: rgba(220, 38, 38, 0.2); border-color: #dc2626; color: #f87171; }
+
+/* Slider de Avaliação 360 */
+.eval-range {
+    -webkit-appearance: none; width: 100%; height: 6px; background: #334155;
+    border-radius: 3px; outline: none; border: none;
+}
+.eval-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 20px; height: 20px;
+    border-radius: 50%; background: #f59e0b; cursor: pointer;
+    border: 3px solid #0f172a; transition: transform 0.1s;
+}
+.eval-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+.eval-eixo-row td {
+    background-color: rgba(15, 23, 42, 0.9); color: #3b82f6;
+    font-weight: 900; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+    padding-top: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #334155;
+}
+
+/* ============================================================== */
+/* COMPONENTE: SORTEIOS (PROFESSOR)                               */
+/* ============================================================== */
+
+/* Animação do Vencedor na Roleta */
+.roulette-winner {
+    color: #fcd34d; /* Amber 300 */
+    animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    text-shadow: 0 0 40px rgba(245, 158, 11, 0.8);
+}
+@keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Card das Equipes */
+.group-card {
+    background-color: rgba(30, 41, 59, 0.9);
+    border: 1px solid #334155;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+.group-card:hover { transform: translateY(-5px); }
+.group-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #f59e0b, #d97706); /* Amber gradient */
+}
+
+/* ============================================================== */
+/* COMPONENTE: GRADE HORÁRIA                                      */
+/* ============================================================== */
+
+.grade-header {
+    background-color: rgba(30, 41, 59, 0.95);
+    font-weight: 900; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px;
+    font-size: 0.7rem; text-align: center; padding: 0.75rem;
+    position: sticky; top: 0; z-index: 10;
+}
+.grade-time {
+    background-color: rgba(15, 23, 42, 0.8);
+    font-weight: 900; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase;
+    text-align: center; padding: 1rem 0.5rem; display: flex; align-items: center; justify-content: center;
+}
+.grade-cell {
+    background-color: rgba(30, 41, 59, 0.5);
+    min-height: 100px; padding: 0.5rem;
+    transition: background-color 0.2s;
+    display: flex; flex-direction: column; gap: 0.5rem;
+}
+.grade-cell:hover { background-color: rgba(30, 41, 59, 0.9); }
+
+.aula-card {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+    padding: 0.75rem; border-radius: 0.5rem;
+    font-size: 0.8rem; position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.aula-card strong { display: block; color: #e2e8f0; margin-bottom: 2px; }
+.aula-card span { display: block; color: #94a3b8; font-size: 0.7rem; }
+.aula-actions {
+    display: flex; gap: 4px; margin-top: 8px; justify-content: flex-end; 
+    opacity: 0; transition: opacity 0.2s;
+}
+.aula-card:hover .aula-actions { opacity: 1; }
+.aula-actions button { padding: 4px 8px; font-size: 0.7rem; border-radius: 0.3rem; cursor: pointer; border: none; }
