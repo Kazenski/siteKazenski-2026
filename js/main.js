@@ -6,6 +6,7 @@ import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-
 import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
+import { renderProfessorTab } from './professorTech/professorTech.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
@@ -23,6 +24,7 @@ let userRoles = {
 let activeTabId = localStorage.getItem('kazenski_active_tab') || 'inicio';
 let isAlunoTechLoaded = false;
 let isConteudosLoaded = false;
+let isProfessorLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -36,7 +38,7 @@ const MENU_ARCHITECTURE = [
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
     { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador || r.Aluno },
     { id: 'moderador-tech', label: 'Moderador Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador },
-    { id: 'professor-tech', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
+    { id: 'professor', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
     { id: 'admin-tech', label: 'Admin Tech', showTo: (r) => r.Admin }
 ];
 
