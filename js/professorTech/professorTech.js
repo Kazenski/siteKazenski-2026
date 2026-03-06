@@ -2846,20 +2846,29 @@ window.profAPI = {
             const snap = await getDocs(q);
             
             const aulasMap = {}; 
+            
+            // --- INÍCIO DO DEBUG ---
+            console.log("=== DEBUG GRADE HORÁRIA ===");
+            console.log("1. Buscando pela Turma ID:", classId);
+            console.log("2. Total de aulas encontradas no Firebase:", snap.size);
+            
             snap.forEach(doc => {
                 const d = doc.data();
                 
-                // FIX 1: Normaliza acentos do dia da semana (Terça -> terca-feira)
                 let dia = (d.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
-                if (!dia.includes('-feira')) dia += '-feira';
+                if (dia && !dia.includes('-feira')) dia += '-feira';
 
-                // FIX 2: O segredo revelado pelo perfilTech.js!
-                // Força a extração apenas do número inteiro da ordem, ignorando qualquer texto extra no BD
                 const numOrdem = parseInt(d.ordem);
-                
+
                 const key = `${dia}_${numOrdem}`;
                 aulasMap[key] = { id: doc.id, ...d };
+                
+                console.log(`Aula: ${d.disciplina} | Salvo no BD: Dia [${d.diaSemana}] Ordem [${d.ordem}] | Chave Gerada: [${key}]`);
             });
+
+            console.log("3. Mapa final montado:", aulasMap);
+            console.log("===========================");
+            // --- FIM DO DEBUG ---
 
             window.profAPI.renderGrade(aulasMap);
             els.horarioMsg.classList.add('hidden');
