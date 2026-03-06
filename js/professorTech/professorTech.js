@@ -100,7 +100,7 @@ export async function renderProfessorTab() {
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
-    
+
     // document.querySelector('[data-target="apoia"]').addEventListener('click', () => {
     //     window.profAPI.loadApoiaRegistros();
     // });
@@ -2848,7 +2848,9 @@ window.profAPI = {
             const aulasMap = {}; 
             snap.forEach(doc => {
                 const d = doc.data();
-                const key = `${d.diaSemana}_${d.ordem}`;
+                // FORÇA o dia para minúsculo. Assim, "Segunda-feira" ou "segunda-feira" batem na chave!
+                const dia = (d.diaSemana || "").toLowerCase();
+                const key = `${dia}_${d.ordem}`;
                 aulasMap[key] = { id: doc.id, ...d };
             });
 
@@ -2913,13 +2915,17 @@ window.profAPI = {
                 
                 const aula = aulasMap[`${dia}_${i}`];
                 if(aula) {
-                    const discName = state.cache.disciplinesMap.get(aula.disciplina) || aula.disciplina;
-                    const aulaSafe = JSON.stringify(aula).replace(/"/g, '&quot;');
+                    // Aceita tanto o campo novo quanto o campo antigo do BD
+                    const discIdReal = aula.disciplinaId || aula.disciplina || "";
+                    const discName = state.cache.disciplinesMap.get(discIdReal) || discIdReal || "Desconhecida";
+                    
+                    // Tratamento rigoroso de aspas para o botão não quebrar a tela
+                    const aulaSafe = JSON.stringify(aula).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
                     
                     cell.innerHTML = `
                         <div class="aula-card hover:scale-[1.02] transition-transform">
                             <strong>${escapeHTML(discName)}</strong>
-                            <span><i class="fas fa-chalkboard-teacher mr-1 text-[9px]"></i> ${escapeHTML(aula.professorNome)}</span>
+                            <span><i class="fas fa-chalkboard-teacher mr-1 text-[9px]"></i> ${escapeHTML(aula.professorNome || "Professor")}</span>
                             ${aula.conteudo ? `<span class="mt-1 text-amber-500 italic line-clamp-1" title="${escapeHTML(aula.conteudo)}">${escapeHTML(aula.conteudo)}</span>` : ''}
                             <div class="aula-actions">
                                 <button class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white" onclick='window.profAPI.editAula(${aulaSafe})'><i class="fas fa-edit"></i></button>
@@ -2958,9 +2964,9 @@ window.profAPI = {
     editAula: (data) => {
         els.horarioFormTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Aula';
         els.horarioId.value = data.id;
-        els.horarioDia.value = data.diaSemana;
+        els.horarioDia.value = (data.diaSemana || "").toLowerCase();
         els.horarioOrdem.value = data.ordem;
-        els.horarioDisc.value = data.disciplina;
+        els.horarioDisc.value = data.disciplinaId || data.disciplina || "";
         els.horarioProf.value = `${data.professorId}|${data.professorNome}`;
         els.horarioConteudo.value = data.conteudo || "";
         
@@ -2986,7 +2992,7 @@ window.profAPI = {
 
         const payload = {
             escolaId: school, turmaId: classId, turmaNome: turmaName,
-            diaSemana, ordem, disciplina, 
+            diaSemana, ordem, disciplinaId: disciplina, disciplina: disciplina,, 
             professorId, professorNome,
             conteudo: els.horarioConteudo.value
         };
