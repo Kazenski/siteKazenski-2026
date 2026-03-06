@@ -1658,769 +1658,807 @@
                 <div id="pdf-render-area"
                     class="fixed left-[-9999px] top-0 bg-white text-black p-12 w-[210mm] font-serif z-[-1]"></div>
 
-            </div>
+                <div id="ptab-ferramentas" class="prof-tab-content hidden h-full fade-in flex-col">
 
-            <div id="ptab-ferramentas" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg">
-                    <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-users-cog mr-2"></i>
-                        Cadastro Massivo de Alunos</h2>
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Criação de contas em lote
-                        e vínculo automático nas disciplinas</p>
-                </div>
-
-                <div class="flex-grow flex flex-col md:flex-row gap-6">
-                    <div
-                        class="w-full md:w-1/2 flex flex-col h-full bg-slate-900/50 rounded-2xl border border-slate-700 p-6 shadow-xl relative">
-                        <div
-                            class="bg-blue-900/20 border border-blue-900/50 p-4 rounded-xl mb-4 text-xs text-blue-300 leading-relaxed">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            Os alunos serão criados e vinculados à <b>Escola</b>, <b>Turma</b> e <b>Disciplina</b>
-                            selecionadas no topo.<br><br>
-                            <span class="font-mono text-[10px] bg-slate-950 p-1 rounded text-amber-400">Formato: Nome
-                                Completo, email, senha</span> (um por linha)
-                        </div>
-
-                        <textarea id="cadastro-input"
-                            class="flex-grow w-full bg-slate-950 border border-slate-700 text-slate-300 text-sm font-mono rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll mb-4 resize-none"
-                            placeholder="João da Silva, joao@escola.com, senha123&#10;Maria Oliveira, maria@escola.com, senha456"></textarea>
-
-                        <div class="flex flex-col gap-3 shrink-0">
-                            <button id="btn-processar-cadastro" onclick="window.profAPI.processarCadastro()"
-                                class="w-full bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">
-                                <i class="fas fa-cogs mr-2"></i> Processar Cadastros
-                            </button>
-                            <button id="btn-pdf-cadastro" onclick="window.profAPI.gerarPdfCadastro()"
-                                class="hidden w-full bg-slate-700 hover:bg-blue-600 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
-                                <i class="fas fa-file-pdf mr-2"></i> Baixar Relatório (PDF)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div
-                        class="w-full md:w-1/2 flex flex-col h-full bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden">
-                        <div class="bg-slate-800 p-3 border-b border-slate-700 flex items-center justify-between">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
-                                    class="fas fa-terminal mr-2"></i> Console de Execução</span>
-                            <span class="flex h-3 w-3 relative">
-                                <span
-                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 hidden"
-                                    id="log-ping"></span>
-                                <span class="relative inline-flex rounded-full h-3 w-3 bg-slate-600"
-                                    id="log-status-dot"></span>
-                            </span>
-                        </div>
-                        <div id="cadastro-log-area"
-                            class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1">
-                            <div class="text-slate-600">// Aguardando comandos...</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="ptab-vinculos" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-link mr-2"></i>
-                            Vincular Alunos Existentes</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Adicione alunos da
-                            base global à turma e disciplina selecionadas no topo</p>
-                    </div>
-                </div>
-
-                <div
-                    class="flex gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-inner">
-                    <input type="text" id="re-search-input" oninput="window.profAPI.renderRecadastroList()"
-                        placeholder="Buscar aluno por nome ou e-mail..."
-                        class="flex-grow bg-slate-950 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500">
-                    <button onclick="window.profAPI.loadRecadastroData()"
-                        class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-colors shadow-lg whitespace-nowrap"><i
-                            class="fas fa-sync-alt mr-2"></i> Listar Todos</button>
-                </div>
-
-                <div class="flex-grow flex flex-col md:flex-row gap-6 min-h-0">
-
-                    <div
-                        class="w-full md:w-2/3 flex flex-col min-h-0 bg-slate-900/50 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
-                        <div id="re-list-container" class="flex-grow overflow-y-auto custom-scroll p-4 space-y-2">
-                            <div class="text-center text-slate-500 italic p-10">Clique em "Listar Todos" para carregar a
-                                base de alunos.</div>
-                        </div>
-                        <div
-                            class="p-4 bg-slate-800 border-t border-slate-700 flex justify-between items-center shrink-0">
-                            <span class="text-xs text-amber-500 font-bold uppercase tracking-widest"><b
-                                    id="re-count-val" class="text-lg mr-1 text-white">0</b> Selecionados</span>
-                            <button onclick="window.profAPI.executarVinculoMassa()"
-                                class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-transform hover:scale-105"><i
-                                    class="fas fa-plug mr-2"></i> Vincular Selecionados</button>
-                        </div>
-                    </div>
-
-                    <div
-                        class="w-full md:w-1/3 flex flex-col h-full bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden">
-                        <div class="bg-slate-800 p-3 border-b border-slate-700">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
-                                    class="fas fa-terminal mr-2"></i> Log de Vínculos</span>
-                        </div>
-                        <div id="re-log-area"
-                            class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1">
-                            <div class="text-slate-600">// Aguardando execução...</div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-            <div id="ptab-analise" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg">
                         <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
-                                class="fas fa-chart-line mr-2"></i> Dashboard do Aluno</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Métricas de Desempenho
-                            e Frequência Individual</p>
+                                class="fas fa-users-cog mr-2"></i>
+                            Cadastro Massivo de Alunos</h2>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Criação de contas em
+                            lote
+                            e vínculo automático nas disciplinas</p>
                     </div>
-                    <div class="w-full md:w-auto flex items-center gap-3">
-                        <label
-                            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">Aluno:</label>
-                        <select id="analise-student-select" onchange="window.profAPI.loadAnaliseDashboard(this.value)"
-                            class="w-full md:w-64 bg-slate-900 border border-slate-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl p-3 outline-none focus:border-amber-500 shadow-inner">
-                            <option value="">Carregue a turma no topo...</option>
-                        </select>
+
+                    <div class="flex-grow flex flex-col md:flex-row gap-6">
+                        <div
+                            class="w-full md:w-1/2 flex flex-col h-full bg-slate-900/50 rounded-2xl border border-slate-700 p-6 shadow-xl relative">
+                            <div
+                                class="bg-blue-900/20 border border-blue-900/50 p-4 rounded-xl mb-4 text-xs text-blue-300 leading-relaxed">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Os alunos serão criados e vinculados à <b>Escola</b>, <b>Turma</b> e <b>Disciplina</b>
+                                selecionadas no topo.<br><br>
+                                <span class="font-mono text-[10px] bg-slate-950 p-1 rounded text-amber-400">Formato:
+                                    Nome
+                                    Completo, email, senha</span> (um por linha)
+                            </div>
+
+                            <textarea id="cadastro-input"
+                                class="flex-grow w-full bg-slate-950 border border-slate-700 text-slate-300 text-sm font-mono rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll mb-4 resize-none"
+                                placeholder="João da Silva, joao@escola.com, senha123&#10;Maria Oliveira, maria@escola.com, senha456"></textarea>
+
+                            <div class="flex flex-col gap-3 shrink-0">
+                                <button id="btn-processar-cadastro" onclick="window.profAPI.processarCadastro()"
+                                    class="w-full bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest py-4 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">
+                                    <i class="fas fa-cogs mr-2"></i> Processar Cadastros
+                                </button>
+                                <button id="btn-pdf-cadastro" onclick="window.profAPI.gerarPdfCadastro()"
+                                    class="hidden w-full bg-slate-700 hover:bg-blue-600 text-white font-bold text-xs uppercase tracking-widest py-3 rounded-xl transition-colors shadow-lg">
+                                    <i class="fas fa-file-pdf mr-2"></i> Baixar Relatório (PDF)
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            class="w-full md:w-1/2 flex flex-col h-full bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden">
+                            <div class="bg-slate-800 p-3 border-b border-slate-700 flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
+                                        class="fas fa-terminal mr-2"></i> Console de Execução</span>
+                                <span class="flex h-3 w-3 relative">
+                                    <span
+                                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 hidden"
+                                        id="log-ping"></span>
+                                    <span class="relative inline-flex rounded-full h-3 w-3 bg-slate-600"
+                                        id="log-status-dot"></span>
+                                </span>
+                            </div>
+                            <div id="cadastro-log-area"
+                                class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1">
+                                <div class="text-slate-600">// Aguardando comandos...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <p id="analise-msg" class="text-center text-sm mt-10 text-slate-500 italic font-bold">Selecione um aluno
-                    acima para carregar o painel analítico.</p>
+                <div id="ptab-vinculos" class="prof-tab-content hidden h-full fade-in flex-col">
 
-                <div id="analise-dashboard"
-                    class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Faltas
-                                Consecutivas</div>
-                            <div class="text-4xl font-black text-red-500" id="kpi-consecutive">0</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Dias seguidos ausente
-                            </div>
-                        </div>
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Menor Nota
-                                (Geral)</div>
-                            <div class="text-4xl font-black text-amber-500" id="kpi-min-grade">-</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Em todas as
-                                disciplinas</div>
-                        </div>
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Maior Nota
-                                (Geral)</div>
-                            <div class="text-4xl font-black text-green-500" id="kpi-max-grade">-</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Em todas as
-                                disciplinas</div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-80">
-                        <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
-                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                                <h3 class="text-amber-500 font-cinzel font-bold text-sm">Média por Disciplina</h3>
-                            </div>
-                            <div class="flex-grow relative w-full h-full">
-                                <canvas id="chart-grades"></canvas>
-                                <div id="chart-grades-msg"
-                                    class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
-                                    Sem notas lançadas.</div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
-                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                                <h3 class="text-blue-400 font-cinzel font-bold text-sm">Taxa de Frequência</h3>
-                            </div>
-                            <div class="flex-grow relative w-full h-full">
-                                <canvas id="chart-presence"></canvas>
-                            </div>
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-link mr-2"></i>
+                                Vincular Alunos Existentes</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Adicione alunos da
+                                base global à turma e disciplina selecionadas no topo</p>
                         </div>
                     </div>
 
                     <div
-                        class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col relative">
-                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                            <h3 class="text-purple-400 font-cinzel font-bold text-sm">Evolução de Desempenho
-                                (Trimestral)</h3>
-                            <select id="chart-evolution-disc" onchange="window.profAPI.updateEvolutionChart(this.value)"
-                                class="bg-slate-900 border border-slate-600 text-slate-300 text-[10px] rounded-lg p-1.5 outline-none focus:border-purple-500">
-                                <option value="">Selecione a Disciplina...</option>
+                        class="flex gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-inner">
+                        <input type="text" id="re-search-input" oninput="window.profAPI.renderRecadastroList()"
+                            placeholder="Buscar aluno por nome ou e-mail..."
+                            class="flex-grow bg-slate-950 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500">
+                        <button onclick="window.profAPI.loadRecadastroData()"
+                            class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-colors shadow-lg whitespace-nowrap"><i
+                                class="fas fa-sync-alt mr-2"></i> Listar Todos</button>
+                    </div>
+
+                    <div class="flex-grow flex flex-col md:flex-row gap-6 min-h-0">
+
+                        <div
+                            class="w-full md:w-2/3 flex flex-col min-h-0 bg-slate-900/50 rounded-2xl border border-slate-700 shadow-xl overflow-hidden">
+                            <div id="re-list-container" class="flex-grow overflow-y-auto custom-scroll p-4 space-y-2">
+                                <div class="text-center text-slate-500 italic p-10">Clique em "Listar Todos" para
+                                    carregar a
+                                    base de alunos.</div>
+                            </div>
+                            <div
+                                class="p-4 bg-slate-800 border-t border-slate-700 flex justify-between items-center shrink-0">
+                                <span class="text-xs text-amber-500 font-bold uppercase tracking-widest"><b
+                                        id="re-count-val" class="text-lg mr-1 text-white">0</b> Selecionados</span>
+                                <button onclick="window.profAPI.executarVinculoMassa()"
+                                    class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-transform hover:scale-105"><i
+                                        class="fas fa-plug mr-2"></i> Vincular Selecionados</button>
+                            </div>
+                        </div>
+
+                        <div
+                            class="w-full md:w-1/3 flex flex-col h-full bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden">
+                            <div class="bg-slate-800 p-3 border-b border-slate-700">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
+                                        class="fas fa-terminal mr-2"></i> Log de Vínculos</span>
+                            </div>
+                            <div id="re-log-area"
+                                class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1">
+                                <div class="text-slate-600">// Aguardando execução...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="ptab-analise" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-chart-line mr-2"></i> Dashboard do Aluno</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Métricas de
+                                Desempenho
+                                e Frequência Individual</p>
+                        </div>
+                        <div class="w-full md:w-auto flex items-center gap-3">
+                            <label
+                                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:block">Aluno:</label>
+                            <select id="analise-student-select"
+                                onchange="window.profAPI.loadAnaliseDashboard(this.value)"
+                                class="w-full md:w-64 bg-slate-900 border border-slate-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl p-3 outline-none focus:border-amber-500 shadow-inner">
+                                <option value="">Carregue a turma no topo...</option>
                             </select>
                         </div>
-                        <div class="flex-grow relative w-full h-full">
-                            <canvas id="chart-evolution"></canvas>
-                            <div id="chart-evolution-msg"
-                                class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold backdrop-blur-sm z-10">
-                                Selecione uma disciplina acima.</div>
+                    </div>
+
+                    <p id="analise-msg" class="text-center text-sm mt-10 text-slate-500 italic font-bold">Selecione um
+                        aluno
+                        acima para carregar o painel analítico.</p>
+
+                    <div id="analise-dashboard"
+                        class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Faltas
+                                    Consecutivas</div>
+                                <div class="text-4xl font-black text-red-500" id="kpi-consecutive">0</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Dias seguidos
+                                    ausente
+                                </div>
+                            </div>
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Menor
+                                    Nota
+                                    (Geral)</div>
+                                <div class="text-4xl font-black text-amber-500" id="kpi-min-grade">-</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Em todas as
+                                    disciplinas</div>
+                            </div>
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Maior
+                                    Nota
+                                    (Geral)</div>
+                                <div class="text-4xl font-black text-green-500" id="kpi-max-grade">-</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Em todas as
+                                    disciplinas</div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="bg-blue-900/10 border border-blue-500/30 rounded-2xl p-6 shadow-xl shrink-0">
-                        <h3
-                            class="text-blue-400 font-cinzel font-bold text-lg mb-4 flex items-center border-b border-slate-700 pb-3">
-                            <i class="fas fa-robot mr-2"></i> Diagnóstico Preditivo (IA)
-                        </h3>
-                        <ul id="predictive-list" class="space-y-3"></ul>
-                    </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-80">
+                            <div
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                                    <h3 class="text-amber-500 font-cinzel font-bold text-sm">Média por Disciplina</h3>
+                                </div>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="chart-grades"></canvas>
+                                    <div id="chart-grades-msg"
+                                        class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
+                                        Sem notas lançadas.</div>
+                                </div>
+                            </div>
 
-                </div>
-            </div>
-
-            <div id="ptab-analise-geral" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-globe mr-2"></i>
-                            Visão Geral da Turma</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Métricas agregadas e
-                            dispersão da classe</p>
-                    </div>
-                    <div
-                        class="flex flex-wrap items-center gap-3 bg-slate-900 p-2 rounded-xl border border-slate-700 shadow-inner">
-                        <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-2">Período
-                            Presença:</span>
-                        <input type="date" id="geral-start-date"
-                            class="bg-slate-800 border border-slate-600 text-white text-xs p-2 rounded-lg outline-none focus:border-amber-500">
-                        <span class="text-slate-500">-</span>
-                        <input type="date" id="geral-end-date"
-                            class="bg-slate-800 border border-slate-600 text-white text-xs p-2 rounded-lg outline-none focus:border-amber-500">
-                        <button onclick="window.profAPI.loadGeralDashboard()"
-                            class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg shadow-lg transition-transform hover:scale-105"><i
-                                class="fas fa-sync-alt"></i></button>
-                    </div>
-                </div>
-
-                <p id="geral-msg" class="text-center text-sm mt-10 text-slate-500 italic font-bold">Selecione Escola,
-                    Turma e Disciplina no topo para visualizar.</p>
-
-                <div id="geral-dashboard"
-                    class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Média da
-                                Turma</div>
-                            <div class="text-4xl font-black text-blue-400" id="kpi-geral-media">-</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Na Disciplina
-                                Selecionada</div>
+                            <div
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-sm">Taxa de Frequência</h3>
+                                </div>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="chart-presence"></canvas>
+                                </div>
+                            </div>
                         </div>
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Total de
-                                Faltas</div>
-                            <div class="text-4xl font-black text-red-500" id="kpi-geral-faltas">0</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Todos os alunos
-                                (Período)</div>
-                        </div>
-                        <div
-                            class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
-                            <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Alunos em
-                                Risco</div>
-                            <div class="text-4xl font-black text-amber-500" id="kpi-geral-risco">0</div>
-                            <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">> 20% de Faltas</div>
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[350px]">
                         <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col relative">
                             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                                <h3 class="text-blue-400 font-cinzel font-bold text-sm">Dispersão: Notas x Faltas</h3>
-                            </div>
-                            <div class="flex-grow relative w-full h-full">
-                                <canvas id="chart-geral-scatter-notas"></canvas>
-                                <div id="msg-geral-notas"
-                                    class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
-                                    Sem dados suficientes.</div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
-                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 gap-2">
-                                <h3 class="text-amber-500 font-cinzel font-bold text-sm">Frequência Individual</h3>
-                                <select id="geral-freq-student-select"
-                                    onchange="window.profAPI.renderIndividualFreqChartGeral(this.value)"
-                                    class="bg-slate-900 border border-slate-600 text-slate-300 text-[10px] uppercase tracking-widest rounded-lg p-1.5 outline-none focus:border-amber-500 max-w-[150px]">
-                                    <option value="">Selecione Aluno...</option>
+                                <h3 class="text-purple-400 font-cinzel font-bold text-sm">Evolução de Desempenho
+                                    (Trimestral)</h3>
+                                <select id="chart-evolution-disc"
+                                    onchange="window.profAPI.updateEvolutionChart(this.value)"
+                                    class="bg-slate-900 border border-slate-600 text-slate-300 text-[10px] rounded-lg p-1.5 outline-none focus:border-purple-500">
+                                    <option value="">Selecione a Disciplina...</option>
                                 </select>
                             </div>
                             <div class="flex-grow relative w-full h-full">
-                                <canvas id="chart-geral-bar-faltas"></canvas>
-                                <div id="msg-geral-faltas"
+                                <canvas id="chart-evolution"></canvas>
+                                <div id="chart-evolution-msg"
                                     class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold backdrop-blur-sm z-10">
-                                    Selecione um aluno acima.</div>
+                                    Selecione uma disciplina acima.</div>
                             </div>
                         </div>
+
+                        <div class="bg-blue-900/10 border border-blue-500/30 rounded-2xl p-6 shadow-xl shrink-0">
+                            <h3
+                                class="text-blue-400 font-cinzel font-bold text-lg mb-4 flex items-center border-b border-slate-700 pb-3">
+                                <i class="fas fa-robot mr-2"></i> Diagnóstico Preditivo (IA)
+                            </h3>
+                            <ul id="predictive-list" class="space-y-3"></ul>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="ptab-analise-geral" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-globe mr-2"></i>
+                                Visão Geral da Turma</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Métricas agregadas
+                                e
+                                dispersão da classe</p>
+                        </div>
+                        <div
+                            class="flex flex-wrap items-center gap-3 bg-slate-900 p-2 rounded-xl border border-slate-700 shadow-inner">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-2">Período
+                                Presença:</span>
+                            <input type="date" id="geral-start-date"
+                                class="bg-slate-800 border border-slate-600 text-white text-xs p-2 rounded-lg outline-none focus:border-amber-500">
+                            <span class="text-slate-500">-</span>
+                            <input type="date" id="geral-end-date"
+                                class="bg-slate-800 border border-slate-600 text-white text-xs p-2 rounded-lg outline-none focus:border-amber-500">
+                            <button onclick="window.profAPI.loadGeralDashboard()"
+                                class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg shadow-lg transition-transform hover:scale-105"><i
+                                    class="fas fa-sync-alt"></i></button>
+                        </div>
+                    </div>
+
+                    <p id="geral-msg" class="text-center text-sm mt-10 text-slate-500 italic font-bold">Selecione
+                        Escola,
+                        Turma e Disciplina no topo para visualizar.</p>
+
+                    <div id="geral-dashboard"
+                        class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Média
+                                    da
+                                    Turma</div>
+                                <div class="text-4xl font-black text-blue-400" id="kpi-geral-media">-</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Na Disciplina
+                                    Selecionada</div>
+                            </div>
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Total
+                                    de
+                                    Faltas</div>
+                                <div class="text-4xl font-black text-red-500" id="kpi-geral-faltas">0</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Todos os alunos
+                                    (Período)</div>
+                            </div>
+                            <div
+                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Alunos
+                                    em
+                                    Risco</div>
+                                <div class="text-4xl font-black text-amber-500" id="kpi-geral-risco">0</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">> 20% de Faltas
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[350px]">
+                            <div
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-sm">Dispersão: Notas x Faltas
+                                    </h3>
+                                </div>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="chart-geral-scatter-notas"></canvas>
+                                    <div id="msg-geral-notas"
+                                        class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
+                                        Sem dados suficientes.</div>
+                                </div>
+                            </div>
+
+                            <div
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                <div
+                                    class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 gap-2">
+                                    <h3 class="text-amber-500 font-cinzel font-bold text-sm">Frequência Individual</h3>
+                                    <select id="geral-freq-student-select"
+                                        onchange="window.profAPI.renderIndividualFreqChartGeral(this.value)"
+                                        class="bg-slate-900 border border-slate-600 text-slate-300 text-[10px] uppercase tracking-widest rounded-lg p-1.5 outline-none focus:border-amber-500 max-w-[150px]">
+                                        <option value="">Selecione Aluno...</option>
+                                    </select>
+                                </div>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="chart-geral-bar-faltas"></canvas>
+                                    <div id="msg-geral-faltas"
+                                        class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold backdrop-blur-sm z-10">
+                                        Selecione um aluno acima.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[350px] flex flex-col relative">
+                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                                <h3 class="text-green-400 font-cinzel font-bold text-sm">Panorama Detalhado de Notas
+                                    (Trimestres)</h3>
+                            </div>
+                            <div class="flex-grow relative w-full h-full">
+                                <canvas id="chart-geral-all-grades"></canvas>
+                                <div id="msg-geral-all"
+                                    class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
+                                    Carregando dados...</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="ptab-avaliacoes" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-calendar-check mr-2"></i> Gestão de Avaliações</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Calendário oficial
+                                de
+                                Provas e Trabalhos das turmas</p>
+                        </div>
+                        <button onclick="window.profAPI.openAvaliacaoForm()"
+                            class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
+                                class="fas fa-plus mr-2"></i> Agendar Avaliação</button>
                     </div>
 
                     <div
-                        class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[350px] flex flex-col relative">
-                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                            <h3 class="text-green-400 font-cinzel font-bold text-sm">Panorama Detalhado de Notas
-                                (Trimestres)</h3>
+                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
+                        <table class="w-full text-sm text-left border-collapse">
+                            <thead
+                                class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
+                                <tr>
+                                    <th class="p-4">Disciplina</th>
+                                    <th class="p-4">Turmas Alvo</th>
+                                    <th class="p-4">Conteúdo</th>
+                                    <th class="p-4 text-center">Data e Hora</th>
+                                    <th class="p-4 text-center text-amber-500">Valor</th>
+                                    <th class="p-4 text-center">Visível</th>
+                                    <th class="p-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="avaliacoes-list-body" class="divide-y divide-slate-800"></tbody>
+                        </table>
+                        <div id="avaliacoes-empty-msg"
+                            class="text-center text-sm mt-10 font-bold text-slate-500 italic p-4 hidden">Nenhuma
+                            avaliação
+                            cadastrada.</div>
+                    </div>
+                </div>
+
+                <div id="avaliacao-modal"
+                    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
+                    <div
+                        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
+                            <h3 id="avaliacao-modal-title" class="text-amber-500 font-cinzel font-bold text-xl"><i
+                                    class="fas fa-calendar-plus mr-2"></i> Nova Avaliação</h3>
+                            <button onclick="window.profAPI.closeAvaliacaoForm()"
+                                class="text-slate-500 hover:text-white transition-colors"><i
+                                    class="fas fa-times text-xl"></i></button>
                         </div>
-                        <div class="flex-grow relative w-full h-full">
-                            <canvas id="chart-geral-all-grades"></canvas>
-                            <div id="msg-geral-all"
-                                class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">
-                                Carregando dados...</div>
-                        </div>
-                    </div>
 
-                </div>
-            </div>
+                        <div class="flex-grow overflow-y-auto custom-scroll pr-2 space-y-4">
+                            <input type="hidden" id="avaliacao-id">
 
-            <div id="ptab-avaliacoes" class="prof-tab-content hidden h-full fade-in flex-col">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Disciplina
+                                        *</label>
+                                    <select id="form-eval-disc"
+                                        class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
+                                        <option value="">Carregando...</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Data
+                                        e Hora *</label>
+                                    <input type="datetime-local" id="form-eval-date"
+                                        class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
+                                </div>
+                            </div>
 
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
-                                class="fas fa-calendar-check mr-2"></i> Gestão de Avaliações</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Calendário oficial de
-                            Provas e Trabalhos das turmas</p>
-                    </div>
-                    <button onclick="window.profAPI.openAvaliacaoForm()"
-                        class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
-                            class="fas fa-plus mr-2"></i> Agendar Avaliação</button>
-                </div>
-
-                <div
-                    class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
-                    <table class="w-full text-sm text-left border-collapse">
-                        <thead
-                            class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
-                            <tr>
-                                <th class="p-4">Disciplina</th>
-                                <th class="p-4">Turmas Alvo</th>
-                                <th class="p-4">Conteúdo</th>
-                                <th class="p-4 text-center">Data e Hora</th>
-                                <th class="p-4 text-center text-amber-500">Valor</th>
-                                <th class="p-4 text-center">Visível</th>
-                                <th class="p-4 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="avaliacoes-list-body" class="divide-y divide-slate-800"></tbody>
-                    </table>
-                    <div id="avaliacoes-empty-msg"
-                        class="text-center text-sm mt-10 font-bold text-slate-500 italic p-4 hidden">Nenhuma avaliação
-                        cadastrada.</div>
-                </div>
-            </div>
-
-            <div id="avaliacao-modal"
-                class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
-                <div
-                    class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
-                    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
-                        <h3 id="avaliacao-modal-title" class="text-amber-500 font-cinzel font-bold text-xl"><i
-                                class="fas fa-calendar-plus mr-2"></i> Nova Avaliação</h3>
-                        <button onclick="window.profAPI.closeAvaliacaoForm()"
-                            class="text-slate-500 hover:text-white transition-colors"><i
-                                class="fas fa-times text-xl"></i></button>
-                    </div>
-
-                    <div class="flex-grow overflow-y-auto custom-scroll pr-2 space-y-4">
-                        <input type="hidden" id="avaliacao-id">
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label
-                                    class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Disciplina
+                                    class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Turmas
+                                    (Segure Ctrl para múltipla seleção) *</label>
+                                <select id="form-eval-turmas" multiple
+                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500 h-28 custom-scroll">
+                                    <option value="">Carregando...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Conteúdo
+                                    da Avaliação</label>
+                                <textarea id="form-eval-content" rows="3"
+                                    class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
+                                    placeholder="O que vai cair na prova? Quais os capítulos?"></textarea>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Dicas
+                                    / Observações do Professor</label>
+                                <textarea id="form-eval-tips" rows="2"
+                                    class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
+                                    placeholder="Dicas de estudo, lembrete para trazer material..."></textarea>
+                            </div>
+
+                            <div class="flex items-center gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Valor
+                                        (Nota)</label>
+                                    <input type="number" id="form-eval-value"
+                                        class="w-24 bg-slate-900 border border-slate-600 text-white text-lg font-black rounded-lg p-2 text-center outline-none focus:border-amber-500"
+                                        placeholder="10.0" step="0.1">
+                                </div>
+                                <label class="flex items-center gap-3 cursor-pointer group mt-4">
+                                    <input type="checkbox" id="form-eval-visible"
+                                        class="w-5 h-5 accent-amber-500 cursor-pointer" checked>
+                                    <span
+                                        class="text-xs font-bold text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">Visível
+                                        para Alunos</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-700 shrink-0">
+                            <button onclick="window.profAPI.closeAvaliacaoForm()"
+                                class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                            <button id="btn-save-avaliacao" onclick="window.profAPI.saveAvaliacao()"
+                                class="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(22,163,74,0.4)]">Salvar
+                                Avaliação</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="ptab-horario" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-clock mr-2"></i>
+                                Grade Horária</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Gerenciamento do
+                                quadro de aulas da turma</p>
+                        </div>
+                        <button onclick="window.profAPI.toggleHorarioForm()"
+                            class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
+                                class="fas fa-plus mr-2"></i> Adicionar Aula</button>
+                    </div>
+
+                    <div id="horario-form-container"
+                        class="hidden bg-slate-900/80 p-6 rounded-2xl border border-amber-500/30 mb-6 shrink-0 shadow-xl fade-in">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                            <h3 id="horario-form-title" class="text-amber-500 font-cinzel font-bold text-lg">Nova Aula
+                            </h3>
+                            <button onclick="window.profAPI.toggleHorarioForm()"
+                                class="text-slate-500 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+                        <input type="hidden" id="horario-id">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Dia
+                                    da Semana *</label>
+                                <select id="horario-dia"
+                                    class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                    <option value="">Selecione...</option>
+                                    <option value="segunda-feira">Segunda-feira</option>
+                                    <option value="terca-feira">Terça-feira</option>
+                                    <option value="quarta-feira">Quarta-feira</option>
+                                    <option value="quinta-feira">Quinta-feira</option>
+                                    <option value="sexta-feira">Sexta-feira</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Posição
+                                    (Horário) *</label>
+                                <select id="horario-ordem"
+                                    class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                    <option value="">Selecione...</option>
+                                    <option value="1">1ª Aula</option>
+                                    <option value="2">2ª Aula</option>
+                                    <option value="3">3ª Aula</option>
+                                    <option value="4">4ª Aula</option>
+                                    <option value="5">5ª Aula</option>
+                                    <option value="6">6ª Aula</option>
+                                    <option value="7">7ª Aula</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Disciplina
                                     *</label>
-                                <select id="form-eval-disc"
-                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
+                                <select id="horario-disc"
+                                    class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
                                     <option value="">Carregando...</option>
                                 </select>
                             </div>
                             <div>
                                 <label
-                                    class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Data
-                                    e Hora *</label>
-                                <input type="datetime-local" id="form-eval-date"
-                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
+                                    class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Professor
+                                    *</label>
+                                <select id="horario-prof"
+                                    class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
+                                    <option value="">Carregando...</option>
+                                </select>
                             </div>
                         </div>
-
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Turmas
-                                (Segure Ctrl para múltipla seleção) *</label>
-                            <select id="form-eval-turmas" multiple
-                                class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500 h-28 custom-scroll">
-                                <option value="">Carregando...</option>
-                            </select>
-                        </div>
-
-                        <div>
+                        <div class="mb-6">
                             <label
                                 class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Conteúdo
-                                da Avaliação</label>
-                            <textarea id="form-eval-content" rows="3"
-                                class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
-                                placeholder="O que vai cair na prova? Quais os capítulos?"></textarea>
+                                Padrão / Observação</label>
+                            <input type="text" id="horario-conteudo"
+                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500"
+                                placeholder="Ex: Laboratório, Quadra, Sala de Leitura...">
                         </div>
+                        <div class="flex justify-end gap-3 border-t border-slate-700 pt-4">
+                            <button onclick="window.profAPI.toggleHorarioForm()"
+                                class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                            <button id="btn-save-horario" onclick="window.profAPI.saveHorario()"
+                                class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar
+                                Aula</button>
+                        </div>
+                    </div>
 
+                    <div
+                        class="flex-grow overflow-x-auto overflow-y-auto custom-scroll bg-slate-900/30 rounded-2xl border border-slate-700 shadow-xl relative pb-4">
+                        <div id="grade-grid"
+                            class="min-w-[800px] w-full grid grid-cols-[80px_repeat(5,minmax(140px,1fr))] gap-px bg-slate-700 border-b border-slate-700">
+                        </div>
+                        <p id="horario-msg" class="text-center text-sm mt-10 font-bold text-slate-500 italic hidden">
+                            Selecione uma Turma no topo.</p>
+                    </div>
+                </div>
+
+                <div id="ptab-avisos" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Comunicação
+                                oficial e
+                                em massa com as turmas</p>
+                        </div>
+                        <button onclick="window.profAPI.toggleAvisoForm()"
+                            class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
+                                class="fas fa-plus mr-2"></i> Novo Aviso</button>
+                    </div>
+
+                    <div id="aviso-form-container"
+                        class="hidden bg-slate-900/80 p-6 rounded-2xl border border-amber-500/30 mb-6 shrink-0 shadow-xl fade-in">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                            <h3 id="aviso-form-title" class="text-amber-500 font-cinzel font-bold text-lg"><i
+                                    class="fas fa-plus-circle mr-2"></i> Novo Aviso</h3>
+                            <button onclick="window.profAPI.toggleAvisoForm()"
+                                class="text-slate-500 hover:text-white"><i class="fas fa-times text-lg"></i></button>
+                        </div>
+                        <input type="hidden" id="aviso-id">
+
+                        <div class="mb-4">
                             <label
-                                class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Dicas
-                                / Observações do Professor</label>
-                            <textarea id="form-eval-tips" rows="2"
-                                class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
-                                placeholder="Dicas de estudo, lembrete para trazer material..."></textarea>
+                                class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Mensagem
+                                do Comunicado *</label>
+                            <textarea id="aviso-msg" rows="4"
+                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
+                                placeholder="Digite o aviso aqui..."></textarea>
                         </div>
 
-                        <div class="flex items-center gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                        <div class="mb-6">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Destinatários
+                                (Turmas) *</label>
+                            <div id="aviso-turmas-list"
+                                class="bg-slate-800 border border-slate-600 rounded-xl p-3 max-h-48 overflow-y-auto custom-scroll space-y-1">
+                                <div class="p-4 text-center text-slate-500 text-xs">Carregando turmas...</div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-3 border-t border-slate-700 pt-4">
+                            <button onclick="window.profAPI.toggleAvisoForm()"
+                                class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                            <button id="btn-save-aviso" onclick="window.profAPI.saveAviso()"
+                                class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg"><i
+                                    class="fas fa-paper-plane mr-2"></i> Publicar Aviso</button>
+                        </div>
+                    </div>
+
+                    <div
+                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-4 md:p-6 relative">
+                        <div id="avisos-list" class="flex flex-col gap-4"></div>
+                        <p id="avisos-msg" class="text-center text-sm mt-10 font-bold text-slate-500 italic hidden">
+                            Nenhum
+                            aviso publicado.</p>
+                    </div>
+                </div>
+
+                <div id="ptab-reset" class="prof-tab-content hidden h-full fade-in flex-col max-w-4xl mx-auto w-full">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-red-500/50 mb-6 shrink-0 shadow-[0_0_30px_rgba(220,38,38,0.15)]">
+                        <h2 class="text-xl text-red-500 font-cinzel font-bold mb-2 flex items-center"><i
+                                class="fas fa-exclamation-triangle mr-3"></i> Encerramento de Ano Letivo</h2>
+                        <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Processo de backup oficial
+                            e
+                            limpeza profunda do banco de dados.</p>
+                    </div>
+
+                    <div
+                        class="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 md:p-8 mb-6 shadow-xl relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
+                        <h3
+                            class="text-white font-bold mb-6 uppercase text-xs tracking-widest border-b border-slate-700 pb-3">
+                            <i class="fas fa-cog mr-2"></i> Configuração do Processo
+                        </h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                             <div>
                                 <label
-                                    class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Valor
-                                    (Nota)</label>
-                                <input type="number" id="form-eval-value"
-                                    class="w-24 bg-slate-900 border border-slate-600 text-white text-lg font-black rounded-lg p-2 text-center outline-none focus:border-amber-500"
-                                    placeholder="10.0" step="0.1">
+                                    class="block text-[10px] font-bold text-amber-500 mb-2 uppercase tracking-widest">Ano
+                                    de Referência (Para o Backup)</label>
+                                <input type="number" id="reset-year"
+                                    class="w-full bg-slate-950 border border-slate-600 text-white p-4 rounded-xl text-2xl font-black text-center outline-none focus:border-red-500 shadow-inner"
+                                    placeholder="Ex: 2026" value="2026">
+                                <p class="text-[10px] text-slate-500 mt-3 font-mono">Serão criadas as coleções:
+                                    <br><span class="text-amber-400/70">notas_backup_XXXX</span> e <span
+                                        class="text-amber-400/70">presencas_backup_XXXX</span></p>
                             </div>
-                            <label class="flex items-center gap-3 cursor-pointer group mt-4">
-                                <input type="checkbox" id="form-eval-visible"
-                                    class="w-5 h-5 accent-amber-500 cursor-pointer" checked>
+
+                            <div>
+                                <div
+                                    class="bg-red-950/40 p-5 rounded-xl border border-red-900/50 text-xs text-red-300 leading-relaxed shadow-inner">
+                                    <strong class="text-red-500 block mb-2 text-sm uppercase tracking-widest"><i
+                                            class="fas fa-skull-crossbones mr-1"></i> Atenção Crítica:</strong>
+                                    Esta ação copiará os diários atuais para o arquivo morto e, em seguida, <span
+                                        class="text-white font-black underline">APAGARÁ PERMANENTEMENTE</span> as notas
+                                    e
+                                    presenças originais.<br><br>
+                                    Todos os alunos terão suas turmas e disciplinas desvinculadas para o início do novo
+                                    ciclo.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-10 flex justify-center border-t border-slate-700 pt-8">
+                            <button id="btn-start-reset" onclick="window.profAPI.startAnnualReset()"
+                                class="w-full md:w-auto bg-red-600 hover:bg-red-500 text-white font-black text-sm uppercase tracking-widest py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 border border-red-400/50">
+                                <i class="fas fa-radiation mr-2 text-lg"></i> Iniciar Processo de Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="reset-console-container"
+                        class="hidden flex-grow flex-col bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden fade-in">
+                        <div class="bg-slate-800 p-3 border-b border-slate-700 flex items-center justify-between">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
+                                    class="fas fa-terminal mr-2"></i> Log do Servidor</span>
+                            <span class="flex h-3 w-3 relative">
                                 <span
-                                    class="text-xs font-bold text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">Visível
-                                    para Alunos</span>
-                            </label>
+                                    class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                            </span>
                         </div>
-                    </div>
-
-                    <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-700 shrink-0">
-                        <button onclick="window.profAPI.closeAvaliacaoForm()"
-                            class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
-                        <button id="btn-save-avaliacao" onclick="window.profAPI.saveAvaliacao()"
-                            class="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(22,163,74,0.4)]">Salvar
-                            Avaliação</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="ptab-horario" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-clock mr-2"></i>
-                            Grade Horária</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Gerenciamento do
-                            quadro de aulas da turma</p>
-                    </div>
-                    <button onclick="window.profAPI.toggleHorarioForm()"
-                        class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
-                            class="fas fa-plus mr-2"></i> Adicionar Aula</button>
-                </div>
-
-                <div id="horario-form-container"
-                    class="hidden bg-slate-900/80 p-6 rounded-2xl border border-amber-500/30 mb-6 shrink-0 shadow-xl fade-in">
-                    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-                        <h3 id="horario-form-title" class="text-amber-500 font-cinzel font-bold text-lg">Nova Aula</h3>
-                        <button onclick="window.profAPI.toggleHorarioForm()" class="text-slate-500 hover:text-white"><i
-                                class="fas fa-times text-lg"></i></button>
-                    </div>
-                    <input type="hidden" id="horario-id">
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Dia
-                                da Semana *</label>
-                            <select id="horario-dia"
-                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                <option value="">Selecione...</option>
-                                <option value="segunda-feira">Segunda-feira</option>
-                                <option value="terca-feira">Terça-feira</option>
-                                <option value="quarta-feira">Quarta-feira</option>
-                                <option value="quinta-feira">Quinta-feira</option>
-                                <option value="sexta-feira">Sexta-feira</option>
-                            </select>
+                        <div id="reset-log"
+                            class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1 text-slate-400">
+                            <div>// Inicializando scripts de wipe...</div>
                         </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Posição
-                                (Horário) *</label>
-                            <select id="horario-ordem"
-                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                <option value="">Selecione...</option>
-                                <option value="1">1ª Aula</option>
-                                <option value="2">2ª Aula</option>
-                                <option value="3">3ª Aula</option>
-                                <option value="4">4ª Aula</option>
-                                <option value="5">5ª Aula</option>
-                                <option value="6">6ª Aula</option>
-                                <option value="7">7ª Aula</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Disciplina
-                                *</label>
-                            <select id="horario-disc"
-                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                <option value="">Carregando...</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label
-                                class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Professor
-                                *</label>
-                            <select id="horario-prof"
-                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-2.5 outline-none focus:border-amber-500">
-                                <option value="">Carregando...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-6">
-                        <label
-                            class="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-widest">Conteúdo
-                            Padrão / Observação</label>
-                        <input type="text" id="horario-conteudo"
-                            class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500"
-                            placeholder="Ex: Laboratório, Quadra, Sala de Leitura...">
-                    </div>
-                    <div class="flex justify-end gap-3 border-t border-slate-700 pt-4">
-                        <button onclick="window.profAPI.toggleHorarioForm()"
-                            class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
-                        <button id="btn-save-horario" onclick="window.profAPI.saveHorario()"
-                            class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar
-                            Aula</button>
-                    </div>
-                </div>
-
-                <div
-                    class="flex-grow overflow-x-auto overflow-y-auto custom-scroll bg-slate-900/30 rounded-2xl border border-slate-700 shadow-xl relative pb-4">
-                    <div id="grade-grid"
-                        class="min-w-[800px] w-full grid grid-cols-[80px_repeat(5,minmax(140px,1fr))] gap-px bg-slate-700 border-b border-slate-700">
-                    </div>
-                    <p id="horario-msg" class="text-center text-sm mt-10 font-bold text-slate-500 italic hidden">
-                        Selecione uma Turma no topo.</p>
-                </div>
-            </div>
-
-            <div id="ptab-avisos" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
-                                class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h2>
-                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Comunicação oficial e
-                            em massa com as turmas</p>
-                    </div>
-                    <button onclick="window.profAPI.toggleAvisoForm()"
-                        class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
-                            class="fas fa-plus mr-2"></i> Novo Aviso</button>
-                </div>
-
-                <div id="aviso-form-container"
-                    class="hidden bg-slate-900/80 p-6 rounded-2xl border border-amber-500/30 mb-6 shrink-0 shadow-xl fade-in">
-                    <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
-                        <h3 id="aviso-form-title" class="text-amber-500 font-cinzel font-bold text-lg"><i
-                                class="fas fa-plus-circle mr-2"></i> Novo Aviso</h3>
-                        <button onclick="window.profAPI.toggleAvisoForm()" class="text-slate-500 hover:text-white"><i
-                                class="fas fa-times text-lg"></i></button>
-                    </div>
-                    <input type="hidden" id="aviso-id">
-
-                    <div class="mb-4">
-                        <label
-                            class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Mensagem
-                            do Comunicado *</label>
-                        <textarea id="aviso-msg" rows="4"
-                            class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
-                            placeholder="Digite o aviso aqui..."></textarea>
-                    </div>
-
-                    <div class="mb-6">
-                        <label
-                            class="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest">Destinatários
-                            (Turmas) *</label>
-                        <div id="aviso-turmas-list"
-                            class="bg-slate-800 border border-slate-600 rounded-xl p-3 max-h-48 overflow-y-auto custom-scroll space-y-1">
-                            <div class="p-4 text-center text-slate-500 text-xs">Carregando turmas...</div>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-3 border-t border-slate-700 pt-4">
-                        <button onclick="window.profAPI.toggleAvisoForm()"
-                            class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
-                        <button id="btn-save-aviso" onclick="window.profAPI.saveAviso()"
-                            class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg"><i
-                                class="fas fa-paper-plane mr-2"></i> Publicar Aviso</button>
-                    </div>
-                </div>
-
-                <div
-                    class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-4 md:p-6 relative">
-                    <div id="avisos-list" class="flex flex-col gap-4"></div>
-                    <p id="avisos-msg" class="text-center text-sm mt-10 font-bold text-slate-500 italic hidden">Nenhum
-                        aviso publicado.</p>
-                </div>
-            </div>
-
-            <div id="ptab-reset" class="prof-tab-content hidden h-full fade-in flex-col max-w-4xl mx-auto w-full">
-
-                <div
-                    class="bg-slate-800 p-6 rounded-2xl border border-red-500/50 mb-6 shrink-0 shadow-[0_0_30px_rgba(220,38,38,0.15)]">
-                    <h2 class="text-xl text-red-500 font-cinzel font-bold mb-2 flex items-center"><i
-                            class="fas fa-exclamation-triangle mr-3"></i> Encerramento de Ano Letivo</h2>
-                    <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Processo de backup oficial e
-                        limpeza profunda do banco de dados.</p>
-                </div>
-
-                <div
-                    class="bg-slate-900/80 border border-slate-700 rounded-2xl p-6 md:p-8 mb-6 shadow-xl relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-red-600"></div>
-                    <h3
-                        class="text-white font-bold mb-6 uppercase text-xs tracking-widest border-b border-slate-700 pb-3">
-                        <i class="fas fa-cog mr-2"></i> Configuração do Processo</h3>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-                        <div>
-                            <label class="block text-[10px] font-bold text-amber-500 mb-2 uppercase tracking-widest">Ano
-                                de Referência (Para o Backup)</label>
-                            <input type="number" id="reset-year"
-                                class="w-full bg-slate-950 border border-slate-600 text-white p-4 rounded-xl text-2xl font-black text-center outline-none focus:border-red-500 shadow-inner"
-                                placeholder="Ex: 2026" value="2026">
-                            <p class="text-[10px] text-slate-500 mt-3 font-mono">Serão criadas as coleções: <br><span
-                                    class="text-amber-400/70">notas_backup_XXXX</span> e <span
-                                    class="text-amber-400/70">presencas_backup_XXXX</span></p>
-                        </div>
-
-                        <div>
-                            <div
-                                class="bg-red-950/40 p-5 rounded-xl border border-red-900/50 text-xs text-red-300 leading-relaxed shadow-inner">
-                                <strong class="text-red-500 block mb-2 text-sm uppercase tracking-widest"><i
-                                        class="fas fa-skull-crossbones mr-1"></i> Atenção Crítica:</strong>
-                                Esta ação copiará os diários atuais para o arquivo morto e, em seguida, <span
-                                    class="text-white font-black underline">APAGARÁ PERMANENTEMENTE</span> as notas e
-                                presenças originais.<br><br>
-                                Todos os alunos terão suas turmas e disciplinas desvinculadas para o início do novo
-                                ciclo.
+                        <div class="w-full bg-slate-800 h-2">
+                            <div id="reset-progress-fill" class="h-full bg-red-500 w-0 transition-all duration-300">
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-10 flex justify-center border-t border-slate-700 pt-8">
-                        <button id="btn-start-reset" onclick="window.profAPI.startAnnualReset()"
-                            class="w-full md:w-auto bg-red-600 hover:bg-red-500 text-white font-black text-sm uppercase tracking-widest py-4 px-10 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 border border-red-400/50">
-                            <i class="fas fa-radiation mr-2 text-lg"></i> Iniciar Processo de Reset
-                        </button>
+                </div>
+
+                <div id="ptab-sorteios" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-dice mr-2"></i>
+                                Roleta & Grupos</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Alunos
+                                Disponíveis:
+                                <span id="sorteios-student-count" class="text-white text-sm ml-1">0</span>
+                            </p>
+                        </div>
+                        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700 shadow-inner">
+                            <button id="btn-toggle-indiv" onclick="window.profAPI.toggleSorteioMode('indiv')"
+                                class="px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-600 text-white shadow-lg">Individual</button>
+                            <button id="btn-toggle-grupos" onclick="window.profAPI.toggleSorteioMode('grupos')"
+                                class="px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-white">Equipes</button>
+                        </div>
                     </div>
-                </div>
 
-                <div id="reset-console-container"
-                    class="hidden flex-grow flex-col bg-slate-950 rounded-2xl border border-slate-700 shadow-inner overflow-hidden fade-in">
-                    <div class="bg-slate-800 p-3 border-b border-slate-700 flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"><i
-                                class="fas fa-terminal mr-2"></i> Log do Servidor</span>
-                        <span class="flex h-3 w-3 relative">
-                            <span
-                                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                        </span>
+                    <div id="view-sorteio-indiv"
+                        class="flex-grow flex flex-col items-center justify-center bg-slate-900/50 rounded-2xl border border-slate-700 p-6 shadow-xl relative overflow-hidden fade-in">
+                        <div
+                            class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800/30 to-transparent">
+                        </div>
+                        <div class="z-10 flex flex-col items-center w-full">
+                            <div id="roulette-display"
+                                class="text-4xl md:text-6xl font-black text-slate-600 min-h-[120px] flex items-center justify-center text-center transition-all duration-100 uppercase tracking-wider mb-10 w-full px-4">
+                                <span class="text-2xl opacity-50">Pronto para sortear</span>
+                            </div>
+                            <button id="btn-spin-indiv" onclick="window.profAPI.spinIndividual()"
+                                class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-lg md:text-xl uppercase tracking-widest px-10 py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                                <i class="fas fa-dice mr-2"></i> Sortear Aluno
+                            </button>
+                        </div>
                     </div>
-                    <div id="reset-log"
-                        class="flex-grow p-4 font-mono text-[10px] sm:text-xs overflow-y-auto custom-scroll space-y-1 text-slate-400">
-                        <div>// Inicializando scripts de wipe...</div>
+
+                    <div id="view-sorteio-grupos" class="hidden flex-grow flex-col fade-in">
+                        <div
+                            class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 text-center shadow-lg shrink-0">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Tamanho
+                                de
+                                cada equipe (Pessoas)</label>
+                            <div class="flex justify-center items-center gap-4 mb-6">
+                                <button onclick="document.getElementById('group-size').stepDown()"
+                                    class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-xl font-bold">-</button>
+                                <input type="number" id="group-size" value="3" min="2" max="20"
+                                    class="w-24 text-center bg-slate-900 border border-slate-700 text-2xl font-black text-white rounded-xl p-2 outline-none focus:border-amber-500">
+                                <button onclick="document.getElementById('group-size').stepUp()"
+                                    class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-xl font-bold">+</button>
+                            </div>
+                            <div class="flex justify-center gap-4">
+                                <button id="btn-spin-grupos" onclick="window.profAPI.spinGrupos()"
+                                    class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-widest px-8 py-3.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-transform hover:scale-105 border border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <i class="fas fa-random mr-2"></i> Gerar Equipes
+                                </button>
+                                <button id="btn-export-txt" onclick="window.profAPI.exportGroupsTxt()"
+                                    class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl shadow-lg transition-colors border border-slate-600">
+                                    <i class="fas fa-file-alt mr-2"></i> Exportar TXT
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="groups-display"
+                            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pr-2 pb-6">
+                        </div>
                     </div>
-                    <div class="w-full bg-slate-800 h-2">
-                        <div id="reset-progress-fill" class="h-full bg-red-500 w-0 transition-all duration-300"></div>
-                    </div>
+
                 </div>
 
-            </div>
-
-        </div>
-        </div>
-
-        <div id="ptab-sorteios" class="prof-tab-content hidden h-full fade-in flex-col">
-
-            <div
-                class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-dice mr-2"></i>
-                        Roleta & Grupos</h2>
-                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Alunos Disponíveis: <span
-                            id="sorteios-student-count" class="text-white text-sm ml-1">0</span></p>
-                </div>
-                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700 shadow-inner">
-                    <button id="btn-toggle-indiv" onclick="window.profAPI.toggleSorteioMode('indiv')"
-                        class="px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-600 text-white shadow-lg">Individual</button>
-                    <button id="btn-toggle-grupos" onclick="window.profAPI.toggleSorteioMode('grupos')"
-                        class="px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-white">Equipes</button>
-                </div>
-            </div>
-
-            <div id="view-sorteio-indiv"
-                class="flex-grow flex flex-col items-center justify-center bg-slate-900/50 rounded-2xl border border-slate-700 p-6 shadow-xl relative overflow-hidden fade-in">
-                <div
-                    class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-800/30 to-transparent">
-                </div>
-                <div class="z-10 flex flex-col items-center w-full">
-                    <div id="roulette-display"
-                        class="text-4xl md:text-6xl font-black text-slate-600 min-h-[120px] flex items-center justify-center text-center transition-all duration-100 uppercase tracking-wider mb-10 w-full px-4">
-                        <span class="text-2xl opacity-50">Pronto para sortear</span>
-                    </div>
-                    <button id="btn-spin-indiv" onclick="window.profAPI.spinIndividual()"
-                        class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-lg md:text-xl uppercase tracking-widest px-10 py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                        <i class="fas fa-dice mr-2"></i> Sortear Aluno
-                    </button>
-                </div>
-            </div>
-
-            <div id="view-sorteio-grupos" class="hidden flex-grow flex-col fade-in">
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 text-center shadow-lg shrink-0">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Tamanho de
-                        cada equipe (Pessoas)</label>
-                    <div class="flex justify-center items-center gap-4 mb-6">
-                        <button onclick="document.getElementById('group-size').stepDown()"
-                            class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-xl font-bold">-</button>
-                        <input type="number" id="group-size" value="3" min="2" max="20"
-                            class="w-24 text-center bg-slate-900 border border-slate-700 text-2xl font-black text-white rounded-xl p-2 outline-none focus:border-amber-500">
-                        <button onclick="document.getElementById('group-size').stepUp()"
-                            class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-700 text-white hover:bg-slate-700 transition-colors text-xl font-bold">+</button>
-                    </div>
-                    <div class="flex justify-center gap-4">
-                        <button id="btn-spin-grupos" onclick="window.profAPI.spinGrupos()"
-                            class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-xs uppercase tracking-widest px-8 py-3.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition-transform hover:scale-105 border border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i class="fas fa-random mr-2"></i> Gerar Equipes
-                        </button>
-                        <button id="btn-export-txt" onclick="window.profAPI.exportGroupsTxt()"
-                            class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3.5 rounded-xl shadow-lg transition-colors border border-slate-600">
-                            <i class="fas fa-file-alt mr-2"></i> Exportar TXT
-                        </button>
-                    </div>
-                </div>
-
-                <div id="groups-display"
-                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pr-2 pb-6">
-                </div>
             </div>
         </div>
 

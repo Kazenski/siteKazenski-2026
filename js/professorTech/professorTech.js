@@ -87,33 +87,47 @@ export async function renderProfessorTab() {
     els.btnRefreshAnotacoes.onclick = () => window.profAPI.loadAnotacoes();
     els.anotacaoFilter.addEventListener('input', () => window.profAPI.renderAnotacoesTable());
 
-    document.querySelector('[data-target="apoia"]').addEventListener('click', () => {
-        window.profAPI.loadApoiaRegistros();
-    });
+    // FUNÇÃO SEGURA PARA ADICIONAR EVENTOS (Evita erros no console)
+    const addSafeListener = (target, func) => {
+        const btn = document.querySelector(`[data-target="${target}"]`);
+        if (btn) btn.addEventListener('click', func);
+    };
 
-    document.querySelector('[data-target="sorteios"]').addEventListener('click', () => {
-        window.profAPI.initSorteiosTab();
-    });
+    addSafeListener('apoia', () => window.profAPI.loadApoiaRegistros());
+    addSafeListener('sorteios', () => window.profAPI.initSorteiosTab());
+    addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
+    addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
+    addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
+    addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
+    addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
+    
+    // document.querySelector('[data-target="apoia"]').addEventListener('click', () => {
+    //     window.profAPI.loadApoiaRegistros();
+    // });
 
-    document.querySelector('[data-target="analise"]').addEventListener('click', () => {
-        window.profAPI.populateAnaliseStudentSelect();
-    });
+    // document.querySelector('[data-target="sorteios"]').addEventListener('click', () => {
+    //     window.profAPI.initSorteiosTab();
+    // });
 
-    document.querySelector('[data-target="analise-geral"]').addEventListener('click', () => {
-        window.profAPI.loadGeralDashboard();
-    });
+    // document.querySelector('[data-target="analise"]').addEventListener('click', () => {
+    //     window.profAPI.populateAnaliseStudentSelect();
+    // });
 
-    document.querySelector('[data-target="avaliacoes"]').addEventListener('click', () => {
-        window.profAPI.loadAvaliacoesAdmin();
-    });
+    // document.querySelector('[data-target="analise-geral"]').addEventListener('click', () => {
+    //     window.profAPI.loadGeralDashboard();
+    // });
 
-    document.querySelector('[data-target="horario"]').addEventListener('click', () => {
-        window.profAPI.loadGradeHoraria();
-    });
+    // document.querySelector('[data-target="avaliacoes"]').addEventListener('click', () => {
+    //     window.profAPI.loadAvaliacoesAdmin();
+    // });
 
-    document.querySelector('[data-target="avisos"]').addEventListener('click', () => {
-        window.profAPI.loadAvisosPanel();
-    });
+    // document.querySelector('[data-target="horario"]').addEventListener('click', () => {
+    //     window.profAPI.loadGradeHoraria();
+    // });
+
+    // document.querySelector('[data-target="avisos"]').addEventListener('click', () => {
+    //     window.profAPI.loadAvisosPanel();
+    // });
 
     // Botões de Status de Lançamento (Pendente/Lançado)
     els.launchBtns.forEach(btn => {
