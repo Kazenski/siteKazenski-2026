@@ -89,7 +89,8 @@ export async function renderProfessorTab() {
 
     // FUNÇÃO SEGURA PARA ADICIONAR EVENTOS (Evita erros no console)
     const addSafeListener = (target, func) => {
-        const btn = document.querySelector(`[data-target="${target}"]`);
+        // Adicionada a classe .prof-subtab-btn para não conflitar com a aba do Aluno
+        const btn = document.querySelector(`.prof-subtab-btn[data-target="${target}"]`);
         if (btn) btn.addEventListener('click', func);
     };
 
@@ -2857,9 +2858,7 @@ window.profAPI = {
                 
                 let dia = (d.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
                 if (dia && !dia.includes('-feira')) dia += '-feira';
-
                 const numOrdem = parseInt(d.ordem);
-
                 const key = `${dia}_${numOrdem}`;
                 aulasMap[key] = { id: doc.id, ...d };
                 
