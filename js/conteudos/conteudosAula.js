@@ -103,7 +103,6 @@ function setupSubTabs() {
     const contents = document.querySelectorAll('.cont-tab-content');
 
     // MAGIA DO BOTÃO "+ NOVO"
-    // Ele identifica qual aba está aberta e revela apenas o form dela!
     els.btnToggleAdmin?.addEventListener('click', () => {
         const activeTab = document.querySelector('.cont-tab-content.active');
         if (!activeTab) return;
@@ -111,7 +110,6 @@ function setupSubTabs() {
         const adminPanel = activeTab.querySelector('[id^="cont-admin-"]');
         if (adminPanel) {
             adminPanel.classList.toggle('hidden');
-            // Rola suavemente para o formulário ao abrir
             if(!adminPanel.classList.contains('hidden')) {
                 adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -120,6 +118,7 @@ function setupSubTabs() {
 
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
+            // Estilo dos botões
             btns.forEach(b => {
                 b.classList.remove('active', 'bg-blue-600', 'text-white');
                 b.classList.add('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
@@ -127,15 +126,26 @@ function setupSubTabs() {
             btn.classList.add('active', 'bg-blue-600', 'text-white');
             btn.classList.remove('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
 
-            contents.forEach(c => c.classList.replace('flex', 'hidden'));
-            const targetId = btn.getAttribute('data-target');
-            document.getElementById(`ctab-${targetId}`).classList.replace('hidden', 'flex');
+            // FIX: Remove a classe 'active' e esconde todas as abas
+            contents.forEach(c => {
+                c.classList.remove('active');
+                c.classList.replace('flex', 'hidden'); 
+                c.classList.replace('block', 'hidden'); 
+            });
 
-            // ESCONDE TODOS OS FORMULÁRIOS AO TROCAR DE ABA
+            // Ativa a aba correta
+            const targetId = btn.getAttribute('data-target');
+            const targetContent = document.getElementById(`ctab-${targetId}`);
+            
+            targetContent.classList.add('active'); // <--- ISSO CONSERTA O BOTÃO DE NOVO
+            targetContent.classList.replace('hidden', 'flex');
+
+            // Esconde os formulários ao trocar de aba
             els.adminMat?.classList.add('hidden');
             els.adminMus?.classList.add('hidden');
             els.adminPod?.classList.add('hidden');
 
+            // Regra do Player flutuante
             if(targetId === 'materiais') {
                 els.playerBox.classList.add('hidden');
             } else if (els.audioEngine.src) {
