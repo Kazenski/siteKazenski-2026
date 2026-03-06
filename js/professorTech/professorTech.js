@@ -2849,11 +2849,15 @@ window.profAPI = {
             snap.forEach(doc => {
                 const d = doc.data();
                 
-                // FIX DA CHAVE: Normaliza acentos e adiciona '-feira' se faltar
+                // FIX 1: Normaliza acentos do dia da semana (Terça -> terca-feira)
                 let dia = (d.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
                 if (!dia.includes('-feira')) dia += '-feira';
 
-                const key = `${dia}_${d.ordem}`;
+                // FIX 2: O segredo revelado pelo perfilTech.js!
+                // Força a extração apenas do número inteiro da ordem, ignorando qualquer texto extra no BD
+                const numOrdem = parseInt(d.ordem);
+                
+                const key = `${dia}_${numOrdem}`;
                 aulasMap[key] = { id: doc.id, ...d };
             });
 
@@ -2968,12 +2972,14 @@ window.profAPI = {
         els.horarioFormTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Aula';
         els.horarioId.value = data.id;
         
-        // FIX: Normaliza o dia para preencher o formulário corretamente caso venha com acentos do banco
+        // FIX: Normaliza o dia para selecionar a opção correta no <select> (que não possui cedilha no value)
         let diaNormalizado = (data.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
         if (diaNormalizado && !diaNormalizado.includes('-feira')) diaNormalizado += '-feira';
         els.horarioDia.value = diaNormalizado;
         
-        els.horarioOrdem.value = data.ordem;
+        // Extrai apenas o número da ordem para selecionar no <select> corretamente
+        els.horarioOrdem.value = parseInt(data.ordem) || "";
+        
         els.horarioDisc.value = data.disciplinaId || data.disciplina || "";
         els.horarioProf.value = `${data.professorId}|${data.professorNome}`;
         els.horarioConteudo.value = data.conteudo || "";
