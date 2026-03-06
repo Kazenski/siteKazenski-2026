@@ -81,6 +81,7 @@ function mapearDOM() {
         timeCurr: document.getElementById('player-time-curr'),
         timeTotal: document.getElementById('player-time-total'),
         thumb: document.getElementById('player-thumb'),
+        fallbackIcon: document.getElementById('player-fallback-icon'),
         title: document.getElementById('player-song-title'),
         artist: document.getElementById('player-song-artist')
     };
@@ -485,7 +486,6 @@ window.conteudosAPI = {
         const item = activeAudioList[idx];
         if(!item) return;
 
-        // MARCA O ITEM ATUAL E ATUALIZA AS DUAS LISTAS PARA O EFEITO DE HIGHLIGHT
         currentPlayingId = item.id;
         renderMusicasList();
         renderPodcastsList();
@@ -499,13 +499,18 @@ window.conteudosAPI = {
         view.classList.add('flex');
 
         const cor = isMus ? 'emerald' : 'purple';
-        const iconeDL = isMus ? '<i class="fas fa-file-alt"></i> Baixar Letra' : '<i class="fas fa-file-alt"></i> Resumo';
+        const iconeDL = isMus ? '<i class="fas fa-file-alt mr-2"></i> Baixar Letra' : '<i class="fas fa-file-alt mr-2"></i> Resumo';
+        const imgUrl = item.albumArtUrl || item.coverArtUrl || '';
 
-        // O SEGREDO DO LAYOUT TRAVADO: overflow-hidden no flex-col e min-h-0 na letra!
+        // 1. GERA A CAPA PRINCIPAL (Ou a Imagem, ou o Ícone Grande)
+        const mainThumbHtml = imgUrl 
+            ? `<img src="${imgUrl}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block">` 
+            : `<div class="w-32 h-32 md:w-40 md:h-40 rounded-xl shadow-2xl border border-${cor}-500/30 bg-${cor}-500/10 text-${cor}-400 shrink-0 hidden md:flex items-center justify-center text-5xl"><i class="fas ${isMus ? 'fa-music' : 'fa-microphone'}"></i></div>`;
+
         view.innerHTML = `
             <div class="flex flex-col h-full fade-in overflow-hidden">
                 <div class="flex items-end gap-6 mb-6 shrink-0">
-                    <img src="${item.albumArtUrl || item.coverArtUrl || ''}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block" onerror="this.style.display='none'">
+                    ${mainThumbHtml}
                     <div class="flex-grow min-w-0">
                         <div class="text-[10px] text-${cor}-500 font-bold uppercase tracking-widest mb-2">${isMus ? 'Trilha Sonora' : 'Podcast Episódio'}</div>
                         <h1 class="text-3xl md:text-5xl font-cinzel font-black text-white leading-tight mb-2 truncate">${escapeHTML(item.titulo)}</h1>
@@ -514,20 +519,30 @@ window.conteudosAPI = {
                 </div>
                 
                 <div class="flex gap-3 mb-4 shrink-0 border-b border-slate-800 pb-4">
-                    <a href="${item.audioURL}" target="_blank" download class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors"><i class="fas fa-download mr-2"></i> MP3</a>
-                    
-                    <button onclick="window.conteudosAPI.dlTextoAtual()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors">${iconeDL}</button>
+                    <a href="${item.audioURL}" target="_blank" download class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center"><i class="fas fa-download mr-2"></i> MP3</a>
+                    <button onclick="window.conteudosAPI.dlTextoAtual()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center">${iconeDL}</button>
                 </div>
                 
                 <div class="flex-grow min-h-0 bg-slate-900/50 border border-slate-800 rounded-xl p-6 overflow-y-auto custom-scroll relative">
-                    <pre class="font-inter text-sm text-slate-300/80 whitespace-pre-wrap leading-relaxed">${escapeHTML(item.letra || item.descricao || 'Nenhum registro detalhado fornecido.')}</pre>
+                    <pre class="font-inter text-sm text-slate-300/90 whitespace-pre-wrap leading-relaxed">${escapeHTML(item.letra || item.descricao || 'Nenhum registro detalhado fornecido.')}</pre>
                 </div>
             </div>
         `;
 
+        // 2. GERA A CAPA DO PLAYER FLUTUANTE (Alterna entre Img e Ícone)
         els.playerBox.classList.remove('hidden');
-        els.thumb.src = item.albumArtUrl || item.coverArtUrl || '';
-        els.thumb.classList.remove('hidden');
+        if (imgUrl) {
+            els.thumb.src = imgUrl;
+            els.thumb.classList.remove('hidden');
+            if(els.fallbackIcon) els.fallbackIcon.classList.add('hidden');
+        } else {
+            els.thumb.classList.add('hidden');
+            if(els.fallbackIcon) {
+                els.fallbackIcon.className = `fas ${isMus ? 'fa-music text-emerald-400' : 'fa-microphone text-purple-400'} text-lg`;
+                els.fallbackIcon.classList.remove('hidden');
+            }
+        }
+
         els.title.textContent = item.titulo;
         els.artist.textContent = item.artista || item.criador || item.professor;
         
