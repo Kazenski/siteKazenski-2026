@@ -333,15 +333,29 @@ function setupSubTabs() {
 
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
+            // 1. Resetar estilos dos botões
             btns.forEach(b => {
                 b.classList.remove('active', 'bg-amber-600', 'text-white');
-                b.classList.add('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
+                b.classList.add('bg-slate-800', 'text-slate-400');
             });
-            btn.classList.add('active', 'bg-amber-600', 'text-white');
-            btn.classList.remove('bg-slate-800', 'text-slate-400', 'hover:bg-slate-700', 'hover:text-white');
 
-            contents.forEach(c => c.classList.replace('flex', 'hidden'));
-            document.getElementById(`ptab-${btn.getAttribute('data-target')}`).classList.replace('hidden', 'flex');
+            // 2. Ativar botão clicado
+            btn.classList.add('active', 'bg-amber-600', 'text-white');
+            btn.classList.remove('bg-slate-800', 'text-slate-400');
+
+            // 3. ESCONDER todas as abas (Garante que o 'hidden' seja aplicado)
+            contents.forEach(c => {
+                c.classList.add('hidden');
+                c.classList.remove('flex');
+            });
+
+            // 4. MOSTRAR apenas a aba alvo
+            const targetId = `ptab-${btn.getAttribute('data-target')}`;
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) {
+                targetEl.classList.remove('hidden');
+                targetEl.classList.add('flex');
+            }
         });
     });
 }
