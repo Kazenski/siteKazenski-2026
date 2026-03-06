@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prof. Kazenski | Developer & Educator</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
     <script>
@@ -30,248 +33,428 @@
         }
     </script>
 </head>
+
 <body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
+    <header
+        class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
         <div class="flex items-center gap-3 shrink-0 cursor-pointer group" onclick="window.showTab('inicio')">
             <div class="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-500 transition-colors">
                 <i class="fas fa-code text-white text-lg"></i>
             </div>
-            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">Kazenski</h1>
+            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">Kazenski
+            </h1>
         </div>
 
-        <nav id="top-nav-menu" class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center"></nav>
+        <nav id="top-nav-menu"
+            class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center">
+        </nav>
 
         <div id="user-area" class="shrink-0 flex items-center gap-4">
             <div id="user-loading" class="text-blue-500 animate-spin"><i class="fas fa-circle-notch"></i></div>
 
             <div id="user-info" class="hidden items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p id="user-email" class="text-[10px] font-bold text-slate-400 leading-none truncate max-w-[150px]"></p>
+                    <p id="user-email" class="text-[10px] font-bold text-slate-400 leading-none truncate max-w-[150px]">
+                    </p>
                     <p id="user-role" class="text-[9px] text-blue-500 uppercase font-black tracking-tighter mt-1"></p>
                 </div>
-                <button onclick="window.logout()" class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Sair do Sistema">
+                <button onclick="window.logout()"
+                    class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+                    title="Sair do Sistema">
                     <i class="fas fa-power-off text-lg"></i>
                 </button>
             </div>
-            
-            <button id="btn-login-visitor" onclick="window.showTab('login')" class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
+
+            <button id="btn-login-visitor" onclick="window.showTab('login')"
+                class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
                 Acessar Portal
             </button>
         </div>
     </header>
 
     <main id="app-main" class="flex-grow relative overflow-hidden bg-slate-900">
-        
+
         <div id="inicio-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden"></div>
-        
-        <div id="conteudos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 pt-10 md:p-12 md:pt-14">
-            
+
+        <div id="conteudos-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 pt-10 md:p-12 md:pt-14">
+
             <div class="h-full flex flex-col pb-20">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
-                    <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase shrink-0">
+                <div
+                    class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
+                    <h2
+                        class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase shrink-0">
                         <i class="fas fa-book-reader text-blue-500 mr-2"></i> Acervo Acadêmico
                     </h2>
-                    
+
                     <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
-                        <button class="cont-tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30" data-target="materiais"><i class="fas fa-scroll mr-2"></i> Conteúdos</button>
-                        <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="musicas"><i class="fas fa-music mr-2"></i> Músicas</button>
-                        <button class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="podcasts"><i class="fas fa-microphone mr-2"></i> Podcasts</button>
+                        <button
+                            class="cont-tab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30"
+                            data-target="materiais"><i class="fas fa-scroll mr-2"></i> Conteúdos</button>
+                        <button
+                            class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                            data-target="musicas"><i class="fas fa-music mr-2"></i> Músicas</button>
+                        <button
+                            class="cont-tab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                            data-target="podcasts"><i class="fas fa-microphone mr-2"></i> Podcasts</button>
                     </div>
                 </div>
 
-                <div id="ctab-materiais" class="cont-tab-content active flex-grow flex flex-col space-y-6 fade-in h-full">
-                    
-                    <div id="cont-admin-mat" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg shrink-0">
-                        <h3 class="text-blue-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-plus-circle mr-2"></i> Registrar Novo Conhecimento</h3>
+                <div id="ctab-materiais"
+                    class="cont-tab-content active flex-grow flex flex-col space-y-6 fade-in h-full">
+
+                    <div id="cont-admin-mat"
+                        class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-blue-500 shadow-lg shrink-0">
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl mb-6"><i
+                                class="fas fa-plus-circle mr-2"></i> Registrar Novo Conhecimento</h3>
                         <form id="form-material" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título</label><input type="text" id="mat-titulo" required placeholder="Ex: Fundamentos da Magia" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Disciplina</label><select id="mat-disciplina" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></select></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título</label><input
+                                        type="text" id="mat-titulo" required placeholder="Ex: Fundamentos da Magia"
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Disciplina</label><select
+                                        id="mat-disciplina" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></select>
+                                </div>
                             </div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Conteúdo Completo</label><textarea id="mat-texto" placeholder="Descreva os segredos desta lição..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea></div>
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Conteúdo
+                                    Completo</label><textarea id="mat-texto"
+                                    placeholder="Descreva os segredos desta lição..."
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Imagem)</label><input type="file" id="mat-file-image" accept="image/*" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pergaminho (PDF)</label><input type="file" id="mat-file-pdf" accept=".pdf" class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-500 cursor-pointer"></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa
+                                        (Imagem)</label><input type="file" id="mat-file-image" accept="image/*"
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pergaminho
+                                        (PDF)</label><input type="file" id="mat-file-pdf" accept=".pdf"
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-600 file:text-white hover:file:bg-red-500 cursor-pointer">
+                                </div>
                             </div>
                             <div id="mat-link-inputs-container" class="space-y-2">
-                                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes Externas (Links)</label>
-                                <input type="url" class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none" placeholder="https://...">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes
+                                    Externas (Links)</label>
+                                <input type="url"
+                                    class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"
+                                    placeholder="https://...">
                             </div>
                             <div class="flex flex-wrap gap-3 pt-2">
-                                <button type="button" id="btn-add-link" class="px-6 py-3 border border-dashed border-blue-500 text-blue-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-500/10 transition-colors">+ Link</button>
-                                <button type="submit" id="btn-submit-mat" class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg ml-auto">Salvar no Grimório</button>
+                                <button type="button" id="btn-add-link"
+                                    class="px-6 py-3 border border-dashed border-blue-500 text-blue-400 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-500/10 transition-colors">+
+                                    Link</button>
+                                <button type="submit" id="btn-submit-mat"
+                                    class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg ml-auto">Salvar
+                                    no Grimório</button>
                             </div>
                         </form>
                     </div>
 
-                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0">
+                    <div
+                        class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0">
                         <div class="relative flex-grow">
                             <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                            <input type="text" id="cont-search-mat" placeholder="Buscar por título ou conteúdo..." class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
+                            <input type="text" id="cont-search-mat" placeholder="Buscar por título ou conteúdo..."
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
                         </div>
-                        <select id="cont-filter-disc" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todas as Disciplinas</option></select>
-                        <select id="cont-filter-prof" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]"><option value="">Todos os Professores</option></select>
+                        <select id="cont-filter-disc"
+                            class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]">
+                            <option value="">Todas as Disciplinas</option>
+                        </select>
+                        <select id="cont-filter-prof"
+                            class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[200px]">
+                            <option value="">Todos os Professores</option>
+                        </select>
                     </div>
 
-                    <div id="cont-mat-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pb-6"></div>
+                    <div id="cont-mat-grid"
+                        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto custom-scroll pb-6">
+                    </div>
                     <div id="cont-mat-pagination" class="hidden justify-center items-center gap-4 py-4 shrink-0"></div>
                 </div>
 
                 <div id="ctab-musicas" class="cont-tab-content hidden h-full fade-in flex flex-col">
-                    <div id="cont-admin-mus" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-emerald-500 shadow-lg mb-6 shrink-0">
-                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-music mr-2"></i> Adicionar Trilha Sonora</h3>
+                    <div id="cont-admin-mus"
+                        class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-emerald-500 shadow-lg mb-6 shrink-0">
+                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6"><i
+                                class="fas fa-music mr-2"></i> Adicionar Trilha Sonora</h3>
                         <form id="form-music" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título da Música</label><input type="text" id="mus-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Compositor / Bardo</label><input type="text" id="mus-artista" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
+                                        da Música</label><input type="text" id="mus-titulo" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Compositor
+                                        / Bardo</label><input type="text" id="mus-artista" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                </div>
                             </div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Letra da Música</label><textarea id="mus-letra" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-emerald-500 outline-none custom-scroll"></textarea></div>
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Letra
+                                    da Música</label><textarea id="mus-letra"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-emerald-500 outline-none custom-scroll"></textarea>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="mus-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="mus-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio
+                                        (MP3)</label><input type="file" id="mus-file-audio" accept="audio/*" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa
+                                        (Img)</label><input type="file" id="mus-file-image" accept="image/*" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer">
+                                </div>
                             </div>
-                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-mus" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Registrar Trilha</button></div>
+                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-mus"
+                                    class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Registrar
+                                    Trilha</button></div>
                         </form>
                     </div>
 
-                    <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
-                        <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
-                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-music-input" placeholder="Buscar trilha..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-emerald-500 outline-none"></div>
+                    <div
+                        class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
+                        <div
+                            class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
+                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-music-input"
+                                    placeholder="Buscar trilha..."
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-emerald-500 outline-none">
+                            </div>
                             <ul id="music-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
                         </div>
-                        <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
-                            <div id="music-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+                        <div
+                            class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-8 flex flex-col overflow-hidden relative">
+                            <div id="music-placeholder"
+                                class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
                                 <i class="fas fa-compact-disc fa-spin fa-5x mb-4 opacity-50"></i>
-                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Grimório Musical</h2>
+                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Grimório Musical
+                                </h2>
                             </div>
-                            <div id="music-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+                            <div id="music-details-view" class="hidden flex-col h-full overflow-hidden fade-in z-10">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="ctab-podcasts" class="cont-tab-content hidden h-full fade-in flex flex-col">
-                    <div id="cont-admin-pod" class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 shrink-0">
-                        <h3 class="text-purple-400 font-cinzel font-bold text-xl mb-6"><i class="fas fa-broadcast-tower mr-2"></i> Emitir Novo Episódio</h3>
+                    <div id="cont-admin-pod"
+                        class="hidden bg-slate-800/80 p-6 md:p-8 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 shrink-0">
+                        <h3 class="text-purple-400 font-cinzel font-bold text-xl mb-6"><i
+                                class="fas fa-broadcast-tower mr-2"></i> Emitir Novo Episódio</h3>
                         <form id="form-podcast" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título do Episódio</label><input type="text" id="pod-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Professor / Host</label><input type="text" id="pod-professor" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none"></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
+                                        do Episódio</label><input type="text" id="pod-titulo" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Professor
+                                        / Host</label><input type="text" id="pod-professor" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-purple-500 outline-none">
+                                </div>
                             </div>
-                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pauta / Resumo</label><textarea id="pod-descricao" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-purple-500 outline-none custom-scroll"></textarea></div>
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Pauta
+                                    / Resumo</label><textarea id="pod-descricao"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[100px] focus:border-purple-500 outline-none custom-scroll"></textarea>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio (MP3)</label><input type="file" id="pod-file-audio" accept="audio/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer"></div>
-                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa (Img)</label><input type="file" id="pod-file-image" accept="image/*" required class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer"></div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Áudio
+                                        (MP3)</label><input type="file" id="pod-file-audio" accept="audio/*" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer">
+                                </div>
+                                <div><label
+                                        class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Capa
+                                        (Img)</label><input type="file" id="pod-file-image" accept="image/*" required
+                                        class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer">
+                                </div>
                             </div>
-                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-pod" class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Podcast</button></div>
+                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-pod"
+                                    class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar
+                                    Podcast</button></div>
                         </form>
                     </div>
 
-                    <div class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
-                        <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
-                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-podcast-input" placeholder="Buscar podcast..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-purple-500 outline-none"></div>
+                    <div
+                        class="flex flex-col md:flex-row flex-grow bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl min-h-[500px]">
+                        <div
+                            class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950/50 shrink-0">
+                            <div class="p-4 border-b border-slate-800"><input type="text" id="search-podcast-input"
+                                    placeholder="Buscar podcast..."
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 text-sm focus:border-purple-500 outline-none">
+                            </div>
                             <ul id="podcast-list-ul" class="flex-grow overflow-y-auto custom-scroll p-2 space-y-1"></ul>
                         </div>
-                        <div class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-10 flex flex-col overflow-y-auto custom-scroll relative">
-                            <div id="podcast-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
+                        <div
+                            class="flex-1 bg-gradient-to-b from-slate-900 to-slate-950 p-6 md:p-8 flex flex-col overflow-hidden relative">
+                            <div id="podcast-placeholder"
+                                class="absolute inset-0 flex flex-col items-center justify-center text-slate-600">
                                 <i class="fas fa-broadcast-tower fa-5x mb-4 opacity-50"></i>
-                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Biblioteca de Podcasts</h2>
+                                <h2 class="font-cinzel text-xl font-bold tracking-widest uppercase">Biblioteca de
+                                    Podcasts</h2>
                             </div>
-                            <div id="podcast-details-view" class="hidden flex-col h-full fade-in z-10"></div>
+                            <div id="podcast-details-view" class="hidden flex-col h-full overflow-hidden fade-in z-10">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div id="cont-modal-mat" class="fixed inset-0 z-[1000] hidden">
-                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="window.conteudosAPI.fecharMat()"></div>
-                <div class="absolute top-0 right-0 h-full w-full md:w-[600px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full" id="cont-modal-panel">
-                    <div class="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-800/30">
-                        <div class="pr-4">
-                            <div id="mat-det-meta" class="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-1"></div>
-                            <h3 id="mat-det-title" class="text-white font-cinzel font-black text-2xl leading-tight"></h3>
-                        </div>
-                        <button onclick="window.conteudosAPI.fecharMat()" class="text-slate-500 hover:text-white text-xl transition-colors"><i class="fas fa-times"></i></button>
+        <div id="cont-modal-mat" class="fixed inset-0 z-[1000] hidden">
+            <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                onclick="window.conteudosAPI.fecharMat()"></div>
+            <div class="absolute top-0 right-0 h-full w-full md:w-[600px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full"
+                id="cont-modal-panel">
+                <div class="p-6 border-b border-slate-800 flex justify-between items-start bg-slate-800/30">
+                    <div class="pr-4">
+                        <div id="mat-det-meta"
+                            class="text-blue-400 text-[10px] font-bold tracking-widest uppercase mb-1"></div>
+                        <h3 id="mat-det-title" class="text-white font-cinzel font-black text-2xl leading-tight"></h3>
                     </div>
-                    <div class="p-6 flex-grow overflow-y-auto custom-scroll text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-inter" id="mat-det-body"></div>
-                    <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex flex-wrap gap-3 items-center" id="mat-det-footer"></div>
+                    <button onclick="window.conteudosAPI.fecharMat()"
+                        class="text-slate-500 hover:text-white text-xl transition-colors"><i
+                            class="fas fa-times"></i></button>
                 </div>
+                <div class="p-6 flex-grow overflow-y-auto custom-scroll text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-inter"
+                    id="mat-det-body"></div>
+                <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex flex-wrap gap-3 items-center"
+                    id="mat-det-footer"></div>
             </div>
+        </div>
 
-            <div id="global-audio-player" class="hidden fixed bottom-0 left-0 w-full bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-4 z-[2000] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-all">
-                <audio id="audio-engine"></audio>
-                <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                    <div class="flex items-center gap-4 w-full md:w-1/4 shrink-0">
-                        <img id="player-thumb" src="" class="w-12 h-12 rounded object-cover hidden border border-slate-700">
-                        <div class="overflow-hidden">
-                            <div id="player-song-title" class="text-white font-bold text-sm truncate">...</div>
-                            <div id="player-song-artist" class="text-slate-400 text-[10px] uppercase tracking-widest truncate">...</div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-col items-center flex-grow w-full">
-                        <div class="flex items-center gap-6 mb-2">
-                            <button onclick="window.conteudosAPI.prevAudio()" class="text-slate-400 hover:text-white transition-colors text-lg"><i class="fas fa-step-backward"></i></button>
-                            <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()" class="w-12 h-12 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition-transform"><i class="fas fa-play ml-1 text-xl"></i></button>
-                            <button onclick="window.conteudosAPI.nextAudio()" class="text-slate-400 hover:text-white transition-colors text-lg"><i class="fas fa-step-forward"></i></button>
-                        </div>
-                        <div class="flex items-center gap-3 w-full max-w-2xl">
-                            <span id="player-time-curr" class="text-[10px] text-slate-500 w-8 text-right font-bold">0:00</span>
-                            <input type="range" id="player-progress" value="0" class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
-                            <span id="player-time-total" class="text-[10px] text-slate-500 w-8 font-bold">0:00</span>
-                        </div>
-                    </div>
-
-                    <div class="hidden md:flex items-center gap-3 w-1/4 justify-end shrink-0">
-                        <i class="fas fa-volume-up text-slate-400 text-xs"></i>
-                        <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1" class="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+        <div id="global-audio-player"
+            class="hidden fixed bottom-0 left-0 w-full bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-4 z-[2000] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-all">
+            <audio id="audio-engine"></audio>
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
+                <div class="flex items-center gap-4 w-full md:w-1/4 shrink-0">
+                    <img id="player-thumb" src="" class="w-12 h-12 rounded object-cover hidden border border-slate-700">
+                    <div class="overflow-hidden">
+                        <div id="player-song-title" class="text-white font-bold text-sm truncate">...</div>
+                        <div id="player-song-artist"
+                            class="text-slate-400 text-[10px] uppercase tracking-widest truncate">...</div>
                     </div>
                 </div>
+
+                <div class="flex flex-col items-center flex-grow w-full">
+                    <div class="flex items-center gap-6 mb-2">
+                        <button onclick="window.conteudosAPI.prevAudio()"
+                            class="text-slate-400 hover:text-white transition-colors text-lg"><i
+                                class="fas fa-step-backward"></i></button>
+                        <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()"
+                            class="w-12 h-12 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition-transform"><i
+                                class="fas fa-play ml-1 text-xl"></i></button>
+                        <button onclick="window.conteudosAPI.nextAudio()"
+                            class="text-slate-400 hover:text-white transition-colors text-lg"><i
+                                class="fas fa-step-forward"></i></button>
+                    </div>
+                    <div class="flex items-center gap-3 w-full max-w-2xl">
+                        <span id="player-time-curr"
+                            class="text-[10px] text-slate-500 w-8 text-right font-bold">0:00</span>
+                        <input type="range" id="player-progress" value="0"
+                            class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+                        <span id="player-time-total" class="text-[10px] text-slate-500 w-8 font-bold">0:00</span>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center gap-3 w-1/4 justify-end shrink-0">
+                    <i class="fas fa-volume-up text-slate-400 text-xs"></i>
+                    <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1"
+                        class="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+                </div>
             </div>
+        </div>
 
         </div>
-        
-        <div id="projetos-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        <div id="conexao-aluno-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        <div id="atualizacoes-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        <div id="login-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto p-6 flex items-center justify-center bg-slate-950"></div>
-        
+
+        <div id="projetos-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="conexao-aluno-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="atualizacoes-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="login-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto p-6 flex items-center justify-center bg-slate-950">
+        </div>
+
         <div id="aluno-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-hidden">
-            
-            <div id="loading-aluno" class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-[100]">
+
+            <div id="loading-aluno"
+                class="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-[100]">
                 <div class="aluno-spinner"></div>
                 <p class="text-blue-500 font-cinzel tracking-widest mt-4">Sincronizando Mente...</p>
             </div>
 
-            <div id="dashboard-aluno" class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-900 hidden">
+            <div id="dashboard-aluno"
+                class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-900 hidden">
                 <div class="w-full flex flex-col flex-grow relative">
-                    
+
                     <div class="w-full relative">
-                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer" id="al-bg-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent"></div>
-                            <button id="btn-edit-cover" class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i class="fas fa-camera"></i></button>
-                            <button id="btn-edit-border" class="absolute top-4 left-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i class="fas fa-palette"></i></button>
+                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer"
+                            id="al-bg-cover">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent">
+                            </div>
+                            <button id="btn-edit-cover"
+                                class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
+                                    class="fas fa-camera"></i></button>
+                            <button id="btn-edit-border"
+                                class="absolute top-4 left-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
+                                    class="fas fa-palette"></i></button>
                         </div>
 
-                        <div class="flex flex-col md:flex-row items-center md:items-end justify-between px-6 md:px-14 -mt-12 md:-mt-16 relative z-10 mb-4">
+                        <div
+                            class="flex flex-col md:flex-row items-center md:items-end justify-between px-6 md:px-14 -mt-12 md:-mt-16 relative z-10 mb-4">
                             <div class="flex flex-col md:flex-row items-center md:items-end gap-5">
                                 <div class="relative shrink-0">
-                                    <img src="" id="al-img-profile" class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900" style="border-color: #00e5ff;">
-                                    <button id="btn-edit-profile" class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg text-xs transition-all"><i class="fas fa-camera"></i></button>
+                                    <img src="" id="al-img-profile"
+                                        class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900"
+                                        style="border-color: #00e5ff;">
+                                    <button id="btn-edit-profile"
+                                        class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg text-xs transition-all"><i
+                                            class="fas fa-camera"></i></button>
                                 </div>
                                 <div class="text-center md:text-left mb-2">
-                                    <div id="al-badge-title" class="inline-block bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-lg shadow-orange-500/20 mb-2">Aspirante</div>
-                                    <select id="al-title-select" class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500 mb-2"></select>
-                                    <h1 class="text-2xl md:text-3xl font-black font-cinzel text-white leading-none tracking-wide" id="al-txt-name">---</h1>
-                                    <div class="text-slate-400 text-xs font-bold mt-1" id="al-txt-class"><i class="fas fa-graduation-cap text-blue-500"></i> Turma: ---</div>
+                                    <div id="al-badge-title"
+                                        class="inline-block bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-lg shadow-orange-500/20 mb-2">
+                                        Aspirante</div>
+                                    <select id="al-title-select"
+                                        class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500 mb-2"></select>
+                                    <h1 class="text-2xl md:text-3xl font-black font-cinzel text-white leading-none tracking-wide"
+                                        id="al-txt-name">---</h1>
+                                    <div class="text-slate-400 text-xs font-bold mt-1" id="al-txt-class"><i
+                                            class="fas fa-graduation-cap text-blue-500"></i> Turma: ---</div>
                                 </div>
                             </div>
 
-                            <div class="hidden md:flex items-center gap-6 mb-2 bg-slate-900/50 p-3 rounded-xl border border-slate-800 backdrop-blur-md">
-                                <div class="text-center px-2"><span class="block text-blue-500 font-black text-xl leading-none" id="al-stat-posts">0</span><span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Posts</span></div>
+                            <div
+                                class="hidden md:flex items-center gap-6 mb-2 bg-slate-900/50 p-3 rounded-xl border border-slate-800 backdrop-blur-md">
+                                <div class="text-center px-2"><span
+                                        class="block text-blue-500 font-black text-xl leading-none"
+                                        id="al-stat-posts">0</span><span
+                                        class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Posts</span>
+                                </div>
                                 <div class="w-px h-8 bg-slate-700"></div>
-                                <div class="text-center px-2"><span class="block text-blue-500 font-black text-xl leading-none" id="al-stat-xp">0</span><span class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">XP</span></div>
-                                <button onclick="window.logout()" class="ml-2 bg-red-500/10 hover:bg-red-500 border border-red-500/50 hover:border-red-500 text-red-500 hover:text-white px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2"><i class="fas fa-sign-out-alt"></i> Sair</button>
+                                <div class="text-center px-2"><span
+                                        class="block text-blue-500 font-black text-xl leading-none"
+                                        id="al-stat-xp">0</span><span
+                                        class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">XP</span>
+                                </div>
+                                <button onclick="window.logout()"
+                                    class="ml-2 bg-red-500/10 hover:bg-red-500 border border-red-500/50 hover:border-red-500 text-red-500 hover:text-white px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2"><i
+                                        class="fas fa-sign-out-alt"></i> Sair</button>
                             </div>
                         </div>
                     </div>
@@ -280,51 +463,88 @@
                     <input type="file" id="al-file-profile" class="hidden" accept="image/*">
                     <input type="color" id="al-input-color" class="hidden">
 
-                    <nav class="aluno-tabs-nav flex gap-6 px-8 md:px-14 border-b border-slate-800/60 overflow-x-auto no-scrollbar whitespace-nowrap">
+                    <nav
+                        class="aluno-tabs-nav flex gap-6 px-8 md:px-14 border-b border-slate-800/60 overflow-x-auto no-scrollbar whitespace-nowrap">
                         <button id="btn-tab-geral" class="aluno-tab-btn active" data-target="geral">Visão Geral</button>
-                        <button id="btn-tab-caderno" class="aluno-tab-btn" data-target="caderno">Caderno Digital</button>
-                        <button id="btn-tab-kanban" class="aluno-tab-btn" data-target="kanban">Kanban Atividades</button>
-                        <button id="btn-tab-horario" class="aluno-tab-btn" data-target="horario">Horário Escolar</button>
-                        <button id="btn-tab-calendario" class="aluno-tab-btn" data-target="calendario">Calendário</button>
+                        <button id="btn-tab-caderno" class="aluno-tab-btn" data-target="caderno">Caderno
+                            Digital</button>
+                        <button id="btn-tab-kanban" class="aluno-tab-btn" data-target="kanban">Kanban
+                            Atividades</button>
+                        <button id="btn-tab-horario" class="aluno-tab-btn" data-target="horario">Horário
+                            Escolar</button>
+                        <button id="btn-tab-calendario" class="aluno-tab-btn"
+                            data-target="calendario">Calendário</button>
                     </nav>
 
-                    <div class="px-6 md:px-14 py-6 pb-32"> 
-                        
+                    <div class="px-6 md:px-14 py-6 pb-32">
+
                         <div id="atab-geral" class="aluno-tab-content active">
                             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                
+
                                 <div class="col-span-1 flex flex-col gap-4">
-                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center flex-grow flex flex-col justify-center shadow-lg">
-                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest"><i class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
-                                        <div id="al-freq-perc" class="text-6xl font-black text-green-400 drop-shadow-md">100%</div>
-                                        <div id="al-freq-total" class="text-red-400 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">0 Faltas</div>
+                                    <div
+                                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center flex-grow flex flex-col justify-center shadow-lg">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest"><i
+                                                class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
+                                        <div id="al-freq-perc"
+                                            class="text-6xl font-black text-green-400 drop-shadow-md">100%</div>
+                                        <div id="al-freq-total"
+                                            class="text-red-400 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">
+                                            0 Faltas</div>
                                     </div>
-                                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-center h-48 shadow-lg">
+                                    <div
+                                        class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-center h-48 shadow-lg">
                                         <canvas id="al-chart-freq"></canvas>
                                     </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
-                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2"><i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
-                                    <div id="al-avisos-list" class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]"></div>
+                                <div
+                                    class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3
+                                        class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+                                        <i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
+                                    <div id="al-avisos-list"
+                                        class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]"></div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mt-2 flex flex-col">
-                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4 shrink-0"><i class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
+                                <div
+                                    class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mt-2 flex flex-col">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4 shrink-0"><i
+                                            class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
                                     <div class="overflow-x-auto custom-scroll w-full px-2 md:px-6 pb-4">
-                                        <table class="w-full text-sm table-fixed min-w-[850px] mx-auto border-collapse border border-slate-700">
+                                        <table
+                                            class="w-full text-sm table-fixed min-w-[850px] mx-auto border-collapse border border-slate-700">
                                             <thead>
                                                 <tr class="bg-slate-900/60">
-                                                    <th rowspan="2" class="w-[28%] text-left pl-4 py-3 border border-slate-700 text-blue-500 uppercase tracking-widest text-[10px]">Disciplina</th>
-                                                    <th colspan="4" class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">1º Trimestre</th>
-                                                    <th colspan="4" class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">2º Trimestre</th>
-                                                    <th colspan="4" class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">3º Trimestre</th>
-                                                    <th rowspan="2" class="w-[18%] border border-slate-700 text-blue-500 py-3 uppercase tracking-widest text-[10px]">Média Final</th>
+                                                    <th rowspan="2"
+                                                        class="w-[28%] text-left pl-4 py-3 border border-slate-700 text-blue-500 uppercase tracking-widest text-[10px]">
+                                                        Disciplina</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        1º Trimestre</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        2º Trimestre</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        3º Trimestre</th>
+                                                    <th rowspan="2"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-3 uppercase tracking-widest text-[10px]">
+                                                        Média Final</th>
                                                 </tr>
                                                 <tr class="text-[10px] text-slate-400 bg-slate-900/30">
-                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
-                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
-                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th><th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="al-boletim-body"></tbody>
@@ -332,22 +552,29 @@
                                     </div>
                                 </div>
 
-                                <div class="col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
-                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
-                                    <div id="al-eval-360-content" class="bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center">
+                                <div
+                                    class="col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
+                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i
+                                            class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
+                                    <div id="al-eval-360-content"
+                                        class="bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center">
                                         Nenhuma avaliação pendente no momento.
                                     </div>
                                 </div>
 
                                 <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
                                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest text-center">Dispersão de Notas</h4>
+                                        <h4
+                                            class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest text-center">
+                                            Dispersão de Notas</h4>
                                         <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
                                     </div>
                                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
                                         <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Evolução</h4>
-                                            <select id="al-sel-evol" class="bg-slate-900 text-slate-200 text-xs p-1.5 rounded border border-slate-600 outline-none"></select>
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                Evolução</h4>
+                                            <select id="al-sel-evol"
+                                                class="bg-slate-900 text-slate-200 text-xs p-1.5 rounded border border-slate-600 outline-none"></select>
                                         </div>
                                         <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
                                     </div>
@@ -357,72 +584,110 @@
 
                         <div id="atab-caderno" class="aluno-tab-content h-full">
                             <div class="flex gap-4 h-[calc(100vh-280px)] min-h-[600px] w-full">
-                                
-                                <div class="w-48 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
+
+                                <div
+                                    class="w-48 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
                                     <div class="p-4 border-b border-slate-700 bg-slate-900/30">
-                                        <h3 class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest"><i class="fas fa-book mr-2"></i> Cadernos</h3>
+                                        <h3
+                                            class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest">
+                                            <i class="fas fa-book mr-2"></i> Cadernos</h3>
                                     </div>
-                                    <div id="al-notebook-tags" class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
-                                        </div>
+                                    <div id="al-notebook-tags"
+                                        class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
+                                    </div>
                                 </div>
 
-                                <div class="w-80 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-800/50 flex flex-col gap-4 shrink-0">
+                                <div
+                                    class="w-80 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-800/50 flex flex-col gap-4 shrink-0">
                                         <div class="flex justify-between items-center">
-                                            <h3 class="text-blue-400 font-cinzel font-bold text-base uppercase tracking-widest"><i class="fas fa-list mr-2"></i> Anotações</h3>
-                                            <button id="btn-new-note" class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105" title="Nova Anotação">
+                                            <h3
+                                                class="text-blue-400 font-cinzel font-bold text-base uppercase tracking-widest">
+                                                <i class="fas fa-list mr-2"></i> Anotações</h3>
+                                            <button id="btn-new-note"
+                                                class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
+                                                title="Nova Anotação">
                                                 <i class="fas fa-plus text-xs"></i>
                                             </button>
                                         </div>
                                         <div class="relative">
-                                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-                                            <input type="text" id="al-note-search" placeholder="Pesquisar notas..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
+                                            <i
+                                                class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                                            <input type="text" id="al-note-search" placeholder="Pesquisar notas..."
+                                                class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
                                         </div>
                                     </div>
-                                    
-                                    <div id="al-notes-list" class="flex-grow overflow-y-auto custom-scroll p-3 flex flex-col gap-2 bg-slate-900/30">
-                                        </div>
-                                    
-                                    <div id="notes-pagination" class="hidden justify-center items-center gap-4 py-2 border-t border-slate-700 bg-slate-800/50 shrink-0">
-                                        <button id="btn-prev-page" class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i class="fas fa-chevron-left text-[8px]"></i></button>
-                                        <span id="page-indicator" class="text-slate-400 font-bold text-[10px] uppercase">1 / 1</span>
-                                        <button id="btn-next-page" class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i class="fas fa-chevron-right text-[8px]"></i></button>
+
+                                    <div id="al-notes-list"
+                                        class="flex-grow overflow-y-auto custom-scroll p-3 flex flex-col gap-2 bg-slate-900/30">
+                                    </div>
+
+                                    <div id="notes-pagination"
+                                        class="hidden justify-center items-center gap-4 py-2 border-t border-slate-700 bg-slate-800/50 shrink-0">
+                                        <button id="btn-prev-page"
+                                            class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i
+                                                class="fas fa-chevron-left text-[8px]"></i></button>
+                                        <span id="page-indicator"
+                                            class="text-slate-400 font-bold text-[10px] uppercase">1 / 1</span>
+                                        <button id="btn-next-page"
+                                            class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i
+                                                class="fas fa-chevron-right text-[8px]"></i></button>
                                     </div>
                                 </div>
 
-                                <div class="flex-1 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
-                                    
-                                    <div id="al-note-empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-800/80 z-10">
+                                <div
+                                    class="flex-1 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden relative">
+
+                                    <div id="al-note-empty-state"
+                                        class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-800/80 z-10">
                                         <i class="fas fa-book-open text-6xl mb-4 opacity-20"></i>
-                                        <p class="font-cinzel tracking-widest text-sm uppercase">Selecione ou crie uma anotação</p>
+                                        <p class="font-cinzel tracking-widest text-sm uppercase">Selecione ou crie uma
+                                            anotação</p>
                                     </div>
 
-                                    <div id="al-note-active-state" class="flex-col h-full flex opacity-0 pointer-events-none transition-opacity duration-300">
+                                    <div id="al-note-active-state"
+                                        class="flex-col h-full flex opacity-0 pointer-events-none transition-opacity duration-300">
                                         <input type="hidden" id="al-note-active-id">
-                                        
-                                        <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex flex-wrap justify-between items-center gap-4 shrink-0 transition-all duration-300" id="al-note-header-bar">
-                                            <div id="al-note-colors" class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
-                                            
+
+                                        <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex flex-wrap justify-between items-center gap-4 shrink-0 transition-all duration-300"
+                                            id="al-note-header-bar">
+                                            <div id="al-note-colors"
+                                                class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
+
                                             <div class="flex items-center gap-2 ml-auto">
-                                                <button id="btn-note-pin" class="text-slate-500 hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700" title="Fixar no topo"><i class="fas fa-thumbtack"></i></button>
-                                                <button id="btn-note-share" class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i class="fas fa-share-alt"></i> Compartilhar</button>
-                                                <button id="btn-note-delete" class="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i class="fas fa-trash"></i> Excluir</button>
+                                                <button id="btn-note-pin"
+                                                    class="text-slate-500 hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700"
+                                                    title="Fixar no topo"><i class="fas fa-thumbtack"></i></button>
+                                                <button id="btn-note-share"
+                                                    class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i
+                                                        class="fas fa-share-alt"></i> Compartilhar</button>
+                                                <button id="btn-note-delete"
+                                                    class="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i
+                                                        class="fas fa-trash"></i> Excluir</button>
                                             </div>
                                         </div>
 
                                         <div class="flex-grow p-6 overflow-y-auto custom-scroll flex flex-col">
-                                            <input type="text" id="al-note-active-title" placeholder="Título da Nota" class="w-full bg-transparent text-white font-cinzel font-black text-3xl outline-none border-b-2 border-transparent focus:border-slate-700 pb-2 mb-3 transition-colors">
-                                            
+                                            <input type="text" id="al-note-active-title" placeholder="Título da Nota"
+                                                class="w-full bg-transparent text-white font-cinzel font-black text-3xl outline-none border-b-2 border-transparent focus:border-slate-700 pb-2 mb-3 transition-colors">
+
                                             <div class="flex items-center gap-2 mb-6 border-b border-slate-700/50 pb-4">
                                                 <i class="fas fa-hashtag text-slate-500 text-sm"></i>
-                                                <input type="text" id="al-note-active-tags" placeholder="Tags (separadas por vírgula)" class="w-full bg-transparent text-blue-400 text-sm font-bold outline-none placeholder-slate-600">
+                                                <input type="text" id="al-note-active-tags"
+                                                    placeholder="Tags (separadas por vírgula)"
+                                                    class="w-full bg-transparent text-blue-400 text-sm font-bold outline-none placeholder-slate-600">
                                             </div>
-                                            
-                                            <textarea id="al-note-active-body" placeholder="Comece a digitar suas anotações aqui..." class="w-full flex-grow bg-transparent text-slate-300 text-base outline-none resize-none leading-relaxed"></textarea>
+
+                                            <textarea id="al-note-active-body"
+                                                placeholder="Comece a digitar suas anotações aqui..."
+                                                class="w-full flex-grow bg-transparent text-slate-300 text-base outline-none resize-none leading-relaxed"></textarea>
                                         </div>
 
-                                        <div class="p-4 border-t border-slate-700 bg-slate-900/50 flex justify-end shrink-0">
-                                            <button id="btn-note-save" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all flex items-center gap-2">
+                                        <div
+                                            class="p-4 border-t border-slate-700 bg-slate-900/50 flex justify-end shrink-0">
+                                            <button id="btn-note-save"
+                                                class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all flex items-center gap-2">
                                                 <i class="fas fa-check"></i> Salvar Anotação
                                             </button>
                                         </div>
@@ -433,31 +698,57 @@
 
                         <div id="atab-kanban" class="aluno-tab-content h-full">
                             <div class="flex justify-end mb-6">
-                                <button id="btn-toggle-kanban-form" class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
+                                <button id="btn-toggle-kanban-form"
+                                    class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
                                     <i class="fas fa-plus"></i> Nova Tarefa
                                 </button>
                             </div>
-                            <div id="al-kanban-form" class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-8 fade-in">
+                            <div id="al-kanban-form"
+                                class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-8 fade-in">
                                 <input type="hidden" id="al-kanban-id">
-                                <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?" class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
-                                <textarea id="al-kanban-body" placeholder="Adicione detalhes, links ou observações..." class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
+                                <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?"
+                                    class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
+                                <textarea id="al-kanban-body" placeholder="Adicione detalhes, links ou observações..."
+                                    class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
                                 <div class="flex justify-end gap-3">
-                                    <button onclick="document.getElementById('al-kanban-form').classList.add('hidden')" class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
-                                    <button id="btn-save-kanban" class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar Tarefa</button>
+                                    <button onclick="document.getElementById('al-kanban-form').classList.add('hidden')"
+                                        class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
+                                    <button id="btn-save-kanban"
+                                        class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar
+                                        Tarefa</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-[600px]">
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-blue-400">A FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i></div>
-                                    <div id="al-col-todo" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg"
+                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A
+                                            FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i></div>
+                                    <div id="al-col-todo"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    </div>
                                 </div>
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-amber-400">EM EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i></div>
-                                    <div id="al-col-doing" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg"
+                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
+                                            EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i></div>
+                                    <div id="al-col-doing"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    </div>
                                 </div>
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg" ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center"><span class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i class="fas fa-check-circle text-slate-600"></i></div>
-                                    <div id="al-col-done" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20"></div>
+                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg"
+                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
+                                        <span
+                                            class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
+                                            class="fas fa-check-circle text-slate-600"></i></div>
+                                    <div id="al-col-done"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -465,37 +756,78 @@
                         <div id="atab-horario" class="aluno-tab-content">
                             <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl">
                                 <table class="horario-tabela w-full min-w-[900px]">
-                                    <thead><tr><th data-dia-id="segunda-feira">SEG</th><th data-dia-id="terca-feira">TER</th><th data-dia-id="quarta-feira">QUA</th><th data-dia-id="quinta-feira">QUI</th><th data-dia-id="sexta-feira">SEX</th></tr></thead>
-                                    <tbody><tr><td id="cell-segunda-feira"></td><td id="cell-terca-feira"></td><td id="cell-quarta-feira"></td><td id="cell-quinta-feira"></td><td id="cell-sexta-feira"></td></tr></tbody>
+                                    <thead>
+                                        <tr>
+                                            <th data-dia-id="segunda-feira">SEG</th>
+                                            <th data-dia-id="terca-feira">TER</th>
+                                            <th data-dia-id="quarta-feira">QUA</th>
+                                            <th data-dia-id="quinta-feira">QUI</th>
+                                            <th data-dia-id="sexta-feira">SEX</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td id="cell-segunda-feira"></td>
+                                            <td id="cell-terca-feira"></td>
+                                            <td id="cell-quarta-feira"></td>
+                                            <td id="cell-quinta-feira"></td>
+                                            <td id="cell-sexta-feira"></td>
+                                        </tr>
+                                    </tbody>
                                 </table>
-                                <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic">Carregando grade horária...</p>
+                                <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic">Carregando grade
+                                    horária...</p>
                             </div>
                         </div>
 
                         <div id="atab-calendario" class="aluno-tab-content">
-                            <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
-                                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10">
-                                    <div class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
-                                        <button id="btn-cal-prev" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-left"></i></button>
-                                        <span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
-                                        <button id="btn-cal-next" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-right"></i></button>
+                            <div
+                                class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden">
+                                <div
+                                    class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10">
+                                    <div
+                                        class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                                        <button id="btn-cal-prev"
+                                            class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                class="fas fa-chevron-left"></i></button>
+                                        <span id="al-cal-month"
+                                            class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
+                                        <button id="btn-cal-next"
+                                            class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                class="fas fa-chevron-right"></i></button>
                                     </div>
                                     <div class="flex items-center gap-4">
                                         <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
-                                            <button id="btn-view-month" class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
-                                            <button id="btn-view-week" class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                            <button id="btn-view-month"
+                                                class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
+                                            <button id="btn-view-week"
+                                                class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
                                         </div>
-                                        <button id="al-btn-add-evt" class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i class="fas fa-plus mr-2"></i> Evento</button>
+                                        <button id="al-btn-add-evt"
+                                            class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
+                                                class="fas fa-plus mr-2"></i> Evento</button>
                                     </div>
                                 </div>
-                                <div id="cal-header-row" class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0">
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Segunda</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Terça</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quarta</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quinta</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Sexta</div>
+                                <div id="cal-header-row"
+                                    class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0">
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Segunda</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Terça</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Quarta</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Quinta</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Sexta</div>
                                 </div>
-                                <div id="al-cal-grid" class="calendar-grid rounded-b-xl overflow-hidden shadow-inner"></div>
+                                <div id="al-cal-grid" class="calendar-grid rounded-b-xl overflow-hidden shadow-inner">
+                                </div>
                             </div>
                         </div>
 
@@ -504,57 +836,93 @@
             </div>
 
             <div id="al-modal-cal" class="fixed inset-0 z-[1000] hidden">
-                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="window.closeCalModal()"></div>
-                <div class="absolute top-0 right-0 h-full w-full md:w-[450px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full" id="al-modal-panel">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                    onclick="window.closeCalModal()"></div>
+                <div class="absolute top-0 right-0 h-full w-full md:w-[450px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full"
+                    id="al-modal-panel">
                     <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-                        <h3 class="text-blue-400 font-cinzel font-bold text-xl" id="al-modal-cal-title"><i class="fas fa-calendar-day mr-2"></i> Detalhes do Evento</h3>
-                        <button id="btn-close-cal" class="text-slate-500 hover:text-white text-xl transition-colors"><i class="fas fa-times"></i></button>
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl" id="al-modal-cal-title"><i
+                                class="fas fa-calendar-day mr-2"></i> Detalhes do Evento</h3>
+                        <button id="btn-close-cal" class="text-slate-500 hover:text-white text-xl transition-colors"><i
+                                class="fas fa-times"></i></button>
                     </div>
                     <div class="p-6 flex-grow overflow-y-auto custom-scroll space-y-5">
                         <input type="hidden" id="al-ev-id">
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título do Evento</label><input type="text" id="al-ev-title" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Data</label><input type="date" id="al-ev-date" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Cor no Calendário</label><input type="color" id="al-ev-color" value="#3b82f6" class="w-full h-12 bg-slate-950 border border-slate-700 rounded-xl cursor-pointer p-1"></div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
+                                do Evento</label><input type="text" id="al-ev-title"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Data</label><input
+                                type="date" id="al-ev-date"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Cor
+                                no Calendário</label><input type="color" id="al-ev-color" value="#3b82f6"
+                                class="w-full h-12 bg-slate-950 border border-slate-700 rounded-xl cursor-pointer p-1">
+                        </div>
                         <div id="al-ev-visib-container" class="hidden">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Visibilidade</label>
-                            <select id="al-ev-visib" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500">
+                            <label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Visibilidade</label>
+                            <select id="al-ev-visib"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500">
                                 <option value="todos">Público (Todas as Turmas)</option>
                                 <option value="turmas_especificas">Apenas Minhas Turmas</option>
                             </select>
                         </div>
-                        <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Descrição</label><textarea id="al-ev-desc" rows="4" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></textarea></div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Descrição</label><textarea
+                                id="al-ev-desc" rows="4"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></textarea>
+                        </div>
                     </div>
                     <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between gap-4">
-                        <button id="al-btn-del-ev" class="hidden bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 px-5 py-2.5 rounded-xl font-bold transition-all"><i class="fas fa-trash"></i> Excluir</button>
-                        <button id="btn-save-cal" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold ml-auto shadow-lg shadow-blue-600/30 transition-all">Salvar Evento</button>
+                        <button id="al-btn-del-ev"
+                            class="hidden bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 px-5 py-2.5 rounded-xl font-bold transition-all"><i
+                                class="fas fa-trash"></i> Excluir</button>
+                        <button id="btn-save-cal"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold ml-auto shadow-lg shadow-blue-600/30 transition-all">Salvar
+                            Evento</button>
                     </div>
                 </div>
             </div>
 
             <div id="al-modal-share" class="fixed inset-0 z-[1000] hidden flex items-center justify-center">
-                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity" onclick="window.closeShareModal()"></div>
-                <div class="relative bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col p-6 m-4 fade-in">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                    onclick="window.closeShareModal()"></div>
+                <div
+                    class="relative bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col p-6 m-4 fade-in">
                     <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
-                        <h3 class="text-blue-400 font-cinzel font-bold text-xl"><i class="fas fa-share-alt mr-2"></i> Compartilhar Anotação</h3>
-                        <button onclick="window.closeShareModal()" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl"><i class="fas fa-share-alt mr-2"></i>
+                            Compartilhar Anotação</h3>
+                        <button onclick="window.closeShareModal()" class="text-slate-500 hover:text-white"><i
+                                class="fas fa-times"></i></button>
                     </div>
-                    <p class="text-xs text-slate-400 mb-4">Selecione os professores ou alunos que poderão ler esta anotação em seus próprios cadernos.</p>
+                    <p class="text-xs text-slate-400 mb-4">Selecione os professores ou alunos que poderão ler esta
+                        anotação em seus próprios cadernos.</p>
                     <div class="relative mb-4">
                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="text" id="al-share-search" placeholder="Buscar por nome..." class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:border-blue-500 outline-none">
+                        <input type="text" id="al-share-search" placeholder="Buscar por nome..."
+                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:border-blue-500 outline-none">
                     </div>
                     <div id="al-share-results" class="max-h-60 overflow-y-auto custom-scroll space-y-2 mb-2 pr-2"></div>
                 </div>
             </div>
 
         </div>
-                
-        <div id="moderador-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        <div id="professor-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        <div id="admin-tech-content" class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+
+        <div id="moderador-tech-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="professor-tech-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div id="admin-tech-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 
     </main>
 
     <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

@@ -11,6 +11,7 @@ let podcastsGrimorio = [];
 
 let activeAudioList = [];
 let currentIdx = -1;
+let currentPlayingId = null;
 let currentMaterialEditId = null;
 
 let currentPage = 1;
@@ -309,10 +310,17 @@ function renderMusicasList() {
     const filtered = musicasGrimorio.filter(m => m.titulo.toLowerCase().includes(term) || m.artista.toLowerCase().includes(term));
     
     els.musList.innerHTML = filtered.map((m, idx) => {
-        const thumb = m.albumArtUrl ? `<img src="${m.albumArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700">` : `<div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded flex items-center justify-center"><i class="fas fa-music"></i></div>`;
-        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'musica')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700">
+        // HIGHLIGHT SE ESTIVER TOCANDO
+        const isActive = m.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-emerald-500' : 'border-transparent hover:bg-slate-800';
+        // SHRINK-0 NA THUMB PARA NÃO SER ESMAGADA
+        const thumb = m.albumArtUrl ? `<img src="${m.albumArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-music"></i></div>`;
+        
+        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'musica')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
             ${thumb}
-            <div class="overflow-hidden"><h4 class="text-white text-sm font-bold truncate">${escapeHTML(m.titulo)}</h4><p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(m.artista)}</p></div>
+            <div class="flex-grow min-w-0 overflow-hidden">
+                <h4 class="text-white text-sm font-bold truncate">${escapeHTML(m.titulo)}</h4>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(m.artista)}</p>
+            </div>
         </li>`;
     }).join('');
 }
@@ -323,10 +331,15 @@ function renderPodcastsList() {
     const filtered = podcastsGrimorio.filter(p => p.titulo.toLowerCase().includes(term) || (p.criador || p.professor).toLowerCase().includes(term));
     
     els.podList.innerHTML = filtered.map((p, idx) => {
-        const thumb = p.coverArtUrl ? `<img src="${p.coverArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700">` : `<div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded flex items-center justify-center"><i class="fas fa-microphone"></i></div>`;
-        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'podcast')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-700">
+        const isActive = p.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-purple-500' : 'border-transparent hover:bg-slate-800';
+        const thumb = p.coverArtUrl ? `<img src="${p.coverArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-microphone"></i></div>`;
+        
+        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'podcast')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
             ${thumb}
-            <div class="overflow-hidden"><h4 class="text-white text-sm font-bold truncate">${escapeHTML(p.titulo)}</h4><p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(p.criador || p.professor)}</p></div>
+            <div class="flex-grow min-w-0 overflow-hidden">
+                <h4 class="text-white text-sm font-bold truncate">${escapeHTML(p.titulo)}</h4>
+                <p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(p.criador || p.professor)}</p>
+            </div>
         </li>`;
     }).join('');
 }
@@ -346,7 +359,11 @@ function setupPlayerEventListeners() {
     els.progress.addEventListener('input', (e) => {
         if(els.audioEngine.duration) els.audioEngine.currentTime = (e.target.value / 100) * els.audioEngine.duration;
     });
-    els.volume.addEventListener('input', (e) => els.audioEngine.volume = e.target.value);
+    
+    // FIX DO VOLUME: Adicionado o ? para não falhar caso o DOM atrase
+    els.volume?.addEventListener('input', (e) => {
+        els.audioEngine.volume = e.target.value;
+    });
 }
 
 function formatSeg(s) {
@@ -361,30 +378,57 @@ function formatSeg(s) {
 window.conteudosAPI = {
     mudarPaginaMat: (dir) => { currentPage += dir; renderMaterials(); },
     
-    // Abre a gaveta lateral (modal) do Material
     expandir: (id) => {
         const mat = materialsCache.find(m => m.id === id);
         if(!mat) return;
         
         document.getElementById('mat-det-meta').textContent = `${mat.disciplina} | Prof. ${mat.autorNome}`;
         document.getElementById('mat-det-title').textContent = mat.titulo;
-        document.getElementById('mat-det-body').textContent = mat.texto || 'Nenhum conteúdo textual fornecido.';
         
+        let bodyHtml = '';
+        
+        // 1. IMAGEM DA CAPA (Grande e no topo)
+        if (mat.urlImage) {
+            bodyHtml += `<img src="${mat.urlImage}" class="w-full h-48 md:h-64 object-cover rounded-xl mb-6 shadow-lg border border-slate-700 shrink-0">`;
+        }
+        
+        // 2. TEXTO DO CONTEÚDO
+        bodyHtml += `<div class="text-slate-300 whitespace-pre-wrap leading-relaxed">${escapeHTML(mat.texto || 'Nenhum conteúdo textual fornecido.')}</div>`;
+        
+        // 3. CARD DE PDF (Substituto da miniatura, imitando um anexo interativo)
+        if (mat.urlPdf) {
+            bodyHtml += `
+            <div class="mt-8 p-4 bg-slate-900/50 border border-red-500/30 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors cursor-pointer group shadow-md" onclick="window.open('${mat.urlPdf}', '_blank')">
+                <div class="w-12 h-12 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-file-pdf text-2xl"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <h4 class="text-white font-bold text-sm truncate">Documento Anexo</h4>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest">Clique para ler o PDF completo</p>
+                </div>
+                <i class="fas fa-external-link-alt text-slate-500"></i>
+            </div>`;
+        }
+
+        document.getElementById('mat-det-body').innerHTML = bodyHtml;
+        
+        // RODAPÉ: Links Externos e Botões de Ação
         let footerHtml = '';
-        if(mat.urlPdf) footerHtml += `<a href="${mat.urlPdf}" target="_blank" class="px-5 py-2.5 bg-red-600/20 border border-red-500 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-file-pdf mr-1"></i> Abrir PDF</a>`;
-        
         (mat.links || []).forEach((l, i) => {
             footerHtml += `<a href="${l}" target="_blank" class="px-5 py-2.5 border border-blue-500/50 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i+1}</a>`;
         });
         
         const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.uid === mat.autorUID);
         if(canEdit) {
-            footerHtml += `<div class="ml-auto flex gap-2"><button onclick="window.conteudosAPI.editarMat('${mat.id}')" class="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-colors"><i class="fas fa-edit"></i></button><button onclick="window.conteudosAPI.excluirMat('${mat.id}')" class="px-4 py-2 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-trash"></i></button></div>`;
+            footerHtml += `<div class="ml-auto flex gap-2">
+                <button onclick="window.conteudosAPI.editarMat('${mat.id}')" class="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-colors"><i class="fas fa-edit"></i></button>
+                <button onclick="window.conteudosAPI.excluirMat('${mat.id}')" class="px-4 py-2 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-trash"></i></button>
+            </div>`;
         }
         
         document.getElementById('mat-det-footer').innerHTML = footerHtml;
         
-        // Exibe o modal com animação
+        // Abertura da Gaveta
         const modal = document.getElementById('cont-modal-mat');
         const panel = document.getElementById('cont-modal-panel');
         modal.classList.remove('hidden');
@@ -399,7 +443,7 @@ window.conteudosAPI = {
     },
     
     editarMat: (id) => {
-        window.conteudosAPI.fecharMat(); // Fecha a gaveta para editar
+        window.conteudosAPI.fecharMat();
         const mat = materialsCache.find(m => m.id === id);
         if(!mat) return;
         currentMaterialEditId = id;
@@ -441,6 +485,11 @@ window.conteudosAPI = {
         const item = activeAudioList[idx];
         if(!item) return;
 
+        // MARCA O ITEM ATUAL E ATUALIZA AS DUAS LISTAS PARA O EFEITO DE HIGHLIGHT
+        currentPlayingId = item.id;
+        renderMusicasList();
+        renderPodcastsList();
+
         const isMus = tipo === 'musica';
         const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
         const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
@@ -452,24 +501,25 @@ window.conteudosAPI = {
         const cor = isMus ? 'emerald' : 'purple';
         const iconeDL = isMus ? '<i class="fas fa-file-alt"></i> Baixar Letra' : '<i class="fas fa-file-alt"></i> Resumo';
 
-        // Aqui a classe da letra foi ajustada para text-sm e opacity suave
+        // O SEGREDO DO LAYOUT TRAVADO: overflow-hidden no flex-col e min-h-0 na letra!
         view.innerHTML = `
-            <div class="flex flex-col h-full fade-in">
-                <div class="flex items-end gap-6 mb-8 shrink-0">
-                    <img src="${item.albumArtUrl || item.coverArtUrl || ''}" class="w-40 h-40 rounded-xl object-cover shadow-2xl border border-slate-700 hidden md:block" onerror="this.style.display='none'">
-                    <div>
+            <div class="flex flex-col h-full fade-in overflow-hidden">
+                <div class="flex items-end gap-6 mb-6 shrink-0">
+                    <img src="${item.albumArtUrl || item.coverArtUrl || ''}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block" onerror="this.style.display='none'">
+                    <div class="flex-grow min-w-0">
                         <div class="text-[10px] text-${cor}-500 font-bold uppercase tracking-widest mb-2">${isMus ? 'Trilha Sonora' : 'Podcast Episódio'}</div>
-                        <h1 class="text-4xl md:text-5xl font-cinzel font-black text-white leading-tight mb-2">${escapeHTML(item.titulo)}</h1>
-                        <p class="text-slate-400 font-bold">${escapeHTML(item.artista || item.criador || item.professor)}</p>
+                        <h1 class="text-3xl md:text-5xl font-cinzel font-black text-white leading-tight mb-2 truncate">${escapeHTML(item.titulo)}</h1>
+                        <p class="text-slate-400 font-bold truncate">${escapeHTML(item.artista || item.criador || item.professor)}</p>
                     </div>
                 </div>
                 
-                <div class="flex gap-3 mb-6 shrink-0 border-b border-slate-800 pb-6">
+                <div class="flex gap-3 mb-4 shrink-0 border-b border-slate-800 pb-4">
                     <a href="${item.audioURL}" target="_blank" download class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors"><i class="fas fa-download mr-2"></i> MP3</a>
-                    <button onclick="window.conteudosAPI.dlTexto('${escapeHTML(item.titulo)}', '${escapeHTML(item.letra || item.descricao || '')}')" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors">${iconeDL}</button>
+                    
+                    <button onclick="window.conteudosAPI.dlTextoAtual()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors">${iconeDL}</button>
                 </div>
                 
-                <div class="flex-grow bg-slate-900/50 border border-slate-800 rounded-xl p-6 overflow-y-auto custom-scroll">
+                <div class="flex-grow min-h-0 bg-slate-900/50 border border-slate-800 rounded-xl p-6 overflow-y-auto custom-scroll relative">
                     <pre class="font-inter text-sm text-slate-300/80 whitespace-pre-wrap leading-relaxed">${escapeHTML(item.letra || item.descricao || 'Nenhum registro detalhado fornecido.')}</pre>
                 </div>
             </div>
@@ -495,8 +545,12 @@ window.conteudosAPI = {
     prevAudio: () => { if(currentIdx > 0) window.conteudosAPI.tocarMedia(currentIdx - 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
     nextAudio: () => { if(currentIdx < activeAudioList.length - 1) window.conteudosAPI.tocarMedia(currentIdx + 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
     
-    dlTexto: (titulo, texto) => {
-        const b = new Blob([`${titulo}\n\n${texto}`], { type: 'text/plain' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${titulo}.txt`; a.click();
+    // NOVA FUNÇÃO DE DOWNLOAD: Busca direto do Objeto em vez do HTML
+    dlTextoAtual: () => {
+        const item = activeAudioList[currentIdx];
+        if(!item) return;
+        const texto = item.letra || item.descricao || 'Sem registros';
+        const b = new Blob([`${item.titulo}\n\n${texto}`], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${item.titulo}.txt`; a.click();
     }
 };
