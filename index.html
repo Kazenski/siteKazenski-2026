@@ -338,9 +338,12 @@
         <div id="global-audio-player"
             class="hidden fixed bottom-0 left-0 w-full bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-4 z-[2000] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-all">
             <audio id="audio-engine"></audio>
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-8">
-                <div class="flex items-center gap-4 w-full md:w-1/4 shrink-0">
-                    <img id="player-thumb" src="" class="w-12 h-12 rounded object-cover hidden border border-slate-700">
+
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-6">
+
+                <div class="flex items-center gap-4 w-full md:w-1/3 shrink-0">
+                    <img id="player-thumb" src=""
+                        class="w-12 h-12 rounded object-cover hidden border border-slate-700 shrink-0">
                     <div class="overflow-hidden">
                         <div id="player-song-title" class="text-white font-bold text-sm truncate">...</div>
                         <div id="player-song-artist"
@@ -348,31 +351,38 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col items-center flex-grow w-full">
-                    <div class="flex items-center gap-6 mb-2">
-                        <button onclick="window.conteudosAPI.prevAudio()"
-                            class="text-slate-400 hover:text-white transition-colors text-lg"><i
-                                class="fas fa-step-backward"></i></button>
-                        <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()"
-                            class="w-12 h-12 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition-transform"><i
-                                class="fas fa-play ml-1 text-xl"></i></button>
-                        <button onclick="window.conteudosAPI.nextAudio()"
-                            class="text-slate-400 hover:text-white transition-colors text-lg"><i
-                                class="fas fa-step-forward"></i></button>
+                <div class="flex flex-col items-center flex-grow w-full md:w-2/3">
+
+                    <div class="flex items-center justify-center gap-4 mb-2 w-full">
+                        <div class="flex items-center gap-4 md:gap-6">
+                            <button onclick="window.conteudosAPI.prevAudio()"
+                                class="text-slate-400 hover:text-white transition-colors text-lg"><i
+                                    class="fas fa-step-backward"></i></button>
+                            <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()"
+                                class="w-12 h-12 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition-transform"><i
+                                    class="fas fa-play ml-1 text-xl"></i></button>
+                            <button onclick="window.conteudosAPI.nextAudio()"
+                                class="text-slate-400 hover:text-white transition-colors text-lg"><i
+                                    class="fas fa-step-forward"></i></button>
+                        </div>
+
+                        <div
+                            class="flex items-center gap-2 ml-2 pl-4 md:ml-4 md:pl-6 border-l border-slate-800 shrink-0">
+                            <i class="fas fa-volume-up text-slate-400 text-xs"></i>
+                            <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1"
+                                class="w-16 md:w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range"
+                                title="Volume">
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3 w-full max-w-2xl">
+
+                    <div class="flex items-center gap-3 w-full max-w-2xl mt-1">
                         <span id="player-time-curr"
                             class="text-[10px] text-slate-500 w-8 text-right font-bold">0:00</span>
                         <input type="range" id="player-progress" value="0"
                             class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
                         <span id="player-time-total" class="text-[10px] text-slate-500 w-8 font-bold">0:00</span>
                     </div>
-                </div>
 
-                <div class="hidden md:flex items-center gap-3 w-1/4 justify-end shrink-0">
-                    <i class="fas fa-volume-up text-slate-400 text-xs"></i>
-                    <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1"
-                        class="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
                 </div>
             </div>
         </div>
@@ -502,7 +512,8 @@
                                     class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
                                     <h3
                                         class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
-                                        <i class="fas fa-bullhorn mr-2"></i> Mural de Avisos</h3>
+                                        <i class="fas fa-bullhorn mr-2"></i> Mural de Avisos
+                                    </h3>
                                     <div id="al-avisos-list"
                                         class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]"></div>
                                 </div>
@@ -590,7 +601,8 @@
                                     <div class="p-4 border-b border-slate-700 bg-slate-900/30">
                                         <h3
                                             class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest">
-                                            <i class="fas fa-book mr-2"></i> Cadernos</h3>
+                                            <i class="fas fa-book mr-2"></i> Cadernos
+                                        </h3>
                                     </div>
                                     <div id="al-notebook-tags"
                                         class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
@@ -604,7 +616,8 @@
                                         <div class="flex justify-between items-center">
                                             <h3
                                                 class="text-blue-400 font-cinzel font-bold text-base uppercase tracking-widest">
-                                                <i class="fas fa-list mr-2"></i> Anotações</h3>
+                                                <i class="fas fa-list mr-2"></i> Anotações
+                                            </h3>
                                             <button id="btn-new-note"
                                                 class="bg-blue-600 hover:bg-blue-500 text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
                                                 title="Nova Anotação">
@@ -724,7 +737,8 @@
                                     <div
                                         class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
                                         <span class="font-cinzel font-bold tracking-widest text-blue-400">A
-                                            FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i></div>
+                                            FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
+                                    </div>
                                     <div id="al-col-todo"
                                         class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
@@ -734,7 +748,8 @@
                                     <div
                                         class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
                                         <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
-                                            EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i></div>
+                                            EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
+                                    </div>
                                     <div id="al-col-doing"
                                         class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
@@ -745,7 +760,8 @@
                                         class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center">
                                         <span
                                             class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
-                                            class="fas fa-check-circle text-slate-600"></i></div>
+                                            class="fas fa-check-circle text-slate-600"></i>
+                                    </div>
                                     <div id="al-col-done"
                                         class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
