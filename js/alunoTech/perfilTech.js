@@ -1168,11 +1168,10 @@ async function loadHorarioEscolar() {
     const diasIds = ['segunda-feira', 'terca-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira'];
     const diaHoje = new Date().getDay(); // 0 = Dom, 1 = Seg ... 5 = Sex
     
-    // Remove destaques anteriores (caso a aba seja recarregada)
+    // Remove destaques anteriores
     document.querySelectorAll('.horario-tabela th').forEach(th => th.classList.remove('bg-blue-600', 'text-white'));
     document.querySelectorAll('.horario-tabela td').forEach(td => td.classList.remove('bg-blue-900/20'));
 
-    // Aplica o destaque se for dia de semana
     if(diaHoje >= 1 && diaHoje <= 5) {
         const idHoje = diasIds[diaHoje - 1];
         const th = document.querySelector(`th[data-dia-id="${idHoje}"]`);
@@ -1180,36 +1179,54 @@ async function loadHorarioEscolar() {
         
         if(th) {
             th.classList.add('bg-blue-600', 'text-white');
-            th.style.color = '#ffffff'; // Força a cor por cima do CSS
+            th.style.color = '#ffffff'; 
         }
-        if(td) td.classList.add('bg-blue-900/20'); // Fundo azul translúcido na coluna
+        if(td) td.classList.add('bg-blue-900/20');
     }
 
-    // 3. Busca os dados no Firebase
-    const q = query(collection(db, "aulas"), where("turmaId", "==", currentUser.turma || '---'), orderBy("ordem"));
-    const snap = await getDocs(q);
-    
-    els.horarioMsg.style.display = snap.empty ? 'block' : 'none';
-    
-    // 4. Preenche as aulas (COM O FIX DO NOME DO DIA)
-    snap.forEach(doc => {
-        const a = doc.data(); 
+    // 3. Busca os dados no Firebase dependendo de quem está logado
+    let q;
+    if (currentUser.Professor) {
+        // Se for professor, busca todas as aulas onde ele está alocado
+        q = query(collection(db, "aulas"), where("professorNome", "==", currentUser.nome), orderBy("ordem"));
+    } else {
+        // Se for aluno, busca as aulas da turma dele
+        q = query(collection(db, "aulas"), where("turmaId", "==", currentUser.turma || '---'), orderBy("ordem"));
+    }
+
+    try {
+        const snap = await getDocs(q);
+        els.horarioMsg.style.display = snap.empty ? 'block' : 'none';
         
-        // FIX: Se o banco retornar só "segunda", adicionamos o "-feira" para o JS achar a coluna certa no HTML
-        let diaDB = (a.diaSemana || '').toLowerCase();
-        if (!diaDB.includes('-feira')) diaDB += '-feira';
-        
-        const cell = document.getElementById(`cell-${diaDB}`);
-        
-        if(cell) {
-            cell.innerHTML += `
-                <div class="aula-card p-3 bg-slate-900/80 border-l-4 border-blue-500 mb-3 rounded-lg shadow-md transition hover:-translate-y-1">
-                    <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${a.ordem}ª - ${disciplineMap[a.disciplina]||a.disciplina}</h4>
-                    <p class="text-[10px] font-bold text-blue-400 mt-1.5"><i class="fas fa-chalkboard-teacher mr-1"></i> ${a.professorNome}</p>
-                </div>
-            `;
-        }
-    });
+        // 4. Preenche as aulas
+        snap.forEach(doc => {
+            const a = doc.data(); 
+            
+            // FIX DO DIA: Garante que "segunda" vire "segunda-feira" para achar o ID no HTML
+            let diaDB = (a.diaSemana || '').toLowerCase();
+            if (!diaDB.includes('-feira')) diaDB += '-feira';
+            
+            const cell = document.getElementById(`cell-${diaDB}`);
+            
+            if(cell) {
+                // Truque de UX: Se for o professor olhando, mostra a Turma. Se for aluno, mostra o Professor.
+                const subTexto = currentUser.Professor 
+                    ? `<i class="fas fa-users mr-1"></i> Turma: ${a.turmaId}` 
+                    : `<i class="fas fa-chalkboard-teacher mr-1"></i> ${a.professorNome}`;
+
+                cell.innerHTML += `
+                    <div class="aula-card p-3 bg-slate-900/80 border-l-4 border-blue-500 mb-3 rounded-lg shadow-md transition hover:-translate-y-1">
+                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${a.ordem}ª - ${disciplineMap[a.disciplina]||a.disciplina}</h4>
+                        <p class="text-[10px] font-bold text-blue-400 mt-1.5">${subTexto}</p>
+                    </div>
+                `;
+            }
+        });
+    } catch (error) {
+        console.error("Erro ao carregar horário:", error);
+        els.horarioMsg.textContent = "Erro ao carregar a grade horária.";
+        els.horarioMsg.style.display = 'block';
+    }
 }
 
 window.renderCalendarGrid = () => {
