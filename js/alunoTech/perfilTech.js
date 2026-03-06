@@ -847,14 +847,16 @@ function renderNotes() {
     els.noteList.innerHTML = paginated.map(n => {
         const isActive = n.id === activeNoteId ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-700/80';
         return `
-        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color || '#3b82f6'}">
+        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color||'#3b82f6'}">
+            
             <div class="flex justify-between items-start gap-2">
-                <h4 class="text-white font-bold text-xs truncate flex-grow">
-                    ${escapeHTML(n.titulo || 'Sem Título')}
-                    ${n.userId !== currentUser.uid ? '<span class="ml-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest align-middle">Recebida</span>' : ''}
-                </h4>
-                ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-[10px] shrink-0"></i>' : ''}
+                <div class="flex items-center gap-2 flex-grow min-w-0">
+                    <h4 class="text-white font-bold text-xs truncate">${escapeHTML(n.titulo || 'Sem Título')}</h4>
+                    ${n.userId !== currentUser.uid ? '<span class="shrink-0 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest">Recebida</span>' : ''}
+                </div>
+                ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-[10px] shrink-0 mt-0.5"></i>' : ''}
             </div>
+
             <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight">${escapeHTML(n.conteudo)}</div>
         </div>
     `}).join('');
