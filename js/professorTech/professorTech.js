@@ -2856,8 +2856,6 @@ window.profAPI = {
                 const numOrdem = parseInt(d.ordem);
                 const key = `${dia}_${numOrdem}`;
                 aulasMap[key] = { id: doc.id, ...d };
-                
-                console.log(`Aula: ${d.disciplina} | Salvo no BD: Dia [${d.diaSemana}] Ordem [${d.ordem}] | Chave Gerada: [${key}]`);
             });
 
             window.profAPI.renderGrade(aulasMap);
