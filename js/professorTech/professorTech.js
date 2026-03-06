@@ -2848,8 +2848,11 @@ window.profAPI = {
             const aulasMap = {}; 
             snap.forEach(doc => {
                 const d = doc.data();
-                // FORÇA o dia para minúsculo. Assim, "Segunda-feira" ou "segunda-feira" batem na chave!
-                const dia = (d.diaSemana || "").toLowerCase();
+                
+                // FIX DA CHAVE: Normaliza acentos e adiciona '-feira' se faltar
+                let dia = (d.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+                if (!dia.includes('-feira')) dia += '-feira';
+
                 const key = `${dia}_${d.ordem}`;
                 aulasMap[key] = { id: doc.id, ...d };
             });
@@ -2964,7 +2967,12 @@ window.profAPI = {
     editAula: (data) => {
         els.horarioFormTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Aula';
         els.horarioId.value = data.id;
-        els.horarioDia.value = (data.diaSemana || "").toLowerCase();
+        
+        // FIX: Normaliza o dia para preencher o formulário corretamente caso venha com acentos do banco
+        let diaNormalizado = (data.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+        if (diaNormalizado && !diaNormalizado.includes('-feira')) diaNormalizado += '-feira';
+        els.horarioDia.value = diaNormalizado;
+        
         els.horarioOrdem.value = data.ordem;
         els.horarioDisc.value = data.disciplinaId || data.disciplina || "";
         els.horarioProf.value = `${data.professorId}|${data.professorNome}`;
