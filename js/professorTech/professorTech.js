@@ -2846,12 +2846,7 @@ window.profAPI = {
             const q = query(collection(db, "aulas"), where("turmaId", "==", classId));
             const snap = await getDocs(q);
             
-            const aulasMap = {}; 
-            
-            // --- INÍCIO DO DEBUG ---
-            console.log("=== DEBUG GRADE HORÁRIA ===");
-            console.log("1. Buscando pela Turma ID:", classId);
-            console.log("2. Total de aulas encontradas no Firebase:", snap.size);
+            const aulasMap = {};           
             
             snap.forEach(doc => {
                 const d = doc.data();
@@ -2864,10 +2859,6 @@ window.profAPI = {
                 
                 console.log(`Aula: ${d.disciplina} | Salvo no BD: Dia [${d.diaSemana}] Ordem [${d.ordem}] | Chave Gerada: [${key}]`);
             });
-
-            console.log("3. Mapa final montado:", aulasMap);
-            console.log("===========================");
-            // --- FIM DO DEBUG ---
 
             window.profAPI.renderGrade(aulasMap);
             els.horarioMsg.classList.add('hidden');
