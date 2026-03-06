@@ -7,6 +7,7 @@ import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
+import './atualizacoes/atualizacoes.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
