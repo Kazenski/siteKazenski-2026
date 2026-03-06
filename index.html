@@ -951,9 +951,139 @@
 
         </div>
 
-        <div id="moderador-tech-content"
-            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <div class="flex flex-col h-full max-w-7xl mx-auto pb-20 fade-in">
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6 shrink-0">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase mb-1">
+                        <i class="fas fa-satellite-dish text-blue-500 mr-2"></i> Gestão de Atualizações
+                    </h2>
+                    <p class="text-xs text-slate-400 font-bold tracking-widest uppercase">Controle do Carrossel e
+                        Novidades do Sistema</p>
+                </div>
+                <button onclick="window.atualizacoesAPI.toggleForm()" id="btn-toggle-upd-form"
+                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap">
+                    <i class="fas fa-plus mr-2"></i> Nova Atualização
+                </button>
+            </div>
 
+            <div id="upd-form-container"
+                class="hidden bg-slate-800 p-6 md:p-8 rounded-2xl border-l-4 border-blue-500 shadow-xl mb-8 shrink-0 fade-in relative">
+                <button onclick="window.atualizacoesAPI.toggleForm()"
+                    class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"><i
+                        class="fas fa-times text-xl"></i></button>
+                <h3 id="upd-form-title" class="text-blue-400 font-cinzel font-bold text-xl mb-6"><i
+                        class="fas fa-edit mr-2"></i> Criar Atualização</h3>
+
+                <form id="form-atualizacao" class="space-y-5">
+                    <input type="hidden" id="upd-id">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Título
+                                da Atualização *</label>
+                            <input type="text" id="upd-titulo" required
+                                class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Ordem
+                                de Exibição *</label>
+                            <input type="number" id="upd-ordem" value="1" min="1" required
+                                class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Subtítulo
+                            / Descrição Curta</label>
+                        <textarea id="upd-subtitulo"
+                            class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[80px] focus:border-blue-500 outline-none custom-scroll"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Link
+                                do Botão (URL)</label>
+                            <input type="url" id="upd-link" placeholder="https://..."
+                                class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Texto
+                                do Botão</label>
+                            <input type="text" id="upd-texto-botao" placeholder="Ex: Saiba Mais"
+                                class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-slate-900/50 p-5 rounded-xl border border-slate-700 flex flex-col md:flex-row gap-6 items-center">
+                        <div class="flex-grow w-full">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Imagem
+                                de Capa (Recomendado: 16:9)</label>
+                            <input type="file" id="upd-imagem" accept="image/*"
+                                class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+
+                            <label class="flex items-center gap-3 cursor-pointer group mt-4 pl-1">
+                                <input type="checkbox" id="upd-ativa" class="w-5 h-5 accent-blue-500 cursor-pointer"
+                                    checked>
+                                <span
+                                    class="text-xs font-bold text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">Atualização
+                                    Ativa (Visível)</span>
+                            </label>
+                        </div>
+                        <div
+                            class="shrink-0 w-full md:w-48 h-28 bg-slate-950 border border-slate-700 rounded-lg overflow-hidden flex items-center justify-center relative">
+                            <span class="text-slate-600 text-xs font-bold uppercase tracking-widest absolute z-0">Sem
+                                Imagem</span>
+                            <img id="upd-preview" src="" class="hidden w-full h-full object-cover relative z-10">
+                        </div>
+                    </div>
+
+                    <div id="upd-progress-container"
+                        class="hidden w-full bg-slate-900 rounded-full h-3 border border-slate-700 overflow-hidden mt-4">
+                        <div id="upd-progress-bar" class="bg-blue-500 h-3 rounded-full transition-all duration-300 w-0">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-4 border-t border-slate-700">
+                        <p id="upd-msg" class="text-xs font-bold hidden items-center mr-auto px-4 py-2 rounded-lg"></p>
+                        <button type="button" onclick="window.atualizacoesAPI.resetForm()"
+                            class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                        <button type="button" id="btn-delete-upd" onclick="window.atualizacoesAPI.deleteRecord()"
+                            class="hidden px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 rounded-xl text-xs font-bold uppercase tracking-widest transition-all">Excluir</button>
+                        <button type="submit" id="btn-save-upd"
+                            class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-colors shadow-[0_0_15px_rgba(22,163,74,0.4)]">Salvar
+                            Atualização</button>
+                    </div>
+                </form>
+            </div>
+
+            <div
+                class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative min-h-[400px]">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead
+                        class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
+                        <tr>
+                            <th class="p-4 w-20 text-center">Ordem</th>
+                            <th class="p-4 w-24">Capa</th>
+                            <th class="p-4">Título</th>
+                            <th class="p-4 text-center w-32">Status</th>
+                            <th class="p-4 text-right w-32">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="upd-table-body" class="divide-y divide-slate-800">
+                    </tbody>
+                </table>
+                <div id="upd-empty-msg" class="text-center text-sm mt-10 font-bold text-slate-500 italic p-4 hidden">
+                    Nenhuma atualização cadastrada.</div>
+            </div>
+        </div>
 
         <div id="professor-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 pt-10 md:p-12 md:pt-14">

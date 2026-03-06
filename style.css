@@ -366,3 +366,33 @@
 }
 .aula-card:hover .aula-actions { opacity: 1; }
 .aula-actions button { padding: 4px 8px; font-size: 0.7rem; border-radius: 0.3rem; cursor: pointer; border: none; }
+
+
+/* ============================================================== */
+/* COMPONENTE: MODERADOR TECH (ATUALIZAÇÕES)                      */
+/* ============================================================== */
+
+.upd-row {
+    transition: background-color 0.2s;
+}
+.upd-row:hover {
+    background-color: rgba(30, 41, 59, 0.8);
+}
+.upd-status-dot {
+    height: 10px; width: 10px; border-radius: 50%;
+    display: inline-block; margin-right: 8px;
+    box-shadow: 0 0 5px currentColor;
+}
+.upd-status-active { color: #4ade80; background-color: #4ade80; }
+.upd-status-inactive { color: #94a3b8; background-color: #94a3b8; box-shadow: none; }
+
+.upd-msg-success {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+}
+.upd-msg-error {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+}
