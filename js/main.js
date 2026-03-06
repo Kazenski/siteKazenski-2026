@@ -20,7 +20,7 @@ let userRoles = {
     Visitante: true 
 };
 
-let activeTabId = 'inicio';
+let activeTabId = localStorage.getItem('kazenski_active_tab') || 'inicio';
 let isAlunoTechLoaded = false;
 let isConteudosLoaded = false;
 
@@ -135,11 +135,14 @@ window.showTab = function(tabId) {
     // Validação de Segurança
     const routeConfig = MENU_ARCHITECTURE.find(m => m.id === tabId);
     if (routeConfig && !routeConfig.showTo(userRoles)) {
-        alert("Acesso Negado.");
-        return window.showTab('inicio');
+        // Redireciona silenciosamente se perder a permissão ou tentar burlar o cache
+        return window.showTab('inicio'); 
     }
 
     activeTabId = tabId;
+    
+    // GRAVA A ABA ATUAL NO CACHE DO NAVEGADOR
+    localStorage.setItem('kazenski_active_tab', tabId); 
     
     // Atualiza visual dos botões do menu
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
@@ -294,6 +297,8 @@ function renderLoginTab() {
 window.logout = async function() {
     if (confirm("Deseja sair?")) {
         try {
+            // Limpa o cache ao sair
+            localStorage.setItem('kazenski_active_tab', 'inicio'); 
             await signOut(auth);
             window.showTab('inicio');
         } catch (error) {
