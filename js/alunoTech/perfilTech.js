@@ -31,6 +31,10 @@ let calDate = new Date();
 let calEvents = [];
 let calView = 'month';
 
+// Variáveis do Cropper
+let cropperInstance = null;
+let currentCropType = null;
+
 export async function renderAlunoTechTab() {
     const container = document.getElementById('aluno-tech-content');
     if (!container) return;
@@ -102,6 +106,10 @@ function mapearDOM() {
         inpCover: document.getElementById('al-file-cover'),
         inpProfile: document.getElementById('al-file-profile'),
         inpColor: document.getElementById('al-input-color'),
+        profileSplash: document.getElementById('al-profile-splash'), 
+        modalCrop: document.getElementById('al-modal-crop'), 
+        imageToCrop: document.getElementById('image-to-crop'),
+        btnConfirmCrop: document.getElementById('btn-confirm-crop'),
         avisosList: document.getElementById('al-avisos-list'),
         boletimBody: document.getElementById('al-boletim-body'),
         freqPerc: document.getElementById('al-freq-perc'),
@@ -215,13 +223,113 @@ async function saveTitle(val) {
 }
 
 async function saveBorderColor(val) {
-    els.imgProfile.style.borderColor = val;
-    els.imgProfile.style.boxShadow = `0 0 20px ${val}`;
+    applyAuraColor(val);
     await updateDoc(doc(db, "users", currentUser.uid), { profileBorderColor: val });
 }
 
+function applyAuraColor(colorHex) {
+    const color = colorHex || '#00e5ff'; // Padrão se não tiver
+    if(els.imgProfile) els.imgProfile.style.borderColor = color;
+    if(els.profileSplash) {
+        els.profileSplash.style.backgroundColor = color;
+        els.profileSplash.style.boxShadow = `0 0 40px ${color}, 0 0 80px ${color}`;
+    }
+}
+
+function openCropModal(type) {
+    els.modalCrop.classList.remove('hidden');
+    
+    // Se já existe um cropper, destrói
+    if (cropperInstance) {
+        cropperInstance.destroy();
+    }
+
+    // Configura proporções: 1:1 para perfil, 21:9 para banner
+    const isProfile = type === 'profile';
+    const aspectRatio = isProfile ? 1 / 1 : 21 / 9;
+    
+    if(isProfile) {
+        els.imageToCrop.parentElement.classList.add('cropper-profile-mode');
+    } else {
+        els.imageToCrop.parentElement.classList.remove('cropper-profile-mode');
+    }
+
+    // Inicializa o Cropper.js (timeout garante que a imagem carregou na tela)
+    setTimeout(() => {
+        cropperInstance = new Cropper(els.imageToCrop, {
+            aspectRatio: aspectRatio,
+            viewMode: 1,
+            dragMode: 'move',
+            autoCropArea: 0.8,
+            restore: false,
+            guides: !isProfile,
+            center: false,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
+        });
+    }, 100);
+}
+
+window.closeCropModal = () => {
+    els.modalCrop.classList.add('hidden');
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+};
+
+// Quando o aluno clica em Aplicar
+els.btnConfirmCrop?.addEventListener('click', async () => {
+    if (!cropperInstance) return;
+
+    // Pega o Canvas recortado
+    const canvas = cropperInstance.getCroppedCanvas({
+        // Limita o tamanho máximo para otimizar Firebase Storage
+        maxWidth: currentCropType === 'profile' ? 512 : 1920,
+        maxHeight: currentCropType === 'profile' ? 512 : 1080,
+    });
+
+    if (!canvas) {
+        alert("Erro ao cortar a imagem.");
+        return;
+    }
+
+    els.loading.classList.remove('hidden');
+    window.closeCropModal();
+
+    // Converte o Canvas em Blob (Arquivo) para enviar ao Firebase
+    canvas.toBlob(async (blob) => {
+        if (!blob) {
+            els.loading.classList.add('hidden');
+            return;
+        }
+        await uploadImage(blob, currentCropType);
+    }, 'image/webp', 0.85); // Usa WebP para ficar leve
+});
+
 function handleUpload(input, type) {
-    if (input.files[0]) uploadImage(input.files[0], type);
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Verifica se é imagem
+        if (!file.type.startsWith('image/')) {
+            alert("Por favor, selecione um arquivo de imagem.");
+            return;
+        }
+
+        currentCropType = type;
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            els.imageToCrop.src = e.target.result;
+            openCropModal(type);
+        }
+        reader.readAsDataURL(file);
+        
+        input.value = ''; // Reseta o input para permitir selecionar a mesma imagem novamente
+    }
 }
 
 // Funções globais apenas para os botões gerados dinamicamente via innerHTML
@@ -1309,15 +1417,29 @@ async function renderBanner() {
     const pic = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=1e293b&color=3b82f6`;
     els.imgProfile.src = pic;
     if (currentUser.coverImageURL) els.bgCover.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
+    
+    // Aplica a cor da aura salva no banco
+    applyAuraColor(currentUser.profileBorderColor);
 }
 
-async function uploadImage(file, type) {
-    const storageRef = ref(storage, `${type}_images/${currentUser.uid}/${Date.now()}`);
-    els.loading.classList.remove('hidden');
-    const snap = await uploadBytes(storageRef, file);
-    const url = await getDownloadURL(snap.ref);
-    await updateDoc(doc(db, "users", currentUser.uid), { [type === 'profile' ? 'photoURL' : 'coverImageURL']: url });
-    currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
-    renderBanner();
-    els.loading.classList.add('hidden');
+async function uploadImage(fileOrBlob, type) {
+    // Usamos Date.now().webp porque definimos a saída do Canvas como webp acima
+    const storageRef = ref(storage, `${type}_images/${currentUser.uid}/${Date.now()}.webp`);
+    
+    try {
+        const snap = await uploadBytes(storageRef, fileOrBlob);
+        const url = await getDownloadURL(snap.ref);
+        
+        await updateDoc(doc(db, "users", currentUser.uid), { 
+            [type === 'profile' ? 'photoURL' : 'coverImageURL']: url 
+        });
+        
+        currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
+        renderBanner();
+    } catch (e) {
+        console.error("Erro no upload:", e);
+        alert("Erro ao fazer upload da imagem.");
+    } finally {
+        els.loading.classList.add('hidden');
+    }
 }

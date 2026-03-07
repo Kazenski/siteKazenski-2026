@@ -396,3 +396,43 @@
     color: #f87171;
     border: 1px solid rgba(220, 38, 38, 0.3);
 }
+
+/* ============================================================== */
+/* ESTILOS DO NOVO PERFIL TECH E CROPPER                          */
+/* ============================================================== */
+
+/* Corte diagonal no banner */
+.banner-inclinado {
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 0% 100%);
+    transition: clip-path 0.3s ease;
+}
+
+/* Adaptação em mobile para o corte não ficar tão agressivo */
+@media (max-width: 768px) {
+    .banner-inclinado {
+        clip-path: polygon(0 0, 100% 0, 100% 90%, 0% 100%);
+    }
+}
+
+/* Ajustes visuais para integrar o Cropper.js ao tema escuro */
+.cropper-view-box,
+.cropper-face {
+    border-radius: 0; /* Por padrão é quadrado */
+}
+
+/* Se for cortar perfil (circular), arredondamos a visualização */
+.cropper-profile-mode .cropper-view-box,
+.cropper-profile-mode .cropper-face {
+    border-radius: 50%;
+}
+.cropper-profile-mode .cropper-dashed, 
+.cropper-profile-mode .cropper-center {
+    display: none;
+}
+
+.cropper-modal {
+    background-color: rgba(2, 6, 23, 0.8) !important; /* Transparência slate-950 */
+}
+.cropper-line, .cropper-point {
+    background-color: #3b82f6 !important; /* Azul do sistema */
+}
