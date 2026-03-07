@@ -432,60 +432,48 @@
                 class="w-full h-full flex flex-col overflow-y-auto custom-scroll bg-slate-900 hidden">
                 <div class="w-full flex flex-col flex-grow relative">
 
-                    <div class="w-full relative">
-                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer"
-                            id="al-bg-cover">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent">
-                            </div>
-                            <button id="btn-edit-cover"
-                                class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
-                                    class="fas fa-camera"></i></button>
-                            <button id="btn-edit-border"
-                                class="absolute top-4 left-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
-                                    class="fas fa-palette"></i></button>
+                    <div class="w-full relative pt-12 pb-8 px-6 flex flex-col items-center justify-center relative z-10">
+                        <div class="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-900/70 to-slate-900 pointer-events-none"></div>
+                        
+                        <div class="absolute top-4 right-4 flex gap-3 z-20">
+                            <button id="btn-edit-border" class="bg-slate-900/60 hover:bg-blue-600 text-white p-3 rounded-full backdrop-blur-sm transition-all shadow-lg" title="Cor da Aura"><i class="fas fa-palette"></i></button>
+                            <button id="btn-edit-cover" class="bg-slate-900/60 hover:bg-blue-600 text-white p-3 rounded-full backdrop-blur-sm transition-all shadow-lg" title="Alterar Fundo"><i class="fas fa-image"></i></button>
                         </div>
 
-                        <div
-                            class="flex flex-col md:flex-row items-center md:items-end justify-between px-6 md:px-14 -mt-12 md:-mt-16 relative z-10 mb-4">
-                            <div class="flex flex-col md:flex-row items-center md:items-end gap-5">
-                                <div class="relative shrink-0">
-                                    <img src="" id="al-img-profile"
-                                        class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900"
-                                        style="border-color: #00e5ff;">
-                                    <button id="btn-edit-profile"
-                                        class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg text-xs transition-all"><i
-                                            class="fas fa-camera"></i></button>
-                                </div>
-                                <div class="text-center md:text-left mb-2">
-                                    <div id="al-badge-title"
-                                        class="inline-block bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-lg shadow-orange-500/20 mb-2">
-                                        Aspirante</div>
-                                    <select id="al-title-select"
-                                        class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500 mb-2"></select>
-                                    <h1 class="text-2xl md:text-3xl font-black font-cinzel text-white leading-none tracking-wide"
-                                        id="al-txt-name">---</h1>
-                                    <div class="text-slate-400 text-xs font-bold mt-1" id="al-txt-class"><i
-                                            class="fas fa-graduation-cap text-blue-500"></i> Turma: ---</div>
-                                </div>
+                        <div class="relative flex flex-col items-center z-10 mt-4">
+                            <div class="relative shrink-0 flex items-center justify-center w-36 h-36 mb-4">
+                                <div id="al-profile-splash" class="absolute inset-0 rounded-full blur-2xl opacity-60 transition-all duration-500 scale-125"></div>
+                                
+                                <img src="" id="al-img-profile"
+                                    class="w-full h-full rounded-full object-cover border-[3px] border-slate-900 cursor-pointer shadow-2xl bg-slate-900 relative z-10 transition-colors duration-500">
+                                    
+                                <button id="btn-edit-profile"
+                                    class="absolute bottom-1 right-1 z-20 bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.8)] text-xs transition-transform hover:scale-110"><i class="fas fa-camera"></i></button>
                             </div>
 
-                            <div
-                                class="hidden md:flex items-center gap-6 mb-2 bg-slate-900/50 p-3 rounded-xl border border-slate-800 backdrop-blur-md">
-                                <div class="text-center px-2"><span
-                                        class="block text-blue-500 font-black text-xl leading-none"
-                                        id="al-stat-posts">0</span><span
-                                        class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Posts</span>
+                            <div class="text-center mb-6">
+                                <div id="al-badge-title" class="inline-block bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest cursor-pointer shadow-lg shadow-orange-500/20 mb-3">Aspirante</div>
+                                <select id="al-title-select" class="hidden bg-slate-800 text-white rounded p-1 text-xs border border-blue-500 mb-2 mx-auto"></select>
+                                
+                                <h1 class="text-3xl md:text-5xl font-black font-cinzel leading-none tracking-wide drop-shadow-lg flex flex-wrap justify-center gap-2" id="al-txt-name">
+                                    <span id="al-first-name">Nome</span>
+                                    <span id="al-last-name" class="text-white">Sobrenome</span>
+                                </h1>
+                                
+                                <div class="text-slate-300 text-sm font-bold mt-3 drop-shadow-md" id="al-txt-class"><i class="fas fa-graduation-cap text-blue-500 mr-2"></i> Turma: ---</div>
+                            </div>
+
+                            <div class="flex items-center gap-8 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50 backdrop-blur-md shadow-2xl">
+                                <div class="text-center px-4">
+                                    <span class="block text-blue-400 font-black text-2xl leading-none drop-shadow-md" id="al-stat-posts">0</span>
+                                    <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Posts</span>
                                 </div>
-                                <div class="w-px h-8 bg-slate-700"></div>
-                                <div class="text-center px-2"><span
-                                        class="block text-blue-500 font-black text-xl leading-none"
-                                        id="al-stat-xp">0</span><span
-                                        class="text-[9px] text-slate-500 uppercase tracking-widest font-bold">XP</span>
+                                <div class="w-px h-10 bg-slate-700"></div>
+                                <div class="text-center px-4">
+                                    <span class="block text-blue-400 font-black text-2xl leading-none drop-shadow-md" id="al-stat-xp">0</span>
+                                    <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">XP</span>
                                 </div>
-                                <button onclick="window.logout()"
-                                    class="ml-2 bg-red-500/10 hover:bg-red-500 border border-red-500/50 hover:border-red-500 text-red-500 hover:text-white px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all flex items-center gap-2"><i
-                                        class="fas fa-sign-out-alt"></i> Sair</button>
+                                <button onclick="window.logout()" class="ml-2 bg-red-500/20 hover:bg-red-500 border border-red-500/50 text-red-400 hover:text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase transition-all flex items-center gap-2"><i class="fas fa-sign-out-alt"></i> Sair</button>
                             </div>
                         </div>
                     </div>
