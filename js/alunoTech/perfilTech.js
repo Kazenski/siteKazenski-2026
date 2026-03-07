@@ -30,6 +30,8 @@ let draggedTask = null;
 let calDate = new Date();
 let calEvents = [];
 let calView = 'month';
+let cropperInstance = null;
+let currentCropType = null;
 
 export async function renderAlunoTechTab() {
     const container = document.getElementById('aluno-tech-content');
@@ -123,7 +125,11 @@ function mapearDOM() {
 
         colTodo: document.getElementById('al-col-todo'),
         colDoing: document.getElementById('al-col-doing'),
-        colDone: document.getElementById('al-col-done')
+        colDone: document.getElementById('al-col-done'),
+
+        modalCrop: document.getElementById('al-modal-crop'),
+        imageToCrop: document.getElementById('image-to-crop'),
+        btnConfirmCrop: document.getElementById('btn-confirm-crop')
     };
 }
 
@@ -181,6 +187,25 @@ function setupEventListeners() {
     // Seletor nativo de cor
     els.noteColorPicker?.addEventListener('input', (e) => { selectedNoteColor = e.target.value; });
 
+    els.btnConfirmCrop?.addEventListener('click', async () => {
+        if (!cropperInstance) return;
+
+        const canvas = cropperInstance.getCroppedCanvas({
+            maxWidth: currentCropType === 'profile' ? 512 : 1920,
+            maxHeight: currentCropType === 'profile' ? 512 : 1080,
+        });
+
+        if (!canvas) return alert("Erro ao cortar a imagem.");
+
+        els.loading.classList.remove('hidden');
+        window.closeCropModal();
+
+        canvas.toBlob(async (blob) => {
+            if (!blob) return els.loading.classList.add('hidden');
+            await uploadImage(blob, currentCropType);
+        }, 'image/webp', 0.85); 
+    });
+
     // Eventos do Kanban
     document.getElementById('btn-toggle-kanban-form')?.addEventListener('click', toggleKanbanForm);
     document.getElementById('btn-save-kanban')?.addEventListener('click', saveKanban);
@@ -221,8 +246,56 @@ async function saveBorderColor(val) {
 }
 
 function handleUpload(input, type) {
-    if (input.files[0]) uploadImage(input.files[0], type);
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (!file.type.startsWith('image/')) return alert("Selecione um arquivo de imagem válido.");
+
+        currentCropType = type;
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            els.imageToCrop.onload = function() {
+                openCropModal(type);
+            };
+            els.imageToCrop.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
+        input.value = ''; // Permite subir a mesma imagem de novo se errar
+    }
 }
+
+function openCropModal(type) {
+    els.modalCrop.classList.remove('hidden');
+    if (cropperInstance) cropperInstance.destroy();
+
+    const isProfile = type === 'profile';
+    const aspectRatio = isProfile ? 1 / 1 : 21 / 9; // 1:1 perfil, 21:9 banner
+    
+    if(isProfile) els.imageToCrop.parentElement.classList.add('cropper-profile-mode');
+    else els.imageToCrop.parentElement.classList.remove('cropper-profile-mode');
+
+    cropperInstance = new Cropper(els.imageToCrop, {
+        aspectRatio: aspectRatio,
+        viewMode: 1,
+        dragMode: 'move',
+        autoCropArea: 0.8,
+        restore: false,
+        guides: !isProfile,
+        center: false,
+        highlight: false,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
+    });
+}
+
+window.closeCropModal = () => {
+    els.modalCrop.classList.add('hidden');
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+};
 
 // Funções globais apenas para os botões gerados dinamicamente via innerHTML
 window.editNote = (id) => {
@@ -1311,10 +1384,10 @@ async function renderBanner() {
     if (currentUser.coverImageURL) els.bgCover.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
 }
 
-async function uploadImage(file, type) {
-    const storageRef = ref(storage, `${type}_images/${currentUser.uid}/${Date.now()}`);
+async function uploadImage(fileOrBlob, type) {
+    const storageRef = ref(storage, `${type}_images/${currentUser.uid}/${Date.now()}.webp`);
     els.loading.classList.remove('hidden');
-    const snap = await uploadBytes(storageRef, file);
+    const snap = await uploadBytes(storageRef, fileOrBlob);
     const url = await getDownloadURL(snap.ref);
     await updateDoc(doc(db, "users", currentUser.uid), { [type === 'profile' ? 'photoURL' : 'coverImageURL']: url });
     currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;

@@ -396,3 +396,24 @@
     color: #f87171;
     border: 1px solid rgba(220, 38, 38, 0.3);
 }
+
+/* AJUSTES DO CROPPER.JS PARA O TEMA ESCURO */
+.cropper-view-box,
+.cropper-face {
+    border-radius: 0;
+}
+/* Força visual redondo quando estiver cortando perfil */
+.cropper-profile-mode .cropper-view-box,
+.cropper-profile-mode .cropper-face {
+    border-radius: 50%;
+}
+.cropper-profile-mode .cropper-dashed, 
+.cropper-profile-mode .cropper-center {
+    display: none;
+}
+.cropper-modal {
+    background-color: rgba(2, 6, 23, 0.8) !important;
+}
+.cropper-line, .cropper-point {
+    background-color: #3b82f6 !important;
+}
