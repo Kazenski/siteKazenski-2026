@@ -215,10 +215,9 @@ async function saveTitle(val) {
 }
 
 async function saveBorderColor(val) {
-    // Salva no banco e chama o renderizador novamente para atualizar a Aura e o Nome
+    els.imgProfile.style.borderColor = val;
+    els.imgProfile.style.boxShadow = `0 0 20px ${val}`;
     await updateDoc(doc(db, "users", currentUser.uid), { profileBorderColor: val });
-    currentUser.profileBorderColor = val;
-    renderBanner();
 }
 
 function handleUpload(input, type) {
@@ -1305,47 +1304,11 @@ window.renderCalendarGrid = () => {
 };
 
 async function renderBanner() {
-    // 1. Separa o Primeiro Nome do Restante
-    const nomeCompleto = currentUser.nome || 'Membro';
-    const partesNome = nomeCompleto.split(' ');
-    const primeiroNome = partesNome[0];
-    const sobrenome = partesNome.slice(1).join(' ');
-
-    const elFirstName = document.getElementById('al-first-name');
-    const elLastName = document.getElementById('al-last-name');
-    
-    if(elFirstName) elFirstName.textContent = primeiroNome;
-    if(elLastName) elLastName.textContent = sobrenome;
-
-    // 2. Textos secundários
+    els.txtName.textContent = currentUser.nome || 'Membro';
     els.txtClass.innerHTML = `<i class="fas fa-graduation-cap"></i> Turma: ${currentUser.turma || '---'}`;
-    
-    // 3. Imagem de Perfil
     const pic = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=1e293b&color=3b82f6`;
     els.imgProfile.src = pic;
-    
-    // 4. Aplica o Fundo na Div Principal do Dashboard (Efeito imersivo)
-    const dashboardArea = document.getElementById('dashboard-aluno');
-    if (currentUser.coverImageURL && dashboardArea) {
-        dashboardArea.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
-        dashboardArea.style.backgroundSize = 'cover';
-        dashboardArea.style.backgroundPosition = 'center top';
-        dashboardArea.style.backgroundAttachment = 'fixed';
-    } else if (dashboardArea) {
-        dashboardArea.style.backgroundImage = 'none';
-    }
-    
-    // 5. Aplica as Cores Personalizadas (Aura, Borda e Primeiro Nome)
-    const splashEl = document.getElementById('al-profile-splash');
-    const color = currentUser.profileBorderColor || '#3b82f6'; // Azul padrão se não tiver
-    
-    els.imgProfile.style.borderColor = color;
-    if(elFirstName) elFirstName.style.color = color;
-    
-    if(splashEl) {
-        splashEl.style.backgroundColor = color;
-        splashEl.style.boxShadow = `0 0 60px ${color}`;
-    }
+    if (currentUser.coverImageURL) els.bgCover.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
 }
 
 async function uploadImage(file, type) {
