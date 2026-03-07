@@ -436,11 +436,12 @@
                 <div class="w-full flex flex-col flex-grow relative">
 
                     <div class="w-full relative">
-                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer"
+                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat"
                             id="al-bg-cover">
-                            <div
-                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent">
-                            </div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
+                            
+                            <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-slate-900 z-0 opacity-90 hidden md:block"></div>
+                            
                             <button id="btn-edit-cover"
                                 class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
                                     class="fas fa-camera"></i></button>
