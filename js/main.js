@@ -1,4 +1,4 @@
-import { auth, db } from './core/firebase.js';
+import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
@@ -44,6 +44,94 @@ const MENU_ARCHITECTURE = [
 ];
 
 // ============================================================================
+// GESTÃO DE SESSÃO (REALTIME DATABASE)
+// ============================================================================
+const SESSION_TIMEOUT_MINUTES = 15; // Definição dos minutos aqui
+const SESSION_TIMEOUT_MS = SESSION_TIMEOUT_MINUTES * 60 * 1000;
+let sessionInterval = null;
+let lastActivityUpdate = 0;
+let rtdbUnsubscribe = null;
+let currentUserUid = null;
+
+const updateActivity = () => {
+    if (!currentUserUid) return;
+    const now = Date.now();
+    // Atualiza o banco no máximo a cada 30 segundos para não estourar a cota gratuita
+    if (now - lastActivityUpdate > 30000) {
+        set(ref(rtdb, `sessions/${currentUserUid}/lastActive`), serverTimestamp());
+        lastActivityUpdate = now;
+    }
+};
+
+function startSessionManager(user) {
+    currentUserUid = user.uid;
+    const timerDiv = document.getElementById('session-timer');
+    const countdownSpan = document.getElementById('session-countdown');
+    
+    if(timerDiv) {
+        timerDiv.classList.remove('hidden');
+        timerDiv.classList.add('flex');
+    }
+
+    // Escuta atividade do usuário para manter a sessão viva
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+
+    // Registra a entrada imediatamente
+    lastActivityUpdate = 0; 
+    updateActivity();
+
+    // Sincroniza com o Firebase RTDB
+    const sessionRef = ref(rtdb, `sessions/${user.uid}/lastActive`);
+    rtdbUnsubscribe = onValue(sessionRef, (snapshot) => {
+        const lastActiveServer = snapshot.val();
+        if (!lastActiveServer) return;
+
+        if (sessionInterval) clearInterval(sessionInterval);
+
+        sessionInterval = setInterval(() => {
+            const timeLeft = (lastActiveServer + SESSION_TIMEOUT_MS) - Date.now();
+
+            if (timeLeft <= 0) {
+                stopSessionManager();
+                window.logout(true); // Logout forçado por inatividade
+            } else {
+                const minutes = Math.floor(timeLeft / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+                
+                if(countdownSpan) {
+                    countdownSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    // Fica vermelho e pisca nos últimos 2 minutos
+                    if (timeLeft < 120000) { 
+                        countdownSpan.classList.replace('text-amber-500', 'text-red-500');
+                        countdownSpan.classList.add('animate-pulse');
+                    } else {
+                        countdownSpan.classList.replace('text-red-500', 'text-amber-500');
+                        countdownSpan.classList.remove('animate-pulse');
+                    }
+                }
+            }
+        }, 1000);
+    });
+}
+
+function stopSessionManager() {
+    currentUserUid = null;
+    window.removeEventListener('mousemove', updateActivity);
+    window.removeEventListener('keydown', updateActivity);
+    window.removeEventListener('click', updateActivity);
+    if (sessionInterval) clearInterval(sessionInterval);
+    if (rtdbUnsubscribe) rtdbUnsubscribe();
+    
+    const timerDiv = document.getElementById('session-timer');
+    if(timerDiv) {
+        timerDiv.classList.remove('flex');
+        timerDiv.classList.add('hidden');
+    }
+}
+
+// ============================================================================
 // GERENCIAMENTO DE AUTHENTICATION
 // ============================================================================
 
@@ -59,6 +147,9 @@ onAuthStateChanged(auth, async (user) => {
     let displayRoleName = 'Visitante';
 
     if (user) {
+
+        startSessionManager(user);
+
         try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             
@@ -90,7 +181,10 @@ onAuthStateChanged(auth, async (user) => {
         loginBtn.classList.add('hidden');
         infoEl.classList.remove('hidden');
         infoEl.classList.add('flex');
+
     } else {
+
+        stopSessionManager();
         loadingEl.classList.add('hidden');
         infoEl.classList.add('hidden');
         infoEl.classList.remove('flex');
@@ -304,15 +398,18 @@ function renderLoginTab() {
 // LOGOUT
 // ============================================================================
 
-window.logout = async function() {
-    if (confirm("Deseja sair?")) {
+window.logout = async function(isAuto = false) {
+    const msg = isAuto ? "Sua sessão expirou por inatividade. Faça login novamente." : "Deseja sair?";
+    
+    // Se for automático (isAuto), desloga direto. Se for manual, mostra o confirm.
+    if (isAuto === true || confirm(msg)) {
         try {
-            // Limpa o cache ao sair
             localStorage.setItem('kazenski_active_tab', 'inicio'); 
             await signOut(auth);
+            if(isAuto === true) alert(msg); // Avisa o usuário que ele caiu
             window.showTab('inicio');
         } catch (error) {
-            alert("Erro: " + error.message);
+            if(isAuto !== true) alert("Erro: " + error.message);
         }
     }
 };

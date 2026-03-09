@@ -73,6 +73,12 @@
                     </p>
                     <p id="user-role" class="text-[9px] text-blue-500 uppercase font-black tracking-tighter mt-1"></p>
                 </div>
+
+                <div id="session-timer" class="hidden flex-col items-end justify-center mr-2 border-r border-slate-700 pr-4">
+                    <span class="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Sessão expira em:</span>
+                    <span id="session-countdown" class="text-xs text-amber-500 font-mono font-black">15:00</span>
+                </div>
+
                 <button onclick="window.logout()"
                     class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all"
                     title="Sair do Sistema">
