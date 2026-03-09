@@ -29,13 +29,14 @@ export async function renderConteudosTab() {
     if (auth.currentUser) {
         try {
             const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
-            if (snap.exists()) currentUser = { uid: snap.id, ...snap.data() };
-        } catch(e) { 
-            console.error("Erro ao buscar usuário logado", e); 
-        }
+            if (snap.exists()) {
+                currentUser = { uid: snap.id, ...snap.data() };
+                // Garante que o array de favoritos exista na memória
+                if (!currentUser.favoritos) currentUser.favoritos = [];
+            }
+        } catch(e) { console.error("Erro ao buscar usuário", e); }
     } else {
-        // Se não houver usuário logado, garante que o currentUser seja nulo (Visitante)
-        currentUser = null; 
+        currentUser = null;
     }
 
     mapearDOM();
@@ -167,7 +168,6 @@ async function setupFiltros() {
     let profHtml = '<option value="">Todos os Professores</option>';
 
     try {
-        // Envolvemos em try/catch para evitar bloqueios de permissão do Firestore para visitantes
         const dSnap = await getDocs(collection(db, "disciplinasCadastradas"));
         dSnap.forEach(d => {
             const nome = d.data().nomeExibicao || d.data().nome;
@@ -176,19 +176,42 @@ async function setupFiltros() {
         });
         
         const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
-        pSnap.forEach(p => { 
-            profHtml += `<option value="${p.data().nome}">${p.data().nome}</option>`; 
-        });
-    } catch (error) {
-        console.warn("Aviso: Filtros limitados devido a permissões de visitante.", error);
-    }
+        pSnap.forEach(p => { profHtml += `<option value="${p.data().nome}">${p.data().nome}</option>`; });
+    } catch(e) { console.warn("Modo Visitante: Filtros restritos."); }
 
     if(els.filterDisc) els.filterDisc.innerHTML = discHtml;
     const selectAdd = document.getElementById('mat-disciplina');
     if(selectAdd) selectAdd.innerHTML = discHtml.replace('<option value="">Todas as Disciplinas</option>', '');
     if(els.filterProf) els.filterProf.innerHTML = profHtml;
 
-    // Listeners de Busca
+    // INJEÇÃO DO BOTÃO DE FAVORITOS
+    const filterContainer = els.filterDisc?.parentElement;
+    if (filterContainer && !document.getElementById('cont-filter-fav')) {
+        const favBtn = document.createElement('button');
+        favBtn.id = 'cont-filter-fav';
+        favBtn.className = 'bg-slate-900 border border-slate-700 text-slate-400 rounded-xl px-4 py-3 text-sm outline-none hover:text-amber-400 transition-colors shrink-0 flex items-center gap-2 font-bold uppercase tracking-widest';
+        favBtn.innerHTML = '<i class="far fa-star"></i> Favoritos';
+        favBtn.onclick = () => {
+            if (!currentUser) { alert('Faça login no portal para acessar seus favoritos.'); return; }
+            const isActive = favBtn.dataset.active === 'true';
+            favBtn.dataset.active = isActive ? 'false' : 'true';
+            
+            // Alterna o visual do botão
+            if (!isActive) {
+                favBtn.classList.add('text-amber-400', 'border-amber-500', 'bg-amber-500/10');
+                favBtn.innerHTML = '<i class="fas fa-star"></i> Favoritos';
+            } else {
+                favBtn.classList.remove('text-amber-400', 'border-amber-500', 'bg-amber-500/10');
+                favBtn.innerHTML = '<i class="far fa-star"></i> Favoritos';
+            }
+            
+            currentPage = 1; 
+            renderMaterials();
+        };
+        filterContainer.appendChild(favBtn);
+        els.filterFav = favBtn; // Guarda a referência
+    }
+
     els.searchMat?.addEventListener('input', () => { currentPage = 1; renderMaterials(); });
     els.filterDisc?.addEventListener('change', () => { currentPage = 1; renderMaterials(); });
     els.filterProf?.addEventListener('change', () => { currentPage = 1; renderMaterials(); });
@@ -253,10 +276,17 @@ function renderMaterials() {
     const search = els.searchMat.value.toLowerCase();
     const fDisc = els.filterDisc.value;
     const fProf = els.filterProf.value;
+    const showFavs = els.filterFav?.dataset.active === 'true';
 
     filteredMaterials = materialsCache.filter(m => {
         const matchText = m.titulo.toLowerCase().includes(search) || (m.texto || '').toLowerCase().includes(search);
-        return matchText && (fDisc === "" || m.disciplina === fDisc) && (fProf === "" || m.autorNome === fProf);
+        const matchDisc = (fDisc === "" || m.disciplina === fDisc);
+        const matchProf = (fProf === "" || m.autorNome === fProf);
+        
+        // Lógica do Filtro de Favoritos
+        const matchFav = !showFavs || (currentUser && currentUser.favoritos && currentUser.favoritos.includes(m.id));
+        
+        return matchText && matchDisc && matchProf && matchFav;
     });
 
     const totalPages = Math.ceil(filteredMaterials.length / materialsPerPage) || 1;
@@ -266,8 +296,14 @@ function renderMaterials() {
 
     els.matGrid.innerHTML = paginatedItems.map(mat => {
         const thumb = mat.urlImage || 'https://placehold.co/400x200/1e293b/a1a1aa?text=Sem+Capa';
+        
+        // Verifica se é favorito para botar a estrela no canto
+        const isFav = currentUser && currentUser.favoritos && currentUser.favoritos.includes(mat.id);
+        const favIcon = isFav ? '<div class="absolute top-2 right-2 bg-slate-900/80 p-1.5 rounded-lg border border-amber-500/50 backdrop-blur-sm z-10"><i class="fas fa-star text-amber-400 drop-shadow-md text-sm"></i></div>' : '';
+
         return `
-            <div id="mat-card-${mat.id}" onclick="window.conteudosAPI.expandir('${mat.id}')" class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:-translate-y-1 hover:border-blue-500 transition-all shadow-lg cursor-pointer flex flex-col group">
+            <div id="mat-card-${mat.id}" onclick="window.conteudosAPI.expandir('${mat.id}')" class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:-translate-y-1 hover:border-blue-500 transition-all shadow-lg cursor-pointer flex flex-col group relative">
+                ${favIcon}
                 <div class="h-32 w-full overflow-hidden border-b border-slate-800"><img src="${thumb}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"></div>
                 <div class="p-4 flex-grow flex flex-col">
                     <div class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-1 truncate">${mat.disciplina} | Prof. ${mat.autorNome}</div>
@@ -457,7 +493,17 @@ window.conteudosAPI = {
         document.getElementById('mat-det-body').innerHTML = bodyHtml;
         
         // RODAPÉ: Links Externos e Botões de Ação
+        // RODAPÉ: Botão Favorito, Links Externos e Botões de Ação
         let footerHtml = '';
+
+        if (currentUser) {
+            const isFav = currentUser.favoritos && currentUser.favoritos.includes(mat.id);
+            const favClass = isFav ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
+            const favText = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
+            
+            footerHtml += `<button id="btn-modal-fav" onclick="window.conteudosAPI.toggleFavorito('${mat.id}')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${favClass}">${favText}</button>`;
+        }
+
         (mat.links || []).forEach((l, i) => {
             footerHtml += `<a href="${l}" target="_blank" class="px-5 py-2.5 border border-blue-500/50 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i+1}</a>`;
         });
@@ -513,6 +559,38 @@ window.conteudosAPI = {
         if(confirm("Apagar permanentemente este conhecimento?")) {
             await deleteDoc(doc(db, "materiaisDidaticos", id));
             window.conteudosAPI.fecharMat();
+        }
+    },
+
+    toggleFavorito: async (id) => {
+        if (!currentUser) return;
+        if (!currentUser.favoritos) currentUser.favoritos = [];
+        
+        const idx = currentUser.favoritos.indexOf(id);
+        if (idx > -1) {
+            currentUser.favoritos.splice(idx, 1); // Remove
+        } else {
+            currentUser.favoritos.push(id); // Adiciona
+        }
+        
+        try {
+            // Atualiza direto na conta do usuário no Firebase
+            await setDoc(doc(db, "users", currentUser.uid), { favoritos: currentUser.favoritos }, { merge: true });
+            
+            // Atualiza a visualização do botão no Modal aberto
+            const btnFav = document.getElementById('btn-modal-fav');
+            if (btnFav) {
+                const isFav = idx === -1; // Se era -1, acabou de ser adicionado
+                btnFav.innerHTML = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
+                btnFav.className = isFav ? 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
+            }
+
+            // Re-renderiza a grade de fundo para atualizar a estrelinha no card e o filtro
+            renderMaterials();
+            
+        } catch(err) {
+            console.error("Erro ao favoritar: ", err);
+            alert("Erro de comunicação com o Grimório ao favoritar.");
         }
     },
 
