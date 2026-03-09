@@ -25,22 +25,25 @@ export async function renderConteudosTab() {
     const container = document.getElementById('conteudos-content');
     if (!container) return;
 
-    if (!auth.currentUser) {
-        container.innerHTML = '<div class="text-center text-slate-500 mt-20">Você precisa estar logado para acessar o acervo.</div>';
-        return;
+    // Remove a trava restrita, permitindo acesso mesmo sem login
+    if (auth.currentUser) {
+        try {
+            const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+            if (snap.exists()) currentUser = { uid: snap.id, ...snap.data() };
+        } catch(e) { 
+            console.error("Erro ao buscar usuário logado", e); 
+        }
+    } else {
+        // Se não houver usuário logado, garante que o currentUser seja nulo (Visitante)
+        currentUser = null; 
     }
-
-    try {
-        const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
-        if (snap.exists()) currentUser = { uid: snap.id, ...snap.data() };
-    } catch(e) { console.error("Erro ao buscar usuário", e); }
 
     mapearDOM();
     setupSubTabs();
-    aplicarPermissoes();
+    aplicarPermissoes(); // Esconderá os botões de edição/criação automaticamente pois currentUser é null
     await setupFiltros();
     
-    // Inicia os Listeners do banco
+    // Inicia os Listeners do banco para carregar o acervo
     initMateriais();
     initMusicas();
     initPodcasts();
@@ -160,18 +163,25 @@ function setupSubTabs() {
 // ==========================================
 
 async function setupFiltros() {
-    const dSnap = await getDocs(collection(db, "disciplinasCadastradas"));
-    const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
-    
     let discHtml = '<option value="">Todas as Disciplinas</option>';
-    dSnap.forEach(d => {
-        const nome = d.data().nomeExibicao || d.data().nome;
-        disciplineMap[d.data().identificador] = nome;
-        discHtml += `<option value="${nome}">${nome}</option>`;
-    });
-    
     let profHtml = '<option value="">Todos os Professores</option>';
-    pSnap.forEach(p => { profHtml += `<option value="${p.data().nome}">${p.data().nome}</option>`; });
+
+    try {
+        // Envolvemos em try/catch para evitar bloqueios de permissão do Firestore para visitantes
+        const dSnap = await getDocs(collection(db, "disciplinasCadastradas"));
+        dSnap.forEach(d => {
+            const nome = d.data().nomeExibicao || d.data().nome;
+            disciplineMap[d.data().identificador] = nome;
+            discHtml += `<option value="${nome}">${nome}</option>`;
+        });
+        
+        const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
+        pSnap.forEach(p => { 
+            profHtml += `<option value="${p.data().nome}">${p.data().nome}</option>`; 
+        });
+    } catch (error) {
+        console.warn("Aviso: Filtros limitados devido a permissões de visitante.", error);
+    }
 
     if(els.filterDisc) els.filterDisc.innerHTML = discHtml;
     const selectAdd = document.getElementById('mat-disciplina');
