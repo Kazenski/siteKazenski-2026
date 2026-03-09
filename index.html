@@ -74,7 +74,8 @@
                     <p id="user-role" class="text-[9px] text-blue-500 uppercase font-black tracking-tighter mt-1"></p>
                 </div>
 
-                <div id="session-timer" class="hidden flex-col items-end justify-center mr-2 border-r border-slate-700 pr-4">
+                <div id="session-timer"
+                    class="hidden flex-col items-end justify-center mr-2 border-r border-slate-700 pr-4">
                     <span class="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Sessão expira em:</span>
                     <span id="session-countdown" class="text-xs text-amber-500 font-mono font-black">15:00</span>
                 </div>
@@ -448,10 +449,14 @@
                     <div class="w-full relative">
                         <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat"
                             id="al-bg-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0"></div>
-                            
-                            <div class="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-slate-900 z-0 opacity-90 hidden md:block"></div>
-                            
+                            <div
+                                class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0">
+                            </div>
+
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-slate-900 z-0 opacity-90 hidden md:block">
+                            </div>
+
                             <button id="btn-edit-cover"
                                 class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
                                     class="fas fa-camera"></i></button>
@@ -963,23 +968,31 @@
             </div>
 
             <div id="al-modal-crop" class="fixed inset-0 z-[3000] hidden flex items-center justify-center p-4">
-                <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity" onclick="window.closeCropModal()"></div>
-                <div class="relative bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden fade-in">
-                    
+                <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity"
+                    onclick="window.closeCropModal()"></div>
+                <div
+                    class="relative bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden fade-in">
+
                     <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-                        <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-crop-alt mr-2"></i> Ajustar Imagem</h3>
-                        <button onclick="window.closeCropModal()" class="text-slate-500 hover:text-white"><i class="fas fa-times"></i></button>
+                        <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-crop-alt mr-2"></i>
+                            Ajustar Imagem</h3>
+                        <button onclick="window.closeCropModal()" class="text-slate-500 hover:text-white"><i
+                                class="fas fa-times"></i></button>
                     </div>
-                    
-                    <div class="w-full bg-slate-950 flex items-center justify-center p-2" style="height: 60vh; min-height: 300px; max-height: 500px;">
+
+                    <div class="w-full bg-slate-950 flex items-center justify-center p-2"
+                        style="height: 60vh; min-height: 300px; max-height: 500px;">
                         <img id="image-to-crop" src="" class="max-w-full max-h-full block">
                     </div>
-                    
+
                     <div class="p-4 bg-slate-800/50 border-t border-slate-700 flex justify-between items-center gap-4">
-                        <div class="text-xs text-slate-400"><i class="fas fa-info-circle text-blue-500 mr-1"></i> Arraste e use o scroll para zoom</div>
+                        <div class="text-xs text-slate-400"><i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                            Arraste e use o scroll para zoom</div>
                         <div class="flex gap-3">
-                            <button onclick="window.closeCropModal()" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
-                            <button id="btn-confirm-crop" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-transform hover:scale-105 shadow-lg">
+                            <button onclick="window.closeCropModal()"
+                                class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
+                            <button id="btn-confirm-crop"
+                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-transform hover:scale-105 shadow-lg">
                                 <i class="fas fa-check mr-2"></i> Aplicar
                             </button>
                         </div>
@@ -1198,6 +1211,10 @@
                         data-target="notas"><i class="fas fa-marker mr-1"></i> Notas</button>
 
                     <button
+                        class="prof-subtab-btn bg-slate-800 text-slate-400 hover:text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors whitespace-nowrap"
+                        data-target="extras"><i class="fas fa-star mr-2"></i> Pontos Extras</button>
+
+                    <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
                         data-target="analise"><i class="fas fa-chart-line mr-1"></i> Análise Aluno</button>
 
@@ -1367,6 +1384,100 @@
                     <p id="notas-msg" class="text-center text-sm mt-6 font-bold text-slate-500 italic hidden"></p>
                 </div>
 
+                <div id="ptab-extras" class="prof-tab-content hidden flex-col h-full animate-fade-in">
+                    <div
+                        class="bg-slate-800/80 border-b border-slate-700 p-4 shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-lg font-cinzel font-bold text-blue-400"><i
+                                    class="fas fa-star mr-2 text-amber-500"></i> Registro de Pontos Extras</h2>
+                            <p class="text-xs text-slate-400 mt-1">Marque os feitos extras (EXT) realizados pelos alunos
+                                para gerar o ranking da disciplina.</p>
+                        </div>
+
+                        <div id="extras-actions"
+                            class="flex items-center gap-3 bg-slate-900/50 p-2 rounded-xl border border-slate-700 w-full md:w-auto overflow-x-auto">
+                            <div class="flex items-center gap-2 px-2 border-r border-slate-700 shrink-0">
+                                <i class="fas fa-bolt text-amber-500"></i>
+                                <label
+                                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Massa:</label>
+                            </div>
+
+                            <div class="flex items-center gap-4 px-2 shrink-0">
+                                <label
+                                    class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer hover:text-white transition-colors">
+                                    <input type="checkbox" id="check-mass-ext1"
+                                        class="accent-blue-500 w-4 h-4 cursor-pointer"> EXT 1
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer hover:text-white transition-colors">
+                                    <input type="checkbox" id="check-mass-ext2"
+                                        class="accent-blue-500 w-4 h-4 cursor-pointer"> EXT 2
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer hover:text-white transition-colors">
+                                    <input type="checkbox" id="check-mass-ext3"
+                                        class="accent-blue-500 w-4 h-4 cursor-pointer"> EXT 3
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer hover:text-white transition-colors">
+                                    <input type="checkbox" id="check-mass-ext4"
+                                        class="accent-blue-500 w-4 h-4 cursor-pointer"> EXT 4
+                                </label>
+                            </div>
+
+                            <button onclick="window.profAPI.applyMassExtra()"
+                                class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shrink-0">
+                                Aplicar Seleção
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow overflow-auto p-4 custom-scrollbar bg-slate-950/30">
+                        <div id="extras-msg" class="text-center text-slate-500 mb-4 font-bold text-sm hidden"></div>
+
+                        <div
+                            class="bg-slate-900/80 rounded-xl border border-slate-700 overflow-hidden min-w-[800px] shadow-xl">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr
+                                        class="bg-slate-800 border-b border-slate-700 text-[10px] uppercase tracking-widest text-slate-400 font-black">
+                                        <th class="p-4 text-center w-12">
+                                            <input type="checkbox" class="w-4 h-4 accent-amber-500 cursor-pointer"
+                                                onchange="window.profAPI.toggleSelectAllExtras(this)"
+                                                title="Selecionar Todos na Tabela">
+                                        </th>
+                                        <th class="p-4">Nome do Estudante</th>
+                                        <th class="p-4 text-center w-24">Status</th>
+                                        <th class="p-4 text-center w-20 text-blue-400">EXT 1</th>
+                                        <th class="p-4 text-center w-20 text-blue-400">EXT 2</th>
+                                        <th class="p-4 text-center w-20 text-blue-400">EXT 3</th>
+                                        <th class="p-4 text-center w-20 text-blue-400">EXT 4</th>
+                                        <th class="p-4 text-center w-24 text-amber-500"><i
+                                                class="fas fa-trophy mr-1"></i> TOTAL</th>
+                                        <th class="p-4 text-center w-20">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="extras-table-body">
+                                    <tr>
+                                        <td colspan="9" class="text-center py-12">
+                                            <i class="fas fa-inbox text-4xl text-slate-700 mb-3 block"></i>
+                                            <span class="text-slate-500 font-bold">Selecione Turma e Disciplina no menu
+                                                superior e clique em Carregar.</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/80 border-t border-slate-700 p-4 shrink-0 flex justify-end">
+                        <button onclick="window.profAPI.saveAllExtras()"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/50 flex items-center gap-2 hover:-translate-y-0.5">
+                            <i class="fas fa-save text-lg"></i> Salvar Pontos Extras no Grimório
+                        </button>
+                    </div>
+
+                </div>
 
                 <div id="ptab-relatorio" class="prof-tab-content hidden h-full fade-in flex-col">
 

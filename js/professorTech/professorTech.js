@@ -339,6 +339,14 @@ function mapearDOM() {
         resetConsole: document.getElementById('reset-console-container'),
         resetLog: document.getElementById('reset-log'),
         resetProgress: document.getElementById('reset-progress-fill'),
+
+        // Pontos Extras (NOVO)
+        extrasBody: document.getElementById('extras-table-body'),
+        extrasMsg: document.getElementById('extras-msg'),
+        massExt1: document.getElementById('check-mass-ext1'),
+        massExt2: document.getElementById('check-mass-ext2'),
+        massExt3: document.getElementById('check-mass-ext3'),
+        massExt4: document.getElementById('check-mass-ext4'),
     };
 }
 
@@ -453,6 +461,7 @@ async function loadMasterData() {
         await Promise.all(state.cache.students.map(async (st) => {
             const docSnap = await getDoc(doc(db, "notas", st.id));
             let n1 = "", n2 = "", n3 = "", n4 = "";
+            let e1 = false, e2 = false, e3 = false, e4 = false;
             let missing = false;
 
             if (docSnap.exists()) {
@@ -460,6 +469,13 @@ async function loadMasterData() {
                 if (trimData) {
                     n1 = trimData.nota1 ?? ""; n2 = trimData.nota2 ?? ""; n3 = trimData.nota3 ?? "";
                     if (trimData.nota4 === undefined) { n4 = ""; missing = true; } else { n4 = trimData.nota4 ?? ""; }
+                    
+                    // Extrai os pontos extras (false por padrão)
+                    e1 = trimData.ext1 || false;
+                    e2 = trimData.ext2 || false;
+                    e3 = trimData.ext3 || false;
+                    e4 = trimData.ext4 || false;
+
                 } else { missing = true; }
             } else { missing = true; }
 
@@ -469,7 +485,8 @@ async function loadMasterData() {
                     disciplinasComNotas: {
                         [disciplineId]: {
                             [quarter]: {
-                                nota1: n1 === "" ? null : n1, nota2: n2 === "" ? null : n2, nota3: n3 === "" ? null : n3, nota4: n4 === "" ? null : n4
+                                nota1: n1 === "" ? null : n1, nota2: n2 === "" ? null : n2, nota3: n3 === "" ? null : n3, nota4: n4 === "" ? null : n4,
+                                ext1: e1, ext2: e2, ext3: e3, ext4: e4
                             }
                         }
                     },
@@ -477,19 +494,72 @@ async function loadMasterData() {
                 }, { merge: true });
                 needsBatch = true;
             }
-            state.notasCache[st.id] = { n1, n2, n3, n4, modified: false };
+            state.notasCache[st.id] = { n1, n2, n3, n4, e1, e2, e3, e4, modified: false, extModified: false };
         }));
 
         if (needsBatch) await batch.commit();
 
         renderChamadaList();
         renderNotasTable();
+        renderExtrasTable();
         window.profAPI.populateEvalStudents();
 
     } catch (e) {
         els.studentList.innerHTML = `<div class="text-center text-red-500 py-10 font-bold">${e.message}</div>`;
         els.notasMsg.textContent = e.message;
     }
+}
+
+function renderExtrasTable() {
+    if(!els.extrasBody) return;
+    els.extrasBody.innerHTML = '';
+    if(els.extrasMsg) els.extrasMsg.classList.add('hidden');
+    
+    state.cache.students.forEach(st => {
+        const cache = state.notasCache[st.id];
+        const isActive = st.registroAtivo !== false;
+        
+        // Calcula a soma (Quantos estão marcados como TRUE)
+        const somaExtras = [cache.e1, cache.e2, cache.e3, cache.e4].filter(Boolean).length;
+        
+        const tr = document.createElement('tr');
+        tr.dataset.uid = st.id;
+        tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
+        
+        let html = `
+            <td class="p-4 text-center">
+                <input type="checkbox" class="w-4 h-4 accent-amber-500 cursor-pointer row-checkbox-ext" ${!isActive ? 'disabled' : ''}>
+            </td>
+            <td class="p-4 font-bold text-slate-200 truncate max-w-[200px]">${escapeHTML(st.nome)}</td>
+            <td class="p-4 text-center">
+                <span class="px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest border ${isActive ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}">
+                    ${isActive ? 'ATIVO' : 'INATIVO'}
+                </span>
+            </td>
+        `;
+
+        // Campos de EXT 1 a EXT 4
+        ['e1', 'e2', 'e3', 'e4'].forEach(f => { 
+            const isChecked = cache[f] ? 'checked' : '';
+            html += `<td class="p-2 text-center">
+                <input type="checkbox" class="w-5 h-5 accent-blue-500 cursor-pointer ext-input" 
+                    ${isChecked} data-field="${f}" 
+                    onchange="window.profAPI.updateLocalExtra('${st.id}', this)" 
+                    ${isActive ? '' : 'disabled'}>
+            </td>`;
+        });
+
+        html += `
+            <td class="p-4 text-center font-black text-xl text-blue-400" id="soma-ext-${st.id}">${somaExtras}</td>
+            <td class="p-4 text-center">
+                <button onclick="window.profAPI.saveSingleExtra('${st.id}')" class="btn-save-row-ext text-slate-600 hover:text-blue-400 transition-colors opacity-50" title="Salvar Linha">
+                    <i class="fas fa-save text-xl"></i>
+                </button>
+            </td>
+        `;
+        tr.innerHTML = html;
+        els.extrasBody.appendChild(tr);
+    });
 }
 
 // ==========================================
@@ -813,11 +883,13 @@ async function generatePdf() {
 // EXPORT API GLOBAL
 // ==========================================
 window.profAPI = {
+    
     setStatus: (uid, status, btn) => {
         state.chamada.registros[uid] = status;
         btn.parentElement.querySelectorAll('.p-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
     },
+
     markAll: (status) => { document.querySelectorAll(`.p-btn.${status}:not(:disabled)`).forEach(b => b.click()); },
     toggleActive: async (uid, sel) => {
         const newVal = sel.value === 'true'; sel.disabled = true;
@@ -828,6 +900,7 @@ window.profAPI = {
         } catch (e) { alert("Erro ao atualizar banco."); sel.value = (!newVal).toString(); }
         finally { sel.disabled = false; }
     },
+
     saveChamada: async () => {
         const { classId, disciplineId } = state.filters;
         const date = els.inputDate.value;
@@ -839,6 +912,7 @@ window.profAPI = {
         catch (e) { alert("Erro: " + e.message); }
         finally { els.btnSaveChamada.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Registro'; }
     },
+
     updateLocalNote: (uid, input) => {
         const field = input.dataset.field; const val = input.value;
         input.className = `nota-input ${getNoteColor(val)}`;
@@ -851,6 +925,7 @@ window.profAPI = {
             if (btn) { btn.classList.remove('opacity-50', 'text-slate-600'); btn.classList.add('text-amber-500', 'opacity-100'); }
         }
     },
+
     toggleSelectAll: (source) => { document.querySelectorAll('#notas-table-body .row-checkbox:not(:disabled)').forEach(cb => cb.checked = source.checked); },
     applyMassNote: () => {
         const val = els.massInput.value; if (!val) return alert("Digite a nota.");
@@ -867,6 +942,7 @@ window.profAPI = {
             fields.forEach(f => { const i = tr.querySelector(`[data-field="${f}"]`); i.value = val; window.profAPI.updateLocalNote(uid, i); });
         });
     },
+
     saveSingleNote: async (uid) => {
         const cache = state.notasCache[uid]; const { disciplineId, quarter } = state.filters;
         try {
@@ -885,6 +961,7 @@ window.profAPI = {
             if (btn) { btn.classList.add('text-slate-600', 'opacity-50'); btn.classList.remove('text-amber-500', 'opacity-100'); }
         } catch (e) { console.error(e); alert("Erro ao salvar nota isolada."); }
     },
+
     saveAllNotes: async () => {
         const mods = Object.keys(state.notasCache).filter(uid => state.notasCache[uid].modified);
         if (mods.length === 0) return alert("Nenhuma alteração para salvar.");
@@ -892,6 +969,87 @@ window.profAPI = {
         let err = 0;
         for (const uid of mods) { try { await window.profAPI.saveSingleNote(uid); } catch (e) { err++; } }
         if (err > 0) alert(`Salvo, porém com ${err} erros.`); else alert("Notas salvas no Grimório com Sucesso!");
+    },
+
+    // ==========================================
+    // MÓDULO: PONTOS EXTRAS
+    // ==========================================
+    updateLocalExtra: (uid, input) => {
+        const field = input.dataset.field; 
+        const isChecked = input.checked;
+        
+        if (state.notasCache[uid]) {
+            state.notasCache[uid][field] = isChecked; 
+            state.notasCache[uid].extModified = true;
+            
+            // Recalcula a soma e atualiza a interface
+            const c = state.notasCache[uid]; 
+            const soma = [c.e1, c.e2, c.e3, c.e4].filter(Boolean).length;
+            
+            const sEl = document.getElementById(`soma-ext-${uid}`);
+            if (sEl) sEl.textContent = soma;
+            
+            const btn = input.closest('tr').querySelector('.btn-save-row-ext');
+            if (btn) { btn.classList.remove('opacity-50', 'text-slate-600'); btn.classList.add('text-blue-500', 'opacity-100'); }
+        }
+    },
+
+    toggleSelectAllExtras: (source) => { document.querySelectorAll('#extras-table-body .row-checkbox-ext:not(:disabled)').forEach(cb => cb.checked = source.checked); },
+    applyMassExtra: () => {
+        const fields = [];
+        if (els.massExt1.checked) fields.push('e1'); 
+        if (els.massExt2.checked) fields.push('e2');
+        if (els.massExt3.checked) fields.push('e3'); 
+        if (els.massExt4.checked) fields.push('e4');
+        if (fields.length === 0) return alert("Selecione qual Coluna Extra (1 a 4) aplicar no painel de massa.");
+
+        const rows = document.querySelectorAll('#extras-table-body .row-checkbox-ext:checked');
+        if (rows.length === 0) return alert("Selecione os alunos desejados na tabela.");
+
+        rows.forEach(cb => {
+            const tr = cb.closest('tr'); const uid = tr.dataset.uid;
+            fields.forEach(f => { 
+                const i = tr.querySelector(`[data-field="${f}"]`); 
+                i.checked = true; // Aplica sempre como verdadeiro
+                window.profAPI.updateLocalExtra(uid, i); 
+            });
+        });
+    },
+
+    saveSingleExtra: async (uid) => {
+        const cache = state.notasCache[uid]; const { disciplineId, quarter } = state.filters;
+        try {
+            const payload = {
+                disciplinasComNotas: {
+                    [disciplineId]: {
+                        [quarter]: {
+                            ext1: cache.e1, ext2: cache.e2, ext3: cache.e3, ext4: cache.e4, updatedAt: Date.now()
+                        }
+                    }
+                }, lastUpdatedAt: serverTimestamp()
+            };
+            await setDoc(doc(db, "notas", uid), payload, { merge: true });
+            cache.extModified = false;
+            const btn = document.querySelector(`tr[data-uid="${uid}"] .btn-save-row-ext`);
+            if (btn) { btn.classList.add('text-slate-600', 'opacity-50'); btn.classList.remove('text-blue-500', 'opacity-100'); }
+        } catch (e) { console.error(e); alert("Erro ao salvar extra isolado."); }
+    },
+    
+    saveAllExtras: async () => {
+        const mods = Object.keys(state.notasCache).filter(uid => state.notasCache[uid].extModified);
+        if (mods.length === 0) return alert("Nenhuma alteração pendente em Pontos Extras para salvar.");
+        if (!confirm(`Confirmar registro de pontos extras para ${mods.length} alunos?`)) return;
+        
+        let err = 0;
+        if(els.extrasMsg) {
+            els.extrasMsg.textContent = "Salvando extras no Grimório...";
+            els.extrasMsg.classList.remove('hidden');
+        }
+        
+        for (const uid of mods) { try { await window.profAPI.saveSingleExtra(uid); } catch (e) { err++; } }
+        
+        if (err > 0) alert(`Salvo, porém com ${err} erros.`); else alert("Pontos Extras salvos com Sucesso!");
+        if(els.extrasMsg) els.extrasMsg.classList.add('hidden');
     },
 
     // ==========================================
