@@ -2363,44 +2363,55 @@ window.profAPI = {
             }
             geralAnalysisCache.students = students;
 
-            // Popula Dropdown de Frequência Individual
+            // Popula Dropdown de Frequência Individual e Atrela o Evento (Correção do Gráfico que não mudava)
             els.geralFreqStudentSel.innerHTML = '<option value="">Selecione Aluno...</option>';
             students.forEach(s => els.geralFreqStudentSel.add(new Option(s.nome, s.id)));
+            
+            els.geralFreqStudentSel.onchange = (e) => {
+                window.profAPI.renderIndividualFreqChartGeral(e.target.value);
+            };
 
-            // 2. Busca Notas da Turma toda (para a disciplina)
+            // 2. Busca Notas da Turma toda
             const notasPromises = students.map(s => getDoc(doc(db, "notas", s.id)));
             const notasSnaps = await Promise.all(notasPromises);
             
-            // 3. Busca Presenças no Período Selecionado
+            // 3. Busca Presenças (Traz tudo da turma e filtra localmente para evitar problemas de nomenclatura no Firebase)
+            const presSnap = await getDocs(query(collection(db, "presencas"), where("turma", "==", classId)));
+            
             const startStr = els.geralStartDate.value;
             const endStr = els.geralEndDate.value;
-            
-            let qPres = query(collection(db, "presencas"), where("turma", "==", classId), where("disciplinaId", "==", disciplineId));
-            if(startStr) qPres = query(qPres, where("data_aula_timestamp", ">=", Timestamp.fromDate(new Date(startStr + "T00:00:00"))));
-            if(endStr) qPres = query(qPres, where("data_aula_timestamp", "<=", Timestamp.fromDate(new Date(endStr + "T23:59:59"))));
-            
-            const presSnap = await getDocs(qPres);
+            const startLimit = startStr ? new Date(startStr + "T00:00:00").getTime() : 0;
+            const endLimit = endStr ? new Date(endStr + "T23:59:59").getTime() : Infinity;
             
             // --- PROCESSAMENTO DOS DADOS ---
             const dataFaltas = {}; 
             let totalFaltasTurma = 0;
-            let totalAulas = 0; 
             let alunosRisco = 0;
+            const uniqueAulas = new Set();
             
             students.forEach(s => dataFaltas[s.id] = { ausente: 0, presente: 0, justificado: 0 });
 
             presSnap.forEach(doc => {
                 const p = doc.data();
-                totalAulas++; 
-                if(p.registros) {
-                    Object.entries(p.registros).forEach(([uid, status]) => {
-                        if(dataFaltas[uid]) {
-                            dataFaltas[uid][status] = (dataFaltas[uid][status] || 0) + 1;
-                            if(status === 'ausente') totalFaltasTurma++;
-                        }
-                    });
+                // Aceita as duas formas que podem estar salvas no banco
+                const dId = p.disciplineId || p.disciplinaId;
+                const pTime = p.data_aula_timestamp ? p.data_aula_timestamp.toMillis() : 0;
+                
+                // Filtra pela disciplina correta e pelo período de datas
+                if(dId === disciplineId && pTime >= startLimit && pTime <= endLimit) {
+                    uniqueAulas.add(doc.id);
+                    if(p.registros) {
+                        Object.entries(p.registros).forEach(([uid, status]) => {
+                            if(dataFaltas[uid]) {
+                                dataFaltas[uid][status] = (dataFaltas[uid][status] || 0) + 1;
+                                if(status === 'ausente') totalFaltasTurma++;
+                            }
+                        });
+                    }
                 }
             });
+            
+            const totalAulas = uniqueAulas.size;
             geralAnalysisCache.faltasMap = dataFaltas;
 
             // Calcula Risco (> 20% faltas)
@@ -2410,8 +2421,8 @@ window.profAPI = {
             });
 
             // Processa Notas
-            const scatterData = []; // Para Dispersão
-            const panoramaData = []; // Para o Panorama Detalhado
+            const scatterData = []; 
+            const panoramaData = []; 
             let somaMedias = 0;
             let countAlunosComNota = 0;
             
@@ -2425,7 +2436,6 @@ window.profAPI = {
                 let somaAluno = 0;
                 let countAluno = 0;
 
-                // Varre trimestres
                 ['1', '2', '3'].forEach(trim => {
                     const tData = discData[trim] || {};
                     ['nota1', 'nota2', 'nota3', 'nota4'].forEach((nKey, nIdx) => { 
@@ -2450,7 +2460,7 @@ window.profAPI = {
                 }
             });
 
-            // Preenche KPIs
+            // Preenche KPIs Visuais
             const mediaTurma = countAlunosComNota > 0 ? (somaMedias/countAlunosComNota).toFixed(2) : "-";
             els.kpiGeralMedia.textContent = mediaTurma;
             els.kpiGeralMedia.className = `text-4xl font-black ${mediaTurma >= 7 ? 'text-green-400' : (mediaTurma >= 6 ? 'text-amber-400' : 'text-red-500')}`;
@@ -2458,7 +2468,7 @@ window.profAPI = {
             els.kpiGeralFaltas.textContent = totalFaltasTurma;
             els.kpiGeralRisco.textContent = alunosRisco;
 
-            // Renderiza Gráficos
+            // Renderiza Gráficos (Mesmo sem notas, os gráficos carregam em branco e exibem o KPI de Faltas)
             window.profAPI.renderGeralScatter(scatterData);
             window.profAPI.renderGeralPanorama(panoramaData);
             
@@ -2529,7 +2539,12 @@ window.profAPI = {
     },
 
     renderIndividualFreqChartGeral: (uid) => {
-        if(!uid) return;
+        if(!uid) {
+            if(chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
+            els.msgGeralFaltas.classList.remove('hidden');
+            return;
+        }
+        
         const dados = geralAnalysisCache.faltasMap[uid];
         if(!dados) return;
 
