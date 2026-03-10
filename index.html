@@ -1003,9 +1003,9 @@
         </div>
 
         <div id="moderador-tech-content"
-            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12">
+            class="tab-content hidden flex-col w-full h-full overflow-y-auto custom-scroll p-4 md:p-8">
 
-            <div class="flex flex-col h-full max-w-7xl mx-auto pb-20 fade-in">
+            <div class="flex flex-col flex-grow w-full h-full pb-20 fade-in">
                 <div
                     class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6 shrink-0">
                     <div>
@@ -1018,7 +1018,8 @@
                     </div>
                 </div>
 
-                <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 border-b border-slate-800 pb-2 shrink-0">
+                <div
+                    class="flex gap-2 overflow-x-auto no-scrollbar mb-6 border-b border-slate-800 pb-2 shrink-0 w-full">
                     <button
                         class="mod-subtab-btn active px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30"
                         data-target="atualizacoes">
@@ -1036,7 +1037,7 @@
                     </button>
                 </div>
 
-                <div id="mtab-atualizacoes" class="mod-tab-content flex flex-grow flex-col fade-in">
+                <div id="mtab-atualizacoes" class="mod-tab-content flex flex-grow flex-col fade-in w-full">
                     <div class="flex justify-between items-center mb-6 shrink-0">
                         <h3 class="text-lg text-blue-400 font-cinzel font-bold"><i class="fas fa-list mr-2"></i> Mural
                             de Atualizações</h3>
@@ -1169,7 +1170,7 @@
                     </div>
                 </div>
 
-                <div id="mtab-titulos" class="mod-tab-content hidden flex-grow flex-col fade-in">
+                <div id="mtab-titulos" class="mod-tab-content hidden flex-grow flex-col fade-in w-full">
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl mb-6 shrink-0">
                         <h3 class="text-amber-500 font-cinzel font-bold text-xl mb-4" id="titulo-form-title"><i
                                 class="fas fa-medal mr-2"></i> Cadastrar Novo Título</h3>
@@ -1237,7 +1238,7 @@
                     </div>
                 </div>
 
-                <div id="mtab-condecorar" class="mod-tab-content hidden flex-grow flex-col fade-in">
+                <div id="mtab-condecorar" class="mod-tab-content hidden flex-grow flex-col fade-in w-full">
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-green-500 shadow-xl mb-6 shrink-0">
                         <h3 class="text-green-400 font-cinzel font-bold text-xl mb-4"><i class="fas fa-award mr-2"></i>
                             Condecorar Aluno</h3>
@@ -1267,7 +1268,7 @@
                         class="hidden bg-slate-900/50 p-6 rounded-2xl border border-slate-700 shadow-xl flex-grow flex-col relative min-h-[400px]">
                         <div class="flex justify-between items-center mb-4 shrink-0">
                             <h3 class="text-white font-cinzel font-bold text-lg">3. Escolha as Medalhas</h3>
-                            <div class="relative w-64">
+                            <div class="relative w-full md:w-64 mt-2 md:mt-0">
                                 <i
                                     class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
                                 <input type="text" id="search-award-titles-input" placeholder="Filtrar..."
