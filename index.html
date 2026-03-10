@@ -1002,20 +1002,40 @@
 
         </div>
 
-        <div id="moderador-tech-content"
-            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12">
+        <div id="moderador-tech-content" <div class="flex flex-col h-full max-w-7xl mx-auto pb-20 fade-in">
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6 shrink-0">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase mb-1">
+                        <i class="fas fa-shield-alt text-blue-500 mr-2"></i> Central da Moderação
+                    </h2>
+                    <p class="text-xs text-slate-400 font-bold tracking-widest uppercase">Gestão de Atualizações,
+                        Títulos e Condecorações</p>
+                </div>
+            </div>
 
-            <div class="flex flex-col h-full max-w-7xl mx-auto pb-20 fade-in">
-                <div
-                    class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 border-b border-slate-800 pb-6 shrink-0">
-                    <div>
-                        <h2
-                            class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase mb-1">
-                            <i class="fas fa-satellite-dish text-blue-500 mr-2"></i> Gestão de Atualizações
-                        </h2>
-                        <p class="text-xs text-slate-400 font-bold tracking-widest uppercase">Controle do Carrossel e
-                            Novidades do Sistema</p>
-                    </div>
+            <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 border-b border-slate-800 pb-2 shrink-0">
+                <button
+                    class="mod-subtab-btn active px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30"
+                    data-target="atualizacoes">
+                    <i class="fas fa-satellite-dish mr-1"></i> Atualizações
+                </button>
+                <button
+                    class="mod-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                    data-target="titulos">
+                    <i class="fas fa-medal mr-1"></i> Gestão de Títulos
+                </button>
+                <button
+                    class="mod-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                    data-target="condecorar">
+                    <i class="fas fa-award mr-1"></i> Condecorar Alunos
+                </button>
+            </div>
+
+            <div id="mtab-atualizacoes" class="mod-tab-content active flex-grow flex flex-col fade-in">
+                <div class="flex justify-between items-center mb-6 shrink-0">
+                    <h3 class="text-lg text-blue-400 font-cinzel font-bold"><i class="fas fa-list mr-2"></i> Mural de
+                        Atualizações</h3>
                     <button onclick="window.atualizacoesAPI.toggleForm()" id="btn-toggle-upd-form"
                         class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap">
                         <i class="fas fa-plus mr-2"></i> Nova Atualização
@@ -1032,49 +1052,35 @@
 
                     <form id="form-atualizacao" class="space-y-5">
                         <input type="hidden" id="upd-id">
-
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label
+                            <div><label
                                     class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Título
-                                    da Atualização *</label>
-                                <input type="text" id="upd-titulo" required
+                                    da Atualização *</label><input type="text" id="upd-titulo" required
                                     class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             </div>
-                            <div>
-                                <label
+                            <div><label
                                     class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Ordem
-                                    de Exibição *</label>
-                                <input type="number" id="upd-ordem" value="1" min="1" required
+                                    de Exibição *</label><input type="number" id="upd-ordem" value="1" min="1" required
                                     class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             </div>
                         </div>
-
-                        <div>
-                            <label
+                        <div><label
                                 class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Subtítulo
-                                / Descrição Curta</label>
-                            <textarea id="upd-subtitulo"
+                                / Descrição Curta</label><textarea id="upd-subtitulo"
                                 class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[80px] focus:border-blue-500 outline-none custom-scroll"></textarea>
                         </div>
-
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div>
-                                <label
+                            <div><label
                                     class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Link
-                                    do Botão (URL)</label>
-                                <input type="url" id="upd-link" placeholder="https://..."
+                                    do Botão (URL)</label><input type="url" id="upd-link" placeholder="https://..."
                                     class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             </div>
-                            <div>
-                                <label
+                            <div><label
                                     class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Texto
-                                    do Botão</label>
-                                <input type="text" id="upd-texto-botao" placeholder="Ex: Saiba Mais"
+                                    do Botão</label><input type="text" id="upd-texto-botao" placeholder="Ex: Saiba Mais"
                                     class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             </div>
                         </div>
-
                         <div
                             class="bg-slate-900/50 p-5 rounded-xl border border-slate-700 flex flex-col md:flex-row gap-6 items-center">
                             <div class="flex-grow w-full">
@@ -1083,7 +1089,6 @@
                                     de Capa (Recomendado: 16:9)</label>
                                 <input type="file" id="upd-imagem" accept="image/*"
                                     class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
-
                                 <label class="flex items-center gap-3 cursor-pointer group mt-4 pl-1">
                                     <input type="checkbox" id="upd-ativa" class="w-5 h-5 accent-blue-500 cursor-pointer"
                                         checked>
@@ -1100,13 +1105,11 @@
                                 <img id="upd-preview" src="" class="hidden w-full h-full object-cover relative z-10">
                             </div>
                         </div>
-
                         <div id="upd-progress-container"
                             class="hidden w-full bg-slate-900 rounded-full h-3 border border-slate-700 overflow-hidden mt-4">
                             <div id="upd-progress-bar"
                                 class="bg-blue-500 h-3 rounded-full transition-all duration-300 w-0"></div>
                         </div>
-
                         <div class="flex justify-end gap-3 pt-4 border-t border-slate-700">
                             <p id="upd-msg" class="text-xs font-bold hidden items-center mr-auto px-4 py-2 rounded-lg">
                             </p>
@@ -1134,14 +1137,158 @@
                                 <th class="p-4 text-right w-32">Ações</th>
                             </tr>
                         </thead>
-                        <tbody id="upd-table-body" class="divide-y divide-slate-800">
-                        </tbody>
+                        <tbody id="upd-table-body" class="divide-y divide-slate-800"></tbody>
                     </table>
                     <div id="upd-empty-msg"
                         class="text-center text-sm mt-10 font-bold text-slate-500 italic p-4 hidden">Nenhuma atualização
                         cadastrada.</div>
                 </div>
             </div>
+
+            <div id="mtab-titulos" class="mod-tab-content hidden flex-grow flex flex-col fade-in">
+                <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl mb-6 shrink-0">
+                    <h3 class="text-amber-500 font-cinzel font-bold text-xl mb-4" id="titulo-form-title"><i
+                            class="fas fa-medal mr-2"></i> Cadastrar Novo Título</h3>
+                    <form id="form-titulo" class="space-y-4">
+                        <input type="hidden" id="titulo-doc-id">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome
+                                    do Título *</label><input type="text" id="titulo-nome" required
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none">
+                            </div>
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ícone
+                                    (Emoji ou classe fa-icon)</label><input type="text" id="titulo-icone"
+                                    placeholder="Ex: 🏆 ou fas fa-star"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição
+                                    Breve *</label><textarea id="titulo-descricao" required
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 min-h-[80px] focus:border-amber-500 outline-none custom-scroll"></textarea>
+                            </div>
+                            <div><label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Explicação
+                                    de Uso / Requisitos</label><textarea id="titulo-explicacao"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 min-h-[80px] focus:border-amber-500 outline-none custom-scroll"></textarea>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-slate-700 pt-4 mt-2">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <input type="checkbox" id="titulo-ativo" class="w-5 h-5 accent-amber-500 cursor-pointer"
+                                    checked>
+                                <span
+                                    class="text-xs font-bold text-slate-300 uppercase tracking-widest group-hover:text-white transition-colors">Título
+                                    Ativo para Condecoração</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <button type="button" onclick="window.titulosAPI.resetForm()"
+                                    class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Limpar</button>
+                                <button type="submit" id="btn-save-titulo"
+                                    class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-amber-900/50">Salvar
+                                    Título</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div
+                    class="bg-slate-900/50 p-4 rounded-2xl border border-slate-700 shadow-xl flex-grow flex flex-col relative min-h-[400px]">
+                    <div class="relative mb-4 shrink-0">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="search-titles-input" placeholder="Buscar título pelo nome..."
+                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:border-amber-500 outline-none">
+                    </div>
+                    <ul id="titulos-list" class="flex-grow overflow-y-auto custom-scroll space-y-3 pr-2"></ul>
+                </div>
+            </div>
+
+            <div id="mtab-condecorar" class="mod-tab-content hidden flex-grow flex flex-col fade-in">
+                <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-green-500 shadow-xl mb-6 shrink-0">
+                    <h3 class="text-green-400 font-cinzel font-bold text-xl mb-4"><i class="fas fa-award mr-2"></i>
+                        Condecorar Aluno</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">1.
+                                Turma (Vinculada)</label>
+                            <select id="award-turma-select"
+                                class="w-full bg-slate-900 border border-slate-700 text-white text-sm font-bold rounded-xl p-3 outline-none focus:border-green-500">
+                                <option value="">Carregando...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">2.
+                                Aluno</label>
+                            <select id="award-aluno-select" disabled
+                                class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-green-500 disabled:opacity-50">
+                                <option value="">-- Selecione uma turma primeiro --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="award-area"
+                    class="hidden bg-slate-900/50 p-6 rounded-2xl border border-slate-700 shadow-xl flex-grow flex-col relative min-h-[400px]">
+                    <div class="flex justify-between items-center mb-4 shrink-0">
+                        <h3 class="text-white font-cinzel font-bold text-lg">3. Escolha as Medalhas</h3>
+                        <div class="relative w-64">
+                            <i
+                                class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                            <input type="text" id="search-award-titles-input" placeholder="Filtrar..."
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-lg py-2 pl-8 pr-3 text-xs focus:border-green-500 outline-none">
+                        </div>
+                    </div>
+                    <div id="award-titles-list"
+                        class="flex-grow overflow-y-auto custom-scroll grid grid-cols-1 md:grid-cols-2 gap-4 content-start pr-2">
+                    </div>
+                    <div class="border-t border-slate-700 pt-4 mt-4 flex justify-end shrink-0">
+                        <button id="save-awards-btn"
+                            class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_15px_rgba(22,163,74,0.4)]">Salvar
+                            Condecorações</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="delete-title-modal" class="fixed inset-0 z-[3000] hidden flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity"
+                onclick="window.titulosAPI.closeDeleteModal()"></div>
+            <div
+                class="relative bg-slate-900 border border-red-500/50 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden fade-in max-h-[90vh]">
+                <div class="p-5 border-b border-slate-800 bg-red-900/20 flex justify-between items-center">
+                    <h3 class="text-red-500 font-cinzel font-bold text-lg" id="delete-title-modal-title"><i
+                            class="fas fa-exclamation-triangle mr-2"></i> Excluir Título</h3>
+                    <button onclick="window.titulosAPI.closeDeleteModal()" class="text-slate-500 hover:text-white"><i
+                            class="fas fa-times"></i></button>
+                </div>
+                <div class="p-6 flex-grow overflow-y-auto custom-scroll">
+                    <p id="delete-title-modal-info" class="text-sm text-slate-300 mb-4 font-bold"></p>
+                    <div id="delete-select-all-container" class="mb-2 pb-2 border-b border-slate-800 hidden">
+                        <label
+                            class="flex items-center gap-2 cursor-pointer text-xs font-bold text-amber-500 uppercase tracking-widest">
+                            <input type="checkbox" id="delete-title-select-all"
+                                class="w-4 h-4 accent-red-500 cursor-pointer">
+                            Selecionar Todos os Alunos Listados
+                        </label>
+                    </div>
+                    <div id="delete-title-user-list"
+                        class="space-y-2 bg-slate-950/50 p-3 rounded-lg border border-slate-800 max-h-48 overflow-y-auto custom-scroll">
+                    </div>
+                </div>
+                <div class="p-5 bg-slate-800/50 border-t border-slate-800 flex justify-end gap-3">
+                    <button onclick="window.titulosAPI.closeDeleteModal()"
+                        class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
+                    <button id="confirm-delete-title-btn"
+                        class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-transform hover:scale-105 shadow-lg shadow-red-900/50">
+                        <i class="fas fa-trash mr-2"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </div>
+        </div>
 
         </div>
 
@@ -2762,6 +2909,9 @@
     </main>
 
     <script type="module" src="js/main.js"></script>
+
+    <script type="module" src="js/moderadorTech/cadastroTitulos.js"></script>
+    
 </body>
 
 </html>

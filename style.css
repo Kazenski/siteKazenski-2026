@@ -42,6 +42,9 @@
 .custom-scroll::-webkit-scrollbar { width: 6px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(71, 85, 105, 1); /* slate-600 */
+}
 
 /* Utilitário importante para forçar o Tailwind a esconder elementos corretamente */
 .hidden { display: none !important; }
