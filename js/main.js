@@ -18,7 +18,7 @@ let userRoles = {
     Admin: false,
     Professor: false,
     Coordenacao: false,
-    moderador: false,
+    Moderador: false,
     Aluno: false,
     Visitante: true 
 };
@@ -27,6 +27,7 @@ let activeTabId = localStorage.getItem('kazenski_active_tab') || 'inicio';
 let isAlunoTechLoaded = false;
 let isConteudosLoaded = false;
 let isProfessorLoaded = false;
+let isModeradorLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -38,8 +39,8 @@ const MENU_ARCHITECTURE = [
     
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
-    { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador || r.Aluno },
-    { id: 'moderador-tech', label: 'Moderador Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.moderador },
+    { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
+    { id: 'moderador-tech', label: 'Moderador Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador },
     { id: 'professor', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
     { id: 'admin-tech', label: 'Admin Tech', showTo: (r) => r.Admin }
 ];
@@ -144,7 +145,7 @@ onAuthStateChanged(auth, async (user) => {
     const loginBtn = document.getElementById('btn-login-visitor');
 
     // Reset padrão
-    userRoles = { Admin: false, Professor: false, Coordenacao: false, moderador: false, Aluno: false, Visitante: true };
+    userRoles = { Admin: false, Professor: false, Coordenacao: false, Moderador: false, Aluno: false, Visitante: true };
     let displayRoleName = 'Visitante';
 
     if (user) {
@@ -161,7 +162,7 @@ onAuthStateChanged(auth, async (user) => {
                 userRoles.Admin = data.Admin === true;
                 userRoles.Professor = data.Professor === true;
                 userRoles.Coordenacao = data.Coordenacao === true;
-                userRoles.moderador = data.moderador === true;
+                userRoles.Moderador = data.moderador === true;
                 userRoles.Aluno = data.Aluno === true;
                 userRoles.Visitante = false;
 
@@ -169,7 +170,7 @@ onAuthStateChanged(auth, async (user) => {
                 if (userRoles.Admin) displayRoleName = 'Admin';
                 else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
                 else if (userRoles.Professor) displayRoleName = 'Professor';
-                else if (userRoles.moderador) displayRoleName = 'Moderador';
+                else if (userRoles.Moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
             }
         } catch (error) {
@@ -289,6 +290,10 @@ window.showTab = function(tabId) {
             renderProfessorTab();
             isProfessorLoaded = true;
         }
+    }
+
+    if (tabId === 'moderador-tech' && !isModeradorLoaded) {
+        isModeradorLoaded = true; 
     }
 };
 

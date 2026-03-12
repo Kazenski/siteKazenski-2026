@@ -1387,53 +1387,52 @@ async function renderBanner() {
     // NOVA LÓGICA DE RENDERIZAÇÃO DE TÍTULOS
     // ==========================================
     const titulos = currentUser.titulosConquistados || {};
-    els.selTitle.innerHTML = '<option value="">-- Remover Título (Aspirante) --</option>';
+    let optionsHtml = '<option value="">-- Remover Título (Aspirante) --</option>';
     let tituloAtivo = null;
 
     if (Object.keys(titulos).length > 0) {
         for (const [id, dados] of Object.entries(titulos)) {
             
-            // 1. Formatação da Data (Lida com Timestamp do Firebase ou String)
+            // 1. Formata a Data
             let dataFormatada = "";
             if (dados.concedidoEm) {
                 try {
                     const dateObj = dados.concedidoEm.toDate ? dados.concedidoEm.toDate() : new Date(dados.concedidoEm);
                     dataFormatada = dateObj.toLocaleDateString('pt-BR');
-                } catch(e) {
-                    dataFormatada = ""; // Se der erro, não exibe data
-                }
+                } catch(e) {}
             }
 
-            // 2. Ajuste do ícone para o Dropdown (Nativo <select> não aceita FontAwesome HTML)
+            // 2. Ajuste do ícone para o Dropdown
             let iconeSelect = dados.icone || '🏆';
             if (iconeSelect.includes('fa-')) {
-                iconeSelect = '🎖️'; // Fallback visual apenas para o menu dropdown
+                iconeSelect = '🎖️'; 
             }
             
-            // 3. Montagem da Option [icone] - [nome] - [data]
+            // 3. Monta a string da Option
             const nomeStr = dados.nome || 'Título Desconhecido';
             const labelStr = `${iconeSelect} - ${nomeStr}${dataFormatada ? ' - ' + dataFormatada : ''}`;
 
-            const option = new Option(labelStr, id);
-            els.selTitle.add(option);
-
-            // 4. Verifica se é o título atualmente ativo do usuário
+            // 4. Marca como "selected" se for o título ativo
             if (dados.tituloAtivadoUser) {
                 tituloAtivo = dados;
-                els.selTitle.value = id;
+                optionsHtml += `<option value="${id}" selected>${labelStr}</option>`;
+            } else {
+                optionsHtml += `<option value="${id}">${labelStr}</option>`;
             }
         }
+        els.selTitle.disabled = false;
     } else {
-        els.selTitle.innerHTML = '<option value="">Nenhum título conquistado</option>';
-        els.selTitle.disabled = true; // Desabilita o select se não tiver títulos
+        optionsHtml = '<option value="">Nenhum título conquistado</option>';
+        els.selTitle.disabled = true;
     }
+
+    // Injeta todo o HTML construído de uma vez no Select
+    els.selTitle.innerHTML = optionsHtml;
 
     // 5. Atualiza o visual da Badge (Etiqueta Laranja)
     if (tituloAtivo) {
-        // Se usar FontAwesome, renderizamos a tag <i>, se for emoji, renderiza direto.
         const isFaIcon = tituloAtivo.icone && tituloAtivo.icone.includes('fa-');
         const iconeHtml = isFaIcon ? `<i class="${tituloAtivo.icone} mr-1"></i>` : `${tituloAtivo.icone || '🏆'} `;
-        
         els.badgeTitle.innerHTML = `${iconeHtml} ${tituloAtivo.nome}`;
     } else {
         els.badgeTitle.innerHTML = `🏆 Aspirante`;
