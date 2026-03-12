@@ -457,5 +457,5 @@
 .confetti { position: absolute; width: 10px; height: 10px; opacity: 0; animation: confetti-fall 4s ease-out forwards; }
 @keyframes confetti-fall {
     0% { opacity: 1; transform: translateY(-20px) rotateZ(0deg); }
-    100% { opacity: 0; transform: translateY(100vh) rotateZ(720deg); }
+    100% { opacity: 0; transform: translateY(110vh) rotateZ(720deg); }
 }
