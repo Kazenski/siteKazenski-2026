@@ -423,3 +423,110 @@ window.atualizarCartaoAmarelo = async function(userId, novaQuantidade) {
         carregarListaCartoes(); // Recarrega a tela para piscar a atualização ao vivo
     } catch(e) { alert("Erro ao atualizar cartão."); }
 }
+
+// ==========================================
+// MÓDULO: APROVAÇÃO DE POSTS E CARTÕES
+// ==========================================
+window.postsModAPI = {
+    init: () => {
+        window.postsModAPI.listenPendingPosts();
+    },
+    listenPendingPosts: () => {
+        // Altere "posts" caso a sua coleção tenha outro nome (ex: "conexaoPosts")
+        const q = query(collection(db, "posts"), where("aprovado", "==", false));
+        
+        onSnapshot(q, async (snap) => {
+            const posts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            // Busca os dados atualizados dos autores para exibir a quantidade correta de cartões
+            const userIds = [...new Set(posts.map(p => p.idUsuario || p.autorId || p.userId))].filter(id => id);
+            const usersMap = {};
+            for(const uid of userIds) {
+                const uDoc = await getDoc(doc(db, "users", uid));
+                if(uDoc.exists()) usersMap[uid] = uDoc.data();
+            }
+
+            const listEl = document.getElementById('pending-posts-list');
+            if(!listEl) return;
+
+            if(posts.length === 0) {
+                listEl.innerHTML = '<div class="text-center text-slate-500 italic p-8 bg-slate-900/50 rounded-2xl border border-slate-700">Nenhum post aguardando aprovação no momento.</div>';
+                return;
+            }
+
+            listEl.innerHTML = posts.map(post => {
+                const authorId = post.idUsuario || post.autorId || post.userId;
+                const author = usersMap[authorId] || {};
+                const qtdCartoes = author.cartaoAmareloPosts || 0;
+                
+                let iconesCartaoHtml = '';
+                for (let i = 1; i <= 3; i++) {
+                    const isPreenchido = i <= qtdCartoes;
+                    // Lógica visual: Se preencheu os 3, fica vermelho. Senão, fica amarelo.
+                    const corAtiva = qtdCartoes >= 3 ? 'text-red-600' : 'text-yellow-400';
+                    const classeCor = isPreenchido ? corAtiva : 'text-slate-600 opacity-50 hover:text-yellow-400';
+                    iconesCartaoHtml += `<i class="fas fa-square cursor-pointer text-2xl mx-1 transition-transform hover:scale-110 ${classeCor}" onclick="window.postsModAPI.setCartao('${authorId}', ${i})"></i>`;
+                }
+
+                return `
+                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-6 shadow-xl items-start">
+                    <div class="flex-grow">
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="bg-indigo-500/20 text-indigo-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest border border-indigo-500/30">Pendente</span>
+                            <h4 class="text-white font-bold text-lg">${post.titulo || 'Postagem sem título'}</h4>
+                        </div>
+                        <p class="text-sm text-slate-300 mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700">${post.conteudo || post.texto || post.descricao || ''}</p>
+                        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                            <i class="fas fa-user-edit"></i> Autor: <span class="text-slate-200">${author.nome || 'Desconhecido'}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col items-center shrink-0 bg-slate-900/80 p-4 rounded-xl border border-slate-700 min-w-[180px]">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-3 text-center">Punição (Autor)</span>
+                        <div class="flex items-center justify-center bg-slate-800 p-2 rounded-lg border border-slate-700 shadow-inner w-full mb-1">
+                            ${iconesCartaoHtml}
+                        </div>
+                        <button onclick="window.postsModAPI.setCartao('${authorId}', 0)" class="text-[10px] text-slate-500 hover:text-white underline mb-4 mt-2">Zerar Cartões</button>
+                        
+                        <div class="w-full border-t border-slate-700 pt-4 flex flex-col gap-2">
+                            <button onclick="window.postsModAPI.aprovar('${post.id}')" class="w-full bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-lg transition-transform hover:scale-105 shadow-[0_0_15px_rgba(22,163,74,0.4)] uppercase tracking-widest"><i class="fas fa-check mr-2"></i> Aprovar</button>
+                            <button onclick="window.postsModAPI.rejeitar('${post.id}')" class="w-full bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 hover:border-transparent text-xs font-bold py-2.5 rounded-lg transition-colors uppercase tracking-widest mt-1"><i class="fas fa-times mr-2"></i> Rejeitar</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+    },
+    aprovar: async (postId) => {
+        try {
+            await updateDoc(doc(db, "posts", postId), { aprovado: true });
+        } catch(e) { console.error(e); alert("Erro ao aprovar postagem."); }
+    },
+    rejeitar: async (postId) => {
+        if(!confirm("Tem certeza que deseja REJEITAR e EXCLUIR permanentemente este post?")) return;
+        try {
+            await deleteDoc(doc(db, "posts", postId));
+        } catch(e) { console.error(e); alert("Erro ao rejeitar postagem."); }
+    },
+    setCartao: async (userId, qtd) => {
+        if(!userId) return alert("Autor não identificado.");
+        try {
+            await updateDoc(doc(db, "users", userId), { cartaoAmareloPosts: qtd });
+            // Força a atualização visual chamando a renderização novamente
+            window.postsModAPI.listenPendingPosts();
+        } catch(e) { console.error(e); alert("Erro ao aplicar cartão no usuário."); }
+    }
+};
+
+// ==========================================
+// ATUALIZAÇÃO DO LISTENER DE AUTENTICAÇÃO
+// ==========================================
+// Substitua a linha antiga "auth.onAuthStateChanged(user => { if(user) window.titulosAPI.init(); });" 
+// por esta abaixo para engatilhar também a nova aba:
+
+auth.onAuthStateChanged(user => { 
+    if(user) {
+        window.titulosAPI.init();
+        if(window.postsModAPI) window.postsModAPI.init();
+    }
+});

@@ -1040,8 +1040,8 @@
                         data-target="condecorar">
                         <i class="fas fa-award mr-1"></i> Condecorar Alunos
                     </button>
-                    <button class="mod-subtab-btn bg-slate-800 text-slate-400 font-bold py-2 px-4 rounded-lg text-sm transition-all" data-target="punicoes">
-                        <i class="fas fa-gavel mr-2"></i> Punições (Conexão Aluno)
+                    <button class="mod-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="aprovar-posts">
+                        <i class="fas fa-check-double mr-1"></i> Aprovar Posts
                     </button>
                 </div>
 
@@ -1294,6 +1294,20 @@
                     </div>
                 </div>
 
+                <div id="mtab-aprovar-posts" class="mod-tab-content hidden flex-grow flex-col fade-in w-full">
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl mb-6 shrink-0 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-1"><i class="fas fa-clipboard-check mr-2"></i> Fila de Aprovação</h3>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avalie posts pendentes e gerencie advertências.</p>
+                        </div>
+                        <button onclick="window.postsModAPI.listenPendingPosts()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-lg transition-colors flex items-center justify-center shadow-lg"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    
+                    <div id="pending-posts-list" class="flex-grow overflow-y-auto custom-scroll space-y-4 pr-2 pb-6">
+                        <div class="text-center text-slate-500 italic p-6">Aguardando conexão com a base de dados...</div>
+                    </div>
+                </div>
+
             </div>
 
             <div id="delete-title-modal"
@@ -1335,6 +1349,8 @@
                     </div>
                 </div>
             </div>
+
+
 
         </div>
 
