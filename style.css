@@ -459,3 +459,31 @@
     0% { opacity: 1; transform: translateY(-20px) rotateZ(0deg); }
     100% { opacity: 0; transform: translateY(110vh) rotateZ(720deg); }
 }
+
+/* ==========================================
+   CARROSSEL DE PROJETOS E CARDS EXPANSÍVEIS
+   ========================================== */
+.hide-scrollbar::-webkit-scrollbar { 
+    display: none; 
+}
+.hide-scrollbar { 
+    -ms-overflow-style: none; 
+    scrollbar-width: none; 
+}
+
+.projeto-card { 
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.projeto-card.expanded { 
+    min-width: 800px; 
+    max-width: 800px; 
+    z-index: 20; 
+}
+
+@media (max-width: 768px) {
+    .projeto-card.expanded { 
+        min-width: 100%; 
+        max-width: 100%; 
+        flex-direction: column !important; 
+    }
+}

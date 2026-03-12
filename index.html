@@ -427,12 +427,94 @@
 
         </div>
 
-        <div id="projetos-content"
-            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        
+        <div id="projetos-content" class="w-full h-full flex flex-col relative px-4 md:px-8 py-6 fade-in hidden">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                        <i class="fas fa-rocket text-indigo-500"></i> Projetos em Destaque
+                    </h1>
+                    <p class="text-slate-400 text-sm mt-1">Explore os trabalhos, ferramentas e inovações da nossa
+                        comunidade.</p>
+                </div>
+
+                <div id="btnNovoProjetoContainer"></div>
+            </div>
+
+            <div id="areaFormProjeto"
+                class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 p-6 rounded-2xl mb-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+                <h2 id="formProjetoTitulo" class="text-xl font-bold text-white mb-6">Novo Projeto</h2>
+
+                <form id="formProjeto" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <input type="hidden" id="projIdEdit">
+
+                    <div class="col-span-full md:col-span-1 space-y-4">
+                        <div>
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Título
+                                do Projeto</label>
+                            <input type="text" id="projTitulo" required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Link de
+                                Acesso</label>
+                            <input type="url" id="projLink" placeholder="https://" required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Imagem
+                                de Capa</label>
+                            <div class="flex gap-2 items-center">
+                                <input type="file" id="projImageFile" accept="image/*"
+                                    class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 transition-colors w-full">
+                            </div>
+                            <input type="hidden" id="projImageUrl">
+                            <div id="uploadProgress" class="h-1 w-full bg-slate-700 rounded-full mt-2 hidden">
+                                <div class="h-full bg-indigo-500 rounded-full w-0 transition-all duration-300"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-span-full md:col-span-1">
+                        <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Descrição
+                            do Projeto</label>
+                        <textarea id="projDescricao" required rows="6"
+                            class="w-full h-[calc(100%-24px)] bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+                    </div>
+
+                    <div class="col-span-full flex justify-end gap-3 mt-4 pt-4 border-t border-slate-700/50">
+                        <button type="button" id="btnCancelarForm"
+                            class="px-6 py-2.5 rounded-xl font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">Cancelar</button>
+                        <button type="submit" id="btnSalvarForm"
+                            class="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg transition-colors flex items-center gap-2">
+                            <i class="fas fa-save"></i> Salvar Projeto
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="relative w-full flex-grow flex items-center min-h-[450px]">
+                <button id="btnPrevSlide"
+                    class="absolute left-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform -translate-x-1/2 hidden md:flex">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+
+                <div id="carouselContainer"
+                    class="w-full h-full flex items-center overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-6 py-10 px-4 md:px-10 scroll-smooth">
+                    <div class="text-center w-full text-slate-500 py-20 italic"><i
+                            class="fas fa-spinner fa-spin text-3xl mb-4"></i><br>Carregando projetos...</div>
+                </div>
+
+                <button id="btnNextSlide"
+                    class="absolute right-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform translate-x-1/2 hidden md:flex">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+
         <div id="conexao-aluno-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
-        
+
         <div id="atualizacoes-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
         <div id="login-content"
@@ -1040,7 +1122,9 @@
                         data-target="condecorar">
                         <i class="fas fa-award mr-1"></i> Condecorar Alunos
                     </button>
-                    <button class="mod-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="aprovar-posts">
+                    <button
+                        class="mod-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                        data-target="aprovar-posts">
                         <i class="fas fa-check-double mr-1"></i> Aprovar Posts
                     </button>
                 </div>
@@ -1295,16 +1379,22 @@
                 </div>
 
                 <div id="mtab-aprovar-posts" class="mod-tab-content hidden flex-grow flex-col fade-in w-full">
-                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl mb-6 shrink-0 flex justify-between items-center">
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl mb-6 shrink-0 flex justify-between items-center">
                         <div>
-                            <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-1"><i class="fas fa-clipboard-check mr-2"></i> Fila de Aprovação</h3>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avalie posts pendentes e gerencie advertências.</p>
+                            <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-1"><i
+                                    class="fas fa-clipboard-check mr-2"></i> Fila de Aprovação</h3>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avalie posts
+                                pendentes e gerencie advertências.</p>
                         </div>
-                        <button onclick="window.postsModAPI.listenPendingPosts()" class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-lg transition-colors flex items-center justify-center shadow-lg"><i class="fas fa-sync-alt"></i></button>
+                        <button onclick="window.postsModAPI.listenPendingPosts()"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-lg transition-colors flex items-center justify-center shadow-lg"><i
+                                class="fas fa-sync-alt"></i></button>
                     </div>
-                    
+
                     <div id="pending-posts-list" class="flex-grow overflow-y-auto custom-scroll space-y-4 pr-2 pb-6">
-                        <div class="text-center text-slate-500 italic p-6">Aguardando conexão com a base de dados...</div>
+                        <div class="text-center text-slate-500 italic p-6">Aguardando conexão com a base de dados...
+                        </div>
                     </div>
                 </div>
 
