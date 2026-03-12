@@ -10,7 +10,7 @@ let projetoExpandidoId = null;
 let autoScrollInterval = null;
 let favoritosUsuario = []; 
 
-// Variáveis locais de permissão (Buscadas diretamente do banco)
+// Variáveis locais de permissão
 let isAdminUser = false;
 let isEditUser = false;
 
@@ -33,7 +33,6 @@ export async function renderProjetosTab() {
         document.head.appendChild(style);
     }
 
-    // Busca DADOS e PERMISSÕES reais do usuário logado
     if (auth.currentUser) {
         try {
             const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
@@ -85,11 +84,16 @@ function setupListeners() {
 
     if (btnNovo && areaForm) {
         btnNovo.onclick = () => {
-            form.reset();
-            document.getElementById('projIdEdit').value = '';
-            document.getElementById('formProjetoTitulo').innerHTML = '<i class="fas fa-rocket text-indigo-400"></i> Novo Projeto';
-            areaForm.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Lógica de Toggle: Abre se estiver fechado, fecha se estiver aberto
+            if (areaForm.classList.contains('hidden')) {
+                form.reset();
+                document.getElementById('projIdEdit').value = '';
+                document.getElementById('formProjetoTitulo').innerHTML = '<i class="fas fa-rocket text-indigo-400"></i> Novo Projeto';
+                areaForm.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                areaForm.classList.add('hidden');
+            }
         };
 
         btnCancelar.onclick = () => areaForm.classList.add('hidden');
