@@ -1,20 +1,74 @@
 import { db, auth } from '../core/firebase.js';
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { collection, query, orderBy, onSnapshot, addDoc, setDoc, serverTimestamp, doc, getDoc, updateDoc, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const storage = getStorage();
 
 let unsubscribeProjetos = null;
 let projetosMap = new Map();
+let projetoExpandidoId = null;
 let autoScrollInterval = null;
 let favoritosUsuario = []; 
 
 let isAdminUser = false;
 let isEditUser = false;
 
+// ==========================================
+// FUNÇÃO DE COMPRESSÃO DE IMAGEM (WEB)
+// ==========================================
+function comprimirImagem(file, maxWidth = 1920, maxHeight = 1080, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = event => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+                if (height > maxHeight) {
+                    width = Math.round((width * maxHeight) / height);
+                    height = maxHeight;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Converte para WebP (muito mais leve que JPG/PNG) mantendo a qualidade
+                canvas.toBlob(blob => resolve(blob), 'image/webp', quality);
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
 export async function renderProjetosTab() {
     const container = document.getElementById('projetos-content');
     if (!container) return;
+
+    if (!document.getElementById('projetos-custom-style')) {
+        const style = document.createElement('style');
+        style.id = 'projetos-custom-style';
+        style.innerHTML = `
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .projeto-card { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+            .projeto-card.expanded { min-width: 900px; max-width: 900px; z-index: 40; }
+            @media (max-width: 1024px) {
+                .projeto-card.expanded { min-width: 100%; max-width: 100%; flex-direction: column !important; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     if (auth.currentUser) {
         try {
@@ -25,7 +79,7 @@ export async function renderProjetosTab() {
                 isAdminUser = data.Admin === true || data.Admin === "true";
                 isEditUser = isAdminUser || data.Professor === true || data.Professor === "true" || data.Coordenacao === true || data.Coordenacao === "true";
             }
-        } catch (e) { console.error("Erro:", e); }
+        } catch (e) { console.error("Erro ao buscar dados do usuario:", e); }
     } else {
         isAdminUser = false;
         isEditUser = false;
@@ -60,6 +114,7 @@ function setupListeners() {
         const newBtnNext = btnNext.cloneNode(true);
         btnPrev.parentNode.replaceChild(newBtnPrev, btnPrev);
         btnNext.parentNode.replaceChild(newBtnNext, btnNext);
+
         newBtnPrev.addEventListener('click', () => carouselContainer.scrollBy({ left: -400, behavior: 'smooth' }));
         newBtnNext.addEventListener('click', () => carouselContainer.scrollBy({ left: 400, behavior: 'smooth' }));
     }
@@ -71,7 +126,6 @@ function setupListeners() {
                 document.getElementById('projIdEdit').value = '';
                 document.getElementById('formProjetoTitulo').innerHTML = '<i class="fas fa-rocket text-indigo-400"></i> Novo Projeto';
                 areaForm.classList.remove('hidden');
-                // Rola para o topo (onde o form está)
                 document.getElementById('projetos-content').scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 areaForm.classList.add('hidden');
@@ -87,19 +141,36 @@ function setupListeners() {
             btnSalvar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
             try {
-                const id = document.getElementById('projIdEdit').value;
+                const idInput = document.getElementById('projIdEdit').value;
                 const titulo = document.getElementById('projTitulo').value.trim();
                 const conteudo = document.getElementById('projDescricao').value.trim();
                 const link = document.getElementById('projLink').value.trim();
                 const fileInput = document.getElementById('projImageFile');
                 let imageUrl = document.getElementById('projImageUrl').value; 
 
+                // GERA A REFERÊNCIA DO BANCO PRIMEIRO (Para sabermos o ID que a imagem vai usar)
+                const docRef = idInput ? doc(db, "projetos_site", idInput) : doc(collection(db, "projetos_site"));
+                const projectId = docRef.id;
+
                 if (fileInput.files.length > 0) {
                     const file = fileInput.files[0];
-                    const storageRef = ref(storage, `projetos_capas/${Date.now()}_${file.name}`);
-                    const uploadTask = uploadBytesResumable(storageRef, file);
+                    
+                    // COMPRESSÃO E REDUÇÃO DE QUALIDADE
+                    const compressedBlob = await comprimirImagem(file, 1920, 1080, 0.8);
+                    
+                    // LIMPEZA DA IMAGEM ANTIGA (Evita lixo no banco caso a URL antiga seja de outro formato/nome)
+                    if (imageUrl && imageUrl.includes('firebasestorage') && !imageUrl.includes('placeholder')) {
+                        try { await deleteObject(ref(storage, imageUrl)); } 
+                        catch (err) { console.log('A imagem antiga não pôde ser excluída ou não existe mais.'); }
+                    }
+
+                    // UPLOAD USANDO NOME FIXO E PREVISÍVEL (Sobrescreve se já existir)
+                    const storageRef = ref(storage, `projetos_capas/${projectId}_capa.webp`);
+                    const uploadTask = uploadBytesResumable(storageRef, compressedBlob);
+                    
                     document.getElementById('uploadProgress').classList.remove('hidden');
                     const barra = document.getElementById('uploadProgress').firstElementChild;
+                    
                     await new Promise((resolve, reject) => {
                         uploadTask.on('state_changed', 
                             (snap) => { barra.style.width = (snap.bytesTransferred / snap.totalBytes) * 100 + '%'; }, 
@@ -114,12 +185,14 @@ function setupListeners() {
 
                 const dados = { titulo, conteudo, link, imageUrl, atualizadoEm: serverTimestamp() };
 
-                if (id) {
-                    await updateDoc(doc(db, "projetos_site", id), dados);
+                if (idInput) {
+                    // Atualiza Existente
+                    await updateDoc(docRef, dados);
                 } else {
+                    // Salva Novo usando o ID que geramos lá em cima
                     dados.criadoEm = serverTimestamp();
                     dados.favoritosCount = 0;
-                    await addDoc(collection(db, "projetos_site"), dados);
+                    await setDoc(docRef, dados);
                 }
 
                 areaForm.classList.add('hidden');
@@ -135,8 +208,6 @@ function setupListeners() {
 
     if (!window.carouselListenerAdded) {
         carouselContainer.addEventListener('click', async (e) => {
-            
-            // AÇÃO: Ler Projeto Completo
             const btnLer = e.target.closest('.btn-ler-projeto');
             if (btnLer) {
                 e.stopPropagation();
@@ -144,25 +215,34 @@ function setupListeners() {
                 return;
             }
 
-            // AÇÃO: Favoritar
-            if (e.target.closest('.btn-favoritar')) {
+            const btnFav = e.target.closest('.btn-favoritar');
+            if (btnFav) {
                 e.stopPropagation();
-                alternarFavorito(e.target.closest('.btn-favoritar').dataset.id);
+                alternarFavorito(btnFav.dataset.id);
                 return;
             }
 
-            // AÇÃO: Editar
-            if (e.target.closest('.btn-editar')) {
+            const btnEdit = e.target.closest('.btn-editar');
+            if (btnEdit) {
                 e.stopPropagation();
-                abrirEdicao(e.target.closest('.btn-editar').dataset.id);
+                abrirEdicao(btnEdit.dataset.id);
                 return;
             }
 
-            // AÇÃO: Excluir
-            if (e.target.closest('.btn-excluir')) {
+            const btnExcluir = e.target.closest('.btn-excluir');
+            if (btnExcluir) {
                 e.stopPropagation();
                 if(confirm("Tem certeza que deseja EXCLUIR DEFINITIVAMENTE este projeto?")) {
-                    await deleteDoc(doc(db, "projetos_site", e.target.closest('.btn-excluir').dataset.id));
+                    const id = btnExcluir.dataset.id;
+                    const proj = projetosMap.get(id);
+                    
+                    // Exclui a imagem do storage antes de excluir o projeto
+                    if(proj && proj.imageUrl && proj.imageUrl.includes('firebasestorage') && !proj.imageUrl.includes('placeholder')) {
+                        try { await deleteObject(ref(storage, proj.imageUrl)); } 
+                        catch (err) { console.log('Imagem nao encontrada no Storage.'); }
+                    }
+                    // Exclui o documento
+                    await deleteDoc(doc(db, "projetos_site", id));
                 }
                 return;
             }
@@ -205,8 +285,7 @@ function renderizarCards() {
         const iconeFav = isFav ? 'fas' : 'far';
         
         const rawContent = proj.conteudo || proj.descricao || '';
-        // MÁGICA AQUI: Remove todas as tags HTML para gerar o resumo do card sem quebrar o layout
-        const plainTextPreview = rawContent.replace(/<[^>]*>?/gm, '');
+        const plainTextPreview = rawContent.replace(/<[^>]*>?/gm, ''); // Limpa HTML para o resumo
         
         html += `
         <div class="projeto-card relative shrink-0 w-[320px] h-[480px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]">
@@ -247,9 +326,6 @@ function renderizarCards() {
     container.innerHTML = html;
 }
 
-// ==========================================
-// TELA DE LEITURA (ROLA PARA BAIXO)
-// ==========================================
 window.abrirTelaLeituraProjeto = function(id) {
     const proj = projetosMap.get(id);
     if (!proj) return;
@@ -262,7 +338,6 @@ window.abrirTelaLeituraProjeto = function(id) {
     const linkContainer = document.getElementById('detalheProjLinkContainer');
     const linkEl = document.getElementById('detalheProjLink');
 
-    // Popula Título e Capa
     tituloEl.textContent = proj.titulo;
     if (proj.imageUrl && !proj.imageUrl.includes('placeholder')) {
         imgEl.src = proj.imageUrl;
@@ -271,7 +346,6 @@ window.abrirTelaLeituraProjeto = function(id) {
         imgContainer.classList.add('hidden');
     }
 
-    // Processa Conteúdo (HTML ou Texto Puro)
     const rawContent = proj.conteudo || proj.descricao || 'Sem conteúdo disponível.';
     if (!rawContent.includes('<') && !rawContent.includes('>')) {
         conteudoEl.innerHTML = rawContent.replace(/\n/g, '<br>');
@@ -279,7 +353,6 @@ window.abrirTelaLeituraProjeto = function(id) {
         conteudoEl.innerHTML = rawContent;
     }
 
-    // Processa Link Externo
     if (proj.link && proj.link.trim() !== '') {
         linkEl.href = proj.link;
         linkContainer.classList.remove('hidden');
@@ -287,13 +360,11 @@ window.abrirTelaLeituraProjeto = function(id) {
         linkContainer.classList.add('hidden');
     }
 
-    // Mostra a View
     view.classList.remove('hidden');
 
-    // Scroll automático para a área de leitura (Atraso mínimo para garantir que o DOM renderizou o display block)
     setTimeout(() => {
         const container = document.getElementById('projetos-content');
-        const offset = view.offsetTop - 20; // 20px de margem respiratória no topo
+        const offset = view.offsetTop - 20;
         container.scrollTo({ top: offset, behavior: 'smooth' });
     }, 50);
 }
