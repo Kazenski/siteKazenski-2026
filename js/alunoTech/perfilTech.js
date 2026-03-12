@@ -1382,6 +1382,62 @@ async function renderBanner() {
     const pic = currentUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.nome)}&background=1e293b&color=3b82f6`;
     els.imgProfile.src = pic;
     if (currentUser.coverImageURL) els.bgCover.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
+
+    // ==========================================
+    // NOVA LÓGICA DE RENDERIZAÇÃO DE TÍTULOS
+    // ==========================================
+    const titulos = currentUser.titulosConquistados || {};
+    els.selTitle.innerHTML = '<option value="">-- Remover Título (Aspirante) --</option>';
+    let tituloAtivo = null;
+
+    if (Object.keys(titulos).length > 0) {
+        for (const [id, dados] of Object.entries(titulos)) {
+            
+            // 1. Formatação da Data (Lida com Timestamp do Firebase ou String)
+            let dataFormatada = "";
+            if (dados.concedidoEm) {
+                try {
+                    const dateObj = dados.concedidoEm.toDate ? dados.concedidoEm.toDate() : new Date(dados.concedidoEm);
+                    dataFormatada = dateObj.toLocaleDateString('pt-BR');
+                } catch(e) {
+                    dataFormatada = ""; // Se der erro, não exibe data
+                }
+            }
+
+            // 2. Ajuste do ícone para o Dropdown (Nativo <select> não aceita FontAwesome HTML)
+            let iconeSelect = dados.icone || '🏆';
+            if (iconeSelect.includes('fa-')) {
+                iconeSelect = '🎖️'; // Fallback visual apenas para o menu dropdown
+            }
+            
+            // 3. Montagem da Option [icone] - [nome] - [data]
+            const nomeStr = dados.nome || 'Título Desconhecido';
+            const labelStr = `${iconeSelect} - ${nomeStr}${dataFormatada ? ' - ' + dataFormatada : ''}`;
+
+            const option = new Option(labelStr, id);
+            els.selTitle.add(option);
+
+            // 4. Verifica se é o título atualmente ativo do usuário
+            if (dados.tituloAtivadoUser) {
+                tituloAtivo = dados;
+                els.selTitle.value = id;
+            }
+        }
+    } else {
+        els.selTitle.innerHTML = '<option value="">Nenhum título conquistado</option>';
+        els.selTitle.disabled = true; // Desabilita o select se não tiver títulos
+    }
+
+    // 5. Atualiza o visual da Badge (Etiqueta Laranja)
+    if (tituloAtivo) {
+        // Se usar FontAwesome, renderizamos a tag <i>, se for emoji, renderiza direto.
+        const isFaIcon = tituloAtivo.icone && tituloAtivo.icone.includes('fa-');
+        const iconeHtml = isFaIcon ? `<i class="${tituloAtivo.icone} mr-1"></i>` : `${tituloAtivo.icone || '🏆'} `;
+        
+        els.badgeTitle.innerHTML = `${iconeHtml} ${tituloAtivo.nome}`;
+    } else {
+        els.badgeTitle.innerHTML = `🏆 Aspirante`;
+    }
 }
 
 async function uploadImage(fileOrBlob, type) {
