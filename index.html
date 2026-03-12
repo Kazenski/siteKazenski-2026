@@ -427,20 +427,19 @@
 
         </div>
 
-        <div id="projetos-content" class="tab-content w-full h-full flex flex-col relative px-4 md:px-8 py-6 fade-in hidden">
-            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div id="projetos-content" class="tab-content w-full h-full flex flex-col relative px-4 md:px-8 py-6 fade-in hidden overflow-y-auto custom-scroll">
+    
+            <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 shrink-0">
                 <div>
                     <h1 class="text-3xl font-black text-white tracking-tight flex items-center gap-3">
                         <i class="fas fa-rocket text-indigo-500"></i> Projetos em Destaque
                     </h1>
-                    <p class="text-slate-400 text-sm mt-1">Explore os trabalhos, ferramentas e inovações da nossa
-                        comunidade.</p>
+                    <p class="text-slate-400 text-sm mt-1">Explore os trabalhos, ferramentas e inovações da nossa comunidade.</p>
                 </div>
-
-                <div id="btnNovoProjetoContainer"></div>
+                <div id="btnNovoProjetoContainer"></div> 
             </div>
 
-            <div id="areaFormProjeto" class="hidden bg-slate-800/90 backdrop-blur-xl border border-slate-700 p-6 md:p-8 rounded-2xl mb-8 shadow-2xl relative overflow-y-auto custom-scroll max-h-[85vh]">
+            <div id="areaFormProjeto" class="hidden shrink-0 bg-slate-800/90 backdrop-blur-xl border border-slate-700 p-6 md:p-8 rounded-2xl mb-12 shadow-2xl relative overflow-visible">
                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                 <h2 id="formProjetoTitulo" class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
                     <i class="fas fa-rocket text-indigo-400"></i> Novo Projeto
@@ -455,8 +454,8 @@
                             <input type="text" id="projTitulo" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner">
                         </div>
                         <div>
-                            <label class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5 block ml-1">Link de Acesso</label>
-                            <input type="url" id="projLink" placeholder="https://" required class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner">
+                            <label class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5 block ml-1">Link Externo do Projeto (Opcional)</label>
+                            <input type="url" id="projLink" placeholder="https://" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-inner">
                         </div>
                         <div>
                             <label class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5 block ml-1">Imagem de Capa</label>
@@ -469,69 +468,64 @@
                     </div>
 
                     <div class="col-span-full md:col-span-1 flex flex-col">
-                        <label class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5 block ml-1">Conteúdo do Projeto (Suporta HTML)</label>
-                        <textarea id="projDescricao" required class="w-full h-full min-h-[400px] bg-slate-900 border border-slate-700 rounded-xl px-5 py-4 text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-y custom-scroll leading-relaxed text-sm shadow-inner" placeholder="Cole o código HTML ou digite o texto do seu projeto aqui..."></textarea>
+                        <label class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1.5 block ml-1">Conteúdo do Projeto (Suporta HTML para Títulos, Listas, etc)</label>
+                        <textarea id="projDescricao" required class="w-full h-full min-h-[400px] bg-slate-900 border border-slate-700 rounded-xl px-5 py-4 text-slate-200 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all resize-y custom-scroll leading-relaxed text-sm shadow-inner" placeholder="Cole o código HTML do seu projeto aqui..."></textarea>
                     </div>
 
                     <div class="col-span-full flex justify-end gap-4 mt-4 pt-6 border-t border-slate-700/50">
                         <button type="button" id="btnCancelarForm" class="px-8 py-3.5 rounded-xl font-bold text-slate-400 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-2 text-sm uppercase tracking-widest">
                             <i class="fas fa-times"></i> Cancelar
                         </button>
-                        <button type="submit" id="btnSalvarForm" class="px-8 py-3.5 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.4)] hover:shadow-[0_0_25px_rgba(79,70,229,0.6)] transition-all flex items-center gap-2 transform hover:-translate-y-1 text-sm uppercase tracking-widest">
+                        <button type="submit" id="btnSalvarForm" class="px-8 py-3.5 rounded-xl font-black text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-all flex items-center gap-2 transform hover:-translate-y-1 text-sm uppercase tracking-widest">
                             <i class="fas fa-save"></i> Salvar Projeto
                         </button>
                     </div>
                 </form>
             </div>
 
-            <div class="relative w-full flex-grow flex items-center min-h-[450px]">
-                <button id="btnPrevSlide"
-                    class="absolute left-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform -translate-x-1/2 hidden md:flex">
+            <div class="relative w-full shrink-0 flex items-center min-h-[550px] mb-8">
+                <button id="btnPrevSlide" class="absolute left-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform -translate-x-1/2 hidden md:flex">
                     <i class="fas fa-chevron-left"></i>
                 </button>
 
-                <div id="carouselContainer"
-                    class="w-full h-full flex items-center overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-6 py-10 px-4 md:px-10 scroll-smooth">
-                    <div class="text-center w-full text-slate-500 py-20 italic"><i
-                            class="fas fa-spinner fa-spin text-3xl mb-4"></i><br>Carregando projetos...</div>
+                <div id="carouselContainer" class="w-full h-full flex items-center overflow-x-auto hide-scrollbar snap-x snap-mandatory gap-6 py-10 px-4 md:px-10 scroll-smooth">
+                    <div class="text-center w-full text-slate-500 py-20 italic"><i class="fas fa-spinner fa-spin text-3xl mb-4"></i><br>Carregando projetos...</div>
                 </div>
 
-                <button id="btnNextSlide"
-                    class="absolute right-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform translate-x-1/2 hidden md:flex">
+                <button id="btnNextSlide" class="absolute right-0 z-30 bg-slate-800/80 hover:bg-indigo-600 text-white w-12 h-12 rounded-full flex items-center justify-center backdrop-blur shadow-lg border border-slate-700 transition-colors transform translate-x-1/2 hidden md:flex">
                     <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
-        </div>
 
-        <div id="projeto-detalhes-view" class="tab-content w-full h-full flex flex-col relative px-4 md:px-8 py-6 fade-in hidden z-50 bg-slate-900 absolute top-0 left-0 min-h-screen overflow-y-auto">
-    
-            <div class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-4 mb-8 flex justify-between items-center px-2">
-                <button id="btnVoltarProjetos" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-xs bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg">
-                    <i class="fas fa-arrow-left"></i> Voltar ao Destaque
-                </button>
-                <div class="flex items-center gap-2">
-                    <span id="detalheFavCount" class="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 shadow-inner"><i class="fas fa-heart text-red-500 mr-1"></i> 0</span>
-                </div>
-            </div>
-
-            <div class="max-w-4xl mx-auto w-full bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 md:p-12 shadow-2xl relative overflow-hidden mb-20">
-                
-                <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-
-                <div class="border-b border-slate-700/50 pb-8 mb-8 text-center relative z-10">
-                    <h1 id="detalheProjTitulo" class="text-4xl md:text-5xl font-black text-white leading-tight mb-6 drop-shadow-lg">
-                        </h1>
-                    <div id="detalheProjDisciplinas" class="flex flex-wrap justify-center gap-2">
+            <div id="projeto-detalhes-view" class="hidden w-full flex-col shrink-0 mt-8 pt-12 border-t-2 border-slate-700/50 relative">
+                <div class="max-w-6xl mx-auto w-full">
+                    
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
+                        <h2 id="detalheProjTitulo" class="text-4xl md:text-5xl font-black text-white leading-tight drop-shadow-lg w-full">Título</h2>
+                        <div class="flex gap-3 shrink-0">
+                            <button onclick="document.getElementById('projeto-detalhes-view').classList.add('hidden'); document.getElementById('projetos-content').scrollTo({top:0, behavior:'smooth'})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-slate-600 shadow-lg flex items-center gap-2">
+                                <i class="fas fa-arrow-up"></i> Fechar
+                            </button>
                         </div>
-                </div>
+                    </div>
 
-                <div id="detalheProjImagemContainer" class="w-full h-64 md:h-96 rounded-2xl overflow-hidden mb-10 shadow-xl border border-slate-700 hidden relative z-10">
-                    <img id="detalheProjImagem" src="" class="w-full h-full object-cover">
-                </div>
+                    <div id="detalheProjImagemContainer" class="w-full h-64 md:h-[500px] rounded-3xl overflow-hidden mb-12 shadow-2xl border border-slate-700 hidden relative group">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent z-10 opacity-60"></div>
+                        <img id="detalheProjImagem" src="" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105">
+                    </div>
 
-                <article id="detalheProjConteudo" class="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-400 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-code:text-pink-400 relative z-10">
-                    </article>
+                    <div id="detalheProjConteudo" class="w-full bg-slate-800/40 p-8 md:p-12 rounded-3xl border border-slate-700/50 shadow-xl mb-12 custom-html-content">
+                        </div>
+
+                    <div id="detalheProjLinkContainer" class="hidden pb-20 text-center">
+                        <a id="detalheProjLink" href="#" target="_blank" class="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-widest transition-transform hover:-translate-y-2 shadow-[0_0_30px_rgba(79,70,229,0.3)] text-sm">
+                            <i class="fas fa-external-link-alt text-xl"></i> Acessar Plataforma Externa do Projeto
+                        </a>
+                    </div>
+
+                </div>
             </div>
+
         </div>
 
         <div id="conexao-aluno-content"

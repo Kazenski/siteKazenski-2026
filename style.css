@@ -543,3 +543,37 @@
     font-style: italic;
     margin: 1.5rem 0;
 }
+
+/* ==========================================
+   FORMATAÇÃO DE HTML PARA LEITURA DE PROJETOS
+   ========================================== */
+.custom-html-content {
+    color: #cbd5e1;
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+.custom-html-content h1, .custom-html-content h2 {
+    color: #818cf8; /* indigo-400 */
+    font-size: 2rem;
+    font-weight: 900;
+    margin-top: 2.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+    padding-bottom: 0.5rem;
+}
+.custom-html-content h3 {
+    color: #e2e8f0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+.custom-html-content p { margin-bottom: 1.5rem; }
+.custom-html-content strong { color: #ffffff; font-weight: 800; }
+.custom-html-content ul, .custom-html-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.custom-html-content ul { list-style-type: disc; }
+.custom-html-content ol { list-style-type: decimal; }
+.custom-html-content li { margin-bottom: 0.75rem; }
