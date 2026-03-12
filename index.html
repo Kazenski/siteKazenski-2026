@@ -512,6 +512,37 @@
             </div>
         </div>
 
+        <div id="projeto-detalhes-view" class="tab-content w-full h-full flex flex-col relative px-4 md:px-8 py-6 fade-in hidden z-50 bg-slate-900 absolute top-0 left-0 min-h-screen overflow-y-auto">
+    
+            <div class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur border-b border-slate-800 py-4 mb-8 flex justify-between items-center px-2">
+                <button id="btnVoltarProjetos" class="flex items-center gap-2 text-slate-400 hover:text-white transition-colors font-bold uppercase tracking-widest text-xs bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-lg">
+                    <i class="fas fa-arrow-left"></i> Voltar ao Destaque
+                </button>
+                <div class="flex items-center gap-2">
+                    <span id="detalheFavCount" class="text-xs font-bold text-slate-300 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 shadow-inner"><i class="fas fa-heart text-red-500 mr-1"></i> 0</span>
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto w-full bg-slate-800/50 border border-slate-700/50 rounded-3xl p-6 md:p-12 shadow-2xl relative overflow-hidden mb-20">
+                
+                <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+
+                <div class="border-b border-slate-700/50 pb-8 mb-8 text-center relative z-10">
+                    <h1 id="detalheProjTitulo" class="text-4xl md:text-5xl font-black text-white leading-tight mb-6 drop-shadow-lg">
+                        </h1>
+                    <div id="detalheProjDisciplinas" class="flex flex-wrap justify-center gap-2">
+                        </div>
+                </div>
+
+                <div id="detalheProjImagemContainer" class="w-full h-64 md:h-96 rounded-2xl overflow-hidden mb-10 shadow-xl border border-slate-700 hidden relative z-10">
+                    <img id="detalheProjImagem" src="" class="w-full h-full object-cover">
+                </div>
+
+                <article id="detalheProjConteudo" class="prose prose-invert prose-lg max-w-none prose-headings:text-indigo-400 prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-strong:text-white prose-code:text-pink-400 relative z-10">
+                    </article>
+            </div>
+        </div>
+
         <div id="conexao-aluno-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 

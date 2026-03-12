@@ -487,3 +487,59 @@
         flex-direction: column !important; 
     }
 }
+
+/* ==========================================
+   ESTILOS GERAIS PARA LEITURA DE PROJETOS (MODO ESCURO)
+   ========================================== */
+#detalheProjConteudo h2 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #818cf8; /* indigo-400 */
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5); /* slate-700 */
+    padding-bottom: 0.5rem;
+}
+
+#detalheProjConteudo h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #e2e8f0; /* slate-200 */
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+#detalheProjConteudo p {
+    color: #cbd5e1; /* slate-300 */
+    line-height: 1.8;
+    margin-bottom: 1.25rem;
+    font-size: 1.1rem;
+}
+
+#detalheProjConteudo ul, #detalheProjConteudo ol {
+    color: #cbd5e1;
+    margin-left: 1.5rem;
+    margin-bottom: 1.5rem;
+    list-style-type: disc;
+}
+
+#detalheProjConteudo li {
+    margin-bottom: 0.5rem;
+    line-height: 1.6;
+}
+
+#detalheProjConteudo strong {
+    color: #f8fafc; /* white */
+    font-weight: 800;
+}
+
+/* Tabelas e Caixas de Alerta */
+#detalheProjConteudo .nota-importante {
+    background-color: rgba(234, 179, 8, 0.1); /* yellow background */
+    border-left: 4px solid #eab308; /* yellow border */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    color: #fef08a;
+    font-style: italic;
+    margin: 1.5rem 0;
+}

@@ -279,9 +279,9 @@ function renderizarCards() {
                         ${textoSeguro.replace(/\n/g, '<br>')}
                     </p>
                     <div class="mt-auto">
-                        <a href="${proj.link}" target="_blank" class="inline-flex items-center justify-center w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-transform hover:-translate-y-1 gap-2 uppercase tracking-wide text-xs">
-                            <i class="fas fa-external-link-alt"></i> Acessar Projeto
-                        </a>
+                        <button data-id="${proj.id}" class="btn-ler-projeto inline-flex items-center justify-center w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-transform hover:-translate-y-1 gap-2 uppercase tracking-wide text-xs">
+                            <i class="fas fa-book-open"></i> Ler Projeto Completo
+                        </button>
                     </div>
                 </div>
             </div>
@@ -291,6 +291,65 @@ function renderizarCards() {
 
     container.innerHTML = html;
     if (projetoExpandidoId) expandirCard(projetoExpandidoId, true);
+}
+
+// ==========================================
+// TELA DE LEITURA COMPLETA DO PROJETO
+// ==========================================
+document.addEventListener('click', (e) => {
+    // Abrir a tela de leitura
+    const btnLer = e.target.closest('.btn-ler-projeto');
+    if (btnLer) {
+        e.preventDefault();
+        const id = btnLer.dataset.id;
+        abrirTelaLeituraProjeto(id);
+    }
+
+    // Fechar a tela de leitura e voltar ao carrossel
+    const btnVoltar = e.target.closest('#btnVoltarProjetos');
+    if (btnVoltar) {
+        document.getElementById('projeto-detalhes-view').classList.add('hidden');
+        document.getElementById('projetos-content').classList.remove('hidden');
+    }
+});
+
+function abrirTelaLeituraProjeto(id) {
+    const proj = projetosMap.get(id);
+    if (!proj) return;
+
+    // Preenche o Cabeçalho
+    document.getElementById('detalheProjTitulo').innerHTML = proj.titulo;
+    document.getElementById('detalheFavCount').innerHTML = `<i class="fas fa-heart text-red-500 mr-1"></i> ${proj.favoritosCount || 0}`;
+
+    // Preenche Imagem de Capa (se existir)
+    const imgContainer = document.getElementById('detalheProjImagemContainer');
+    if (proj.imageUrl && !proj.imageUrl.includes('placeholder')) {
+        document.getElementById('detalheProjImagem').src = proj.imageUrl;
+        imgContainer.classList.remove('hidden');
+    } else {
+        imgContainer.classList.add('hidden');
+    }
+
+    // Preenche o Conteúdo (Aceita texto puro ou HTML direto do banco)
+    // Usamos o campo 'conteudoHTML' se ele existir (para projetos ricos), ou fallback pro 'conteudo'
+    const textoRenderizado = proj.conteudoHTML || proj.conteudo || proj.descricao || "Conteúdo não disponível.";
+    
+    // Se for texto puro (sem tags HTML), quebra as linhas. Se já tiver HTML (como o que você mandou), insere direto.
+    if (!textoRenderizado.includes('<') && !textoRenderizado.includes('>')) {
+        document.getElementById('detalheProjConteudo').innerHTML = textoRenderizado.replace(/\n/g, '<br><br>');
+    } else {
+        document.getElementById('detalheProjConteudo').innerHTML = textoRenderizado;
+    }
+
+    // Oculta o carrossel e Mostra a tela de leitura
+    document.getElementById('projetos-content').classList.add('hidden');
+    
+    const telaDetalhes = document.getElementById('projeto-detalhes-view');
+    telaDetalhes.classList.remove('hidden');
+    
+    // Rola a janela para o topo
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    telaDetalhes.scrollTo({ top: 0, behavior: 'instant' });
 }
 
 function expandirCard(id, reRendendo = false) {
