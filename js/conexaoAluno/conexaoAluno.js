@@ -189,11 +189,6 @@ function setupListeners(isModerador) {
         abrirPostNoPainel(postId, isModerador);
     });
 
-    // Fechar Modal de Perfil ao clicar fora
-    const modalPerfil = document.getElementById('modalPerfilUsuario');
-    modalPerfil.addEventListener('click', (e) => {
-        if(e.target === modalPerfil) fecharModalPerfil();
-    });
 }
 
 function carregarPostsListener(isModerador) {
