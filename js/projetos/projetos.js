@@ -10,12 +10,30 @@ let projetoExpandidoId = null;
 let autoScrollInterval = null;
 let favoritosUsuario = []; 
 
+// Regras de Permissão Exatas
 function isAdmin() { return window.userRoles?.Admin; }
 function canEdit() { return window.userRoles?.Admin || window.userRoles?.Coordenacao || window.userRoles?.Professor; }
 
 export async function renderProjetosTab() {
     const container = document.getElementById('projetos-content');
     if (!container) return;
+
+    // Injeta o CSS dinâmico necessário para os cards sem precisar mexer no style.css
+    if (!document.getElementById('projetos-custom-style')) {
+        const style = document.createElement('style');
+        style.id = 'projetos-custom-style';
+        style.innerHTML = `
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .projeto-card { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+            /* Expansão Horizontal Suave */
+            .projeto-card.expanded { min-width: 900px; max-width: 900px; z-index: 40; }
+            @media (max-width: 1024px) {
+                .projeto-card.expanded { min-width: 100%; max-width: 100%; flex-direction: column !important; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
 
     if (auth.currentUser) {
         try {
@@ -26,11 +44,12 @@ export async function renderProjetosTab() {
         } catch (e) { console.error("Erro ao buscar favoritos:", e); }
     }
 
+    // Injeta o botão NOVO PROJETO (Botão (+) moderno)
     const containerBtnNovo = document.getElementById('btnNovoProjetoContainer');
     if (canEdit() && containerBtnNovo) {
         containerBtnNovo.innerHTML = `
-            <button id="btnNovoProjeto" class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1 flex items-center gap-2">
-                <i class="fas fa-plus"></i> Cadastrar Projeto
+            <button id="btnNovoProjeto" class="bg-indigo-600 hover:bg-indigo-500 text-white w-12 h-12 md:w-auto md:px-6 md:py-3 rounded-full md:rounded-xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.5)] transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2">
+                <i class="fas fa-plus text-lg"></i> <span class="hidden md:inline uppercase tracking-widest text-xs">Projeto</span>
             </button>
         `;
     } else if (containerBtnNovo) {
@@ -64,7 +83,7 @@ function setupListeners() {
         btnNovo.onclick = () => {
             form.reset();
             document.getElementById('projIdEdit').value = '';
-            document.getElementById('formProjetoTitulo').innerText = 'Novo Projeto';
+            document.getElementById('formProjetoTitulo').innerHTML = '<i class="fas fa-rocket text-indigo-400"></i> Novo Projeto';
             areaForm.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
@@ -80,8 +99,7 @@ function setupListeners() {
             try {
                 const id = document.getElementById('projIdEdit').value;
                 const titulo = document.getElementById('projTitulo').value.trim();
-                // CORREÇÃO: Pegando o valor para salvar como "conteudo"
-                const conteudo = document.getElementById('projDescricao').value.trim();
+                const conteudo = document.getElementById('projDescricao').value.trim(); // Mantém 'conteudo' pro Firebase
                 const link = document.getElementById('projLink').value.trim();
                 const fileInput = document.getElementById('projImageFile');
                 let imageUrl = document.getElementById('projImageUrl').value; 
@@ -112,17 +130,14 @@ function setupListeners() {
 
                 if (!imageUrl) imageUrl = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1470&auto=format&fit=crop';
 
-                // CORREÇÃO: Salvando como "conteudo" para manter compatibilidade com o banco antigo
                 const dados = { titulo, conteudo, link, imageUrl, atualizadoEm: serverTimestamp() };
 
                 if (id) {
                     await updateDoc(doc(db, "projetos_site", id), dados);
-                    alert("Projeto atualizado com sucesso!");
                 } else {
                     dados.criadoEm = serverTimestamp();
                     dados.favoritosCount = 0;
                     await addDoc(collection(db, "projetos_site"), dados);
-                    alert("Projeto cadastrado com sucesso!");
                 }
 
                 areaForm.classList.add('hidden');
@@ -139,7 +154,7 @@ function setupListeners() {
 
     if (!window.carouselListenerAdded) {
         document.addEventListener('click', (e) => {
-            if (projetoExpandidoId && !e.target.closest('.projeto-card') && !e.target.closest('.btn-acoes')) {
+            if (projetoExpandidoId && !e.target.closest('.projeto-card') && !e.target.closest('.btn-acoes-admin')) {
                 fecharCardExpandido();
                 iniciarAutoScroll(); 
             }
@@ -203,8 +218,6 @@ function escutarProjetos() {
         iniciarAutoScroll();
     }, (error) => {
         console.error("Erro ao carregar projetos:", error);
-        const container = document.getElementById('carouselContainer');
-        if(container) container.innerHTML = `<div class="text-center w-full text-red-500 py-20 italic">Erro de permissão no Firebase.</div>`;
     });
 }
 
@@ -224,45 +237,44 @@ function renderizarCards() {
         const isFav = favoritosUsuario.includes(proj.id);
         const corFav = isFav ? 'text-red-500' : 'text-slate-400';
         const iconeFav = isFav ? 'fas' : 'far';
-        
-        // CORREÇÃO AQUI: Trata tanto 'conteudo' (banco antigo) quanto fallback para evitar undefined
         const textoSeguro = proj.conteudo || proj.descricao || '';
         
         html += `
-        <div data-id="${proj.id}" class="projeto-card relative shrink-0 w-[300px] h-[450px] bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl cursor-pointer snap-center group flex flex-col">
+        <div data-id="${proj.id}" class="projeto-card relative shrink-0 w-[320px] h-[550px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl cursor-pointer snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]">
             
-            <button data-id="${proj.id}" class="btn-favoritar absolute top-4 right-4 z-10 bg-slate-900/60 backdrop-blur hover:bg-slate-900 w-10 h-10 rounded-full flex items-center justify-center transition-all border border-slate-700/50 shadow-lg">
-                <i class="${iconeFav} fa-heart ${corFav} text-lg transition-transform hover:scale-125"></i>
+            <div class="btn-acoes-admin absolute top-4 left-4 z-30 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                ${canEdit() ? `<button data-id="${proj.id}" class="btn-editar bg-slate-900/80 hover:bg-yellow-500 text-slate-300 hover:text-white backdrop-blur border border-slate-600 w-9 h-9 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110" title="Editar"><i class="fas fa-pen text-xs"></i></button>` : ''}
+                ${isAdmin() ? `<button data-id="${proj.id}" class="btn-excluir bg-slate-900/80 hover:bg-red-500 text-slate-300 hover:text-white backdrop-blur border border-slate-600 w-9 h-9 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110" title="Excluir"><i class="fas fa-trash text-xs"></i></button>` : ''}
+            </div>
+
+            <button data-id="${proj.id}" class="btn-favoritar absolute top-4 right-4 z-30 bg-slate-900/80 backdrop-blur hover:bg-slate-900 w-10 h-10 rounded-full flex items-center justify-center transition-all border border-slate-600 shadow-lg group/fav">
+                <i class="${iconeFav} fa-heart ${corFav} text-lg transition-transform group-hover/fav:scale-125"></i>
             </button>
 
-            <div class="h-48 shrink-0 w-full relative overflow-hidden bg-slate-900 img-container transition-all duration-500">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent z-0 opacity-80"></div>
+            <div class="h-[320px] shrink-0 w-full relative overflow-hidden bg-slate-900 img-container transition-all duration-500">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-800 via-slate-800/40 to-transparent z-10"></div>
                 <img src="${proj.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1470&auto=format&fit=crop'}" alt="Capa" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
             </div>
 
-            <div class="p-6 flex flex-col flex-grow content-container transition-all duration-500">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="bg-indigo-500/20 text-indigo-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest border border-indigo-500/30">Destaque</span>
-                    <span class="text-xs font-bold text-slate-500"><i class="fas fa-heart text-red-500/70 mr-1"></i> ${proj.favoritosCount || 0}</span>
+            <div class="p-6 flex flex-col flex-grow content-container transition-all duration-500 relative z-20 -mt-10">
+                
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="bg-indigo-500 text-white text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-500/30">Destaque</span>
+                    <span class="text-xs font-bold text-slate-300 bg-slate-900/50 px-2.5 py-1 rounded-full border border-slate-700 backdrop-blur"><i class="fas fa-heart text-red-500 mr-1"></i> ${proj.favoritosCount || 0}</span>
                 </div>
                 
-                <h3 class="text-xl font-black text-white leading-tight mb-2 line-clamp-2 title-elem">${proj.titulo}</h3>
-                <p class="text-sm text-slate-400 line-clamp-3 mb-4 flex-grow desc-elem">${textoSeguro}</p>
+                <h3 class="text-2xl font-black text-white leading-tight mb-2 line-clamp-2 title-elem drop-shadow-md">${proj.titulo}</h3>
+                <p class="text-sm text-slate-400 line-clamp-4 flex-grow desc-elem leading-relaxed">${textoSeguro}</p>
 
-                <div class="hidden extra-info-elem flex-col w-full h-full">
-                    <p class="text-sm text-slate-300 leading-relaxed mb-6 overflow-y-auto custom-scroll pr-2" style="max-height: 200px;">
+                <div class="hidden extra-info-elem flex-col w-full h-full pt-2">
+                    <p class="text-sm text-slate-300 leading-relaxed mb-6 overflow-y-auto custom-scroll pr-2" style="max-height: 250px;">
                         ${textoSeguro.replace(/\n/g, '<br>')}
                     </p>
                     <div class="mt-auto">
-                        <a href="${proj.link}" target="_blank" class="inline-flex items-center justify-center w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 gap-2">
+                        <a href="${proj.link}" target="_blank" class="inline-flex items-center justify-center w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.4)] transition-transform hover:-translate-y-1 gap-2 uppercase tracking-wide text-xs">
                             <i class="fas fa-external-link-alt"></i> Acessar Projeto
                         </a>
                     </div>
-                </div>
-
-                <div class="btn-acoes mt-auto pt-4 border-t border-slate-700/50 flex justify-end gap-2 admin-panel-elem transition-opacity duration-300">
-                    ${canEdit() ? `<button data-id="${proj.id}" class="btn-editar bg-yellow-600/20 hover:bg-yellow-600 text-yellow-500 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors border border-yellow-600/30"><i class="fas fa-pen"></i> Editar</button>` : ''}
-                    ${isAdmin() ? `<button data-id="${proj.id}" class="btn-excluir bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-colors border border-red-600/30"><i class="fas fa-trash"></i> Excluir</button>` : ''}
                 </div>
             </div>
         </div>
@@ -287,13 +299,17 @@ function expandirCard(id, reRendendo = false) {
         const extraInfo = card.querySelector('.extra-info-elem');
 
         if (card.dataset.id === id) {
+            // Transformação do Card Clicado
             card.classList.add('expanded');
             card.classList.replace('flex-col', 'md:flex-row');
             
-            imgContainer.classList.replace('h-48', 'md:h-full');
-            imgContainer.classList.replace('w-full', 'md:w-2/5');
+            // A Imagem assume o lado esquerdo
+            imgContainer.classList.replace('h-[320px]', 'md:h-full');
+            imgContainer.classList.replace('w-full', 'md:w-[45%]');
             
-            contentContainer.classList.replace('w-full', 'md:w-3/5');
+            // O texto assume o lado direito
+            contentContainer.classList.replace('w-full', 'md:w-[55%]');
+            contentContainer.classList.remove('-mt-10'); // Remove a margem negativa que sobrepunha a imagem
             
             descElem.classList.add('hidden');
             extraInfo.classList.remove('hidden');
@@ -303,6 +319,7 @@ function expandirCard(id, reRendendo = false) {
                 setTimeout(() => card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }), 100);
             }
         } else {
+            // Minimiza visualmente os outros cards
             card.classList.remove('expanded');
             card.style.opacity = '0.5';
             card.style.transform = 'scale(0.95)';
@@ -331,9 +348,13 @@ function fecharCardExpandido() {
 
 function resetarLayoutCard(card, imgContainer, contentContainer, descElem, extraInfo) {
     card.classList.replace('md:flex-row', 'flex-col');
-    imgContainer.classList.replace('md:h-full', 'h-48');
-    imgContainer.classList.replace('md:w-2/5', 'w-full');
-    contentContainer.classList.replace('md:w-3/5', 'w-full');
+    
+    imgContainer.classList.replace('md:h-full', 'h-[320px]');
+    imgContainer.classList.replace('md:w-[45%]', 'w-full');
+    
+    contentContainer.classList.replace('md:w-[55%]', 'w-full');
+    contentContainer.classList.add('-mt-10');
+    
     descElem.classList.remove('hidden');
     extraInfo.classList.add('hidden');
     extraInfo.classList.remove('flex');
@@ -349,7 +370,7 @@ function iniciarAutoScroll() {
             if (container.scrollLeft + container.clientWidth >= container.scrollWidth - 10) {
                 container.scrollTo({ left: 0, behavior: 'smooth' });
             } else {
-                container.scrollBy({ left: 324, behavior: 'smooth' }); 
+                container.scrollBy({ left: 344, behavior: 'smooth' }); // Largura(320) + gap(24)
             }
         }
     }, 15000); 
@@ -400,7 +421,6 @@ function abrirEdicao(id) {
 
     document.getElementById('projIdEdit').value = proj.id;
     document.getElementById('projTitulo').value = proj.titulo;
-    // CORREÇÃO: Puxa o "conteudo" na hora de editar
     document.getElementById('projDescricao').value = proj.conteudo || proj.descricao || '';
     document.getElementById('projLink').value = proj.link;
     document.getElementById('projImageUrl').value = proj.imageUrl || '';
