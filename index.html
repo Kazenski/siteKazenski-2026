@@ -440,53 +440,42 @@
                 <div id="btnNovoProjetoContainer"></div>
             </div>
 
-            <div id="areaFormProjeto"
-                class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 p-6 rounded-2xl mb-8 shadow-2xl relative overflow-hidden">
+            <div id="areaFormProjeto" class="hidden bg-slate-800/80 backdrop-blur-md border border-slate-700 p-6 rounded-2xl mb-8 shadow-2xl relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
                 <h2 id="formProjetoTitulo" class="text-xl font-bold text-white mb-6">Novo Projeto</h2>
-
+                
                 <form id="formProjeto" class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <input type="hidden" id="projIdEdit">
-
+                    
                     <div class="col-span-full md:col-span-1 space-y-4">
                         <div>
-                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Título
-                                do Projeto</label>
-                            <input type="text" id="projTitulo" required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Título do Projeto</label>
+                            <input type="text" id="projTitulo" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
                         </div>
                         <div>
-                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Link de
-                                Acesso</label>
-                            <input type="url" id="projLink" placeholder="https://" required
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Link de Acesso</label>
+                            <input type="url" id="projLink" placeholder="https://" required class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors">
                         </div>
                         <div>
-                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Imagem
-                                de Capa</label>
+                            <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Imagem de Capa</label>
                             <div class="flex gap-2 items-center">
-                                <input type="file" id="projImageFile" accept="image/*"
-                                    class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 transition-colors w-full">
+                                <input type="file" id="projImageFile" accept="image/*" class="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/20 file:text-indigo-400 hover:file:bg-indigo-500/30 transition-colors w-full">
                             </div>
                             <input type="hidden" id="projImageUrl">
-                            <div id="uploadProgress" class="h-1 w-full bg-slate-700 rounded-full mt-2 hidden">
-                                <div class="h-full bg-indigo-500 rounded-full w-0 transition-all duration-300"></div>
-                            </div>
+                            <div id="uploadProgress" class="h-1 w-full bg-slate-700 rounded-full mt-2 hidden"><div class="h-full bg-indigo-500 rounded-full w-0 transition-all duration-300"></div></div>
                         </div>
                     </div>
 
-                    <div class="col-span-full md:col-span-1">
-                        <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Descrição
-                            do Projeto</label>
-                        <textarea id="projDescricao" required rows="6"
-                            class="w-full h-[calc(100%-24px)] bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors resize-none"></textarea>
+                    <div class="col-span-full md:col-span-1 flex flex-col">
+                        <label class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-1 block">Conteúdo do Projeto (Suporta HTML)</label>
+                        <textarea id="projDescricao" required rows="12" class="w-full min-h-[280px] bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-indigo-500 transition-colors resize-y"></textarea>
                     </div>
 
-                    <div class="col-span-full flex justify-end gap-3 mt-4 pt-4 border-t border-slate-700/50">
-                        <button type="button" id="btnCancelarForm"
-                            class="px-6 py-2.5 rounded-xl font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">Cancelar</button>
-                        <button type="submit" id="btnSalvarForm"
-                            class="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg transition-colors flex items-center gap-2">
+                    <div class="col-span-full flex justify-end gap-3 mt-2 pt-5 border-t border-slate-700/50">
+                        <button type="button" id="btnCancelarForm" class="px-6 py-2.5 rounded-xl font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
+                            <i class="fas fa-times mr-2"></i>Cancelar
+                        </button>
+                        <button type="submit" id="btnSalvarForm" class="px-6 py-2.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg transition-colors flex items-center gap-2">
                             <i class="fas fa-save"></i> Salvar Projeto
                         </button>
                     </div>
