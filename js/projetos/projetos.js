@@ -26,7 +26,6 @@ export async function renderProjetosTab() {
         } catch (e) { console.error("Erro ao buscar favoritos:", e); }
     }
 
-    // Injeta o botão de Novo Projeto apenas se tiver permissão
     const containerBtnNovo = document.getElementById('btnNovoProjetoContainer');
     if (canEdit() && containerBtnNovo) {
         containerBtnNovo.innerHTML = `
@@ -52,7 +51,6 @@ function setupListeners() {
     const btnNext = document.getElementById('btnNextSlide');
 
     if (btnPrev && btnNext) {
-        // Remover listeners antigos para evitar duplicação em navegações
         const newBtnPrev = btnPrev.cloneNode(true);
         const newBtnNext = btnNext.cloneNode(true);
         btnPrev.parentNode.replaceChild(newBtnPrev, btnPrev);
@@ -82,7 +80,8 @@ function setupListeners() {
             try {
                 const id = document.getElementById('projIdEdit').value;
                 const titulo = document.getElementById('projTitulo').value.trim();
-                const descricao = document.getElementById('projDescricao').value.trim();
+                // CORREÇÃO: Pegando o valor para salvar como "conteudo"
+                const conteudo = document.getElementById('projDescricao').value.trim();
                 const link = document.getElementById('projLink').value.trim();
                 const fileInput = document.getElementById('projImageFile');
                 let imageUrl = document.getElementById('projImageUrl').value; 
@@ -113,7 +112,8 @@ function setupListeners() {
 
                 if (!imageUrl) imageUrl = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1470&auto=format&fit=crop';
 
-                const dados = { titulo, descricao, link, imageUrl, atualizadoEm: serverTimestamp() };
+                // CORREÇÃO: Salvando como "conteudo" para manter compatibilidade com o banco antigo
+                const dados = { titulo, conteudo, link, imageUrl, atualizadoEm: serverTimestamp() };
 
                 if (id) {
                     await updateDoc(doc(db, "projetos_site", id), dados);
@@ -137,7 +137,6 @@ function setupListeners() {
         };
     }
 
-    // Usando uma flag global ou limpando event listeners antigos
     if (!window.carouselListenerAdded) {
         document.addEventListener('click', (e) => {
             if (projetoExpandidoId && !e.target.closest('.projeto-card') && !e.target.closest('.btn-acoes')) {
@@ -197,25 +196,15 @@ function escutarProjetos() {
     if (unsubscribeProjetos) unsubscribeProjetos();
     const q = query(collection(db, "projetos_site"), orderBy("criadoEm", "desc"));
     
-    // Adicionamos um Callback de Erro no final do onSnapshot
     unsubscribeProjetos = onSnapshot(q, (snapshot) => {
         projetosMap.clear();
         snapshot.forEach(doc => projetosMap.set(doc.id, { id: doc.id, ...doc.data() }));
         renderizarCards();
         iniciarAutoScroll();
     }, (error) => {
-        console.error("🚨 ERRO FIREBASE (Projetos):", error);
-        
-        // Joga o erro direto na tela do usuário no lugar do Spinner
+        console.error("Erro ao carregar projetos:", error);
         const container = document.getElementById('carouselContainer');
-        if(container) {
-            container.innerHTML = `
-                <div class="text-center w-full text-red-500 py-20 font-bold bg-slate-800/50 rounded-xl border border-red-500/30">
-                    <i class="fas fa-exclamation-triangle mb-3 text-3xl"></i><br>
-                    Erro ao carregar projetos.<br>
-                    <span class="text-sm font-normal text-slate-400">${error.message}</span>
-                </div>`;
-        }
+        if(container) container.innerHTML = `<div class="text-center w-full text-red-500 py-20 italic">Erro de permissão no Firebase.</div>`;
     });
 }
 
@@ -236,6 +225,9 @@ function renderizarCards() {
         const corFav = isFav ? 'text-red-500' : 'text-slate-400';
         const iconeFav = isFav ? 'fas' : 'far';
         
+        // CORREÇÃO AQUI: Trata tanto 'conteudo' (banco antigo) quanto fallback para evitar undefined
+        const textoSeguro = proj.conteudo || proj.descricao || '';
+        
         html += `
         <div data-id="${proj.id}" class="projeto-card relative shrink-0 w-[300px] h-[450px] bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl cursor-pointer snap-center group flex flex-col">
             
@@ -245,7 +237,7 @@ function renderizarCards() {
 
             <div class="h-48 shrink-0 w-full relative overflow-hidden bg-slate-900 img-container transition-all duration-500">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent z-0 opacity-80"></div>
-                <img src="${proj.imageUrl || 'https://via.placeholder.com/400x300/1e293b/ffffff?text=Sem+Imagem'}" alt="Capa" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                <img src="${proj.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1470&auto=format&fit=crop'}" alt="Capa" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
             </div>
 
             <div class="p-6 flex flex-col flex-grow content-container transition-all duration-500">
@@ -255,11 +247,11 @@ function renderizarCards() {
                 </div>
                 
                 <h3 class="text-xl font-black text-white leading-tight mb-2 line-clamp-2 title-elem">${proj.titulo}</h3>
-                <p class="text-sm text-slate-400 line-clamp-3 mb-4 flex-grow desc-elem">${proj.descricao}</p>
+                <p class="text-sm text-slate-400 line-clamp-3 mb-4 flex-grow desc-elem">${textoSeguro}</p>
 
                 <div class="hidden extra-info-elem flex-col w-full h-full">
                     <p class="text-sm text-slate-300 leading-relaxed mb-6 overflow-y-auto custom-scroll pr-2" style="max-height: 200px;">
-                        ${proj.descricao.replace(/\n/g, '<br>')}
+                        ${textoSeguro.replace(/\n/g, '<br>')}
                     </p>
                     <div class="mt-auto">
                         <a href="${proj.link}" target="_blank" class="inline-flex items-center justify-center w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-transform hover:-translate-y-1 gap-2">
@@ -408,7 +400,8 @@ function abrirEdicao(id) {
 
     document.getElementById('projIdEdit').value = proj.id;
     document.getElementById('projTitulo').value = proj.titulo;
-    document.getElementById('projDescricao').value = proj.descricao;
+    // CORREÇÃO: Puxa o "conteudo" na hora de editar
+    document.getElementById('projDescricao').value = proj.conteudo || proj.descricao || '';
     document.getElementById('projLink').value = proj.link;
     document.getElementById('projImageUrl').value = proj.imageUrl || '';
     document.getElementById('projImageFile').value = ''; 
