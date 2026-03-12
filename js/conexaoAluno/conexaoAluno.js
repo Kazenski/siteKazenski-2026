@@ -315,7 +315,7 @@ function renderizarFeed(isModerador) {
 // ==========================================
 // PAINEL LATERAL (SIDE PANEL) DO POST
 // ==========================================
-function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
+async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const post = postsMap.get(postId);
     if (!post) return;
 
@@ -324,6 +324,7 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const content = document.getElementById('sidePanelContent');
     const feedGrid = document.getElementById('feedPosts');
 
+    // Abre o painel empurrando o feed
     feedGrid.classList.remove('xl:grid-cols-3');
     feedGrid.classList.add('xl:grid-cols-2');
 
@@ -332,22 +333,34 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
 
     if(!isUpdate) renderizarFeed(isModerador); 
 
-    const autor = autoresCache.get(post.autorUID) || {};
-    const user = window.currentUser;
-    const isVisitante = !user; // Define se é visitante
+    // 1. CORREÇÃO DA FOTO/BANNER: Garante que os dados do autor foram baixados antes de renderizar
+    let autor = autoresCache.get(post.autorUID);
+    if (autor === 'loading' || !autor) {
+        content.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fas fa-spinner fa-spin text-4xl mb-4 text-blue-500"></i> Carregando autor...</div>';
+        try {
+            const docSnap = await getDoc(doc(db, "users", post.autorUID));
+            autor = docSnap.exists() ? docSnap.data() : {};
+            autoresCache.set(post.autorUID, autor);
+        } catch(e) {
+            autor = {};
+        }
+    }
+
+    // 2. CORREÇÃO DO USUÁRIO LOGADO: Busca o estado atual em tempo real
+    const isVisitante = !window.currentUser;
 
     const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${post.autorRole || 'default'}`).trim() || '#bdc3c7';
     
-    // LÓGICA DE PRIVACIDADE PARA VISITANTES
+    // Configura Imagens e Privacidade
     const avatarUrl = isVisitante 
-        ? `https://ui-avatars.com/api/?name=Membro+Oculto&background=333&color=fff` 
+        ? `https://ui-avatars.com/api/?name=Oculto&background=333&color=fff` 
         : (autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.autorNome || 'U')}&background=${corBase.replace('#','')}&color=fff`);
     
     const coverUrl = isVisitante ? null : (autor.coverImageURL || null);
     const neon = isVisitante ? 'none' : `0 0 15px rgba(${hexToRgb(corBase)}, 0.5)`;
-    const nomeExibicao = isVisitante ? 'Membro da Comunidade' : post.autorNome;
+    const nomeExibicao = isVisitante ? 'Membro Oculto' : post.autorNome;
     
-    // TÍTULOS (SÓ APARECEM PARA LOGADOS)
+    // 3. RENDERIZAR TÍTULOS (SÓ APARECEM PARA LOGADOS)
     let listaTitulosHtml = '';
     if (!isVisitante) {
         if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
@@ -355,22 +368,21 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
             for (const [id, dados] of Object.entries(autor.titulosConquistados)) {
                 const isFaIcon = dados.icone && dados.icone.includes('fa-');
                 const iconeHtml = isFaIcon ? `<i class="${dados.icone} mr-1"></i>` : `${dados.icone || '🏆'} `;
-                const classeAtivo = dados.tituloAtivadoUser ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-sm' : 'bg-slate-800/80 text-slate-300';
-                listaTitulosHtml += `<div class="${classeAtivo} px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-600 flex items-center">${iconeHtml} ${dados.nome}</div>`;
+                const classeAtivo = dados.tituloAtivadoUser ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-sm border-orange-400' : 'bg-slate-800/80 text-slate-300 border-slate-600';
+                listaTitulosHtml += `<div class="${classeAtivo} px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center">${iconeHtml} ${dados.nome}</div>`;
             }
             listaTitulosHtml += '</div>';
         } else {
-            listaTitulosHtml = `<div class="mt-3 inline-block bg-gradient-to-r from-slate-600 to-slate-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">🏆 Aspirante</div>`;
+            listaTitulosHtml = `<div class="mt-3 inline-block bg-gradient-to-r from-slate-600 to-slate-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-slate-800">🏆 Aspirante</div>`;
         }
     }
 
     const coverStyle = coverUrl ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
 
-    const jaElogiou = post.elogiosDetalhados?.[user?.uid] ? 'text-yellow-500' : 'text-slate-400';
+    const jaElogiou = (window.currentUser && post.elogiosDetalhados?.[window.currentUser.uid]) ? 'text-yellow-500' : 'text-slate-400';
+    const btnElogioClass = jaElogiou.includes('yellow') ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600';
     
-    // PERMISSÕES DA EQUIPE
     const isEquipe = window.userRoles?.Admin || window.userRoles?.Moderador || window.userRoles?.Professor || window.userRoles?.Coordenacao;
-    
     let acoesEquipeHtml = '';
     if (isEquipe) {
         acoesEquipeHtml = `
@@ -381,9 +393,10 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         `;
     }
 
-    content.className = "overflow-y-auto h-full flex flex-col relative w-full"; 
+    // Importante: zera o padding para o banner colar no teto do painel
+    content.className = "overflow-y-auto h-full flex flex-col relative w-full p-0"; 
     
-    // HTML SUPER ROBUSTO PARA GARANTIR QUE APAREÇA
+    // HTML INJETADO DIRETAMENTE NO PAINEL LATERAL
     content.innerHTML = `
         <div class="w-full shrink-0 border-b border-slate-700 pb-5 mb-5 block">
             <div class="w-full h-28 relative block" style="${coverStyle}">
@@ -413,7 +426,7 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
             ${acoesEquipeHtml}
 
             <div class="mt-auto pt-6 border-t border-slate-700 flex justify-between items-center pb-6">
-                <button id="btnElogiarPainel" class="flex items-center gap-2 px-6 py-3 rounded-xl border transition-all bg-slate-700 hover:bg-slate-600">
+                <button id="btnElogiarPainel" class="flex items-center gap-2 px-6 py-3 rounded-xl border transition-all ${btnElogioClass}">
                     <i class="fas fa-star ${jaElogiou} text-lg"></i>
                     <span class="text-white font-bold text-sm">Elogiar Post (${post.elogios || 0})</span>
                 </button>
@@ -424,11 +437,9 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     // Eventos da Equipe
     if (isEquipe) {
         document.getElementById('btnAplicarCartao').addEventListener('click', async () => {
-            if(confirm("Aplicar Cartão Amarelo? O post será ocultado e o aluno receberá 1 advertência (3 resultam em bloqueio).")) {
+            if(confirm("Aplicar Cartão Amarelo? O post será oculto e o autor receberá 1 advertência.")) {
                 try {
-                    // Oculta o post
                     await updateDoc(doc(db, "posts", postId), { exibir: false, oculto: true, cartaoAplicado: true });
-                    // Adiciona cartão ao usuário
                     await updateDoc(doc(db, "users", post.autorUID), { cartaoAmareloPosts: increment(1) });
                     alert("Cartão aplicado com sucesso!");
                     fecharPainelPost();
@@ -444,16 +455,22 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         });
     }
 
+    // 4. CORREÇÃO DO ELOGIO: Verifica o login no EXATO MOMENTO do clique
     document.getElementById('btnElogiarPainel').addEventListener('click', async () => {
-        if(!user) return alert("Faça login para elogiar.");
+        const currentUserClicado = window.currentUser; // Avalia agora!
+        
+        if(!currentUserClicado) return alert("Faça login para elogiar.");
+        
         try {
             await runTransaction(db, async (t) => {
                 const ref = doc(db, "posts", postId);
                 const docSnap = await t.get(ref);
-                if (docSnap.data().elogiosDetalhados?.[user.uid]) throw "Já elogiado";
-                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${user.uid}`]: true });
+                if (docSnap.data().elogiosDetalhados?.[currentUserClicado.uid]) throw "Já elogiado";
+                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${currentUserClicado.uid}`]: true });
             });
-        } catch(e) {}
+        } catch(e) { 
+            if (e !== "Já elogiado") console.error(e); 
+        }
     });
 }
 
