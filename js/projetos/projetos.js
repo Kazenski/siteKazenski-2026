@@ -197,11 +197,25 @@ function escutarProjetos() {
     if (unsubscribeProjetos) unsubscribeProjetos();
     const q = query(collection(db, "projetos_site"), orderBy("criadoEm", "desc"));
     
+    // Adicionamos um Callback de Erro no final do onSnapshot
     unsubscribeProjetos = onSnapshot(q, (snapshot) => {
         projetosMap.clear();
         snapshot.forEach(doc => projetosMap.set(doc.id, { id: doc.id, ...doc.data() }));
         renderizarCards();
         iniciarAutoScroll();
+    }, (error) => {
+        console.error("🚨 ERRO FIREBASE (Projetos):", error);
+        
+        // Joga o erro direto na tela do usuário no lugar do Spinner
+        const container = document.getElementById('carouselContainer');
+        if(container) {
+            container.innerHTML = `
+                <div class="text-center w-full text-red-500 py-20 font-bold bg-slate-800/50 rounded-xl border border-red-500/30">
+                    <i class="fas fa-exclamation-triangle mb-3 text-3xl"></i><br>
+                    Erro ao carregar projetos.<br>
+                    <span class="text-sm font-normal text-slate-400">${error.message}</span>
+                </div>`;
+        }
     });
 }
 
