@@ -288,7 +288,7 @@ function renderizarCards() {
         const plainTextPreview = rawContent.replace(/<[^>]*>?/gm, ''); // Limpa HTML para o resumo
         
         html += `
-        <div class="projeto-card relative shrink-0 w-[320px] h-[480px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]">
+        <div class="projeto-card relative shrink-0 w-[320px] h-[580px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]">
             
             <div class="btn-acoes-admin absolute top-4 left-4 z-30 flex flex-col gap-2 opacity-90">
                 ${isEditUser ? `<button data-id="${proj.id}" class="btn-editar bg-slate-900/80 hover:bg-yellow-500 text-slate-300 hover:text-white backdrop-blur border border-slate-600 w-9 h-9 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110" title="Editar"><i class="fas fa-pen text-xs"></i></button>` : ''}
@@ -299,7 +299,7 @@ function renderizarCards() {
                 <i class="${iconeFav} fa-heart ${corFav} text-lg transition-transform group-hover/fav:scale-125"></i>
             </button>
 
-            <div class="h-[250px] shrink-0 w-full relative overflow-hidden bg-slate-900 transition-all duration-500">
+            <div class="h-[320px] shrink-0 w-full relative overflow-hidden bg-slate-900 transition-all duration-500">
                 <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent z-10 opacity-90"></div>
                 <img src="${proj.imageUrl || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1470&auto=format&fit=crop'}" alt="Capa" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
             </div>
@@ -311,7 +311,8 @@ function renderizarCards() {
                 </div>
                 
                 <h3 class="text-xl font-black text-white leading-tight mb-2 line-clamp-2 drop-shadow-md">${proj.titulo}</h3>
-                <p class="text-sm text-slate-400 line-clamp-3 flex-grow leading-relaxed">${plainTextPreview}</p>
+                
+                <p class="text-sm text-slate-400 line-clamp-4 flex-grow leading-relaxed">${plainTextPreview}</p>
 
                 <div class="mt-auto pt-4 border-t border-slate-700/50">
                     <button data-id="${proj.id}" class="btn-ler-projeto w-full bg-gradient-to-r from-slate-700 to-slate-600 hover:from-blue-600 hover:to-indigo-600 text-white py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest group/btn">
@@ -325,7 +326,6 @@ function renderizarCards() {
 
     container.innerHTML = html;
 }
-
 window.abrirTelaLeituraProjeto = function(id) {
     const proj = projetosMap.get(id);
     if (!proj) return;
