@@ -91,6 +91,18 @@ export function renderConexaoAlunoTab() {
 
     setupListeners(isModerador);
     carregarPostsListener(isModerador);
+
+    if (window.currentUser) {
+        getDoc(doc(db, "users", window.currentUser.uid)).then(snap => {
+            if (snap.exists() && snap.data().cartaoAmareloPosts >= 3) {
+                const btnNovoPost = document.getElementById('btnNovoPost');
+                if (btnNovoPost) {
+                    btnNovoPost.style.display = 'none'; // Oculta o botão da tela
+                }
+            }
+        }).catch(e => console.error("Erro ao checar cartões do usuário:", e));
+    }
+
 }
 
 function setupListeners(isModerador) {
@@ -119,7 +131,7 @@ function setupListeners(isModerador) {
         const user = window.currentUser;
         if (!user) return alert("Você precisa estar logado.");
 
-        // NOVA LÓGICA: Verifica se o usuário tem 3 ou mais cartões amarelos antes de postar
+        // TRAVA DE SEGURANÇA: Verifica se o usuário tem 3 ou mais cartões amarelos antes de postar
         try {
             const userDocSnap = await getDoc(doc(db, "users", user.uid));
             if (userDocSnap.exists() && (userDocSnap.data().cartaoAmareloPosts >= 3)) {
@@ -132,18 +144,26 @@ function setupListeners(isModerador) {
 
         try {
             await addDoc(collection(db, "posts"), {
-                titulo, conteudo, postPublico: isPublico,
+                titulo: titulo, 
+                conteudo: conteudo, 
+                postPublico: isPublico,
                 criadoEm: serverTimestamp(),
-                autorUID: user.uid, autorNome: user.nome || 'Membro',
-                autorTurma: user.turma || null, autorRole: window.userRoles?.Admin ? 'admin' : (window.userRoles?.Moderador ? 'moderador' : 'aluno'),
-                elogios: 0, elogiosDetalhados: {}, exibir: false, oculto: false
+                autorUID: user.uid, 
+                autorNome: user.nome || 'Membro',
+                autorTurma: user.turma || null, 
+                autorRole: window.userRoles?.Admin ? 'admin' : (window.userRoles?.Moderador ? 'moderador' : 'aluno'),
+                elogios: 0, 
+                elogiosDetalhados: {}, 
+                exibir: false, 
+                oculto: false,
+                aprovado: false 
             });
             
             document.getElementById('areaCriarPost').classList.add('hidden');
             document.getElementById('postTitulo').value = '';
             document.getElementById('postConteudo').value = '';
             dispararConfetes();
-            alert("Sucesso! Seu post foi enviado e aguarda aprovação.");
+            alert("Sucesso! Seu post foi enviado e aguarda aprovação da moderação.");
         } catch (e) {
             alert("Erro ao publicar.");
         } finally {
