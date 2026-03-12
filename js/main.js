@@ -158,9 +158,6 @@ onAuthStateChanged(auth, async (user) => {
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 
-                // LOG PARA DIAGNÓSTICO: Aperte F12 no navegador para ver o que o Firebase está trazendo
-                console.log("Dados do Usuário vindos do Firebase:", data);
-                
                 // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
                 userRoles.Admin = (data.Admin === true || data.Admin === "true");
                 userRoles.Professor = (data.Professor === true || data.Professor === "true");
@@ -171,8 +168,6 @@ onAuthStateChanged(auth, async (user) => {
                 
                 userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
                 userRoles.Visitante = false;
-
-                console.log("Permissões finais aplicadas no Menu:", userRoles);
 
                 // Define o rótulo de exibição baseado na maior autoridade
                 if (userRoles.Admin) displayRoleName = 'Admin';
