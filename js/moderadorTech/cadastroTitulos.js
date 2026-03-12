@@ -332,3 +332,94 @@ els.btnSaveAwards.addEventListener('click', async () => {
 
 // Ao carregar este script, iniciar validações de permissões e listeners
 auth.onAuthStateChanged(user => { if(user) window.titulosAPI.init(); });
+
+
+// ==========================================
+// GERENCIADOR DE CARTÕES AMARELOS (MODERADOR)
+// ==========================================
+export function abrirGerenciadorCartoes() {
+    // Cria um modal por cima da tela do moderador
+    const modalHtml = `
+        <div id="modalCartoes" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div class="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-black text-white"><i class="fas fa-square text-yellow-400 mr-2"></i> Gestão de Punições</h2>
+                    <button onclick="document.getElementById('modalCartoes').remove()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+                </div>
+                
+                <p class="text-slate-300 text-sm mb-4">Gerencie as advertências dos alunos. Ao marcar 3 cartões, o aluno perde o direito de postar na Conexão Aluno. Clique nos cartões para alterar a quantidade.</p>
+                
+                <div class="flex-1 overflow-y-auto pr-2" id="listaAlunosPunidos">
+                    <div class="text-center text-slate-400 py-10"><i class="fas fa-spinner fa-spin text-2xl"></i><br>Buscando histórico...</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    carregarListaCartoes();
+}
+
+async function carregarListaCartoes() {
+    const container = document.getElementById('listaAlunosPunidos');
+    if (!container) return;
+
+    try {
+        // Busca APENAS usuários que possuem o campo cartaoAmareloPosts (maior que 0)
+        const q = query(collection(db, "users"), where("cartaoAmareloPosts", ">", 0));
+        const snapshot = await getDocs(q);
+        
+        container.innerHTML = '';
+        if (snapshot.empty) {
+            container.innerHTML = '<div class="text-center text-slate-400 py-6 bg-slate-900 rounded-xl">Nenhum aluno com punições registradas.</div>';
+            return;
+        }
+
+        snapshot.forEach(docSnap => {
+            const user = docSnap.data();
+            const qtdCartoes = user.cartaoAmareloPosts || 0;
+            const isBanido = qtdCartoes >= 3;
+            
+            // Lógica visual dos 3 cartões: 
+            // Se tiver 3, os 3 ficam vermelhos. Se tiver 1 ou 2, ficam amarelos proporcionalmente.
+            let corCartoes = isBanido ? 'text-red-600' : 'text-yellow-400';
+            let iconesCartaoHtml = '';
+            
+            for (let i = 1; i <= 3; i++) {
+                const isPreenchido = i <= qtdCartoes;
+                const classeCor = isPreenchido ? corCartoes : 'text-slate-600 opacity-50';
+                iconesCartaoHtml += `<i class="fas fa-square cursor-pointer text-2xl mx-1 transition-transform hover:scale-110 ${classeCor}" onclick="atualizarCartaoAmarelo('${docSnap.id}', ${i})"></i>`;
+            }
+
+            container.innerHTML += `
+                <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 flex items-center justify-between mb-3 hover:bg-slate-900 transition-colors">
+                    <div>
+                        <h3 class="text-white font-bold text-lg">${user.nome}</h3>
+                        <p class="text-slate-400 text-sm"><i class="fas fa-envelope mr-1"></i> ${user.email} | Turma: ${user.turma || 'Geral'}</p>
+                        ${isBanido ? '<span class="inline-block mt-2 bg-red-900/50 text-red-400 text-xs px-2 py-1 rounded font-bold border border-red-500/50">🚫 BLOQUEADO PARA POSTAR</span>' : ''}
+                    </div>
+                    
+                    <div class="flex flex-col items-center">
+                        <span class="text-xs text-slate-500 font-bold mb-1 uppercase">Nível de Punição</span>
+                        <div class="flex bg-slate-800 p-2 rounded-lg border border-slate-700 shadow-inner">
+                            ${iconesCartaoHtml}
+                        </div>
+                        <button onclick="atualizarCartaoAmarelo('${docSnap.id}', 0)" class="text-[10px] text-slate-400 hover:text-white mt-2 underline">Zerar Cartões</button>
+                    </div>
+                </div>
+            `;
+        });
+    } catch(e) {
+        console.error(e);
+        container.innerHTML = '<div class="text-red-400">Erro ao carregar lista de punições.</div>';
+    }
+}
+
+// Essa função precisa ser atrelada à janela global para o onclick do HTML funcionar
+window.atualizarCartaoAmarelo = async function(userId, novaQuantidade) {
+    if (!confirm(`Deseja alterar a punição deste aluno para ${novaQuantidade} cartões?`)) return;
+    try {
+        await updateDoc(doc(db, "users", userId), { cartaoAmareloPosts: novaQuantidade });
+        carregarListaCartoes(); // Recarrega a tela para piscar a atualização ao vivo
+    } catch(e) { alert("Erro ao atualizar cartão."); }
+}

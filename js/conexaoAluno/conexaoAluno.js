@@ -113,14 +113,20 @@ function setupListeners(isModerador) {
         const btnSalvar = document.getElementById('btnSalvarPost');
 
         if (!titulo || !conteudo) return alert("Preencha título e conteúdo.");
-        
-        // Uso da função centralizada de validação
         if (validarConteudo(titulo) || validarConteudo(conteudo)) {
             return alert("Conteúdo bloqueado pelas diretrizes de moderação. Por favor, remova palavras inapropriadas.");
         }
 
         const user = window.currentUser;
         if (!user) return alert("Você precisa estar logado.");
+
+        // NOVA LÓGICA: Verifica se o usuário tem 3 ou mais cartões amarelos antes de postar
+        try {
+            const userDocSnap = await getDoc(doc(db, "users", user.uid));
+            if (userDocSnap.exists() && (userDocSnap.data().cartaoAmareloPosts >= 3)) {
+                return alert("🚫 AÇÃO BLOQUEADA: Você acumulou 3 cartões amarelos e está proibido de fazer novas postagens na rede.");
+            }
+        } catch(e) { console.error(e); }
 
         btnSalvar.disabled = true;
         btnSalvar.textContent = "Publicando...";
@@ -134,7 +140,7 @@ function setupListeners(isModerador) {
                 elogios: 0, elogiosDetalhados: {}, exibir: false, oculto: false
             });
             
-            areaPost.classList.add('hidden');
+            document.getElementById('areaCriarPost').classList.add('hidden');
             document.getElementById('postTitulo').value = '';
             document.getElementById('postConteudo').value = '';
             dispararConfetes();
@@ -318,51 +324,128 @@ function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const content = document.getElementById('sidePanelContent');
     const feedGrid = document.getElementById('feedPosts');
 
-    // Modifica o grid do feed para não esmagar os cards quando o painel abre em telas grandes
     feedGrid.classList.remove('xl:grid-cols-3');
     feedGrid.classList.add('xl:grid-cols-2');
 
-    // Revela o painel (Remove translate no mobile/desktop)
     panel.classList.remove('hidden');
     setTimeout(() => panel.classList.remove('translate-x-full'), 10);
 
-    // Se for apenas um update de snapshot, não renderizamos tudo do zero, evita piscar
-    if(!isUpdate) renderizarFeed(isModerador); // Re-renderiza para aplicar a borda azul de "Ativo"
+    if(!isUpdate) renderizarFeed(isModerador); 
 
     const autor = autoresCache.get(post.autorUID) || {};
-    const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${post.autorRole || 'default'}`).trim() || '#bdc3c7';
-    const avatarUrl = autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.autorNome || 'U')}&background=${corBase.replace('#','')}&color=fff`;
-    
     const user = window.currentUser;
-    const jaElogiou = post.elogiosDetalhados?.[user?.uid] ? 'text-yellow-500' : 'text-slate-400';
-    const btnElogioClass = jaElogiou.includes('yellow') ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600';
+    const isVisitante = !user; // Define se é visitante
 
+    const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${post.autorRole || 'default'}`).trim() || '#bdc3c7';
+    
+    // LÓGICA DE PRIVACIDADE PARA VISITANTES
+    const avatarUrl = isVisitante 
+        ? `https://ui-avatars.com/api/?name=Membro+Oculto&background=333&color=fff` 
+        : (autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.autorNome || 'U')}&background=${corBase.replace('#','')}&color=fff`);
+    
+    const coverUrl = isVisitante ? null : (autor.coverImageURL || null);
+    const neon = isVisitante ? 'none' : `0 0 15px rgba(${hexToRgb(corBase)}, 0.5)`;
+    const nomeExibicao = isVisitante ? 'Membro da Comunidade' : post.autorNome;
+    
+    // TÍTULOS (SÓ APARECEM PARA LOGADOS)
+    let listaTitulosHtml = '';
+    if (!isVisitante) {
+        if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
+            listaTitulosHtml = '<div class="flex flex-wrap gap-1.5 mt-3">';
+            for (const [id, dados] of Object.entries(autor.titulosConquistados)) {
+                const isFaIcon = dados.icone && dados.icone.includes('fa-');
+                const iconeHtml = isFaIcon ? `<i class="${dados.icone} mr-1"></i>` : `${dados.icone || '🏆'} `;
+                const classeAtivo = dados.tituloAtivadoUser ? 'bg-gradient-to-r from-orange-500 to-amber-600 text-white shadow-sm' : 'bg-slate-800/80 text-slate-300';
+                listaTitulosHtml += `<div class="${classeAtivo} px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-slate-600 flex items-center">${iconeHtml} ${dados.nome}</div>`;
+            }
+            listaTitulosHtml += '</div>';
+        } else {
+            listaTitulosHtml = `<div class="mt-3 inline-block bg-gradient-to-r from-slate-600 to-slate-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">🏆 Aspirante</div>`;
+        }
+    }
+
+    const coverStyle = coverUrl ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
+
+    const jaElogiou = post.elogiosDetalhados?.[user?.uid] ? 'text-yellow-500' : 'text-slate-400';
+    
+    // PERMISSÕES DA EQUIPE
+    const isEquipe = window.userRoles?.Admin || window.userRoles?.Moderador || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+    
+    let acoesEquipeHtml = '';
+    if (isEquipe) {
+        acoesEquipeHtml = `
+            <div class="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-xl flex gap-2 justify-center">
+                <button id="btnAplicarCartao" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-bold shadow transition-colors"><i class="fas fa-square text-yellow-300"></i> Aplicar Cartão & Ocultar</button>
+                <button id="btnExcluirPost" class="text-xs bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-bold shadow transition-colors"><i class="fas fa-trash"></i> Excluir</button>
+            </div>
+        `;
+    }
+
+    content.className = "overflow-y-auto h-full flex flex-col relative w-full"; 
+    
+    // HTML SUPER ROBUSTO PARA GARANTIR QUE APAREÇA
     content.innerHTML = `
-        <div class="flex items-center gap-4 mb-6 pb-6 border-b border-slate-700">
-            <img src="${avatarUrl}" class="w-14 h-14 rounded-full border-2 border-slate-600 object-cover cursor-pointer hover:scale-105 transition-transform" onclick="document.getElementById('modalPerfilUsuario').classList.remove('hidden'); setTimeout(()=> document.getElementById('sidePanelPost').querySelector('.avatar-click').click(), 10)">
-            <div>
-                <h3 class="text-white font-bold text-lg">${post.autorNome}</h3>
-                <p class="text-blue-400 text-sm"><i class="fas fa-users"></i> Turma: ${post.autorTurma || 'Geral'}</p>
+        <div class="w-full shrink-0 border-b border-slate-700 pb-5 mb-5 block">
+            <div class="w-full h-28 relative block" style="${coverStyle}">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent opacity-90"></div>
+            </div>
+            <div class="px-6 relative -mt-12 flex flex-col block">
+                <div class="flex items-end gap-3 block">
+                    <div class="w-24 h-24 rounded-full border-4 object-cover overflow-hidden bg-slate-800 shrink-0 inline-block" style="border-color: ${corBase}; box-shadow: ${neon}">
+                        <img src="${avatarUrl}" class="w-full h-full object-cover">
+                    </div>
+                    <div class="pb-1 inline-block">
+                        <h3 class="text-white font-black text-xl leading-none shadow-sm drop-shadow-md">${nomeExibicao}</h3>
+                        ${!isVisitante ? `<p class="text-[10px] font-bold uppercase tracking-widest mt-1.5 inline-block px-2 py-0.5 rounded-full" style="background-color: ${corBase}40; color: ${corBase}">${post.autorRole || 'Aluno'}</p>` : ''}
+                    </div>
+                </div>
+                ${!isVisitante ? `<p class="text-blue-400 text-xs mt-3 font-semibold block"><i class="fas fa-users mr-1"></i> Turma: ${post.autorTurma || 'Geral'}</p>` : ''}
+                ${listaTitulosHtml}
             </div>
         </div>
 
-        <h2 class="text-2xl font-black text-white mb-4 leading-tight">${post.titulo}</h2>
-        
-        <div class="prose prose-invert prose-slate max-w-none text-slate-300 text-base leading-relaxed mb-8 flex-1">
-            ${DOMPurify.sanitize(post.conteudo).replace(/\n/g, '<br>')}
-        </div>
+        <div class="px-6 flex-1 flex flex-col block">
+            <h2 class="text-2xl font-black text-white mb-4 leading-tight">${post.titulo}</h2>
+            <div class="prose prose-invert prose-slate max-w-none text-slate-300 text-base leading-relaxed mb-4">
+                ${DOMPurify.sanitize(post.conteudo).replace(/\n/g, '<br>')}
+            </div>
+            
+            ${acoesEquipeHtml}
 
-        <div class="mt-auto pt-6 border-t border-slate-700 flex justify-between items-center">
-            <button id="btnElogiarPainel" class="flex items-center gap-2 px-6 py-3 rounded-xl border transition-all ${btnElogioClass}">
-                <i class="fas fa-star ${jaElogiou} text-lg"></i>
-                <span class="text-white font-bold">Elogiar Postagem (${post.elogios || 0})</span>
-            </button>
-            <span class="text-slate-500 text-xs text-right">Publicado em<br>${new Date(post.criadoEm?.toDate() || Date.now()).toLocaleDateString('pt-BR')}</span>
+            <div class="mt-auto pt-6 border-t border-slate-700 flex justify-between items-center pb-6">
+                <button id="btnElogiarPainel" class="flex items-center gap-2 px-6 py-3 rounded-xl border transition-all bg-slate-700 hover:bg-slate-600">
+                    <i class="fas fa-star ${jaElogiou} text-lg"></i>
+                    <span class="text-white font-bold text-sm">Elogiar Post (${post.elogios || 0})</span>
+                </button>
+            </div>
         </div>
     `;
 
+    // Eventos da Equipe
+    if (isEquipe) {
+        document.getElementById('btnAplicarCartao').addEventListener('click', async () => {
+            if(confirm("Aplicar Cartão Amarelo? O post será ocultado e o aluno receberá 1 advertência (3 resultam em bloqueio).")) {
+                try {
+                    // Oculta o post
+                    await updateDoc(doc(db, "posts", postId), { exibir: false, oculto: true, cartaoAplicado: true });
+                    // Adiciona cartão ao usuário
+                    await updateDoc(doc(db, "users", post.autorUID), { cartaoAmareloPosts: increment(1) });
+                    alert("Cartão aplicado com sucesso!");
+                    fecharPainelPost();
+                } catch(e) { alert("Erro ao aplicar cartão."); }
+            }
+        });
+
+        document.getElementById('btnExcluirPost').addEventListener('click', async () => {
+            if(confirm("Excluir DEFINITIVAMENTE este post?")) {
+                await deleteDoc(doc(db, "posts", postId));
+                fecharPainelPost();
+            }
+        });
+    }
+
     document.getElementById('btnElogiarPainel').addEventListener('click', async () => {
-        if(!user) return;
+        if(!user) return alert("Faça login para elogiar.");
         try {
             await runTransaction(db, async (t) => {
                 const ref = doc(db, "posts", postId);
