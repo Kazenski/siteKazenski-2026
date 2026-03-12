@@ -390,18 +390,20 @@ function fecharPainelPost() {
 }
 
 // ==========================================
-// MODAL DE PERFIL FLUTUANTE
+// MODAL DE PERFIL FLUTUANTE (MINI PERFIL COM VITRINE DE TÍTULOS)
 // ==========================================
 function abrirModalPerfil(uid) {
     if(!uid) return;
     const modal = document.getElementById('modalPerfilUsuario');
     const autor = autoresCache.get(uid);
-    if(!autor || autor === 'loading') return; // Segurança caso ainda carregando
+    if(!autor || autor === 'loading') return;
 
     const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${autor.role || 'default'}`).trim() || '#bdc3c7';
     const avatarUrl = autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(autor.nome || 'U')}&background=${corBase.replace('#','')}&color=fff&size=256`;
+    const coverUrl = autor.coverImageURL || null;
     const neon = `0 0 20px rgba(${hexToRgb(corBase)}, 0.6)`;
 
+    // Define a Turma
     let infoTurma = 'Geral';
     if (autor.escolas) {
         for (const escolaId in autor.escolas) {
@@ -413,22 +415,77 @@ function abrirModalPerfil(uid) {
         }
     }
 
+    // Processa TODOS os Títulos do Usuário (Vitrine)
+    let listaTitulosHtml = '';
+    if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
+        listaTitulosHtml = '<div class="flex flex-wrap justify-center gap-2 mt-2">';
+        for (const [id, dados] of Object.entries(autor.titulosConquistados)) {
+            const isFaIcon = dados.icone && dados.icone.includes('fa-');
+            const iconeHtml = isFaIcon ? `<i class="${dados.icone} mr-1"></i>` : `${dados.icone || '🏆'} `;
+            
+            // Destaca em laranja se for o título principal escolhido pelo usuário
+            const classeAtivo = dados.tituloAtivadoUser 
+                ? 'bg-gradient-to-r from-orange-500 to-amber-600 border-orange-400 text-white shadow-orange-500/20 shadow-lg' 
+                : 'bg-slate-800 border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 transition-colors';
+            
+            // Formata a data se existir
+            let tooltipData = 'Data desconhecida';
+            if(dados.concedidoEm) {
+                try { tooltipData = new Date(dados.concedidoEm.toDate ? dados.concedidoEm.toDate() : dados.concedidoEm).toLocaleDateString('pt-BR'); } 
+                catch(e) {}
+            }
+
+            listaTitulosHtml += `
+                <div class="${classeAtivo} px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center cursor-help" title="Concedido em: ${tooltipData}">
+                    ${iconeHtml} ${dados.nome}
+                </div>
+            `;
+        }
+        listaTitulosHtml += '</div>';
+    } else {
+        // Se não tiver títulos, exibe apenas a badge padrão
+        listaTitulosHtml = `
+            <div class="flex justify-center mt-2">
+                <div class="bg-gradient-to-r from-slate-600 to-slate-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-slate-800">🏆 Aspirante</div>
+            </div>`;
+    }
+
+    // Verifica se tem Capa ou gera um Fundo Degradê Baseado na Cor do Cargo
+    const coverStyle = coverUrl 
+        ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;`
+        : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
+
+    // Renderiza a Interface
     modal.innerHTML = `
-        <div class="bg-slate-800 border border-slate-600 rounded-3xl p-8 w-full max-w-sm relative flex flex-col items-center text-center transform scale-100 transition-transform shadow-2xl" onclick="event.stopPropagation()">
-            <button onclick="fecharModalPerfil()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+        <div class="bg-slate-800 border border-slate-600 rounded-3xl w-full max-w-md relative flex flex-col items-center text-center transform scale-100 transition-transform shadow-2xl overflow-hidden max-h-[90vh]" onclick="event.stopPropagation()">
+            
+            <button onclick="fecharModalPerfil()" class="absolute top-4 right-4 text-slate-300 hover:text-white bg-black/50 hover:bg-black/80 rounded-full w-8 h-8 flex items-center justify-center transition-colors z-20 backdrop-blur-sm">
                 <i class="fas fa-times"></i>
             </button>
             
-            <div class="w-32 h-32 rounded-full border-4 mb-4 object-cover overflow-hidden" style="border-color: ${corBase}; box-shadow: ${neon}">
-                <img src="${avatarUrl}" class="w-full h-full object-cover">
+            <div class="w-full h-32 relative shrink-0" style="${coverStyle}">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent opacity-80"></div>
             </div>
             
-            <h2 class="text-2xl font-black text-white mb-1">${autor.nome}</h2>
-            <p class="text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4" style="background-color: ${corBase}33; color: ${corBase}">${autor.role || 'Aluno'}</p>
+            <div class="relative -mt-16 z-10 mb-2 shrink-0">
+                <div class="w-28 h-28 rounded-full border-4 object-cover overflow-hidden bg-slate-800 mx-auto" style="border-color: ${corBase}; box-shadow: ${neon}">
+                    <img src="${avatarUrl}" class="w-full h-full object-cover">
+                </div>
+            </div>
             
-            <div class="w-full bg-slate-900/50 rounded-xl p-4 mt-2">
-                <p class="text-slate-400 text-sm mb-1"><i class="fas fa-envelope mr-2"></i> ${autor.email || 'Email oculto'}</p>
-                <p class="text-blue-400 text-sm font-semibold"><i class="fas fa-graduation-cap mr-2"></i> Turma: ${infoTurma}</p>
+            <div class="px-6 pb-6 w-full overflow-y-auto" style="scrollbar-width: thin; scrollbar-color: #475569 transparent;">
+                <h2 class="text-2xl font-black text-white mb-1">${autor.nome}</h2>
+                <p class="text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-4" style="background-color: ${corBase}33; color: ${corBase}">${autor.role || 'Aluno'}</p>
+                
+                <div class="w-full bg-slate-900/80 rounded-xl p-4 mb-4 border border-slate-700/50 text-left">
+                    <p class="text-slate-400 text-sm mb-2"><i class="fas fa-envelope text-slate-500 mr-2 w-4 text-center"></i> ${autor.email || 'Email oculto'}</p>
+                    <p class="text-blue-400 text-sm font-semibold"><i class="fas fa-graduation-cap text-blue-500 mr-2 w-4 text-center"></i> Turma: ${infoTurma}</p>
+                </div>
+
+                <div class="w-full border-t border-slate-700/50 pt-4">
+                    <h4 class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">Conquistas e Títulos</h4>
+                    ${listaTitulosHtml}
+                </div>
             </div>
         </div>
     `;
