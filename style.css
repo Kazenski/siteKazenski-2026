@@ -420,3 +420,42 @@
 .cropper-line, .cropper-point {
     background-color: #3b82f6 !important;
 }
+
+
+/* =========================================
+   CONEXÃO ALUNO - EFEITOS IMERSIVOS
+========================================= */
+.post-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.post-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+}
+
+/* Bordas Laterais por Cargos */
+.post-card[data-role="admin"] { border-left: 4px solid #FF00D8; }
+.post-card[data-role="professor"] { border-left: 4px solid #062863; }
+.post-card[data-role="aluno"] { border-left: 4px solid #31598c; }
+.post-card[data-role="coordenacao"] { border-left: 4px solid #FF0000; }
+.post-card[data-role="moderador"] { border-left: 4px solid #34495e; }
+.post-card[data-role="default"] { border-left: 4px solid #bdc3c7; }
+
+/* Animação de Elogio (Estrela) */
+@keyframes pulseStar {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.25); color: #FFD700; }
+    100% { transform: scale(1); }
+}
+.fa-star.elogio-animado {
+    animation: pulseStar 1.5s ease-in-out infinite;
+    color: #eab308;
+}
+
+/* Confetes da Publicação */
+.confetti-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+.confetti { position: absolute; width: 10px; height: 10px; opacity: 0; animation: confetti-fall 4s ease-out forwards; }
+@keyframes confetti-fall {
+    0% { opacity: 1; transform: translateY(-20px) rotateZ(0deg); }
+    100% { opacity: 0; transform: translateY(100vh) rotateZ(720deg); }
+}

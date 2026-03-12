@@ -2,6 +2,7 @@ import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 
 // IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
 import { renderInicioTab } from './inicio/inicio.js';
@@ -28,6 +29,7 @@ let isAlunoTechLoaded = false;
 let isConteudosLoaded = false;
 let isProfessorLoaded = false;
 let isModeradorLoaded = false;
+let isConexaoAlunoLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -287,16 +289,20 @@ window.showTab = function(tabId) {
     else if (tabId === 'login') {
         renderLoginTab();
     }
-
     else if (tabId === 'professor') {
         if (!isProfessorLoaded) {
             renderProfessorTab();
             isProfessorLoaded = true;
         }
     }
-
-    if (tabId === 'moderador-tech' && !isModeradorLoaded) {
+    else if (tabId === 'moderador-tech' && !isModeradorLoaded) {
         isModeradorLoaded = true; 
+    }
+    else if (tabId === 'conexao-aluno') {
+        if (!isConexaoAlunoLoaded) {
+            renderConexaoAlunoTab();
+            isConexaoAlunoLoaded = true;
+        }
     }
 };
 
