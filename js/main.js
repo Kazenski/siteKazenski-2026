@@ -158,13 +158,21 @@ onAuthStateChanged(auth, async (user) => {
             if (userDoc.exists()) {
                 const data = userDoc.data();
                 
-                // Mapeamento direto dos campos booleanos do seu Firebase
-                userRoles.Admin = data.Admin === true;
-                userRoles.Professor = data.Professor === true;
-                userRoles.Coordenacao = data.Coordenacao === true;
-                userRoles.Moderador = data.Moderador === true;
-                userRoles.Aluno = data.Aluno === true;
+                // LOG PARA DIAGNÓSTICO: Aperte F12 no navegador para ver o que o Firebase está trazendo
+                console.log("Dados do Usuário vindos do Firebase:", data);
+                
+                // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
+                userRoles.Admin = (data.Admin === true || data.Admin === "true");
+                userRoles.Professor = (data.Professor === true || data.Professor === "true");
+                userRoles.Coordenacao = (data.Coordenacao === true || data.Coordenacao === "true");
+                
+                // Aceita "Moderador" (maiúsculo) ou "moderador" (minúsculo), em Boolean ou String
+                userRoles.Moderador = (data.Moderador === true || data.Moderador === "true" || data.moderador === true || data.moderador === "true");
+                
+                userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
                 userRoles.Visitante = false;
+
+                console.log("Permissões finais aplicadas no Menu:", userRoles);
 
                 // Define o rótulo de exibição baseado na maior autoridade
                 if (userRoles.Admin) displayRoleName = 'Admin';
@@ -379,8 +387,6 @@ function renderLoginTab() {
             // Tenta autenticar
             await signInWithEmailAndPassword(auth, email, pass);
             
-            // Sucesso! A função onAuthStateChanged vai rodar sozinha e exibir o painel do usuário.
-            // Vamos apenas redirecioná-lo para a tela Início para ele ver as abas liberadas.
             window.showTab('inicio');
             
         } catch (error) {
