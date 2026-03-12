@@ -162,7 +162,7 @@ onAuthStateChanged(auth, async (user) => {
                 userRoles.Admin = data.Admin === true;
                 userRoles.Professor = data.Professor === true;
                 userRoles.Coordenacao = data.Coordenacao === true;
-                userRoles.Moderador = data.moderador === true;
+                userRoles.Moderador = data.Moderador === true;
                 userRoles.Aluno = data.Aluno === true;
                 userRoles.Visitante = false;
 
