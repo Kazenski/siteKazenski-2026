@@ -87,7 +87,6 @@ export function renderConexaoAlunoTab() {
 
         </div>
         
-        <div id="modalPerfilUsuario" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[999] flex items-center justify-center p-4"></div>
     `;
 
     setupListeners(isModerador);
@@ -165,13 +164,6 @@ function setupListeners(isModerador) {
         const postCard = e.target.closest('.post-card');
         if (!postCard) return;
         const postId = postCard.dataset.id;
-
-        // Clique na Imagem do Avatar -> Abre o Perfil
-        if (e.target.closest('.avatar-click')) {
-            e.stopPropagation();
-            abrirModalPerfil(postCard.dataset.uid);
-            return;
-        }
 
         // Ações de Moderação
         if (e.target.closest('.btn-aprovar')) {
@@ -333,10 +325,10 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
 
     if(!isUpdate) renderizarFeed(isModerador); 
 
-    // 1. CORREÇÃO DA FOTO/BANNER: Garante que os dados do autor foram baixados antes de renderizar
+    // 1. ESPERA O AUTOR CARREGAR (Evita piscar sem foto/banner)
     let autor = autoresCache.get(post.autorUID);
-    if (autor === 'loading' || !autor) {
-        content.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fas fa-spinner fa-spin text-4xl mb-4 text-blue-500"></i> Carregando autor...</div>';
+    if (!autor || autor === 'loading') {
+        content.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fas fa-spinner fa-spin text-4xl mb-4 text-blue-500"></i> Carregando postagem...</div>';
         try {
             const docSnap = await getDoc(doc(db, "users", post.autorUID));
             autor = docSnap.exists() ? docSnap.data() : {};
@@ -346,8 +338,9 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         }
     }
 
-    // 2. CORREÇÃO DO USUÁRIO LOGADO: Busca o estado atual em tempo real
-    const isVisitante = !window.currentUser;
+    // 2. VERIFICA LOGIN EM TEMPO REAL
+    const user = window.currentUser;
+    const isVisitante = !user; 
 
     const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${post.autorRole || 'default'}`).trim() || '#bdc3c7';
     
@@ -360,7 +353,7 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const neon = isVisitante ? 'none' : `0 0 15px rgba(${hexToRgb(corBase)}, 0.5)`;
     const nomeExibicao = isVisitante ? 'Membro Oculto' : post.autorNome;
     
-    // 3. RENDERIZAR TÍTULOS (SÓ APARECEM PARA LOGADOS)
+    // 3. VITRINE DE TÍTULOS (SÓ PARA LOGADOS)
     let listaTitulosHtml = '';
     if (!isVisitante) {
         if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
@@ -379,7 +372,7 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
 
     const coverStyle = coverUrl ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
 
-    const jaElogiou = (window.currentUser && post.elogiosDetalhados?.[window.currentUser.uid]) ? 'text-yellow-500' : 'text-slate-400';
+    const jaElogiou = (user && post.elogiosDetalhados?.[user.uid]) ? 'text-yellow-500' : 'text-slate-400';
     const btnElogioClass = jaElogiou.includes('yellow') ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600';
     
     const isEquipe = window.userRoles?.Admin || window.userRoles?.Moderador || window.userRoles?.Professor || window.userRoles?.Coordenacao;
@@ -387,16 +380,16 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     if (isEquipe) {
         acoesEquipeHtml = `
             <div class="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-xl flex gap-2 justify-center">
-                <button id="btnAplicarCartao" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-bold shadow transition-colors"><i class="fas fa-square text-yellow-300"></i> Aplicar Cartão & Ocultar</button>
+                <button id="btnAplicarCartao" class="text-xs bg-yellow-600 hover:bg-yellow-500 text-white px-3 py-2 rounded-lg font-bold shadow transition-colors"><i class="fas fa-square text-yellow-300"></i> Aplicar Cartão</button>
                 <button id="btnExcluirPost" class="text-xs bg-red-600 hover:bg-red-500 text-white px-3 py-2 rounded-lg font-bold shadow transition-colors"><i class="fas fa-trash"></i> Excluir</button>
             </div>
         `;
     }
 
-    // Importante: zera o padding para o banner colar no teto do painel
+    // Remove padding padrão do container para o banner encostar nas bordas
     content.className = "overflow-y-auto h-full flex flex-col relative w-full p-0"; 
     
-    // HTML INJETADO DIRETAMENTE NO PAINEL LATERAL
+    // 4. INJETA HTML COMPLETO DIRETO NO PAINEL LATERAL
     content.innerHTML = `
         <div class="w-full shrink-0 border-b border-slate-700 pb-5 mb-5 block">
             <div class="w-full h-28 relative block" style="${coverStyle}">
@@ -434,7 +427,7 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         </div>
     `;
 
-    // Eventos da Equipe
+    // Lógica da Equipe
     if (isEquipe) {
         document.getElementById('btnAplicarCartao').addEventListener('click', async () => {
             if(confirm("Aplicar Cartão Amarelo? O post será oculto e o autor receberá 1 advertência.")) {
@@ -455,18 +448,15 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         });
     }
 
-    // 4. CORREÇÃO DO ELOGIO: Verifica o login no EXATO MOMENTO do clique
+    // 5. CORREÇÃO DE ELOGIO: Usa window.currentUser no momento do clique
     document.getElementById('btnElogiarPainel').addEventListener('click', async () => {
-        const currentUserClicado = window.currentUser; // Avalia agora!
-        
-        if(!currentUserClicado) return alert("Faça login para elogiar.");
-        
+        if(!window.currentUser) return alert("Faça login para elogiar.");
         try {
             await runTransaction(db, async (t) => {
                 const ref = doc(db, "posts", postId);
                 const docSnap = await t.get(ref);
-                if (docSnap.data().elogiosDetalhados?.[currentUserClicado.uid]) throw "Já elogiado";
-                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${currentUserClicado.uid}`]: true });
+                if (docSnap.data().elogiosDetalhados?.[window.currentUser.uid]) throw "Já elogiado";
+                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${window.currentUser.uid}`]: true });
             });
         } catch(e) { 
             if (e !== "Já elogiado") console.error(e); 
@@ -487,113 +477,6 @@ function fecharPainelPost() {
     feedGrid.classList.add('xl:grid-cols-3');
     
     renderizarFeed(window.userRoles?.Admin || window.userRoles?.Moderador);
-}
-
-// ==========================================
-// MODAL DE PERFIL FLUTUANTE (MINI PERFIL COM VITRINE DE TÍTULOS)
-// ==========================================
-function abrirModalPerfil(uid) {
-    if(!uid) return;
-    const modal = document.getElementById('modalPerfilUsuario');
-    const autor = autoresCache.get(uid);
-    if(!autor || autor === 'loading') return;
-
-    const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${autor.role || 'default'}`).trim() || '#bdc3c7';
-    const avatarUrl = autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(autor.nome || 'U')}&background=${corBase.replace('#','')}&color=fff&size=256`;
-    const coverUrl = autor.coverImageURL || null;
-    const neon = `0 0 20px rgba(${hexToRgb(corBase)}, 0.6)`;
-
-    // Define a Turma
-    let infoTurma = 'Geral';
-    if (autor.escolas) {
-        for (const escolaId in autor.escolas) {
-            if (autor.escolas[escolaId].turmas) {
-                for (const tId in autor.escolas[escolaId].turmas) {
-                    if (autor.escolas[escolaId].turmas[tId].registrativo) infoTurma = autor.escolas[escolaId].turmas[tId].nome;
-                }
-            }
-        }
-    }
-
-    // Processa TODOS os Títulos do Usuário (Vitrine)
-    let listaTitulosHtml = '';
-    if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
-        listaTitulosHtml = '<div class="flex flex-wrap justify-center gap-2 mt-2">';
-        for (const [id, dados] of Object.entries(autor.titulosConquistados)) {
-            const isFaIcon = dados.icone && dados.icone.includes('fa-');
-            const iconeHtml = isFaIcon ? `<i class="${dados.icone} mr-1"></i>` : `${dados.icone || '🏆'} `;
-            
-            // Destaca em laranja se for o título principal escolhido pelo usuário
-            const classeAtivo = dados.tituloAtivadoUser 
-                ? 'bg-gradient-to-r from-orange-500 to-amber-600 border-orange-400 text-white shadow-orange-500/20 shadow-lg' 
-                : 'bg-slate-800 border-slate-600 text-slate-300 hover:text-white hover:border-slate-400 transition-colors';
-            
-            // Formata a data se existir
-            let tooltipData = 'Data desconhecida';
-            if(dados.concedidoEm) {
-                try { tooltipData = new Date(dados.concedidoEm.toDate ? dados.concedidoEm.toDate() : dados.concedidoEm).toLocaleDateString('pt-BR'); } 
-                catch(e) {}
-            }
-
-            listaTitulosHtml += `
-                <div class="${classeAtivo} px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center cursor-help" title="Concedido em: ${tooltipData}">
-                    ${iconeHtml} ${dados.nome}
-                </div>
-            `;
-        }
-        listaTitulosHtml += '</div>';
-    } else {
-        // Se não tiver títulos, exibe apenas a badge padrão
-        listaTitulosHtml = `
-            <div class="flex justify-center mt-2">
-                <div class="bg-gradient-to-r from-slate-600 to-slate-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-2 border-slate-800">🏆 Aspirante</div>
-            </div>`;
-    }
-
-    // Verifica se tem Capa ou gera um Fundo Degradê Baseado na Cor do Cargo
-    const coverStyle = coverUrl 
-        ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;`
-        : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
-
-    // Renderiza a Interface
-    modal.innerHTML = `
-        <div class="bg-slate-800 border border-slate-600 rounded-3xl w-full max-w-md relative flex flex-col items-center text-center transform scale-100 transition-transform shadow-2xl overflow-hidden max-h-[90vh]" onclick="event.stopPropagation()">
-            
-            <button onclick="fecharModalPerfil()" class="absolute top-4 right-4 text-slate-300 hover:text-white bg-black/50 hover:bg-black/80 rounded-full w-8 h-8 flex items-center justify-center transition-colors z-20 backdrop-blur-sm">
-                <i class="fas fa-times"></i>
-            </button>
-            
-            <div class="w-full h-32 relative shrink-0" style="${coverStyle}">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-800 to-transparent opacity-80"></div>
-            </div>
-            
-            <div class="relative -mt-16 z-10 mb-2 shrink-0">
-                <div class="w-28 h-28 rounded-full border-4 object-cover overflow-hidden bg-slate-800 mx-auto" style="border-color: ${corBase}; box-shadow: ${neon}">
-                    <img src="${avatarUrl}" class="w-full h-full object-cover">
-                </div>
-            </div>
-            
-            <div class="px-6 pb-6 w-full overflow-y-auto" style="scrollbar-width: thin; scrollbar-color: #475569 transparent;">
-                <h2 class="text-2xl font-black text-white mb-1">${autor.nome}</h2>
-                <p class="text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-4" style="background-color: ${corBase}33; color: ${corBase}">${autor.role || 'Aluno'}</p>
-                
-                <div class="w-full bg-slate-900/80 rounded-xl p-4 mb-4 border border-slate-700/50 text-left">
-                    <p class="text-slate-400 text-sm mb-2"><i class="fas fa-envelope text-slate-500 mr-2 w-4 text-center"></i> ${autor.email || 'Email oculto'}</p>
-                    <p class="text-blue-400 text-sm font-semibold"><i class="fas fa-graduation-cap text-blue-500 mr-2 w-4 text-center"></i> Turma: ${infoTurma}</p>
-                </div>
-
-                <div class="w-full border-t border-slate-700/50 pt-4">
-                    <h4 class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">Conquistas e Títulos</h4>
-                    ${listaTitulosHtml}
-                </div>
-            </div>
-        </div>
-    `;
-    modal.classList.remove('hidden');
-}
-
-window.fecharModalPerfil = function() {
-    document.getElementById('modalPerfilUsuario').classList.add('hidden');
 }
 
 function dispararConfetes() {
