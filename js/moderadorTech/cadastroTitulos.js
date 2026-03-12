@@ -468,32 +468,50 @@ window.postsModAPI = {
                     iconesCartaoHtml += `<i class="fas fa-square cursor-pointer text-2xl mx-1 transition-transform hover:scale-110 ${classeCor}" onclick="window.postsModAPI.setCartao('${authorId}', ${i})"></i>`;
                 }
 
+                // Verifica se há palavras proibidas
+                const ofensor = post.palavrasProibidas && post.palavrasProibidas.length > 0;
+                
+                // Muda a cor do cartão inteiro se tiver palavra proibida (vermelho escuro)
+                const cardClass = ofensor 
+                    ? 'bg-red-950/40 border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.25)]' 
+                    : 'bg-slate-800 border-slate-700 shadow-xl';
+                
+                // Cria uma faixa de aviso se tiver palavra proibida
+                const avisoInfracaoHTML = ofensor 
+                    ? `<div class="mb-4 bg-red-600/90 text-white text-xs font-bold px-4 py-3 rounded-lg border border-red-400 flex flex-col md:flex-row md:items-center gap-3 shadow-inner">
+                         <div class="flex items-center gap-2"><i class="fas fa-exclamation-triangle text-xl text-yellow-300"></i> <span class="uppercase tracking-widest">Alerta de Infração:</span></div>
+                         <span class="font-normal italic">Linguagem imprópria detectada: <span class="bg-red-900 px-2 py-0.5 rounded font-black uppercase text-red-200 ml-1">${post.palavrasProibidas.join(', ')}</span></span>
+                       </div>` 
+                    : '';
+
                 return `
-                <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-6 shadow-xl items-start">
-                    <div class="flex-grow">
+                <div class="${cardClass} p-5 rounded-2xl border flex flex-col md:flex-row gap-6 items-start transition-colors">
+                    <div class="flex-grow w-full">
                         <div class="flex items-center gap-3 mb-3">
-                            <span class="bg-indigo-500/20 text-indigo-400 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest border border-indigo-500/30">Pendente</span>
+                            <span class="${ofensor ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'} text-[10px] font-bold px-2 py-1 rounded uppercase tracking-widest border">Pendente</span>
                             <h4 class="text-white font-bold text-lg">${post.titulo || 'Postagem sem título'}</h4>
                         </div>
-                        <p class="text-sm text-slate-300 mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700">${post.conteudo || post.texto || post.descricao || ''}</p>
+                        
+                        ${avisoInfracaoHTML} <p class="text-sm text-slate-300 mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50">${post.conteudo || post.texto || post.descricao || ''}</p>
                         <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
                             <i class="fas fa-user-edit"></i> Autor: <span class="text-slate-200">${author.nome || 'Desconhecido'}</span>
                         </div>
                     </div>
                     
-                    <div class="flex flex-col items-center shrink-0 bg-slate-900/80 p-4 rounded-xl border border-slate-700 min-w-[180px]">
+                    <div class="flex flex-col items-center shrink-0 bg-slate-900/80 p-4 rounded-xl border border-slate-700 min-w-[180px] w-full md:w-auto">
                         <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-3 text-center">Punição (Autor)</span>
                         <div class="flex items-center justify-center bg-slate-800 p-2 rounded-lg border border-slate-700 shadow-inner w-full mb-1">
                             ${iconesCartaoHtml}
                         </div>
-                        <button onclick="window.postsModAPI.setCartao('${authorId}', 0)" class="text-[10px] text-slate-500 hover:text-white underline mb-4 mt-2">Zerar Cartões</button>
+                        <button onclick="window.postsModAPI.setCartao('${authorId}', 0)" class="text-[10px] text-slate-500 hover:text-white underline mb-4 mt-2 transition-colors">Zerar Cartões</button>
                         
                         <div class="w-full border-t border-slate-700 pt-4 flex flex-col gap-2">
-                            <button onclick="window.postsModAPI.aprovar('${post.id}')" class="w-full bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-lg transition-transform hover:scale-105 shadow-[0_0_15px_rgba(22,163,74,0.4)] uppercase tracking-widest"><i class="fas fa-check mr-2"></i> Aprovar</button>
-                            <button onclick="window.postsModAPI.rejeitar('${post.id}')" class="w-full bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 hover:border-transparent text-xs font-bold py-2.5 rounded-lg transition-colors uppercase tracking-widest mt-1"><i class="fas fa-times mr-2"></i> Rejeitar</button>
+                            <button onclick="window.postsModAPI.aprovar('${post.id}')" class="w-full bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2.5 rounded-lg transition-transform hover:scale-105 shadow-[0_0_15px_rgba(22,163,74,0.4)] uppercase tracking-widest flex justify-center items-center"><i class="fas fa-check mr-2"></i> Aprovar</button>
+                            <button onclick="window.postsModAPI.rejeitar('${post.id}')" class="w-full bg-red-900/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 hover:border-transparent text-xs font-bold py-2.5 rounded-lg transition-colors uppercase tracking-widest mt-1 flex justify-center items-center"><i class="fas fa-times mr-2"></i> Rejeitar</button>
                         </div>
                     </div>
                 </div>`;
+
             }).join('');
         });
     },

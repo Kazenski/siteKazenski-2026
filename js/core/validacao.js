@@ -1,4 +1,3 @@
-
 export const palavrasBloqueadas = [
     "otário", "imbecil", "idiota", "burro", "mané", "palhaço", 
     "retardado", "demente", "babaca", "ridículo", "lixo", "nojento", 
@@ -7,13 +6,22 @@ export const palavrasBloqueadas = [
     // Adicione mais palavras aqui conforme precisar
 ];
 
-export function validarConteudo(texto) {
-    if (!texto) return false;
+// NOVO: Retorna uma lista com as palavras proibidas que foram encontradas
+export function encontrarPalavrasBloqueadas(texto) {
+    if (!texto) return [];
     const textoLimpo = texto.toLowerCase().replace(/[\W_]+/g, ' ').trim();
+    const encontradas = [];
     
-    return palavrasBloqueadas.some(palavra => {
-        // Usa regex para encontrar a palavra exata (evita bloquear "escutar" por causa de "cutar", etc)
+    palavrasBloqueadas.forEach(palavra => {
         const regex = new RegExp(`\\b${palavra.replace(/\*/g, '[a-zA-Z]*')}\\b`, 'g');
-        return regex.test(textoLimpo);
+        if (regex.test(textoLimpo)) {
+            encontradas.push(palavra);
+        }
     });
+    return encontradas;
+}
+
+// Mantemos esta para compatibilidade, caso use em outro lugar
+export function validarConteudo(texto) {
+    return encontrarPalavrasBloqueadas(texto).length > 0;
 }

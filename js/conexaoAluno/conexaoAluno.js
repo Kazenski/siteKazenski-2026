@@ -1,16 +1,19 @@
-import { db } from '../core/firebase.js';
+import { db, auth } from '../core/firebase.js';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { validarConteudo } from '../core/validacao.js'; // Importando a regra central!
+import { validarConteudo, encontrarPalavrasBloqueadas } from '../core/validacao.js';
 
 let unsubscribeGeral = null;
 let postsMap = new Map();
 const autoresCache = new Map();
 
+// Variável global segura para a sessão atual nesta página
+let currentLoggedInUser = null; 
+
 // Filtros Globais
 let termoPesquisa = ''; 
 let filtroStatusMod = 'aprovados'; 
 let ordenacaoAtiva = 'recentes';
-let postAtivoId = null; // Controla qual post está aberto no painel lateral
+let postAtivoId = null;
 
 function hexToRgb(hex) {
     if (!hex) return '51, 89, 140'; 
@@ -18,13 +21,23 @@ function hexToRgb(hex) {
     return `${(bigint >> 16) & 255}, ${(bigint >> 8) & 255}, ${bigint & 255}`;
 }
 
-export function renderConexaoAlunoTab() {
+// Transformado em async para garantir que o usuário seja carregado antes
+export async function renderConexaoAlunoTab() {
     const container = document.getElementById('conexao-aluno-content');
     if (!container) return;
 
     const isModerador = window.userRoles?.Admin || window.userRoles?.Moderador;
 
-    //  Layout que ocupa toda a largura, Flexbox para Painel Lateral
+    // Busca o usuário logado e popula a variável segura antes de renderizar
+    if (auth.currentUser) {
+        try {
+            const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
+            if (snap.exists()) {
+                currentLoggedInUser = { uid: auth.currentUser.uid, ...snap.data() };
+            }
+        } catch (e) { console.error("Erro ao buscar usuário logado:", e); }
+    }
+
     container.innerHTML = `
         <div class="w-full flex h-full relative gap-6 transition-all duration-300">
             
@@ -84,25 +97,17 @@ export function renderConexaoAlunoTab() {
                     </div>
                 </div>
             </div>
-
         </div>
-        
     `;
+
+    // Oculta o botão se o usuário tiver 3 cartões
+    if (currentLoggedInUser && currentLoggedInUser.cartaoAmareloPosts >= 3) {
+        const btnNovoPost = document.getElementById('btnNovoPost');
+        if (btnNovoPost) btnNovoPost.style.display = 'none';
+    }
 
     setupListeners(isModerador);
     carregarPostsListener(isModerador);
-
-    if (window.currentUser) {
-        getDoc(doc(db, "users", window.currentUser.uid)).then(snap => {
-            if (snap.exists() && snap.data().cartaoAmareloPosts >= 3) {
-                const btnNovoPost = document.getElementById('btnNovoPost');
-                if (btnNovoPost) {
-                    btnNovoPost.style.display = 'none'; // Oculta o botão da tela
-                }
-            }
-        }).catch(e => console.error("Erro ao checar cartões do usuário:", e));
-    }
-
 }
 
 function setupListeners(isModerador) {
@@ -124,39 +129,40 @@ function setupListeners(isModerador) {
         const btnSalvar = document.getElementById('btnSalvarPost');
 
         if (!titulo || !conteudo) return alert("Preencha título e conteúdo.");
-        if (validarConteudo(titulo) || validarConteudo(conteudo)) {
-            return alert("Conteúdo bloqueado pelas diretrizes de moderação. Por favor, remova palavras inapropriadas.");
+
+        // Encontra as palavras proibidas em vez de apenas bloquear
+        const palavrasNoTitulo = encontrarPalavrasBloqueadas(titulo);
+        const palavrasNoConteudo = encontrarPalavrasBloqueadas(conteudo);
+
+        // Junta todas as palavras encontradas sem repetir
+        const todasPalavrasProibidas = [...new Set([...palavrasNoTitulo, ...palavrasNoConteudo])];
+
+        // Usa a variável corrigida
+        if (!currentLoggedInUser) return alert("Você precisa estar logado para publicar.");
+
+        if (currentLoggedInUser.cartaoAmareloPosts >= 3) {
+            return alert("🚫 AÇÃO BLOQUEADA: Você acumulou 3 cartões amarelos e está proibido de fazer novas postagens na rede.");
         }
-
-        const user = window.currentUser;
-        if (!user) return alert("Você precisa estar logado.");
-
-        // TRAVA DE SEGURANÇA: Verifica se o usuário tem 3 ou mais cartões amarelos antes de postar
-        try {
-            const userDocSnap = await getDoc(doc(db, "users", user.uid));
-            if (userDocSnap.exists() && (userDocSnap.data().cartaoAmareloPosts >= 3)) {
-                return alert("🚫 AÇÃO BLOQUEADA: Você acumulou 3 cartões amarelos e está proibido de fazer novas postagens na rede.");
-            }
-        } catch(e) { console.error(e); }
 
         btnSalvar.disabled = true;
         btnSalvar.textContent = "Publicando...";
 
         try {
             await addDoc(collection(db, "posts"), {
-                titulo: titulo, 
-                conteudo: conteudo, 
+                titulo, 
+                conteudo, 
                 postPublico: isPublico,
                 criadoEm: serverTimestamp(),
-                autorUID: user.uid, 
-                autorNome: user.nome || 'Membro',
-                autorTurma: user.turma || null, 
-                autorRole: window.userRoles?.Admin ? 'admin' : (window.userRoles?.Moderador ? 'moderador' : 'aluno'),
+                autorUID: currentLoggedInUser.uid, 
+                autorNome: currentLoggedInUser.nome || 'Membro',
+                autorTurma: currentLoggedInUser.turma || null, 
+                autorRole: window.userRoles?.Admin ? 'admin' : (window.userRoles?.Moderador ? 'moderador' : (currentLoggedInUser.Professor ? 'professor' : (currentLoggedInUser.Coordenacao ? 'coordenacao' : 'aluno'))),
                 elogios: 0, 
                 elogiosDetalhados: {}, 
                 exibir: false, 
                 oculto: false,
-                aprovado: false 
+                aprovado: false,
+                palavrasProibidas: todasPalavrasProibidas 
             });
             
             document.getElementById('areaCriarPost').classList.add('hidden');
@@ -179,16 +185,14 @@ function setupListeners(isModerador) {
         document.getElementById('filtroModeracao').addEventListener('change', (e) => { filtroStatusMod = e.target.value; renderizarFeed(isModerador); });
     }
 
-    // Delegação de eventos globais do Feed
     document.getElementById('feedPosts').addEventListener('click', async (e) => {
         const postCard = e.target.closest('.post-card');
         if (!postCard) return;
         const postId = postCard.dataset.id;
 
-        // Ações de Moderação
         if (e.target.closest('.btn-aprovar')) {
             e.stopPropagation();
-            if(confirm("Aprovar e exibir este post?")) await updateDoc(doc(db, "posts", postId), { exibir: true, oculto: false });
+            if(confirm("Aprovar e exibir este post?")) await updateDoc(doc(db, "posts", postId), { exibir: true, oculto: false, aprovado: true });
             return;
         }
         if (e.target.closest('.btn-ocultar')) {
@@ -205,10 +209,15 @@ function setupListeners(isModerador) {
             return;
         }
 
-        // Abrir Post no Painel Lateral
         abrirPostNoPainel(postId, isModerador);
     });
 
+    const modalPerfil = document.getElementById('modalPerfilUsuario');
+    if(modalPerfil) {
+        modalPerfil.addEventListener('click', (e) => {
+            if(e.target === modalPerfil && typeof fecharModalPerfil === 'function') fecharModalPerfil();
+        });
+    }
 }
 
 function carregarPostsListener(isModerador) {
@@ -235,7 +244,6 @@ function carregarPostsListener(isModerador) {
         await Promise.all(fetchPromises);
         renderizarFeed(isModerador);
         
-        // Se houver um post aberto no painel, atualiza o conteúdo dele ao vivo
         if (postAtivoId && postsMap.has(postAtivoId)) {
             abrirPostNoPainel(postAtivoId, isModerador, true);
         }
@@ -247,7 +255,7 @@ function renderizarFeed(isModerador) {
     if (!feed) return;
 
     let arrayPosts = Array.from(postsMap.values());
-    const user = window.currentUser;
+    const user = currentLoggedInUser;
 
     arrayPosts = arrayPosts.filter(post => {
         if (termoPesquisa && !(post.titulo?.toLowerCase().includes(termoPesquisa) || post.conteudo?.toLowerCase().includes(termoPesquisa))) return false;
@@ -319,9 +327,6 @@ function renderizarFeed(isModerador) {
     });
 }
 
-// ==========================================
-// PAINEL LATERAL (SIDE PANEL) DO POST
-// ==========================================
 async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const post = postsMap.get(postId);
     if (!post) return;
@@ -331,7 +336,6 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
     const content = document.getElementById('sidePanelContent');
     const feedGrid = document.getElementById('feedPosts');
 
-    // Abre o painel empurrando o feed
     feedGrid.classList.remove('xl:grid-cols-3');
     feedGrid.classList.add('xl:grid-cols-2');
 
@@ -340,7 +344,6 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
 
     if(!isUpdate) renderizarFeed(isModerador); 
 
-    // 1. ESPERA O AUTOR CARREGAR (Evita piscar sem foto/banner)
     let autor = autoresCache.get(post.autorUID);
     if (!autor || autor === 'loading') {
         content.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fas fa-spinner fa-spin text-4xl mb-4 text-blue-500"></i> Carregando postagem...</div>';
@@ -353,22 +356,21 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         }
     }
 
-    // 2. VERIFICA LOGIN EM TEMPO REAL
-    const user = window.currentUser;
-    const isVisitante = !user; 
+    // Corrige a checagem de visitante usando a variável certa
+    const isVisitante = !currentLoggedInUser; 
 
     const corBase = getComputedStyle(document.documentElement).getPropertyValue(`--cor-${post.autorRole || 'default'}`).trim() || '#bdc3c7';
     
-    // Configura Imagens e Privacidade
+    // Fallbacks visuais corrigidos para pegar Banner/Cover Image
     const avatarUrl = isVisitante 
         ? `https://ui-avatars.com/api/?name=Oculto&background=333&color=fff` 
         : (autor.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(post.autorNome || 'U')}&background=${corBase.replace('#','')}&color=fff`);
     
-    const coverUrl = isVisitante ? null : (autor.coverImageURL || null);
+    const coverUrl = isVisitante ? null : (autor.coverImageURL || autor.bannerURL || autor.photoCapa || null);
     const neon = isVisitante ? 'none' : `0 0 15px rgba(${hexToRgb(corBase)}, 0.5)`;
     const nomeExibicao = isVisitante ? 'Membro Oculto' : post.autorNome;
     
-    // 3. VITRINE DE TÍTULOS (SÓ PARA LOGADOS)
+    // VITRINE DE TÍTULOS 
     let listaTitulosHtml = '';
     if (!isVisitante) {
         if (autor.titulosConquistados && Object.keys(autor.titulosConquistados).length > 0) {
@@ -387,7 +389,7 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
 
     const coverStyle = coverUrl ? `background-image: url('${coverUrl}'); background-size: cover; background-position: center;` : `background: linear-gradient(135deg, ${corBase}88, #0f172a);`;
 
-    const jaElogiou = (user && post.elogiosDetalhados?.[user.uid]) ? 'text-yellow-500' : 'text-slate-400';
+    const jaElogiou = (currentLoggedInUser && post.elogiosDetalhados?.[currentLoggedInUser.uid]) ? 'text-yellow-500' : 'text-slate-400';
     const btnElogioClass = jaElogiou.includes('yellow') ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-slate-700 hover:bg-slate-600 border-slate-600';
     
     const isEquipe = window.userRoles?.Admin || window.userRoles?.Moderador || window.userRoles?.Professor || window.userRoles?.Coordenacao;
@@ -401,10 +403,8 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         `;
     }
 
-    // Remove padding padrão do container para o banner encostar nas bordas
     content.className = "overflow-y-auto h-full flex flex-col relative w-full p-0"; 
     
-    // 4. INJETA HTML COMPLETO DIRETO NO PAINEL LATERAL
     content.innerHTML = `
         <div class="w-full shrink-0 border-b border-slate-700 pb-5 mb-5 block">
             <div class="w-full h-28 relative block" style="${coverStyle}">
@@ -442,7 +442,6 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         </div>
     `;
 
-    // Lógica da Equipe
     if (isEquipe) {
         document.getElementById('btnAplicarCartao').addEventListener('click', async () => {
             if(confirm("Aplicar Cartão Amarelo? O post será oculto e o autor receberá 1 advertência.")) {
@@ -463,16 +462,25 @@ async function abrirPostNoPainel(postId, isModerador, isUpdate = false) {
         });
     }
 
-    // 5. CORREÇÃO DE ELOGIO: Usa window.currentUser no momento do clique
+    // CORREÇÃO DOS ELOGIOS: Usa a variável segura verificada na renderização da tela
     document.getElementById('btnElogiarPainel').addEventListener('click', async () => {
-        if(!window.currentUser) return alert("Faça login para elogiar.");
+        if(!currentLoggedInUser) return alert("Faça login para elogiar.");
         try {
             await runTransaction(db, async (t) => {
                 const ref = doc(db, "posts", postId);
                 const docSnap = await t.get(ref);
-                if (docSnap.data().elogiosDetalhados?.[window.currentUser.uid]) throw "Já elogiado";
-                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${window.currentUser.uid}`]: true });
+                if (docSnap.data().elogiosDetalhados?.[currentLoggedInUser.uid]) throw "Já elogiado";
+                t.update(ref, { elogios: increment(1), [`elogiosDetalhados.${currentLoggedInUser.uid}`]: true });
             });
+            
+            // Reação Visual Imediata para o Usuário
+            const btn = document.getElementById('btnElogiarPainel');
+            const icone = btn.querySelector('.fa-star');
+            icone.classList.replace('text-slate-400', 'text-yellow-500');
+            icone.classList.add('elogio-animado');
+            btn.classList.replace('border-slate-600', 'border-yellow-500/50');
+            btn.classList.replace('bg-slate-700', 'bg-yellow-500/10');
+            
         } catch(e) { 
             if (e !== "Já elogiado") console.error(e); 
         }
@@ -485,9 +493,8 @@ function fecharPainelPost() {
     const feedGrid = document.getElementById('feedPosts');
     
     panel.classList.add('translate-x-full');
-    setTimeout(() => panel.classList.add('hidden'), 300); // Aguarda animação
+    setTimeout(() => panel.classList.add('hidden'), 300); 
     
-    // Restaura o grid original
     feedGrid.classList.remove('xl:grid-cols-2');
     feedGrid.classList.add('xl:grid-cols-3');
     
