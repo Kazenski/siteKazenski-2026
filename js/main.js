@@ -3,6 +3,7 @@ import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https:/
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
+import { renderProjetosTab } from './projetos/projetos.js';
 
 // IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
 import { renderInicioTab } from './inicio/inicio.js';
@@ -303,6 +304,9 @@ window.showTab = function(tabId) {
             renderConexaoAlunoTab();
             isConexaoAlunoLoaded = true;
         }
+    }
+    else if (tabId === 'projetos-content') {
+        renderProjetosTab();
     }
 };
 
