@@ -31,6 +31,7 @@ let isConteudosLoaded = false;
 let isProfessorLoaded = false;
 let isModeradorLoaded = false;
 let isConexaoAlunoLoaded = false;
+let isProjetosLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -305,8 +306,11 @@ window.showTab = function(tabId) {
             isConexaoAlunoLoaded = true;
         }
     }
-    else if (tabId === 'projetos-content') {
-        renderProjetosTab();
+    else if (tabId === 'projetos') {       
+        if (!isProjetosLoaded) {             
+            renderProjetosTab();              
+            isProjetosLoaded = true;          
+        }                                     
     }
 };
 
