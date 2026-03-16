@@ -2641,14 +2641,21 @@
                     <div
                         class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
                         <table class="w-full text-sm text-left border-collapse">
-                            <thead
-                                class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
+                            <thead class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
                                 <tr>
-                                    <th class="p-4">Disciplina</th>
-                                    <th class="p-4">Turmas Alvo</th>
+                                    <th class="p-4 cursor-pointer hover:text-amber-400 transition-colors" onclick="window.profAPI.sortAvaliacoes('disciplinaNome')">
+                                        Disciplina <i class="fas fa-sort ml-1 opacity-50"></i>
+                                    </th>
+                                    <th class="p-4 cursor-pointer hover:text-amber-400 transition-colors" onclick="window.profAPI.sortAvaliacoes('turmasNames')">
+                                        Turmas Alvo <i class="fas fa-sort ml-1 opacity-50"></i>
+                                    </th>
                                     <th class="p-4">Conteúdo</th>
-                                    <th class="p-4 text-center">Data e Hora</th>
-                                    <th class="p-4 text-center text-amber-500">Valor</th>
+                                    <th class="p-4 text-center cursor-pointer hover:text-amber-400 transition-colors" onclick="window.profAPI.sortAvaliacoes('dataAplicacao')">
+                                        Data e Hora <i class="fas fa-sort ml-1 opacity-50"></i>
+                                    </th>
+                                    <th class="p-4 text-center text-amber-500 cursor-pointer hover:text-amber-300 transition-colors" onclick="window.profAPI.sortAvaliacoes('valorPontos')">
+                                        Valor <i class="fas fa-sort ml-1 opacity-50"></i>
+                                    </th>
                                     <th class="p-4 text-center">Visível</th>
                                     <th class="p-4 text-right">Ações</th>
                                 </tr>

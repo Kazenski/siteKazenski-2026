@@ -19,7 +19,8 @@ let recadastroCache = [];
 let recadastroSelected = new Set();
 let chartInstances = {}; 
 let currentStudentAnalysisData = null;
-
+let avaliacoesCache = [];
+let avaliacoesSort = { column: 'dataAplicacao', order: 'desc' };
 let geralAnalysisCache = {
     students: [],
     faltasMap: {}, 
@@ -2810,67 +2811,120 @@ window.profAPI = {
         els.evalEmptyMsg.classList.add('hidden');
 
         try {
-            // Busca as avaliações globais ordenadas pela data de aplicação
+            // Busca as avaliações globais
             const q = query(collection(db, "avaliacoes"), orderBy("dataAplicacao", "desc"));
             const snap = await getDocs(q);
 
             if(snap.empty) {
+                avaliacoesCache = [];
                 els.evalListBody.innerHTML = '';
                 els.evalEmptyMsg.classList.remove('hidden');
                 return;
             }
 
-            // Precisamos dos nomes das turmas para exibir bonito. Vamos criar um mapa rápido.
             const tSnap = await getDocs(query(collection(db, "turmasCadastradas")));
             const turmasMap = new Map();
             tSnap.forEach(d => turmasMap.set(d.data().identificador, d.data().nomeExibicao));
 
-            // Garante que o mapa de disciplinas tem os nomes
             if(state.cache.disciplinesMap.size === 0) {
                 const dSnap = await getDocs(query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true)));
                 dSnap.forEach(d => state.cache.disciplinesMap.set(d.data().identificador, d.data().nomeExibicao));
             }
 
-            els.evalListBody.innerHTML = '';
-            
+            // 1. Armazena os dados processados no Cache para permitir a Ordenação
+            avaliacoesCache = [];
             snap.forEach(doc => {
                 const data = doc.data();
                 const id = doc.id;
                 
                 const discName = state.cache.disciplinesMap.get(data.disciplina) || data.disciplina;
                 const turmasNames = (data.turmas_ids || []).map(tid => turmasMap.get(tid) || tid).join(", ");
-                
                 const dateObj = data.dataAplicacao ? data.dataAplicacao.toDate() : null;
                 const dateStr = dateObj ? dateObj.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : 'N/A';
                 
-                const visibleBadge = data.exibir ? 
-                    '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">SIM</span>' : 
-                    '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">NÃO</span>';
-
-                // Usamos JSON com escape seguro para jogar o objeto inteiro pro botão de editar
-                const dataSafe = JSON.stringify({id, ...data, dataIso: dateObj?.toISOString()}).replace(/"/g, '&quot;');
-
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/50 transition-colors border-b border-slate-700/50";
-                tr.innerHTML = `
-                    <td class="p-4 font-bold text-amber-400">${escapeHTML(discName)}</td>
-                    <td class="p-4 text-xs text-slate-300 max-w-[150px] truncate" title="${escapeHTML(turmasNames)}">${escapeHTML(turmasNames)}</td>
-                    <td class="p-4 text-xs text-slate-400 italic line-clamp-2 max-w-[200px]" title="${escapeHTML(data.conteudo || '')}">${escapeHTML(data.conteudo || '-')}</td>
-                    <td class="p-4 text-center text-xs font-mono text-slate-200">${dateStr}</td>
-                    <td class="p-4 text-center font-black text-lg text-amber-500">${data.valorPontos || '-'}</td>
-                    <td class="p-4 text-center">${visibleBadge}</td>
-                    <td class="p-4 text-right">
-                        <button onclick='window.profAPI.openAvaliacaoForm(${dataSafe})' class="text-blue-400 hover:text-white mr-3 transition-colors p-2" title="Editar"><i class="fas fa-edit"></i></button>
-                        <button onclick="window.profAPI.deleteAvaliacao('${id}')" class="text-red-500 hover:text-red-300 transition-colors p-2" title="Excluir"><i class="fas fa-trash"></i></button>
-                    </td>
-                `;
-                els.evalListBody.appendChild(tr);
+                avaliacoesCache.push({
+                    id: id,
+                    dataOriginal: data, // Guarda o dado original para o formulário de edição
+                    disciplinaNome: discName,
+                    turmasNames: turmasNames,
+                    conteudo: data.conteudo || '-',
+                    dataAplicacao: dateObj ? dateObj.getTime() : 0, // Usado para ordenar cronologicamente
+                    dataStr: dateStr,
+                    valorPontos: parseFloat(data.valorPontos) || 0,
+                    exibir: !!data.exibir,
+                    dataIso: dateObj?.toISOString()
+                });
             });
+
+            // 2. Chama a função que desenha a tabela na tela
+            window.profAPI.renderAvaliacoesTable();
 
         } catch(e) {
             console.error(e);
             els.evalListBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">Erro: ${e.message}</td></tr>`;
         }
+    },
+
+    // Disparada ao clicar no cabeçalho da tabela ---
+    sortAvaliacoes: (column) => {
+        // Se clicar na mesma coluna, inverte a ordem (ASC / DESC). Se for nova, define como ASC.
+        if (avaliacoesSort.column === column) {
+            avaliacoesSort.order = avaliacoesSort.order === 'asc' ? 'desc' : 'asc';
+        } else {
+            avaliacoesSort.column = column;
+            avaliacoesSort.order = 'asc';
+        }
+        window.profAPI.renderAvaliacoesTable(); // Redesenha a tabela
+    },
+
+    // Renderiza e Ordena os dados ---
+    renderAvaliacoesTable: () => {
+        els.evalListBody.innerHTML = '';
+        if (avaliacoesCache.length === 0) {
+            els.evalEmptyMsg.classList.remove('hidden');
+            return;
+        }
+        els.evalEmptyMsg.classList.add('hidden');
+
+        // Lógica de Ordenação do Array
+        const { column, order } = avaliacoesSort;
+        avaliacoesCache.sort((a, b) => {
+            let valA = a[column];
+            let valB = b[column];
+            
+            // Tratamento ignorando letras maiúsculas/minúsculas
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+
+            if (valA < valB) return order === 'asc' ? -1 : 1;
+            if (valA > valB) return order === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // Loop de Renderização
+        avaliacoesCache.forEach(item => {
+            const visibleBadge = item.exibir ? 
+                '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">SIM</span>' : 
+                '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">NÃO</span>';
+
+            const dataSafe = JSON.stringify({id: item.id, ...item.dataOriginal, dataIso: item.dataIso}).replace(/"/g, '&quot;');
+
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-800/50 transition-colors border-b border-slate-700/50";
+            tr.innerHTML = `
+                <td class="p-4 font-bold text-amber-400">${escapeHTML(item.disciplinaNome)}</td>
+                <td class="p-4 text-xs text-slate-300 max-w-[150px] truncate" title="${escapeHTML(item.turmasNames)}">${escapeHTML(item.turmasNames)}</td>
+                <td class="p-4 text-xs text-slate-400 italic line-clamp-2 max-w-[200px]" title="${escapeHTML(item.conteudo)}">${escapeHTML(item.conteudo)}</td>
+                <td class="p-4 text-center text-xs font-mono text-slate-200">${item.dataStr}</td>
+                <td class="p-4 text-center font-black text-lg text-amber-500">${item.valorPontos || '-'}</td>
+                <td class="p-4 text-center">${visibleBadge}</td>
+                <td class="p-4 text-right">
+                    <button onclick='window.profAPI.openAvaliacaoForm(${dataSafe})' class="text-blue-400 hover:text-white mr-3 transition-colors p-2" title="Editar"><i class="fas fa-edit"></i></button>
+                    <button onclick="window.profAPI.deleteAvaliacao('${item.id}')" class="text-red-500 hover:text-red-300 transition-colors p-2" title="Excluir"><i class="fas fa-trash"></i></button>
+                </td>
+            `;
+            els.evalListBody.appendChild(tr);
+        });
     },
 
     openAvaliacaoForm: async (data = null) => {
