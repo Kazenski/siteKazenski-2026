@@ -473,34 +473,68 @@ async function initCalendarSystem() {
 }
 
 async function fetchCalendarEvents() {
-    // Restaura a lógica poderosa do código antigo
-    let queries = [];
+    let queriesCal = [];
+    let queriesAva = [];
     const calRef = collection(db, "calendarioAnual");
+    const avaRef = collection(db, "avaliacoes");
 
-    // 1. Eventos Globais
-    queries.push(query(calRef, where("visibilidade", "in", ["publico", "todos"])));
+    // --- 1. LÓGICA DE EVENTOS NORMAIS (calendarioAnual) ---
+    queriesCal.push(query(calRef, where("visibilidade", "in", ["publico", "todos"])));
 
-    // 2. Eventos da Turma (se aluno)
     if (currentUser.turma && currentUser.role === 'aluno') {
-        queries.push(query(calRef, where("visibilidade", "==", "turmas_especificas"), where("turmasAlvo", "array-contains", currentUser.turma)));
+        queriesCal.push(query(calRef, where("visibilidade", "==", "turmas_especificas"), where("turmasAlvo", "array-contains", currentUser.turma)));
     }
 
-    // 3. Meus Eventos (se Professor/Admin ver os que ele mesmo criou)
-    if (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao) {
-        queries.push(query(calRef, where("instrutorUID", "==", currentUser.uid)));
+    const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
+    if (isStaff) {
+        queriesCal.push(query(calRef, where("instrutorUID", "==", currentUser.uid)));
+    }
+
+    // --- 2. LÓGICA DE AVALIAÇÕES (Provas e Trabalhos) ---
+    if (isStaff) {
+        // Professor/Coord/Admin veem TODAS as avaliações cadastradas de todas as turmas
+        queriesAva.push(query(avaRef));
+    } else if (currentUser.turma && currentUser.role === 'aluno') {
+        // Aluno vê apenas as da sua turma e que o professor marcou para exibir
+        queriesAva.push(query(avaRef, where("turmas_ids", "array-contains", currentUser.turma), where("exibir", "==", true)));
     }
 
     try {
-        const results = await Promise.all(queries.map(q => getDocs(q)));
+        // Executa as buscas de calendário e avaliações paralelamente
+        const resultsCal = await Promise.all(queriesCal.map(q => getDocs(q)));
+        const resultsAva = await Promise.all(queriesAva.map(q => getDocs(q)));
+        
         const uniqueEvents = new Map();
 
-        results.forEach(snap => {
+        // Insere Eventos Comuns no Calendário
+        resultsCal.forEach(snap => {
             snap.forEach(doc => uniqueEvents.set(doc.id, { id: doc.id, ...doc.data() }));
+        });
+
+        // Modela e insere as Avaliações disfarçadas de eventos no Calendário
+        resultsAva.forEach(snap => {
+            snap.forEach(doc => {
+                const data = doc.data();
+                const nomeDisc = disciplineMap[data.disciplina] || data.disciplina;
+                
+                uniqueEvents.set(doc.id, {
+                    id: doc.id,
+                    titulo: `Prova: ${nomeDisc}`, // Título adaptado
+                    dataInicio: data.dataAplicacao, // Mapeia o campo da avaliação para o que o calendário lê
+                    descricao: `Conteúdo: ${data.conteudo || 'Sem descrição'}\nValor: ${data.valorPontos || 0} pts\nDicas: ${data.dicasProf || ''}`,
+                    cor: '#f59e0b', // Cor Laranja/Âmbar fixa para dar destaque às provas
+                    visibilidade: 'turmas_especificas',
+                    isAvaliacao: true, // FLAG IMPORTANTE: Impede edição via painel do aluno
+                    ...data
+                });
+            });
         });
 
         calEvents = Array.from(uniqueEvents.values());
         renderCalendarGrid();
-    } catch (e) { console.error("Erro no calendário:", e); }
+    } catch (e) { 
+        console.error("Erro no calendário:", e); 
+    }
 }
 
 function renderCalendarGrid() {
@@ -614,11 +648,20 @@ window.openCalModal = (event = null, dateStr = null) => {
         document.getElementById('al-ev-id').value = event.id;
         document.getElementById('al-ev-title').value = event.titulo;
         document.getElementById('al-ev-date').value = event.dataInicio?.toDate().toISOString().split('T')[0];
-        document.getElementById('al-ev-desc').value = event.descricao || '';
+        
+        // Se for avaliação e o usuário for gestão, avisa onde ele deve editar
+        let descText = event.descricao || '';
+        if(event.isAvaliacao && isStaff) {
+            descText = "⚠️ Atenção: Esta é uma Avaliação.\nPara editá-la, acesse a aba Professor Tech > Provas/Trabalhos.\n\n" + descText;
+        }
+        document.getElementById('al-ev-desc').value = descText;
+        
         document.getElementById('al-ev-color').value = event.cor || '#3b82f6';
         document.getElementById('al-ev-visib').value = event.visibilidade || 'todos';
 
-        const canEdit = isStaff && (currentUser.Admin || event.instrutorUID === currentUser.uid);
+        // NOVA REGRA: Só edita se for staff, for o dono (ou admin) E NÃO FOR UMA AVALIAÇÃO
+        const canEdit = isStaff && (currentUser.Admin || event.instrutorUID === currentUser.uid) && !event.isAvaliacao;
+        
         document.getElementById('al-btn-del-ev').classList.toggle('hidden', !canEdit);
         document.getElementById('btn-save-cal').classList.toggle('hidden', !canEdit);
         inps.forEach(id => document.getElementById(id).disabled = !canEdit);
@@ -636,7 +679,7 @@ window.openCalModal = (event = null, dateStr = null) => {
 
     // Exibe o modal com animação
     modal.classList.remove('hidden');
-    setTimeout(() => panel.classList.remove('translate-x-full'), 10); // Animação de entrar pela direita
+    setTimeout(() => panel.classList.remove('translate-x-full'), 10);
 };
 
 window.closeCalModal = () => {
