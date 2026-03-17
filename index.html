@@ -742,13 +742,18 @@
                                 <div
                                     class="w-48 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
                                     <div class="p-4 border-b border-slate-700 bg-slate-900/30">
-                                        <h3
-                                            class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest">
+                                        <h3 class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest">
                                             <i class="fas fa-book mr-2"></i> Cadernos
                                         </h3>
                                     </div>
-                                    <div id="al-notebook-tags"
-                                        class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
+                                    
+                                    <div class="p-2 border-b border-slate-700/50 bg-slate-800/20 shrink-0">
+                                        <button id="btn-filter-recebidas" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition-colors flex items-center justify-between group">
+                                            <span><i class="fas fa-inbox mr-2"></i> Recebidas</span>
+                                            <i class="fas fa-chevron-right text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        </button>
+                                    </div>
+                                    <div id="al-notebook-tags" class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
                                     </div>
                                 </div>
 
@@ -809,19 +814,20 @@
                                         <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex flex-wrap justify-between items-center gap-4 shrink-0 transition-all duration-300"
                                             id="al-note-header-bar">
                                             <div id="al-note-colors"
-                                                class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"></div>
+                                                class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                                            </div>
 
                                             <div class="flex items-center gap-2 ml-auto">
-                                                <button id="btn-note-pin"
-                                                    class="text-slate-500 hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700"
-                                                    title="Fixar no topo"><i class="fas fa-thumbtack"></i></button>
-                                                <button id="btn-note-share"
-                                                    class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i
-                                                        class="fas fa-share-alt"></i> Compartilhar</button>
-                                                <button id="btn-note-delete"
-                                                    class="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i
-                                                        class="fas fa-trash"></i> Excluir</button>
+                                                <div id="al-note-sender-info" class="hidden text-[10px] text-slate-400 uppercase tracking-widest font-bold bg-slate-900/50 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2 mr-2">
+                                                    <i class="fas fa-paper-plane text-indigo-400"></i>
+                                                    <span>De: <b id="al-note-sender-name" class="text-slate-200"></b></span>
+                                                    <span id="al-note-sender-email" class="hidden lg:inline text-slate-500 normal-case lowercase font-mono"></span>
+                                                </div>
+                                                <button id="btn-note-pin" class="text-slate-500 hover:text-blue-400 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700" title="Fixar no topo"><i class="fas fa-thumbtack"></i></button>
+                                                <button id="btn-note-share" class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i class="fas fa-share-alt"></i> Compartilhar</button>
+                                                <button id="btn-note-delete" class="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2"><i class="fas fa-trash"></i> Excluir</button>
                                             </div>
+                                            
                                         </div>
 
                                         <div class="flex-grow p-6 overflow-y-auto custom-scroll flex flex-col">

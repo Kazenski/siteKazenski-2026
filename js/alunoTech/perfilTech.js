@@ -892,6 +892,25 @@ function initNotebookSystem() {
 
     // Filtro de pesquisa digitado pelo aluno
     els.noteSearch?.addEventListener('input', () => { renderNotes(); });
+
+    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
+        // 1. Controle Visual: Remove o destaque de outras pastas do caderno
+        document.querySelectorAll('#al-notebook-tags button').forEach(btn => {
+            btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30');
+            btn.classList.add('text-slate-400', 'border-transparent');
+        });
+        
+        // Dá destaque ao botão de recebidas
+        const btnRecebidas = document.getElementById('btn-filter-recebidas');
+        btnRecebidas.classList.add('bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
+
+        // 2. Filtra o Array (Aproveita a variável let currentTagFilter do escopo global)
+        currentTagFilter = 'recebidas';
+        renderNotes();
+        
+        // Limpa a visualização da nota central
+        showEmptyNoteState();
+    });
 }
 
 // 1. Ao clicar em "+" Nova Anotação
@@ -933,9 +952,32 @@ window.selectNote = (id) => {
     updatePinIconVisuals();
     showActiveNoteState();
 
-    // Coloca a bordinha azul na nota selecionada da lista
     document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
     document.getElementById(`note-item-${id}`)?.classList.add('ring-2', 'ring-blue-500');
+
+    const senderInfoDiv = document.getElementById('al-note-sender-info');
+    const senderNameEl = document.getElementById('al-note-sender-name');
+    const senderEmailEl = document.getElementById('al-note-sender-email');
+    const btnSave = document.getElementById('btn-note-save');
+
+    // Verifica se a nota tem um autor diferente do usuário logado (nota recebida)
+    if (n.userId && n.userId !== currentUser.uid) {
+        senderInfoDiv.classList.remove('hidden');
+        senderInfoDiv.classList.add('flex');
+        
+        senderNameEl.textContent = 'Enviada pela Gestão/Professor'; 
+        senderEmailEl.textContent = ''; 
+        
+        // Oculta salvar se for apenas leitura
+        if(btnSave) btnSave.classList.add('hidden');
+    } else {
+        // Nota própria
+        senderInfoDiv.classList.add('hidden');
+        senderInfoDiv.classList.remove('flex');
+        
+        if(btnSave) btnSave.classList.remove('hidden');
+    }
+
 };
 
 // 3. Renderiza a Lista (Coluna 2)
@@ -945,7 +987,17 @@ function renderNotes() {
 
     const filtered = myNotes.filter(n => {
         const textMatch = (n.titulo || '').toLowerCase().includes(search) || (n.conteudo || '').toLowerCase().includes(search);
-        const tagMatch = currentTagFilter === 'all' || (n.tags && n.tags.includes(currentTagFilter));
+        
+        // Regra de Tag Mista
+        let tagMatch = false;
+        if (currentTagFilter === 'all') {
+            tagMatch = true;
+        } else if (currentTagFilter === 'recebidas') {
+            tagMatch = (n.userId && n.userId !== currentUser.uid); // Passa só quem não for minha
+        } else {
+            tagMatch = (n.tags && n.tags.includes(currentTagFilter));
+        }
+        
         return textMatch && tagMatch;
     });
     filtered.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
