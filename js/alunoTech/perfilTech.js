@@ -934,7 +934,7 @@ function createNewNote() {
 }
 
 // 2. Ao clicar numa anotação da lista (Coluna 2)
-window.selectNote = (id) => {
+window.selectNote = async (id) => {
     const n = myNotes.find(x => x.id === id);
     if (!n) return;
 
@@ -952,9 +952,11 @@ window.selectNote = (id) => {
     updatePinIconVisuals();
     showActiveNoteState();
 
+    // Coloca a bordinha azul na nota selecionada da lista
     document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
     document.getElementById(`note-item-${id}`)?.classList.add('ring-2', 'ring-blue-500');
 
+    // Controle do Selo de Remetente com Busca no Banco 
     const senderInfoDiv = document.getElementById('al-note-sender-info');
     const senderNameEl = document.getElementById('al-note-sender-name');
     const senderEmailEl = document.getElementById('al-note-sender-email');
@@ -965,19 +967,37 @@ window.selectNote = (id) => {
         senderInfoDiv.classList.remove('hidden');
         senderInfoDiv.classList.add('flex');
         
-        senderNameEl.textContent = 'Enviada pela Gestão/Professor'; 
+        // Coloca um estado de carregamento rápido enquanto vai no banco de dados
+        senderNameEl.textContent = 'Buscando usuário...'; 
         senderEmailEl.textContent = ''; 
         
-        // Oculta salvar se for apenas leitura
+        try {
+            // CRUZA OS DADOS: Busca o perfil real de quem enviou na coleção "users"
+            const userSnap = await getDoc(doc(db, "users", n.userId));
+            
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+                senderNameEl.textContent = userData.nome || 'Usuário sem nome'; 
+                // Exibe o email se existir na modelagem do banco (ou exibe a matrícula/turma se preferir)
+                senderEmailEl.textContent = userData.email ? `(${userData.email})` : ''; 
+            } else {
+                senderNameEl.textContent = 'Usuário não encontrado';
+            }
+        } catch(e) {
+            console.error("Erro ao buscar autor da nota:", e);
+            senderNameEl.textContent = 'Erro ao identificar';
+        }
+        
+        // Oculta botão de salvar se a nota for de outra pessoa (modo leitura)
         if(btnSave) btnSave.classList.add('hidden');
     } else {
-        // Nota própria
+        // Se a nota for própria do usuário
         senderInfoDiv.classList.add('hidden');
         senderInfoDiv.classList.remove('flex');
         
+        // Garante que o botão de salvar esteja visível para editar a própria nota
         if(btnSave) btnSave.classList.remove('hidden');
     }
-
 };
 
 // 3. Renderiza a Lista (Coluna 2)
