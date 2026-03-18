@@ -1484,44 +1484,40 @@
                             (v5.1)</p>
                     </div>
 
-                    <div
-                        class="flex flex-wrap gap-3 bg-slate-800/50 p-4 rounded-2xl border border-slate-700 items-end shadow-lg">
-                        <div><label
-                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Escola</label><select
-                                id="prof-filter-school"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                    <div class="grid grid-cols-2 md:grid-cols-3 xl:flex xl:flex-wrap gap-3 bg-slate-800/50 p-4 rounded-2xl border border-slate-700 items-end shadow-lg w-full">
+                        <div class="w-full xl:flex-1 min-w-[130px]">
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Escola</label>
+                            <select id="prof-filter-school" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
                                 <option value="">Carregando...</option>
-                            </select></div>
-                        <div><label
-                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Turma</label><select
-                                id="prof-filter-class"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500"
-                                disabled>
+                            </select>
+                        </div>
+                        <div class="w-full xl:flex-1 min-w-[130px]">
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Turma</label>
+                            <select id="prof-filter-class" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500" disabled>
                                 <option value="">Selecione a Escola</option>
-                            </select></div>
-                        <div><label
-                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Disciplina</label><select
-                                id="prof-filter-disc"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500"
-                                disabled>
+                            </select>
+                        </div>
+                        <div class="w-full xl:flex-1 min-w-[130px]">
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Disciplina</label>
+                            <select id="prof-filter-disc" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500" disabled>
                                 <option value="">Selecione a Turma</option>
-                            </select></div>
-                        <div><label
-                                class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Trimestre</label><select
-                                id="prof-filter-quarter"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                            </select>
+                        </div>
+                        <div class="w-full xl:flex-1 min-w-[130px]">
+                            <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Trimestre</label>
+                            <select id="prof-filter-quarter" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
                                 <option value="1">1º Trimestre</option>
                                 <option value="2">2º Trimestre</option>
                                 <option value="3">3º Trimestre</option>
-                            </select></div>
-                        <div><label
-                                class="block text-[9px] font-bold text-amber-500 uppercase tracking-widest mb-1">Data da
-                                Aula</label><input type="date" id="prof-date"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                            </select>
                         </div>
-                        <button id="btn-prof-load"
-                            class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all hover:scale-105 h-[38px] uppercase tracking-widest"><i
-                                class="fas fa-sync-alt mr-2"></i> Carregar</button>
+                        <div class="w-full xl:flex-1 min-w-[130px]">
+                            <label class="block text-[9px] font-bold text-amber-500 uppercase tracking-widest mb-1">Data da Aula</label>
+                            <input type="date" id="prof-date" class="w-full bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2.5 outline-none focus:border-amber-500">
+                        </div>
+                        <button id="btn-prof-load" class="col-span-2 md:col-span-1 xl:w-auto w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all hover:scale-105 h-[38px] uppercase tracking-widest">
+                            <i class="fas fa-sync-alt mr-2"></i> Carregar
+                        </button>
                     </div>
                 </div>
 
@@ -1683,8 +1679,8 @@
                     </div>
 
                     <div id="notas-list-container"
-                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
-                        <table class="w-full text-sm border-collapse text-left">
+                        class="flex-grow overflow-y-auto overflow-x-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
+                        <table class="w-full text-sm border-collapse text-left min-w-[900px]">
                             <thead
                                 class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
                                 <tr>
@@ -2015,8 +2011,8 @@
                     </div>
 
                     <div
-                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
-                        <table class="w-full text-sm text-left border-collapse">
+                        class="flex-grow overflow-y-auto overflow-x-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
+                        <table class="w-full text-sm text-left border-collapse min-w-[900px]">
                             <thead
                                 class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
                                 <tr>
@@ -2421,7 +2417,7 @@
                     <div id="analise-dashboard"
                         class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 shrink-0">
                             <div
                                 class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
@@ -2543,7 +2539,7 @@
                     <div id="geral-dashboard"
                         class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 shrink-0">
                             <div
                                 class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
@@ -2645,8 +2641,8 @@
                     </div>
 
                     <div
-                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
-                        <table class="w-full text-sm text-left border-collapse">
+                        class="flex-grow overflow-y-auto overflow-x-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative">
+                        <table class="w-full text-sm text-left border-collapse min-w-[1000px]">
                             <thead class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0 z-10 shadow-md">
                                 <tr>
                                     <th class="p-4 cursor-pointer hover:text-amber-400 transition-colors" onclick="window.profAPI.sortAvaliacoes('disciplinaNome')">
