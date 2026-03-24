@@ -14,6 +14,9 @@ let currentIdx = -1;
 let currentPlayingId = null;
 let currentMaterialEditId = null;
 
+let isShuffle = false;
+let repeatMode = 0;
+
 let currentPage = 1;
 const materialsPerPage = 12;
 let disciplineMap = {};
@@ -90,7 +93,9 @@ function mapearDOM() {
         thumb: document.getElementById('player-thumb'),
         fallbackIcon: document.getElementById('player-fallback-icon'),
         title: document.getElementById('player-song-title'),
-        artist: document.getElementById('player-song-artist')
+        artist: document.getElementById('player-song-artist'),
+        btnRepeat: document.getElementById('btn-repeat'),
+        btnShuffle: document.getElementById('btn-shuffle')
     };
 }
 
@@ -435,12 +440,21 @@ function setupPlayerEventListeners() {
             els.timeTotal.textContent = formatSeg(els.audioEngine.duration);
         }
     });
-    els.audioEngine.addEventListener('ended', () => window.conteudosAPI.nextAudio());
+    
+    // Atualizado para respeitar o Modo de Repetição
+    els.audioEngine.addEventListener('ended', () => {
+        if (repeatMode === 2) { // Repetir atual 1x
+            els.audioEngine.currentTime = 0;
+            els.audioEngine.play();
+        } else {
+            window.conteudosAPI.nextAudio(true); // Envia true para saber que foi automático
+        }
+    });
+
     els.progress.addEventListener('input', (e) => {
         if(els.audioEngine.duration) els.audioEngine.currentTime = (e.target.value / 100) * els.audioEngine.duration;
     });
     
-    // FIX DO VOLUME: Adicionado o ? para não falhar caso o DOM atrase
     els.volume?.addEventListener('input', (e) => {
         els.audioEngine.volume = e.target.value;
     });
@@ -679,8 +693,47 @@ window.conteudosAPI = {
     },
     
     prevAudio: () => { if(currentIdx > 0) window.conteudosAPI.tocarMedia(currentIdx - 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
-    nextAudio: () => { if(currentIdx < activeAudioList.length - 1) window.conteudosAPI.tocarMedia(currentIdx + 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
     
+    nextAudio: (autoAdvance = false) => { 
+        if (activeAudioList.length === 0) return;
+        const tipoAtual = activeAudioList[0].letra !== undefined ? 'musica' : 'podcast';
+
+        if (isShuffle) {
+            let nextIdx = currentIdx;
+            while (nextIdx === currentIdx && activeAudioList.length > 1) {
+                nextIdx = Math.floor(Math.random() * activeAudioList.length);
+            }
+            window.conteudosAPI.tocarMedia(nextIdx, tipoAtual);
+            return;
+        }
+
+        if (currentIdx < activeAudioList.length - 1) { 
+            window.conteudosAPI.tocarMedia(currentIdx + 1, tipoAtual); 
+        } else if (autoAdvance && repeatMode === 1) {
+            // Se chegou ao fim, foi automático e está no modo "Repetir Tudo", volta pro começo
+            window.conteudosAPI.tocarMedia(0, tipoAtual);
+        }
+    },
+
+    toggleShuffle: () => {
+        isShuffle = !isShuffle;
+        els.btnShuffle.classList.toggle('text-blue-500', isShuffle);
+        els.btnShuffle.classList.toggle('text-slate-400', !isShuffle);
+    },
+
+    toggleRepeat: () => {
+        repeatMode = (repeatMode + 1) % 3;
+        if (repeatMode === 0) {
+            els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
+            els.btnRepeat.classList.replace('text-blue-500', 'text-slate-400');
+        } else if (repeatMode === 1) {
+            els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
+            els.btnRepeat.classList.replace('text-slate-400', 'text-blue-500');
+        } else {
+            els.btnRepeat.innerHTML = '<i class="fas fa-redo text-blue-500 relative"><span class="absolute -bottom-1 -right-1 text-[8px] font-black bg-slate-900 rounded-full px-0.5 shadow">1</span></i>';
+        }
+    },
+
     // NOVA FUNÇÃO DE DOWNLOAD: Busca direto do Objeto em vez do HTML
     dlTextoAtual: () => {
         const item = activeAudioList[currentIdx];

@@ -378,58 +378,59 @@
         </div>
 
         <div id="global-audio-player"
-            class="hidden fixed bottom-0 left-0 w-full bg-slate-950/95 backdrop-blur-md border-t border-slate-800 p-4 z-[2000] shadow-[0_-10px_30px_rgba(0,0,0,0.5)] transition-all">
+            class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[95%] max-w-4xl bg-slate-950/95 backdrop-blur-xl border border-slate-700/60 p-3 md:p-4 rounded-3xl z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.8)] transition-all">
             <audio id="audio-engine"></audio>
 
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4 md:gap-6">
-
+            <div class="flex flex-col md:flex-row items-center gap-3 md:gap-6">
                 <div class="flex items-center gap-4 w-full md:w-1/3 shrink-0">
-                    <div
-                        class="w-12 h-12 rounded bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center overflow-hidden relative">
+                    <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center overflow-hidden relative shadow-inner">
                         <img id="player-thumb" src="" class="w-full h-full object-cover hidden absolute inset-0 z-10">
                         <i id="player-fallback-icon" class="fas fa-music text-slate-500 hidden text-lg z-0"></i>
                     </div>
 
-                    <div class="overflow-hidden">
+                    <div class="overflow-hidden flex-grow">
                         <div id="player-song-title" class="text-white font-bold text-sm truncate">...</div>
-                        <div id="player-song-artist"
-                            class="text-slate-400 text-[10px] uppercase tracking-widest truncate">...</div>
+                        <div id="player-song-artist" class="text-slate-400 text-[10px] uppercase tracking-widest truncate">...</div>
                     </div>
+                    
+                    <button onclick="document.getElementById('global-audio-player').classList.add('hidden')" class="md:hidden text-slate-500 hover:text-white p-2">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
 
                 <div class="flex flex-col items-center flex-grow w-full md:w-2/3">
-
-                    <div class="flex items-center justify-center gap-4 mb-2 w-full">
-                        <div class="flex items-center gap-4 md:gap-6">
-                            <button onclick="window.conteudosAPI.prevAudio()"
-                                class="text-slate-400 hover:text-white transition-colors text-lg"><i
-                                    class="fas fa-step-backward"></i></button>
-                            <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()"
-                                class="w-12 h-12 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 transition-transform"><i
-                                    class="fas fa-play ml-1 text-xl"></i></button>
-                            <button onclick="window.conteudosAPI.nextAudio()"
-                                class="text-slate-400 hover:text-white transition-colors text-lg"><i
-                                    class="fas fa-step-forward"></i></button>
+                    <div class="flex items-center justify-between md:justify-center w-full gap-4 mb-2">
+                        
+                        <div class="flex items-center gap-4">
+                            <button id="btn-shuffle" onclick="window.conteudosAPI.toggleShuffle()" class="text-slate-400 hover:text-white transition-colors text-sm" title="Modo Aleatório"><i class="fas fa-random"></i></button>
+                            <button onclick="window.conteudosAPI.prevAudio()" class="text-slate-200 hover:text-white transition-colors text-lg"><i class="fas fa-step-backward"></i></button>
                         </div>
 
-                        <div
-                            class="flex items-center gap-2 ml-2 pl-4 md:ml-4 md:pl-6 border-l border-slate-800 shrink-0">
+                        <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()" class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-blue-400 transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                            <i class="fas fa-play ml-1 text-xl"></i>
+                        </button>
+
+                        <div class="flex items-center gap-4">
+                            <button onclick="window.conteudosAPI.nextAudio()" class="text-slate-200 hover:text-white transition-colors text-lg"><i class="fas fa-step-forward"></i></button>
+                            <button id="btn-repeat" onclick="window.conteudosAPI.toggleRepeat()" class="text-slate-400 hover:text-white transition-colors text-sm relative" title="Modo de Repetição"><i class="fas fa-redo"></i></button>
+                        </div>
+
+                        <div class="hidden md:flex items-center gap-2 ml-4 pl-4 border-l border-slate-800 shrink-0">
                             <i class="fas fa-volume-up text-slate-400 text-xs"></i>
-                            <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1"
-                                class="w-16 md:w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range"
-                                title="Volume">
+                            <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1" class="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range" title="Volume">
                         </div>
                     </div>
 
                     <div class="flex items-center gap-3 w-full max-w-2xl mt-1">
-                        <span id="player-time-curr"
-                            class="text-[10px] text-slate-500 w-8 text-right font-bold">0:00</span>
-                        <input type="range" id="player-progress" value="0"
-                            class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
-                        <span id="player-time-total" class="text-[10px] text-slate-500 w-8 font-bold">0:00</span>
+                        <span id="player-time-curr" class="text-[10px] text-slate-400 w-8 text-right font-bold font-mono">0:00</span>
+                        <input type="range" id="player-progress" value="0" class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+                        <span id="player-time-total" class="text-[10px] text-slate-400 w-8 font-bold font-mono">0:00</span>
                     </div>
-
                 </div>
+                
+                <button onclick="document.getElementById('global-audio-player').classList.add('hidden')" class="hidden md:block text-slate-500 hover:text-white absolute top-4 right-4 text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         </div>
 
