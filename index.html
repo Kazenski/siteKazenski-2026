@@ -53,45 +53,53 @@
 
 <body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
-    <header
-        class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl">
+    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl relative">
+        
+        <button id="btn-mobile-menu" class="md:hidden text-slate-300 hover:text-white text-2xl mr-4" onclick="document.getElementById('mobile-menu-container').classList.toggle('hidden'); document.getElementById('mobile-menu-overlay').classList.toggle('hidden');">
+            <i class="fas fa-bars"></i>
+        </button>
+
         <div class="flex items-center gap-3 shrink-0 cursor-pointer group" onclick="window.showTab('inicio')">
             <div class="bg-blue-600 p-2 rounded-lg group-hover:bg-blue-500 transition-colors">
                 <i class="fas fa-code text-white text-lg"></i>
             </div>
-            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">Kazenski
-            </h1>
+            <h1 class="font-cinzel font-black text-xl text-white tracking-widest uppercase hidden md:block">Kazenski</h1>
         </div>
 
-        <nav id="top-nav-menu"
-            class="flex-grow flex justify-center gap-1 overflow-x-auto no-scrollbar mx-4 px-4 h-full items-center">
-        </nav>
+        <div id="mobile-menu-overlay" class="hidden md:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90]" onclick="document.getElementById('btn-mobile-menu').click()"></div>
 
-        <div id="user-area" class="shrink-0 flex items-center gap-4">
+        <div id="mobile-menu-container" class="hidden md:flex fixed md:relative top-0 left-0 h-full min-h-screen md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform transition-transform md:flex-grow md:justify-center px-4 overflow-y-auto md:overflow-visible">
+            
+            <button class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white text-2xl" onclick="document.getElementById('btn-mobile-menu').click()">
+                <i class="fas fa-times"></i>
+            </button>
+            
+            <h2 class="md:hidden text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-800 pb-2">Navegação</h2>
+            
+            <nav id="top-nav-menu" class="flex flex-col md:flex-row gap-2 md:gap-1 items-stretch md:items-center w-full md:w-auto h-full pb-20 md:pb-0">
+            </nav>
+        </div>
+
+        <div id="user-area" class="shrink-0 flex items-center gap-4 ml-auto md:ml-0">
             <div id="user-loading" class="text-blue-500 animate-spin"><i class="fas fa-circle-notch"></i></div>
 
             <div id="user-info" class="hidden items-center gap-3">
                 <div class="text-right hidden sm:block">
-                    <p id="user-email" class="text-[10px] font-bold text-slate-400 leading-none truncate max-w-[150px]">
-                    </p>
+                    <p id="user-email" class="text-[10px] font-bold text-slate-400 leading-none truncate max-w-[150px]"></p>
                     <p id="user-role" class="text-[9px] text-blue-500 uppercase font-black tracking-tighter mt-1"></p>
                 </div>
 
-                <div id="session-timer"
-                    class="hidden flex-col items-end justify-center mr-2 border-r border-slate-700 pr-4">
+                <div id="session-timer" class="hidden flex-col items-end justify-center mr-2 border-r border-slate-700 pr-4">
                     <span class="text-[8px] text-slate-500 uppercase font-bold tracking-widest">Sessão expira em:</span>
                     <span id="session-countdown" class="text-xs text-amber-500 font-mono font-black">15:00</span>
                 </div>
 
-                <button onclick="window.logout()"
-                    class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all"
-                    title="Sair do Sistema">
+                <button onclick="window.logout()" class="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-500/10 rounded-full transition-all" title="Sair do Sistema">
                     <i class="fas fa-power-off text-lg"></i>
                 </button>
             </div>
 
-            <button id="btn-login-visitor" onclick="window.showTab('login')"
-                class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
+            <button id="btn-login-visitor" onclick="window.showTab('login')" class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
                 Acessar Portal
             </button>
         </div>
@@ -1471,7 +1479,7 @@
         <div id="professor-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 pt-10 md:p-12 md:pt-14">
 
-            <div class="h-full flex flex-col pb-20 max-w-7xl mx-auto">
+            <div class="min-h-full flex flex-col pb-32 md:pb-40 max-w-7xl mx-auto w-full">
 
                 <div
                     class="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-6 gap-6 border-b border-slate-800 pb-6 shrink-0">
@@ -1521,7 +1529,7 @@
                     </div>
                 </div>
 
-                <div class="flex gap-2 overflow-x-auto no-scrollbar mb-6 border-b border-slate-800 pb-2 shrink-0">
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6 border-b border-slate-800 pb-4 shrink-0 w-full">
                     <button
                         class="prof-subtab-btn active px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-amber-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-amber-900/30"
                         data-target="chamada"><i class="fas fa-list-ol mr-1"></i> Chamada</button>
