@@ -582,18 +582,21 @@ function renderChamadaList() {
         const row = document.createElement('div');
         row.className = `student-row ${!isActive ? 'inactive' : ''}`;
         row.innerHTML = `
-            <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center text-sm font-black text-amber-500 border border-slate-700 shadow-inner">${st.nome.charAt(0)}</div>
-                <span class="text-sm font-bold text-slate-200 truncate max-w-[200px] md:max-w-md">${escapeHTML(st.nome)}</span>
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <div class="hidden md:flex w-10 h-10 rounded-xl bg-slate-950 items-center justify-center text-sm font-black text-amber-500 border border-slate-700 shadow-inner shrink-0">${st.nome.charAt(0)}</div>
+                
+                <span class="text-sm font-bold text-slate-200 truncate w-full md:max-w-md">${escapeHTML(st.nome)}</span>
             </div>
-            <div class="flex items-center gap-4 shrink-0">
-                <select class="bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'} outline-none" onchange="window.profAPI.toggleActive('${st.id}', this)">
+            
+            <div class="flex items-center justify-between w-full md:w-auto gap-4 shrink-0">
+                <select class="hidden md:block bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'} outline-none" onchange="window.profAPI.toggleActive('${st.id}', this)">
                     <option value="true" ${isActive?'selected':''}>ATIVO</option><option value="false" ${!isActive?'selected':''}>INATIVO</option>
                 </select>
-                <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
-                    <button class="p-btn presente ${status==='presente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'presente', this)" ${!isActive?'disabled':''}>P</button>
-                    <button class="p-btn ausente ${status==='ausente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'ausente', this)" ${!isActive?'disabled':''}>F</button>
-                    <button class="p-btn justificado ${status==='justificado'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'justificado', this)" ${!isActive?'disabled':''}>J</button>
+                
+                <div class="flex w-full md:w-auto justify-between bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
+                    <button class="p-btn flex-1 md:flex-none presente ${status==='presente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'presente', this)" ${!isActive?'disabled':''}>P</button>
+                    <button class="p-btn flex-1 md:flex-none ausente ${status==='ausente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'ausente', this)" ${!isActive?'disabled':''}>F</button>
+                    <button class="p-btn flex-1 md:flex-none justificado ${status==='justificado'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'justificado', this)" ${!isActive?'disabled':''}>J</button>
                 </div>
             </div>
         `;
