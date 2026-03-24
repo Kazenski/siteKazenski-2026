@@ -95,7 +95,13 @@ function mapearDOM() {
         title: document.getElementById('player-song-title'),
         artist: document.getElementById('player-song-artist'),
         btnRepeat: document.getElementById('btn-repeat'),
-        btnShuffle: document.getElementById('btn-shuffle')
+        btnShuffle: document.getElementById('btn-shuffle'),
+
+        // Pílula Mini Player
+        miniPlayerBox: document.getElementById('mini-audio-player'),
+        btnPlayPauseMini: document.getElementById('btn-play-pause-mini'),
+        miniPlayerThumb: document.getElementById('mini-player-thumb'),
+        miniPlayerIcon: document.getElementById('mini-player-icon')
     };
 }
 
@@ -451,6 +457,10 @@ function setupPlayerEventListeners() {
         }
     });
 
+    els.audioEngine.addEventListener('play', () => window.conteudosAPI.syncPlayButtons());
+    
+    els.audioEngine.addEventListener('pause', () => window.conteudosAPI.syncPlayButtons());
+
     els.progress.addEventListener('input', (e) => {
         if(els.audioEngine.duration) els.audioEngine.currentTime = (e.target.value / 100) * els.audioEngine.duration;
     });
@@ -665,7 +675,7 @@ window.conteudosAPI = {
         `;
 
         // 2. GERA A CAPA DO PLAYER FLUTUANTE (Alterna entre Img e Ícone)
-        els.playerBox.classList.remove('hidden');
+        window.conteudosAPI.maximizePlayer();
         if (imgUrl) {
             els.thumb.src = imgUrl;
             els.thumb.classList.remove('hidden');
@@ -687,9 +697,12 @@ window.conteudosAPI = {
     },
 
     togglePlay: () => {
-        if(!els.audioEngine.src) return;
-        if(els.audioEngine.paused) { els.audioEngine.play(); els.btnPlayPause.innerHTML = '<i class="fas fa-pause ml-0"></i>'; }
-        else { els.audioEngine.pause(); els.btnPlayPause.innerHTML = '<i class="fas fa-play ml-1"></i>'; }
+        if (els.audioEngine.paused) {
+            els.audioEngine.play();
+        } else {
+            els.audioEngine.pause();
+        }
+        window.conteudosAPI.syncPlayButtons();
     },
     
     prevAudio: () => { if(currentIdx > 0) window.conteudosAPI.tocarMedia(currentIdx - 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
@@ -741,5 +754,39 @@ window.conteudosAPI = {
         const texto = item.letra || item.descricao || 'Sem registros';
         const b = new Blob([`${item.titulo}\n\n${texto}`], { type: 'text/plain' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${item.titulo}.txt`; a.click();
+    },
+
+    minimizePlayer: () => {
+        els.playerBox.classList.add('hidden');
+        els.miniPlayerBox.classList.remove('hidden');
+        els.miniPlayerBox.classList.add('flex');
+    },
+
+    maximizePlayer: () => {
+        els.miniPlayerBox.classList.add('hidden');
+        els.miniPlayerBox.classList.remove('flex');
+        els.playerBox.classList.remove('hidden');
+    },
+
+    closePlayer: () => {
+        els.audioEngine.pause();
+        els.audioEngine.currentTime = 0;
+        els.playerBox.classList.add('hidden');
+        els.miniPlayerBox.classList.add('hidden');
+        els.miniPlayerBox.classList.remove('flex');
+    },
+
+    syncPlayButtons: () => {
+        const isPaused = els.audioEngine.paused;
+        
+        // Ícones para o player grande
+        if(els.btnPlayPause) {
+            els.btnPlayPause.innerHTML = isPaused ? '<i class="fas fa-play ml-1 text-xl"></i>' : '<i class="fas fa-pause text-xl"></i>';
+        }
+        
+        // Ícones para a pílula pequena
+        if(els.btnPlayPauseMini) {
+            els.btnPlayPauseMini.innerHTML = isPaused ? '<i class="fas fa-play ml-0.5"></i>' : '<i class="fas fa-pause"></i>';
+        }
     }
 };
