@@ -380,77 +380,82 @@
         <div id="player-master-container">
             <audio id="audio-engine"></audio>
 
-            <div id="global-audio-player" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[95%] max-w-4xl bg-slate-950/95 backdrop-blur-xl border border-slate-700/60 p-3 md:p-4 rounded-3xl z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.8)] transition-all">
-                <div class="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                    <div class="flex items-center gap-4 w-full md:w-1/3 shrink-0">
-                        <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center overflow-hidden relative shadow-inner">
-                            <img id="player-thumb" src="" class="w-full h-full object-cover hidden absolute inset-0 z-10">
-                            <i id="player-fallback-icon" class="fas fa-music text-slate-500 hidden text-lg z-0"></i>
-                        </div>
-                        <div class="overflow-hidden flex-grow cursor-pointer" onclick="window.conteudosAPI.minimizePlayer()">
-                            <div id="player-song-title" class="text-white font-bold text-sm truncate">...</div>
-                            <div id="player-song-artist" class="text-slate-400 text-[10px] uppercase tracking-widest truncate">...</div>
-                        </div>
-                        <button onclick="window.conteudosAPI.minimizePlayer()" class="md:hidden text-slate-400 hover:text-blue-400 p-2 text-xl">
-                            <i class="fas fa-compress-alt"></i>
+            <div id="global-audio-player" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 w-[95%] max-w-4xl bg-slate-950/95 backdrop-blur-xl border border-slate-700/60 p-4 md:p-5 rounded-3xl z-[2000] shadow-[0_20px_50px_rgba(0,0,0,0.8)] transition-all">
+                
+                <div class="flex justify-between items-center w-full mb-4 border-b border-slate-800/80 pb-3">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold flex items-center gap-2">
+                        <i class="fas fa-headphones text-blue-500 text-sm"></i> Reproduzindo Agora
+                    </span>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="window.conteudosAPI.minimizePlayer()" class="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-slate-300 hover:text-blue-400 transition-colors bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 hover:border-blue-500/50 shadow-inner">
+                            <i class="fas fa-chevron-down"></i> <span class="uppercase tracking-widest">Minimizar</span>
                         </button>
+                        <button onclick="window.conteudosAPI.closePlayer()" class="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-slate-300 hover:text-red-400 transition-colors bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 hover:border-red-500/50 shadow-inner">
+                            <i class="fas fa-times"></i> <span class="hidden sm:inline uppercase tracking-widest">Fechar</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center gap-4 md:gap-6">
+                    <div class="flex items-center gap-4 w-full md:w-1/3 shrink-0">
+                        <div class="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center overflow-hidden relative shadow-inner">
+                            <img id="player-thumb" src="" class="w-full h-full object-cover hidden absolute inset-0 z-10">
+                            <i id="player-fallback-icon" class="fas fa-music text-slate-500 hidden text-xl z-0"></i>
+                        </div>
+                        <div class="overflow-hidden flex-grow">
+                            <div id="player-song-title" class="text-white font-bold text-base truncate">...</div>
+                            <div id="player-song-artist" class="text-slate-400 text-xs uppercase tracking-widest truncate mt-0.5">...</div>
+                        </div>
                     </div>
 
                     <div class="flex flex-col items-center flex-grow w-full md:w-2/3">
-                        <div class="flex items-center justify-between md:justify-center w-full gap-4 mb-2">
-                            <div class="flex items-center gap-4">
-                                <button id="btn-shuffle" onclick="window.conteudosAPI.toggleShuffle()" class="text-slate-400 hover:text-white transition-colors text-sm"><i class="fas fa-random"></i></button>
-                                <button onclick="window.conteudosAPI.prevAudio()" class="text-slate-200 hover:text-white transition-colors text-lg"><i class="fas fa-step-backward"></i></button>
+                        <div class="flex items-center justify-between md:justify-center w-full gap-5 mb-2">
+                            <div class="flex items-center gap-5">
+                                <button id="btn-shuffle" onclick="window.conteudosAPI.toggleShuffle()" class="text-slate-400 hover:text-white transition-colors text-sm" title="Aleatório"><i class="fas fa-random"></i></button>
+                                <button onclick="window.conteudosAPI.prevAudio()" class="text-slate-200 hover:text-white transition-colors text-xl"><i class="fas fa-step-backward"></i></button>
                             </div>
-                            <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()" class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-blue-400 transition-all shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-                                <i class="fas fa-play ml-1 text-xl"></i>
+                            <button id="btn-play-pause" onclick="window.conteudosAPI.togglePlay()" class="w-14 h-14 bg-blue-500 text-white rounded-full flex items-center justify-center hover:scale-105 hover:bg-blue-400 transition-all shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+                                <i class="fas fa-play ml-1 text-2xl"></i>
                             </button>
-                            <div class="flex items-center gap-4">
-                                <button onclick="window.conteudosAPI.nextAudio()" class="text-slate-200 hover:text-white transition-colors text-lg"><i class="fas fa-step-forward"></i></button>
-                                <button id="btn-repeat" onclick="window.conteudosAPI.toggleRepeat()" class="text-slate-400 hover:text-white transition-colors text-sm relative"><i class="fas fa-redo"></i></button>
+                            <div class="flex items-center gap-5">
+                                <button onclick="window.conteudosAPI.nextAudio()" class="text-slate-200 hover:text-white transition-colors text-xl"><i class="fas fa-step-forward"></i></button>
+                                <button id="btn-repeat" onclick="window.conteudosAPI.toggleRepeat()" class="text-slate-400 hover:text-white transition-colors text-sm relative" title="Repetir"><i class="fas fa-redo"></i></button>
                             </div>
-                            <div class="hidden md:flex items-center gap-2 ml-4 pl-4 border-l border-slate-800 shrink-0">
-                                <i class="fas fa-volume-up text-slate-400 text-xs"></i>
-                                <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1" class="w-20 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+                            <div class="hidden md:flex items-center gap-3 ml-6 pl-6 border-l border-slate-800 shrink-0">
+                                <i class="fas fa-volume-up text-slate-400 text-sm"></i>
+                                <input type="range" id="player-volume" min="0" max="1" step="0.05" value="1" class="w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 w-full max-w-2xl mt-1">
+                        <div class="flex items-center gap-4 w-full max-w-2xl mt-2">
                             <span id="player-time-curr" class="text-[10px] text-slate-400 w-8 text-right font-bold font-mono">0:00</span>
-                            <input type="range" id="player-progress" value="0" class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range">
+                            <input type="range" id="player-progress" value="0" class="flex-grow h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer custom-range hover:bg-slate-600 transition-colors">
                             <span id="player-time-total" class="text-[10px] text-slate-400 w-8 font-bold font-mono">0:00</span>
                         </div>
-                    </div>
-                    
-                    <div class="hidden md:flex items-center gap-2 absolute top-4 right-4">
-                        <button onclick="window.conteudosAPI.minimizePlayer()" class="text-slate-400 hover:text-blue-400 text-lg px-2" title="Minimizar">
-                            <i class="fas fa-compress-alt"></i>
-                        </button>
-                        <button onclick="window.conteudosAPI.closePlayer()" class="text-slate-400 hover:text-red-500 text-xl px-2" title="Fechar">
-                            <i class="fas fa-times"></i>
-                        </button>
                     </div>
                 </div>
             </div>
 
-            <div id="mini-audio-player" class="hidden fixed bottom-24 right-4 md:bottom-10 md:right-10 bg-slate-900/90 border border-slate-700 p-1.5 rounded-full z-[2000] shadow-[0_10px_30px_rgba(0,0,0,0.8)] items-center gap-3 transition-transform hover:scale-105 group backdrop-blur-xl">
+            <div id="mini-audio-player" class="hidden fixed bottom-24 right-4 md:bottom-10 md:right-10 bg-slate-900/95 border border-slate-700 p-2 pr-3 rounded-full z-[2000] shadow-[0_10px_30px_rgba(0,0,0,0.8)] items-center gap-3 transition-transform hover:scale-105 group backdrop-blur-xl">
                 
-                <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer" onclick="window.conteudosAPI.maximizePlayer()">
-                    <img id="mini-player-thumb" src="" class="w-full h-full object-cover hidden">
-                    <i id="mini-player-icon" class="fas fa-music text-slate-400 text-sm"></i>
+                <div class="flex items-center gap-3 flex-grow cursor-pointer pl-1" onclick="window.conteudosAPI.maximizePlayer()" title="Expandir Player">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0 shadow-inner group-hover:ring-2 ring-blue-500/50 transition-all">
+                        <img id="mini-player-thumb" src="" class="w-full h-full object-cover hidden">
+                        <i id="mini-player-icon" class="fas fa-music text-slate-400 text-sm"></i>
+                    </div>
+                    <div class="max-w-[120px] overflow-hidden pr-2">
+                        <div class="text-[10px] font-bold text-slate-300 truncate uppercase tracking-widest group-hover:text-blue-400 transition-colors">
+                            <i class="fas fa-expand-arrows-alt mr-1 opacity-50"></i> Expandir
+                        </div>
+                    </div>
                 </div>
                 
-                <button id="btn-play-pause-mini" onclick="window.conteudosAPI.togglePlay()" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-500 shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.5)]">
-                     <i class="fas fa-play ml-0.5"></i>
+                <div class="h-6 w-px bg-slate-700 mx-1"></div> <button id="btn-play-pause-mini" onclick="window.conteudosAPI.togglePlay()" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-500 shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-colors">
+                     <i class="fas fa-play ml-0.5 text-sm"></i>
                 </button>
                 
-                <div class="flex items-center gap-1 pr-2 border-l border-slate-700 pl-2">
-                    <button onclick="window.conteudosAPI.maximizePlayer()" class="w-8 h-8 text-slate-400 hover:text-white rounded-full hover:bg-slate-800 flex items-center justify-center" title="Expandir">
-                        <i class="fas fa-expand-arrows-alt"></i>
-                    </button>
-                    <button onclick="window.conteudosAPI.closePlayer()" class="w-8 h-8 text-slate-400 hover:text-red-400 rounded-full hover:bg-slate-800 flex items-center justify-center" title="Fechar">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+                <button onclick="window.conteudosAPI.closePlayer()" class="w-8 h-8 text-slate-500 hover:text-red-400 rounded-full hover:bg-slate-800 flex items-center justify-center transition-colors" title="Fechar Música">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
         </div>
 
