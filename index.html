@@ -53,9 +53,9 @@
 
 <body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
 
-    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl relative">
+    <header class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl relative w-full">
         
-        <button id="btn-mobile-menu" class="md:hidden text-slate-300 hover:text-white text-2xl mr-4" onclick="document.getElementById('mobile-menu-container').classList.toggle('hidden'); document.getElementById('mobile-menu-overlay').classList.toggle('hidden');">
+        <button id="btn-mobile-menu" class="md:hidden text-slate-300 hover:text-white text-2xl mr-4 shrink-0" onclick="document.getElementById('mobile-menu-container').classList.toggle('-translate-x-full'); document.getElementById('mobile-menu-overlay').classList.toggle('hidden');">
             <i class="fas fa-bars"></i>
         </button>
 
@@ -68,15 +68,15 @@
 
         <div id="mobile-menu-overlay" class="hidden md:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90]" onclick="document.getElementById('btn-mobile-menu').click()"></div>
 
-        <div id="mobile-menu-container" class="hidden md:flex fixed md:relative top-0 left-0 h-full min-h-screen md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform transition-transform md:flex-grow md:justify-center px-4 overflow-y-auto md:overflow-visible">
+        <div id="mobile-menu-container" class="fixed md:static top-0 left-0 h-full md:h-auto min-h-screen md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex md:flex-grow md:justify-center overflow-y-auto md:overflow-visible">
             
             <button class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white text-2xl" onclick="document.getElementById('btn-mobile-menu').click()">
                 <i class="fas fa-times"></i>
             </button>
             
-            <h2 class="md:hidden text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-800 pb-2">Navegação</h2>
+            <h2 class="md:hidden text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-800 pb-2 px-4 shrink-0">Navegação</h2>
             
-            <nav id="top-nav-menu" class="flex flex-col md:flex-row gap-2 md:gap-1 items-stretch md:items-center w-full md:w-auto h-full pb-20 md:pb-0">
+            <nav id="top-nav-menu" class="flex flex-col md:flex-row gap-2 md:gap-1 md:items-center justify-start md:justify-center w-full md:w-auto px-4 md:px-0 md:mx-4 h-full md:h-16 md:overflow-x-auto md:no-scrollbar pb-20 md:pb-0">
             </nav>
         </div>
 
