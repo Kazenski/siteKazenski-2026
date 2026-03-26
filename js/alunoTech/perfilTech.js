@@ -925,6 +925,20 @@ function createNewNote() {
     els.noteActiveTags.value = '';
     els.noteColorPicker.value = selectedNoteColor;
 
+    // Resgata os elementos de controle de permissão
+    const btnSave = document.getElementById('btn-note-save');
+    const senderInfoDiv = document.getElementById('al-note-sender-info');
+
+    // Garante que o botão "Salvar" esteja visível para a nova anotação
+    if (btnSave) btnSave.classList.remove('hidden');
+
+    // Garante que o painel de remetente (nota recebida) suma, 
+    // pois essa é uma nota própria sendo criada agora.
+    if (senderInfoDiv) {
+        senderInfoDiv.classList.add('hidden');
+        senderInfoDiv.classList.remove('flex');
+    }
+
     updatePinIconVisuals();
     showActiveNoteState();
 
