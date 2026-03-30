@@ -742,7 +742,10 @@ async function generateReport() {
             if(disciplineId && dId !== disciplineId) return;
 
             Object.entries(data.registros || {}).forEach(([uid, status]) => {
-                if(status === 'ausente') {
+                let s = status;
+                if(s === 'falta') s = 'ausente';
+                
+                if(s === 'ausente') {
                     stats[uid] = (stats[uid] || 0) + 1;
                     discStats[dId] = (discStats[dId] || 0) + 1;
                     grandTotal++;
@@ -1664,21 +1667,54 @@ window.profAPI = {
         els.apoiaFreqBox.classList.remove('hidden');
 
         try {
-            const q = query(collection(db, "presencas"), where("turma", "==", classId), where("disciplinaId", "==", disciplineId), orderBy("data_aula_timestamp", "asc"));
+            // --- LÓGICA DE RESET DO APOIA ---
+            // 1. Busca os Registros APOIA já existentes para saber quando "resetar" a contagem
+            const apoiaQ = query(collection(db, "apoiaRegistros"), where("turmaId", "==", classId), where("disciplinaId", "==", disciplineId));
+            const apoiaSnap = await getDocs(apoiaQ);
+            const lastApoiaPerStudent = {};
+            
+            apoiaSnap.forEach(doc => {
+                const data = doc.data();
+                const timestamp = data.criadoEm ? data.criadoEm.toMillis() : 0;
+                // Guarda apenas a data do APOIA mais recente do aluno
+                if (!lastApoiaPerStudent[data.alunoId] || timestamp > lastApoiaPerStudent[data.alunoId]) {
+                    lastApoiaPerStudent[data.alunoId] = timestamp;
+                }
+            });
+
+            // 2. Busca Presenças
+            const q = query(collection(db, "presencas"), where("turma", "==", classId), orderBy("data_aula_timestamp", "asc"));
             const snap = await getDocs(q);
             
             const faltasAluno = {}; 
             
             snap.forEach(doc => {
-                const regs = doc.data().registros || {};
+                const data = doc.data();
+                const dId = data.disciplineId || data.disciplinaId;
+                if(dId !== disciplineId) return; // Garante a disciplina certa
                 
-                // Reseta a contagem de consecutivas se veio
-                for(const uid in faltasAluno) { if(regs[uid] !== 'ausente') faltasAluno[uid].consecutivas = 0; }
+                const aulaTime = data.data_aula_timestamp ? data.data_aula_timestamp.toMillis() : 0;
+                const regs = data.registros || {};
+                
+                // Reseta a contagem de consecutivas se o aluno veio na aula
+                for(const uid in faltasAluno) { 
+                    let s = regs[uid];
+                    if(s === 'falta') s = 'ausente';
+                    if(s !== 'ausente') faltasAluno[uid].consecutivas = 0; 
+                }
 
                 for(const [uid, status] of Object.entries(regs)) {
+                    let s = status;
+                    if(s === 'falta') s = 'ausente';
+
+                    // Se a aula ocorreu ANTES ou NO MESMO DIA do último APOIA, ignora! (Reset)
+                    if (lastApoiaPerStudent[uid] && aulaTime <= lastApoiaPerStudent[uid]) {
+                        continue; 
+                    }
+
                     if(!faltasAluno[uid]) faltasAluno[uid] = { total: 0, consecutivas: 0, maxConsecutivas: 0 };
                     
-                    if(status === 'ausente') {
+                    if(s === 'ausente') {
                         faltasAluno[uid].total++;
                         faltasAluno[uid].consecutivas++;
                         if(faltasAluno[uid].consecutivas > faltasAluno[uid].maxConsecutivas) {
@@ -2680,6 +2716,16 @@ window.profAPI = {
                 }
             });
 
+            // --- TOOLTIP ALUNOS EM RISCO ---
+            let alunosRiscoNomes = [];
+            students.forEach(s => {
+                const f = dataFaltas[s.id]?.ausente || 0;
+                if(totalAulas > 0 && (f/totalAulas) > 0.20) {
+                    alunosRisco++;
+                    alunosRiscoNomes.push(s.nome);
+                }
+            });
+
             // Preenche KPIs Visuais
             const mediaTurma = countAlunosComNota > 0 ? (somaMedias/countAlunosComNota).toFixed(2) : "-";
             els.kpiGeralMedia.textContent = mediaTurma;
@@ -2687,6 +2733,16 @@ window.profAPI = {
             
             els.kpiGeralFaltas.textContent = totalFaltasTurma;
             els.kpiGeralRisco.textContent = alunosRisco;
+            
+            // Tooltip com os nomes no Card de Risco
+            const cardRisco = els.kpiGeralRisco.parentElement;
+            if (alunosRiscoNomes.length > 0) {
+                cardRisco.title = "Alunos em Risco:\n\n" + alunosRiscoNomes.join("\n");
+                cardRisco.classList.add('cursor-help');
+            } else {
+                cardRisco.title = "Nenhum aluno em risco de evasão.";
+                cardRisco.classList.remove('cursor-help');
+            }
 
             // Renderiza Gráficos (Mesmo sem notas, os gráficos carregam em branco e exibem o KPI de Faltas)
             window.profAPI.renderGeralScatter(scatterData);
