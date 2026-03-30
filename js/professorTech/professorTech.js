@@ -107,6 +107,15 @@ export async function renderProfessorTab() {
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
 
+    // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
+    if(els.evalSelectAv) {
+        els.evalSelectAv.addEventListener('change', () => {
+            if(evalState.selectedStudents.length > 0) {
+                window.profAPI.loadSavedEvalData(evalState.selectedStudents[0].id);
+            }
+        });
+    }
+    
     // document.querySelector('[data-target="apoia"]').addEventListener('click', () => {
     //     window.profAPI.loadApoiaRegistros();
     // });
@@ -1279,10 +1288,13 @@ window.profAPI = {
             els.evalMsg.classList.replace('text-amber-400', 'text-green-400');
             setTimeout(() => { els.evalMsg.classList.add('hidden'); }, 3000);
 
-            // Opcional: Esvaziar a lista para a próxima
-            // evalState.selectedStudents = [];
-            // window.profAPI.renderSelectedEvalStudents();
-            // els.evalForm.classList.add('hidden');
+            // Obrigatório esvaziar a lista e a memória para a próxima avaliação funcionar
+            evalState.selectedStudents = [];
+            evalState.scores = {};
+            window.profAPI.renderSelectedEvalStudents();
+            els.evalForm.classList.add('hidden');
+            window.profAPI.populateEvalStudents(); // Devolve os alunos pro select
+            els.evalTotal.textContent = "0.00";
 
         } catch(e) {
             console.error(e);
@@ -2340,8 +2352,14 @@ window.profAPI = {
             const presencasData = [];
             presSnap.forEach(d => {
                 const data = d.data();
-                const status = data.registros ? data.registros[uid] : null;
-                if(status) {
+                const rawStatus = data.registros ? data.registros[uid] : null;
+                
+                if(rawStatus) {
+                    // Normaliza os status do banco para bater com o resto do sistema
+                    let status = rawStatus;
+                    if(status === 'falta') status = 'ausente';
+                    if(status === 'justificada' || String(status).startsWith('justi')) status = 'justificado';
+
                     presencasData.push({
                         date: data.data_aula_timestamp.toDate(),
                         disciplineId: data.disciplineId || data.disciplinaId,
