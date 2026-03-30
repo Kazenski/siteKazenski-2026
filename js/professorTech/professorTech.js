@@ -65,6 +65,10 @@ export async function renderProfessorTab() {
     const container = document.getElementById('professor-content');
     if (!container) return;
 
+    // Remove limitações de largura para ocupar 100% da tela em todos os dispositivos
+    container.classList.remove('max-w-7xl', 'mx-auto');
+    container.classList.add('w-full', 'px-2', 'md:px-4', 'flex-1');
+
     if (!auth.currentUser) {
         container.innerHTML = '<div class="text-center text-slate-500 mt-20">Acesso negado. Faça login.</div>';
         return;
@@ -733,6 +737,10 @@ async function generateReport() {
         snap.forEach(doc => {
             const data = doc.data();
             const dId = data.disciplineId || data.disciplinaId;
+            
+            // Filtro local da disciplina para evitar bugs do banco
+            if(disciplineId && dId !== disciplineId) return;
+
             Object.entries(data.registros || {}).forEach(([uid, status]) => {
                 if(status === 'ausente') {
                     stats[uid] = (stats[uid] || 0) + 1;
@@ -812,26 +820,29 @@ async function generatePdf() {
         // 2. Busca todas as presenças do período
         const start = new Date(startStr + "T00:00:00");
         const end = new Date(endStr + "T23:59:59");
+        // Remove o filtro estrito de disciplina da query e filtra via JS
         const qP = query(
             collection(db, "presencas"), 
             where("turma", "==", classId), 
-            where("disciplinaId", "==", disciplineId),
             where("data_aula_timestamp", ">=", Timestamp.fromDate(start)), 
             where("data_aula_timestamp", "<=", Timestamp.fromDate(end)), 
             orderBy("data_aula_timestamp", "asc")
         );
         
         const snapP = await getDocs(qP);
-        if(snapP.empty) throw new Error("Sem aulas registradas neste período para exportar.");
-
-        // 3. Monta as Colunas (Datas)
+        
+        // Filtra as aulas da disciplina correta e monta as colunas (cobre ambos os nomes de variável)
         const cols = [];
         snapP.forEach(doc => {
             const d = doc.data();
-            const dateObj = d.data_aula_timestamp.toDate();
-            const label = `${String(dateObj.getDate()).padStart(2,'0')}/${String(dateObj.getMonth()+1).padStart(2,'0')}`;
-            cols.push({ label, regs: d.registros || {} });
+            if (d.disciplineId === disciplineId || d.disciplinaId === disciplineId) {
+                const dateObj = d.data_aula_timestamp.toDate();
+                const label = `${String(dateObj.getDate()).padStart(2,'0')}/${String(dateObj.getMonth()+1).padStart(2,'0')}`;
+                cols.push({ label, regs: d.registros || {} });
+            }
         });
+
+        if(cols.length === 0) throw new Error("Sem aulas registradas neste período para exportar.");
 
         // 4. Monta as Linhas (Alunos e as Faltas)
         const body = students.map(s => {
@@ -2376,16 +2387,58 @@ window.profAPI = {
         window.profAPI.renderGenericChart('presence', 'doughnut', ['Presente', 'Falta', 'Justificado'], [p, f, j], 'Frequência', ['#4ade80', '#ef4444', '#f59e0b']);
 
         // --- GRÁFICO: Evolução (Prepara Select) ---
+        // --- GRÁFICO: Evolução (Prepara Select) ---
         els.selEvolutionDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
+        
+        // CORREÇÃO 1: Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
+        const studentObj = state.cache.students.find(s => s.id === currentStudentAnalysisData.uid);
+        const studentDisciplines = studentObj?.disciplinas || {}; 
+        
         Object.keys(notas).forEach(discId => {
-            const name = state.cache.disciplinesMap.get(discId) || discId;
-            els.selEvolutionDisc.add(new Option(name, discId));
+            const hasData = Object.values(notas[discId] || {}).some(t => t.nota1 || t.nota2 || t.nota3 || t.nota4);
+            if (studentDisciplines[discId] || hasData) {
+                const name = state.cache.disciplinesMap.get(discId) || discId;
+                els.selEvolutionDisc.add(new Option(name, discId));
+            }
         });
+
         if(chartInstances['evolution']) chartInstances['evolution'].destroy();
         els.msgEvolution.classList.remove('hidden');
 
         // --- ANÁLISE PREDITIVA (Avisos de IA) ---
         window.profAPI.runPredictiveAnalysis();
+
+        // Cria uma lista visual com os dias exatos das faltas formatada como [F] e [J]
+        let faltasListHTML = '<div class="mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700"><h4 class="text-white font-bold mb-3 border-b border-slate-700 pb-2"><i class="fas fa-calendar-times text-amber-500 mr-2"></i>Histórico de Ausências e Justificativas</h4><ul class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+        
+        // Filtra apenas o que não for presença
+        const historico = presencas.filter(p => p.status === 'ausente' || p.status === 'justificado' || String(p.status).startsWith('justi'));
+        
+        if (historico.length === 0) {
+            faltasListHTML += '<li class="text-slate-400 text-xs col-span-full italic">Excelente! Nenhuma falta ou justificativa registrada.</li>';
+        } else {
+            // Ordena da mais recente para a mais antiga
+            historico.sort((a,b) => b.date - a.date).forEach(p => {
+                const dStr = p.date.toLocaleDateString('pt-BR');
+                const isJustificado = p.status === 'justificado' || String(p.status).startsWith('justi');
+                const badge = !isJustificado ? '<span class="text-red-400 font-black bg-red-500/10 px-2 py-0.5 rounded border border-red-500/30">[F]</span>' : '<span class="text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">[J]</span>';
+                const discName = state.cache.disciplinesMap.get(p.disciplineId) || p.disciplineId;
+                faltasListHTML += `<li class="text-xs text-slate-300 bg-slate-900 p-2 rounded border border-slate-700 flex justify-between items-center" title="${discName}"><span class="font-mono">${dStr}</span> ${badge}</li>`;
+            });
+        }
+        faltasListHTML += '</ul></div>';
+        
+        // Remove a lista anterior para não duplicar ao trocar de aluno
+        const oldHist = document.getElementById('hist-faltas-dinamico');
+        if(oldHist) oldHist.remove();
+        
+        const histDiv = document.createElement('div');
+        histDiv.id = 'hist-faltas-dinamico';
+        histDiv.className = 'w-full';
+        histDiv.innerHTML = faltasListHTML;
+        
+        // Anexa logo abaixo da lista preditiva
+        els.predictiveList.parentElement.appendChild(histDiv);
     },
 
     updateEvolutionChart: (discId) => {
@@ -2565,8 +2618,13 @@ window.profAPI = {
                     if(p.registros) {
                         Object.entries(p.registros).forEach(([uid, status]) => {
                             if(dataFaltas[uid]) {
-                                dataFaltas[uid][status] = (dataFaltas[uid][status] || 0) + 1;
-                                if(status === 'ausente') totalFaltasTurma++;
+                                // Normaliza os status para evitar bugs de digitação do banco (falta, justificada)
+                                let s = status;
+                                if(s === 'justificada' || String(s).startsWith('justi')) s = 'justificado';
+                                if(s === 'falta') s = 'ausente';
+                                
+                                dataFaltas[uid][s] = (dataFaltas[uid][s] || 0) + 1;
+                                if(s === 'ausente') totalFaltasTurma++;
                             }
                         });
                     }
@@ -2719,7 +2777,8 @@ window.profAPI = {
             data: {
                 labels: ['Presentes', 'Justificadas', 'Ausências'],
                 datasets: [{
-                    data: [dados.presente, dados.justificado, dados.ausente],
+                    // Garante o 0 caso o aluno não tenha aquele status
+                    data: [dados.presente || 0, dados.justificado || 0, dados.ausente || 0],
                     backgroundColor: ['#4ade80', '#f59e0b', '#ef4444'],
                     borderRadius: 6
                 }]
