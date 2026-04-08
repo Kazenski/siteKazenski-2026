@@ -532,10 +532,10 @@
             </div>
 
             <div id="projeto-detalhes-view" class="hidden w-full flex-col shrink-0 mt-8 pt-12 border-t-2 border-slate-700/50 relative">
-                <div class="max-w-6xl mx-auto w-full">
+                <div class="w-full">
                     
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
-                        <h2 id="detalheProjTitulo" class="text-4xl md:text-5xl font-black text-white leading-tight drop-shadow-lg w-full">Título</h2>
+                        <h2 id="detalheProjTitulo" class="text-4xl md:text-5xl font-black text-white leading-tight drop-shadow-lg w-full break-words">Título</h2>
                         <div class="flex gap-3 shrink-0">
                             <button onclick="document.getElementById('projeto-detalhes-view').classList.add('hidden'); document.getElementById('projetos-content').scrollTo({top:0, behavior:'smooth'})" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest transition-colors border border-slate-600 shadow-lg flex items-center gap-2">
                                 <i class="fas fa-arrow-up"></i> Fechar
@@ -543,7 +543,7 @@
                         </div>
                     </div>
 
-                    <div id="detalheProjImagemContainer" class="w-full h-64 md:h-[500px] rounded-3xl overflow-hidden mb-12 shadow-2xl border border-slate-700 hidden relative group">
+                    <div id="detalheProjImagemContainer" class="w-full h-64 md:h-[500px] lg:h-[600px] rounded-3xl overflow-hidden mb-12 shadow-2xl border border-slate-700 hidden relative group">
                         <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent z-10 opacity-60"></div>
                         <img id="detalheProjImagem" src="" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105">
                     </div>
