@@ -38,7 +38,7 @@ const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true }, 
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
     { id: 'projetos', label: 'Projetos', showTo: (r) => true },
-    { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
+    // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
     
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
@@ -300,12 +300,12 @@ window.showTab = function(tabId) {
     else if (tabId === 'moderador-tech' && !isModeradorLoaded) {
         isModeradorLoaded = true; 
     }
-    else if (tabId === 'conexao-aluno') {
-        if (!isConexaoAlunoLoaded) {
-            renderConexaoAlunoTab();
-            isConexaoAlunoLoaded = true;
-        }
-    }
+    // else if (tabId === 'conexao-aluno') {
+    //     if (!isConexaoAlunoLoaded) {
+    //         renderConexaoAlunoTab();
+    //         isConexaoAlunoLoaded = true;
+    //     }
+    // }
     else if (tabId === 'projetos') {       
         if (!isProjetosLoaded) {             
             renderProjetosTab();              
