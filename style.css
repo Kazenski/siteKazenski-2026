@@ -667,3 +667,7 @@ main, .tab-content {
     color: #fbbf24; /* Amarelo/Dourado */
     text-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
 }
+
+#aura-container img {
+    cursor: help; /* Muda o cursor para uma interrogação ao passar no fogo */
+}
