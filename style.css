@@ -635,3 +635,29 @@ main, .tab-content {
         gap: 0;
     }
 }
+
+
+/* Estilização da Aura Global */
+#aura-container {
+    transition: all 0.3s ease;
+    cursor: default;
+}
+
+#aura-container:hover {
+    background-color: rgba(30, 58, 138, 0.4);
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+#user-aura-value {
+    text-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+}
+
+.animate-pulse {
+    animation: pulseAura 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulseAura {
+    0%, 100% { opacity: 1; filter: brightness(1) drop-shadow(0 0 2px #3b82f6); }
+    50% { opacity: 0.8; filter: brightness(1.3) drop-shadow(0 0 8px #3b82f6); }
+}

@@ -145,6 +145,7 @@ async function initDashboard(user) {
     }
 
     currentUser = { uid: user.uid, ...userDoc.data() };
+    monitorarAuraGlobal(user.uid);
 
     els.loading.classList.add('hidden');
     els.dashboard.classList.remove('hidden');
@@ -1577,4 +1578,44 @@ async function uploadImage(fileOrBlob, type) {
     currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
     renderBanner();
     els.loading.classList.add('hidden');
+}
+
+export async function monitorarAuraGlobal(uid) {
+    const auraValEl = document.getElementById('user-aura-value');
+    const auraCont = document.getElementById('aura-container');
+
+    // Escuta Notas e Pontos Extras em tempo real
+    onSnapshot(doc(db, "notas", uid), (docSnap) => {
+        let totalAura = 0;
+        
+        if (docSnap.exists()) {
+            const disciplinas = docSnap.data().disciplinasComNotas || {};
+            Object.values(disciplinas).forEach(trimestres => {
+                Object.values(trimestres).forEach(notas => {
+                    const soma = (parseFloat(notas.nota1) || 0) + (parseFloat(notas.nota2) || 0) + 
+                                 (parseFloat(notas.nota3) || 0) + (parseFloat(notas.nota4) || 0);
+                    totalAura += soma * 2500;
+                });
+            });
+        }
+
+        // Soma pontos extras (ajuste o nome da coleção se necessário)
+        getDoc(doc(db, "pontos_extras", uid)).then(extrasSnap => {
+            if (extrasSnap.exists()) {
+                const disciplinasExtras = extrasSnap.data().disciplinasExtras || {};
+                Object.values(disciplinasExtras).forEach(ex => {
+                    if (ex.ext1) totalAura += 100;
+                    if (ex.ext2) totalAura += 100;
+                    if (ex.ext3) totalAura += 100;
+                    if (ex.ext4) totalAura += 100;
+                });
+            }
+
+            if (auraValEl) {
+                auraValEl.textContent = totalAura.toLocaleString('pt-BR');
+                auraCont?.classList.remove('hidden');
+                auraCont?.classList.add('flex');
+            }
+        });
+    });
 }
