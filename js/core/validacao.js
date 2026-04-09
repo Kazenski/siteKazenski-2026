@@ -25,3 +25,17 @@ export function encontrarPalavrasBloqueadas(texto) {
 export function validarConteudo(texto) {
     return encontrarPalavrasBloqueadas(texto).length > 0;
 }
+
+// Remove tags HTML de uma string para evitar injeção básica
+export function sanitizarInput(texto) {
+    if (typeof texto !== 'string') return texto;
+    // Remove tags <script> e outras tags HTML
+    return texto.replace(/<[^>]*>?/gm, '').trim();
+}
+
+
+//Valida se o e-mail segue um formato seguro
+export function validarEmailSeguro(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
