@@ -1584,7 +1584,23 @@ export async function monitorarAuraGlobal(uid) {
     const auraValEl = document.getElementById('user-aura-value');
     const auraCont = document.getElementById('aura-container');
 
-    // Escuta Notas e Pontos Extras em tempo real
+    // 1. Primeiro, verificamos o perfil do usuário na coleção 'users'
+    const userDoc = await getDoc(doc(db, "users", uid));
+    if (!userDoc.exists()) return;
+
+    const userData = userDoc.data();
+    
+    // 2. Regra para Cargos Administrativos (Admin, Professor, Coordenação)
+    if (userData.Admin || userData.Professor || userData.Coordenacao) {
+        if (auraValEl) {
+            auraValEl.textContent = "MAX"; // Ou um valor como "999.999"
+            auraCont?.classList.remove('hidden');
+            auraCont?.classList.add('flex');
+        }
+        return; // Interrompe a função aqui para não calcular notas
+    }
+
+    // 3. Regra para Alunos (Mantém o cálculo reativo original)
     onSnapshot(doc(db, "notas", uid), (docSnap) => {
         let totalAura = 0;
         
@@ -1599,7 +1615,6 @@ export async function monitorarAuraGlobal(uid) {
             });
         }
 
-        // Soma pontos extras (ajuste o nome da coleção se necessário)
         getDoc(doc(db, "pontos_extras", uid)).then(extrasSnap => {
             if (extrasSnap.exists()) {
                 const disciplinasExtras = extrasSnap.data().disciplinasExtras || {};
