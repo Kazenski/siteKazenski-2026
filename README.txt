@@ -50,7 +50,9 @@ ESTRUTURA DE DIRETÓRIOS E FICHEIROS:
     ├── background/
     │   └── background-oficial.jpg  # Imagem de fundo principal
     └── favicon/
-        └── faviconKazenski.png     # Ícone do site
+    │   └── faviconKazenski.png     # Ícone do site
+    └── aura/
+        └── aura.png        # Ícone de aura
 
 
 TECNOLOGIAS UTILIZADAS:
