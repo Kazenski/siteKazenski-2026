@@ -1197,11 +1197,38 @@ async function saveNote() {
 // 6. Excluir nota atual
 async function deleteActiveNote() {
     const id = els.noteActiveId.value;
-    if (!id) { showEmptyNoteState(); return; } // Se for nova e não salva, só limpa
-    if (confirm("Deseja apagar esta anotação permanentemente?")) {
-        await deleteDoc(doc(db, "anotacoes_pessoais", id));
-        activeNoteId = null;
-        showEmptyNoteState();
+    if (!id) { showEmptyNoteState(); return; } // Se for nova e não salva, só limpa a tela
+    
+    const n = myNotes.find(x => x.id === id);
+    if (!n) return;
+
+    // Se a nota não foi criada por mim (nota recebida)
+    if (n.userId !== currentUser.uid) {
+        if (confirm("Deseja remover esta anotação recebida do seu caderno? (Ela deixará de ser listada)")) {
+            try {
+                await updateDoc(doc(db, "anotacoes_pessoais", id), {
+                    [`statusDestinatarios.${currentUser.uid}`]: 'Recusado'
+                });
+                activeNoteId = null;
+                showEmptyNoteState();
+            } catch (e) {
+                console.error("Erro ao recusar nota:", e);
+                alert("Erro ao remover a anotação da sua listagem.");
+            }
+        }
+    } 
+    // Se a nota foi criada por mim (eu sou o dono)
+    else {
+        if (confirm("Deseja apagar esta anotação permanentemente? Ela sumirá também para todos com quem compartilhou.")) {
+            try {
+                await deleteDoc(doc(db, "anotacoes_pessoais", id));
+                activeNoteId = null;
+                showEmptyNoteState();
+            } catch (e) {
+                console.error("Erro ao deletar nota:", e);
+                alert("Erro ao apagar anotação do banco de dados.");
+            }
+        }
     }
 }
 
@@ -1478,7 +1505,7 @@ window.renderCalendarGrid = () => {
             if (current.getDay() >= 1 && current.getDay() <= 5) daysToRender.push(current);
         }
         document.getElementById('cal-header-row').classList.remove('hidden');
-        grid.className = 'grid grid-cols-5 bg-slate-900 border border-slate-700 rounded-b-xl overflow-hidden';
+        grid.className = 'grid grid-cols-5 bg-slate-900 border border-slate-700 rounded-b-xl overflow-hidden flex-grow auto-rows-fr';
     } else {
         document.getElementById('cal-header-row').classList.add('hidden');
         grid.className = 'flex flex-col gap-3 bg-transparent border-none';
@@ -1490,6 +1517,7 @@ window.renderCalendarGrid = () => {
         for (let i = 0; i < 5; i++) {
             const d = new Date(monday); d.setDate(monday.getDate() + i); daysToRender.push(d);
         }
+        grid.className = 'flex flex-col gap-3 bg-transparent border-none flex-grow auto-rows-fr';
     }
 
     const todayStr = new Date().toISOString().split('T')[0];
