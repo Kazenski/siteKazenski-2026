@@ -784,10 +784,12 @@
                                         </h3>
                                     </div>
                                     
-                                    <div class="p-2 border-b border-slate-700/50 bg-slate-800/20 shrink-0">
+                                    <div class="p-2 border-b border-slate-700/50 bg-slate-800/20 shrink-0 flex flex-col gap-1">
+                                        <button id="btn-filter-pendentes" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/30 transition-colors flex items-center justify-between group">
+                                            <span><i class="fas fa-exclamation-triangle mr-2"></i> Pendentes</span>
+                                        </button>
                                         <button id="btn-filter-recebidas" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-indigo-400 hover:bg-indigo-500/10 border border-transparent hover:border-indigo-500/30 transition-colors flex items-center justify-between group">
                                             <span><i class="fas fa-inbox mr-2"></i> Recebidas</span>
-                                            <i class="fas fa-chevron-right text-[8px] opacity-0 group-hover:opacity-100 transition-opacity"></i>
                                         </button>
                                     </div>
                                     <div id="al-notebook-tags" class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-1">
@@ -809,11 +811,24 @@
                                                 <i class="fas fa-plus text-xs"></i>
                                             </button>
                                         </div>
-                                        <div class="relative">
-                                            <i
-                                                class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-                                            <input type="text" id="al-note-search" placeholder="Pesquisar notas..."
-                                                class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
+                                        
+                                    </div>
+
+                                    <div class="relative">
+                                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                                        <input type="text" id="al-note-search" placeholder="Pesquisar notas..."
+                                            class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
+                                    </div>
+
+                                    </div> <div id="panel-mass-send" class="hidden bg-slate-900/50 border-b border-slate-700 p-3 flex-col gap-2 shrink-0">
+                                        <label class="text-[10px] text-amber-500 font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> Envio em Massa</label>
+                                        <div class="flex gap-2">
+                                            <select id="sel-mass-turma" class="flex-grow bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2 outline-none focus:border-amber-500">
+                                                <option value="">Carregando turmas...</option>
+                                            </select>
+                                            <button onclick="window.executarEnvioEmMassaTurma()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-lg transition-colors" title="Enviar para toda a turma">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
                                         </div>
                                     </div>
 
