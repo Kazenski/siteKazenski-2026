@@ -939,7 +939,6 @@ function initNotebookSystem() {
         showEmptyNoteState();
     });
 }
-}
 
 // 1. Ao clicar em "+" Nova Anotação
 function createNewNote() {
