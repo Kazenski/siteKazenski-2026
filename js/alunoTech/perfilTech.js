@@ -762,7 +762,6 @@ async function loadBoletimAndMetrics() {
 
     studentGradesData = snap.data().disciplinasComNotas || {};
 
-    // --- NOVA LÓGICA DO SELETOR DE EVOLUÇÃO ---
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
 
     if (currentUser.Admin) {
@@ -777,9 +776,9 @@ async function loadBoletimAndMetrics() {
             els.selEvol.add(new Option(nome, discId));
         });
     }
-    // ------------------------------------------
 
     let html = '';
+
     for (const [id, tr] of Object.entries(studentGradesData)) {
         // Usa title para mostrar o nome completo se o mouse passar por cima
         const nome = disciplineMap[id] || id;
@@ -1696,7 +1695,6 @@ window.mostrarCentralAprovacao = () => {
                 </div>
             </div>`;
         }).join('');
-};
 };
 
 window.atualizarStatusNota = async (id, status) => {
