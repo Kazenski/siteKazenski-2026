@@ -861,11 +861,8 @@ let activeNoteId = null;
 
 function initNotebookSystem() {
     if (notesUnsubscribe) return;
-
-    // Renderiza as 10 bolinhas de cor
     renderColorPicker();
 
-    // NOVA QUERY: Traz as notas que eu criei OU as que compartilharam comigo!
     const q = query(
         collection(db, "anotacoes_pessoais"),
         or(
@@ -875,62 +872,61 @@ function initNotebookSystem() {
     );
 
     notesUnsubscribe = onSnapshot(q, (snapshot) => {
-
         myNotes = [];
         snapshot.forEach(doc => { myNotes.push({ id: doc.id, ...doc.data() }); });
-
-        // Ordena da mais nova para a mais antiga (Evita erro de índice composto)
         myNotes.sort((a, b) => {
-            const timeA = a.updatedAt && a.updatedAt.toMillis ? a.updatedAt.toMillis() : Date.now();
-            const timeB = b.updatedAt && b.updatedAt.toMillis ? b.updatedAt.toMillis() : Date.now();
+            const timeA = a.updatedAt?.toMillis() || Date.now();
+            const timeB = b.updatedAt?.toMillis() || Date.now();
             return timeB - timeA;
         });
-
         updateTagFilters();
         renderNotes();
-
-        // Se não houver nenhuma nota sendo lida no painel direito, mostra o "Estado Vazio"
         if (!activeNoteId) showEmptyNoteState();
     });
 
-    // Filtro de pesquisa digitado pelo aluno
     els.noteSearch?.addEventListener('input', () => { renderNotes(); });
 
+    // Listener Recebidas
     document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
-        // Reseta todos os destaques
-        document.querySelectorAll('#al-notebook-tags button, #btn-filter-pendentes').forEach(btn => {
-            btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
-            btn.classList.add('text-slate-400', 'border-transparent');
-        });
-        
-        const btn = document.getElementById('btn-filter-recebidas');
-        btn.classList.add('bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
-
+        resetSidebarFilters();
+        document.getElementById('btn-filter-recebidas').classList.add('bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
         currentTagFilter = 'recebidas';
         document.getElementById('al-note-approval-state')?.classList.add('hidden');
         renderNotes();
         showEmptyNoteState();
     });
 
+    // Listener Pendentes
     document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
-        // Reseta todos os destaques
-        document.querySelectorAll('#al-notebook-tags button, #btn-filter-recebidas').forEach(btn => {
-            btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
-            btn.classList.add('text-slate-400', 'border-transparent');
-        });
-
-        const btn = document.getElementById('btn-filter-pendentes');
-        btn.classList.add('bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
-
+        resetSidebarFilters();
+        document.getElementById('btn-filter-pendentes').classList.add('bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
         currentTagFilter = 'pendentes';
         activeNoteId = null;
         renderNotes();
-        window.mostrarCentralAprovacao(); 
+        window.mostrarCentralAprovacao();
+    });
+}
+
+function resetSidebarFilters() {
+    document.querySelectorAll('#al-notebook-tags button, #btn-filter-recebidas, #btn-filter-pendentes').forEach(btn => {
+        btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300', 'bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
+        btn.classList.add('text-slate-400', 'border-transparent');
     });
 }
 
 // 1. Ao clicar em "+" Nova Anotação
 function createNewNote() {
+    // 1. RESET DE INTERFACE: Oculta aprovações e o estado vazio, mostra o editor
+    document.getElementById('al-note-approval-state')?.classList.add('hidden');
+    document.getElementById('al-note-empty-state')?.classList.add('hidden');
+    
+    const activeState = document.getElementById('al-note-active-state');
+    if (activeState) {
+        activeState.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        activeState.classList.add('flex');
+    }
+
+    // 2. LIMPEZA DE DADOS: Zera o estado interno e os campos do DOM
     activeNoteId = null;
     formIsPinned = false;
     selectedNoteColor = '#3b82f6';
@@ -939,35 +935,44 @@ function createNewNote() {
     els.noteActiveTitle.value = '';
     els.noteActiveBody.value = '';
     els.noteActiveTags.value = '';
-    els.noteColorPicker.value = selectedNoteColor;
+    
+    // Reseta o seletor de cores para a cor padrão
+    renderColorPicker(); 
+    if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`;
 
-    // Resgata os elementos de controle de permissão
+    // 3. CONTROLE DE BOTÕES E INFOS
     const btnSave = document.getElementById('btn-note-save');
     const senderInfoDiv = document.getElementById('al-note-sender-info');
 
-    // Garante que o botão "Salvar" esteja visível para a nova anotação
     if (btnSave) btnSave.classList.remove('hidden');
-
-    // Garante que o painel de remetente (nota recebida) suma, 
-    // pois essa é uma nota própria sendo criada agora.
     if (senderInfoDiv) {
         senderInfoDiv.classList.add('hidden');
         senderInfoDiv.classList.remove('flex');
     }
 
+    // 4. FINALIZAÇÃO VISUAL
     updatePinIconVisuals();
-    showActiveNoteState();
+    
+    // Remove qualquer destaque de seleção da lista de notas da coluna 2
+    document.querySelectorAll('[id^="note-item-"]').forEach(el => {
+        el.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-900/20', 'border-blue-500');
+    });
 
-    // Remove destaques da lista da coluna 2
-    document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
     els.noteActiveTitle.focus();
 }
 
 // 2. Ao clicar numa anotação da lista (Coluna 2)
 window.selectNote = async (id) => {
-
+    // --- RESET DE INTERFACE: Garante que o editor apareça e a aprovação suma ---
     document.getElementById('al-note-approval-state')?.classList.add('hidden');
-    document.getElementById('al-note-active-state')?.classList.remove('hidden');
+    document.getElementById('al-note-empty-state')?.classList.add('hidden');
+    
+    const activeState = document.getElementById('al-note-active-state');
+    if (activeState) {
+        activeState.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+        activeState.classList.add('flex');
+    }
+    // --------------------------------------------------------------------------
 
     const n = myNotes.find(x => x.id === id);
     if (!n) return;
@@ -978,17 +983,20 @@ window.selectNote = async (id) => {
 
     // Preenche o painel da direita para edição imediata
     els.noteActiveId.value = n.id;
-    els.noteActiveTitle.value = n.titulo;
-    els.noteActiveBody.value = n.conteudo;
+    els.noteActiveTitle.value = n.titulo || '';
+    els.noteActiveBody.value = n.conteudo || '';
     els.noteActiveTags.value = (n.tags || []).join(', ');
     els.noteColorPicker.value = selectedNoteColor;
 
+    renderColorPicker(); // Força a atualização visual da bolinha de cor
+    if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`; // Borda superior do painel
+    
     updatePinIconVisuals();
     showActiveNoteState();
 
     // Coloca a bordinha azul na nota selecionada da lista
-    document.querySelectorAll('.note-list-item').forEach(el => el.classList.remove('ring-2', 'ring-blue-500'));
-    document.getElementById(`note-item-${id}`)?.classList.add('ring-2', 'ring-blue-500');
+    document.querySelectorAll('[id^="note-item-"]').forEach(el => el.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-900/20', 'border-blue-500'));
+    document.getElementById(`note-item-${id}`)?.classList.add('bg-blue-900/20', 'border-blue-500');
 
     // Controle do Selo de Remetente com Busca no Banco 
     const senderInfoDiv = document.getElementById('al-note-sender-info');
@@ -998,12 +1006,14 @@ window.selectNote = async (id) => {
 
     // Verifica se a nota tem um autor diferente do usuário logado (nota recebida)
     if (n.userId && n.userId !== currentUser.uid) {
-        senderInfoDiv.classList.remove('hidden');
-        senderInfoDiv.classList.add('flex');
+        if(senderInfoDiv) {
+            senderInfoDiv.classList.remove('hidden');
+            senderInfoDiv.classList.add('flex');
+        }
         
         // Coloca um estado de carregamento rápido enquanto vai no banco de dados
-        senderNameEl.textContent = 'Buscando usuário...'; 
-        senderEmailEl.textContent = ''; 
+        if(senderNameEl) senderNameEl.textContent = 'Buscando usuário...'; 
+        if(senderEmailEl) senderEmailEl.textContent = ''; 
         
         try {
             // CRUZA OS DADOS: Busca o perfil real de quem enviou na coleção "users"
@@ -1011,23 +1021,25 @@ window.selectNote = async (id) => {
             
             if (userSnap.exists()) {
                 const userData = userSnap.data();
-                senderNameEl.textContent = userData.nome || 'Usuário sem nome'; 
+                if(senderNameEl) senderNameEl.textContent = userData.nome || 'Usuário sem nome'; 
                 // Exibe o email se existir na modelagem do banco (ou exibe a matrícula/turma se preferir)
-                senderEmailEl.textContent = userData.email ? `(${userData.email})` : ''; 
+                if(senderEmailEl) senderEmailEl.textContent = userData.email ? `(${userData.email})` : ''; 
             } else {
-                senderNameEl.textContent = 'Usuário não encontrado';
+                if(senderNameEl) senderNameEl.textContent = 'Usuário não encontrado';
             }
         } catch(e) {
             console.error("Erro ao buscar autor da nota:", e);
-            senderNameEl.textContent = 'Erro ao identificar';
+            if(senderNameEl) senderNameEl.textContent = 'Erro ao identificar';
         }
         
         // Oculta botão de salvar se a nota for de outra pessoa (modo leitura)
         if(btnSave) btnSave.classList.add('hidden');
     } else {
         // Se a nota for própria do usuário
-        senderInfoDiv.classList.add('hidden');
-        senderInfoDiv.classList.remove('flex');
+        if(senderInfoDiv) {
+            senderInfoDiv.classList.add('hidden');
+            senderInfoDiv.classList.remove('flex');
+        }
         
         // Garante que o botão de salvar esteja visível para editar a própria nota
         if(btnSave) btnSave.classList.remove('hidden');
@@ -1040,30 +1052,26 @@ function renderNotes() {
     const search = els.noteSearch.value.toLowerCase();
 
     const filtered = myNotes.filter(n => {
-
+        const textMatch = (n.titulo || '').toLowerCase().includes(search) || (n.conteudo || '').toLowerCase().includes(search);
         const statusParaMim = n.statusDestinatarios?.[currentUser.uid] || 'Pendente';
 
-        // REGRA: Se o usuário atual recusou, a nota desaparece da listagem
+        // REGRA MESTRA: Se o usuário recusou, a nota some.
         if (n.userId !== currentUser.uid && statusParaMim === 'Recusado') return false;
 
-        if (currentTagFilter === 'pendentes') {
-            return (n.userId !== currentUser.uid && statusParaMim === 'Pendente');
-        }
-
-        const textMatch = (n.titulo || '').toLowerCase().includes(search) || (n.conteudo || '').toLowerCase().includes(search);
-        
-        // Regra de Tag Mista
         let tagMatch = false;
         if (currentTagFilter === 'all') {
-            tagMatch = true;
+            tagMatch = (n.userId === currentUser.uid) || (statusParaMim === 'Enviado');
         } else if (currentTagFilter === 'recebidas') {
-            tagMatch = (n.userId && n.userId !== currentUser.uid); // Passa só quem não for minha
+            tagMatch = (n.userId !== currentUser.uid) && (statusParaMim === 'Enviado');
+        } else if (currentTagFilter === 'pendentes') {
+            tagMatch = (n.userId !== currentUser.uid) && (statusParaMim === 'Pendente');
         } else {
-            tagMatch = (n.tags && n.tags.includes(currentTagFilter));
+            tagMatch = (n.tags && n.tags.includes(currentTagFilter)) && ((n.userId === currentUser.uid) || statusParaMim === 'Enviado');
         }
         
         return textMatch && tagMatch;
     });
+    
     filtered.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
@@ -1082,18 +1090,34 @@ function renderNotes() {
         const safeTitle = purify ? purify.sanitize(n.titulo || 'Sem Título') : escapeHTML(n.titulo || 'Sem Título');
         const safeContent = purify ? purify.sanitize(n.conteudo || '') : escapeHTML(n.conteudo || '');
         
+        // VISÃO DO REMETENTE: Etiquetas de Status (Nova Lógica)
+        let statusHtml = '';
+        if (n.userId === currentUser.uid && n.sharedWithUserIds && n.sharedWithUserIds.length > 0) {
+            const stats = Object.values(n.statusDestinatarios || {});
+            const hasRecused = stats.includes('Recusado');
+            const hasPending = stats.includes('Pendente');
+            
+            statusHtml += '<div class="flex gap-1.5 mt-1.5">';
+            if (hasRecused) statusHtml += '<span class="text-[8px] bg-red-500/20 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Recusada(s)</span>';
+            if (hasPending) statusHtml += '<span class="text-[8px] bg-amber-500/20 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Pendente(s)</span>';
+            if (!hasRecused && !hasPending) statusHtml += '<span class="text-[8px] bg-green-500/20 border border-green-500/30 text-green-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Aceita(s)</span>';
+            statusHtml += '</div>';
+        }
+
         return `
         <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color||'#3b82f6'}">
             
             <div class="flex justify-between items-start gap-2">
-                <div class="flex items-center gap-2 flex-grow min-w-0">
-                    <h4 class="text-white font-bold text-xs truncate">${safeTitle}</h4>
-                    ${n.userId !== currentUser.uid ? '<span class="shrink-0 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest">Recebida</span>' : ''}
-                </div>
+                <div class="flex flex-col flex-grow min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h4 class="text-white font-bold text-xs truncate">${safeTitle}</h4>
+                        ${n.userId !== currentUser.uid ? '<span class="shrink-0 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest">Recebida</span>' : ''}
+                    </div>
+                    ${statusHtml} </div>
                 ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-[10px] shrink-0 mt-0.5"></i>' : ''}
             </div>
 
-            <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight">${safeContent}</div>
+            <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight mt-1">${safeContent}</div>
         </div>
     `}).join('');
     
@@ -1671,19 +1695,17 @@ window.mostrarCentralAprovacao = () => {
     document.getElementById('al-note-active-state')?.classList.add('hidden');
     document.getElementById('al-note-empty-state')?.classList.add('hidden');
     const container = document.getElementById('al-note-approval-state');
-    if(container) { container.classList.remove('hidden'); container.classList.add('flex'); }
+    if (container) { container.classList.remove('hidden'); container.classList.add('flex'); }
 
     const lista = document.getElementById('approval-list');
     const pendentes = myNotes.filter(n => n.userId !== currentUser.uid && (n.statusDestinatarios?.[currentUser.uid] === 'Pendente' || !n.statusDestinatarios?.[currentUser.uid]));
 
     lista.innerHTML = pendentes.length === 0 ? 
-        '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma nota para aprovar.</div>' : 
+        '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma nota aguardando sua decisão.</div>' : 
         pendentes.map(n => `
         <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3">
             <div>
-                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">
-                    <i class="fas fa-user-edit mr-1"></i> Enviado por: ${n.userName || 'Colega'}
-                </p>
+                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Enviado por: ${n.userName || 'Colega'}</p>
                 <h4 class="text-white font-bold text-sm">${n.titulo || 'Sem Título'}</h4>
             </div>
             <div class="flex gap-2">
@@ -1699,12 +1721,9 @@ window.atualizarStatusNota = async (id, status) => {
         await updateDoc(doc(db, "anotacoes_pessoais", id), {
             [`statusDestinatarios.${currentUser.uid}`]: status
         });
-        // Feedback visual
-        if (status === 'Enviado') alert("Nota aceita! Ela aparecerá na aba 'Recebidas'.");
-        window.mostrarCentralAprovacao(); // Recarrega a lista para remover a nota processada
-    } catch (e) {
-        console.error("Erro ao atualizar:", e);
-    }
+        if (status === 'Enviado') alert("Nota aceita! Ela agora aparece em suas 'Recebidas'.");
+        window.mostrarCentralAprovacao();
+    } catch (e) { console.error(e); }
 };
 
 // Modificação no Modal de Compartilhar para carregar as turmas
@@ -1734,27 +1753,44 @@ window.openShareModal = async () => {
 
 window.executarEnvioMassa = async () => {
     const turma = document.getElementById('sel-share-turma').value;
-    const noteId = document.getElementById('al-note-active-id').value;
-    if(!turma || !noteId) return alert("Selecione a turma.");
+    const noteId = els.noteActiveId.value;
+    if (!turma || !noteId) return alert("Selecione a turma.");
 
-    const alunos = await getDocs(query(collection(db, "users"), where("turma", "==", turma)));
-    const uids = [];
-    const statusMap = {};
+    try {
+        const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turma)));
+        const uids = [];
+        const statusMap = {};
 
-    alunos.forEach(d => {
-        if(d.id !== currentUser.uid) {
-            uids.push(d.id);
-            statusMap[d.id] = 'Pendente';
-        }
-    });
+        snapAlunos.forEach(d => {
+            if (d.id !== currentUser.uid) {
+                uids.push(d.id);
+                statusMap[d.id] = 'Pendente';
+            }
+        });
 
-    await updateDoc(doc(db, "anotacoes_pessoais", noteId), {
-        sharedWithUserIds: arrayUnion(...uids),
-        statusDestinatarios: statusMap,
-        // SALVA O NOME PARA MOSTRAR NA CENTRAL DE APROVAÇÃO
-        userName: currentUser.nome 
-    });
+        await updateDoc(doc(db, "anotacoes_pessoais", noteId), {
+            sharedWithUserIds: uids,
+            statusDestinatarios: statusMap,
+            userName: currentUser.nome // Salva seu nome para o destinatário ver
+        });
 
-    alert("Nota enviada para a turma!");
-    window.closeShareModal();
+        alert(`Nota compartilhada com a turma ${turma}!`);
+        window.closeShareModal();
+    } catch (e) { alert("Erro: " + e.message); }
+};
+
+const originalOpenShare = window.openShareModal;
+window.openShareModal = async () => {
+    const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
+    const panel = document.getElementById('panel-mass-share');
+    
+    if (isStaff) {
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+        const snap = await getDocs(collection(db, "turmasCadastradas"));
+        let html = '<option value="">Selecione a Turma...</option>';
+        snap.forEach(d => html += `<option value="${d.id}">${d.data().nomeTurma || d.id}</option>`);
+        document.getElementById('sel-share-turma').innerHTML = html;
+    }
+    if (originalOpenShare) originalOpenShare();
 };
