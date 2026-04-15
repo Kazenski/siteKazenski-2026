@@ -863,7 +863,7 @@
                         </div>
 
                         <div id="atab-caderno" class="aluno-tab-content h-full">
-                            <div class="flex gap-4 h-[calc(100vh-280px)] min-h-[600px] w-full">
+                            <div class="flex gap-4 h-[calc(100vh-350px)] min-h-[550px] w-full">
 
                                 <div
                                     class="w-48 bg-slate-800/80 rounded-2xl border border-slate-700 flex flex-col shadow-lg overflow-hidden shrink-0">
@@ -1016,286 +1016,289 @@
 
                             </div>
                         </div>
-                    </div>
 
-                    <div id="atab-kanban" class="aluno-tab-content w-full">
-                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
-                            <div class="flex justify-end mb-6 shrink-0">
-                                <button id="btn-toggle-kanban-form"
-                                    class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
-                                    <i class="fas fa-plus"></i> Nova Tarefa
-                                </button>
-                            </div>
-                            <div id="al-kanban-form"
-                                class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 fade-in shrink-0">
-                                <input type="hidden" id="al-kanban-id">
-                                <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?"
-                                    class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
-                                <textarea id="al-kanban-body" placeholder="Adicione detalhes, links ou observações..."
-                                    class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
-                                <div class="flex justify-end gap-3">
-                                    <button onclick="document.getElementById('al-kanban-form').classList.add('hidden')"
-                                        class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
-                                    <button id="btn-save-kanban"
-                                        class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar
-                                        Tarefa</button>
+
+                        <div id="atab-kanban" class="aluno-tab-content w-full">
+                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                                <div class="flex justify-end mb-6 shrink-0">
+                                    <button id="btn-toggle-kanban-form"
+                                        class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
+                                        <i class="fas fa-plus"></i> Nova Tarefa
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow min-h-0">
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
-                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
-                                    <div
-                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A
-                                            FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
-                                    </div>
-                                    <div id="al-col-todo"
-                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                <div id="al-kanban-form"
+                                    class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 fade-in shrink-0">
+                                    <input type="hidden" id="al-kanban-id">
+                                    <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?"
+                                        class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
+                                    <textarea id="al-kanban-body"
+                                        placeholder="Adicione detalhes, links ou observações..."
+                                        class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
+                                    <div class="flex justify-end gap-3">
+                                        <button
+                                            onclick="document.getElementById('al-kanban-form').classList.add('hidden')"
+                                            class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
+                                        <button id="btn-save-kanban"
+                                            class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar
+                                            Tarefa</button>
                                     </div>
                                 </div>
 
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
-                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
-                                    <div
-                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
-                                            EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
-                                    </div>
-                                    <div id="al-col-doing"
-                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
-                                    </div>
-                                </div>
-
-                                <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
-                                    ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
-                                    <div
-                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span
-                                            class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
-                                            class="fas fa-check-circle text-slate-600"></i>
-                                    </div>
-                                    <div id="al-col-done"
-                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="atab-horario" class="aluno-tab-content w-full">
-                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
-                            <div
-                                class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl flex-grow flex flex-col min-h-0">
-                                <table class="horario-tabela w-full min-w-[900px] h-full flex-grow">
-                                    <thead class="shrink-0">
-                                        <tr>
-                                            <th data-dia-id="segunda-feira">SEG</th>
-                                            <th data-dia-id="terca-feira">TER</th>
-                                            <th data-dia-id="quarta-feira">QUA</th>
-                                            <th data-dia-id="quinta-feira">QUI</th>
-                                            <th data-dia-id="sexta-feira">SEX</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="h-full">
-                                        <tr class="h-full">
-                                            <td id="cell-segunda-feira" class="align-top"></td>
-                                            <td id="cell-terca-feira" class="align-top"></td>
-                                            <td id="cell-quarta-feira" class="align-top"></td>
-                                            <td id="cell-quinta-feira" class="align-top"></td>
-                                            <td id="cell-sexta-feira" class="align-top"></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic shrink-0">
-                                    Carregando grade horária...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="atab-calendario" class="aluno-tab-content w-full">
-                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
-                            <div
-                                class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col min-h-0">
-                                <div
-                                    class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
-                                    <div
-                                        class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
-                                        <button id="btn-cal-prev"
-                                            class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
-                                                class="fas fa-chevron-left"></i></button>
-                                        <span id="al-cal-month"
-                                            class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
-                                        <button id="btn-cal-next"
-                                            class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
-                                                class="fas fa-chevron-right"></i></button>
-                                    </div>
-                                    <div class="flex items-center gap-4">
-                                        <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
-                                            <button id="btn-view-month"
-                                                class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
-                                            <button id="btn-view-week"
-                                                class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow min-h-0">
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span class="font-cinzel font-bold tracking-widest text-blue-400">A
+                                                FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
                                         </div>
-                                        <button id="al-btn-add-evt"
-                                            class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
-                                                class="fas fa-plus mr-2"></i> Evento</button>
+                                        <div id="al-col-todo"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
                                     </div>
-                                </div>
-                                <div id="cal-header-row"
-                                    class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
-                                    <div
-                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                        Segunda</div>
-                                    <div
-                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                        Terça</div>
-                                    <div
-                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                        Quarta</div>
-                                    <div
-                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                        Quinta</div>
-                                    <div
-                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                        Sexta</div>
-                                </div>
-                                <div id="al-cal-grid"
-                                    class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow auto-rows-fr">
+
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)"
+                                        ondrop="window.drop(event, 'em_progresso')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
+                                                EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
+                                        </div>
+                                        <div id="al-col-doing"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span
+                                                class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
+                                                class="fas fa-check-circle text-slate-600"></i>
+                                        </div>
+                                        <div id="al-col-done"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                </div>
-            </div>
-        </div>
+                        <div id="atab-horario" class="aluno-tab-content w-full">
+                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                                <div
+                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl flex-grow flex flex-col min-h-0">
+                                    <table class="horario-tabela w-full min-w-[900px] h-full flex-grow">
+                                        <thead class="shrink-0">
+                                            <tr>
+                                                <th data-dia-id="segunda-feira">SEG</th>
+                                                <th data-dia-id="terca-feira">TER</th>
+                                                <th data-dia-id="quarta-feira">QUA</th>
+                                                <th data-dia-id="quinta-feira">QUI</th>
+                                                <th data-dia-id="sexta-feira">SEX</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="h-full">
+                                            <tr class="h-full">
+                                                <td id="cell-segunda-feira" class="align-top"></td>
+                                                <td id="cell-terca-feira" class="align-top"></td>
+                                                <td id="cell-quarta-feira" class="align-top"></td>
+                                                <td id="cell-quinta-feira" class="align-top"></td>
+                                                <td id="cell-sexta-feira" class="align-top"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic shrink-0">
+                                        Carregando grade horária...</p>
+                                </div>
+                            </div>
+                        </div>
 
-        <div id="al-modal-cal" class="fixed inset-0 z-[1000] hidden">
-            <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
-                onclick="window.closeCalModal()"></div>
-            <div class="absolute top-0 right-0 h-full w-full md:w-[450px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full"
-                id="al-modal-panel">
-                <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-                    <h3 class="text-blue-400 font-cinzel font-bold text-xl" id="al-modal-cal-title"><i
-                            class="fas fa-calendar-day mr-2"></i> Detalhes do Evento</h3>
-                    <button id="btn-close-cal" class="text-slate-500 hover:text-white text-xl transition-colors"><i
-                            class="fas fa-times"></i></button>
-                </div>
-                <div class="p-6 flex-grow overflow-y-auto custom-scroll space-y-5">
-                    <input type="hidden" id="al-ev-id">
-                    <div><label
-                            class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
-                            do Evento</label><input type="text" id="al-ev-title"
-                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
-                    </div>
-                    <div><label
-                            class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Data</label><input
-                            type="date" id="al-ev-date"
-                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
-                    </div>
-                    <div><label
-                            class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Cor
-                            no Calendário</label><input type="color" id="al-ev-color" value="#3b82f6"
-                            class="w-full h-12 bg-slate-950 border border-slate-700 rounded-xl cursor-pointer p-1">
-                    </div>
-                    <div id="al-ev-visib-container" class="hidden">
-                        <label
-                            class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Visibilidade</label>
-                        <select id="al-ev-visib"
-                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500">
-                            <option value="todos">Público (Todas as Turmas)</option>
-                            <option value="turmas_especificas">Apenas Minhas Turmas</option>
-                        </select>
-                    </div>
-                    <div><label
-                            class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Descrição</label><textarea
-                            id="al-ev-desc" rows="4"
-                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></textarea>
-                    </div>
-                </div>
-                <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between gap-4">
-                    <button id="al-btn-del-ev"
-                        class="hidden bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 px-5 py-2.5 rounded-xl font-bold transition-all"><i
-                            class="fas fa-trash"></i> Excluir</button>
-                    <button id="btn-save-cal"
-                        class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold ml-auto shadow-lg shadow-blue-600/30 transition-all">Salvar
-                        Evento</button>
-                </div>
-            </div>
-        </div>
+                        <div id="atab-calendario" class="aluno-tab-content w-full">
+                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                                <div
+                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col min-h-0">
+                                    <div
+                                        class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
+                                        <div
+                                            class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                                            <button id="btn-cal-prev"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-left"></i></button>
+                                            <span id="al-cal-month"
+                                                class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
+                                            <button id="btn-cal-next"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-right"></i></button>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
+                                                <button id="btn-view-month"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
+                                                <button id="btn-view-week"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                            </div>
+                                            <button id="al-btn-add-evt"
+                                                class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
+                                                    class="fas fa-plus mr-2"></i> Evento</button>
+                                        </div>
+                                    </div>
+                                    <div id="cal-header-row"
+                                        class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Segunda</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Terça</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quarta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quinta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Sexta</div>
+                                    </div>
+                                    <div id="al-cal-grid"
+                                        class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow auto-rows-fr">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-        <div id="al-modal-share" class="fixed inset-0 z-[1000] hidden flex items-center justify-center">
-            <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
-                onclick="window.closeShareModal()"></div>
-            <div
-                class="relative bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col p-6 m-4 fade-in">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
-                    <h3 class="text-blue-400 font-cinzel font-bold text-xl"><i class="fas fa-share-alt mr-2"></i>
-                        Compartilhar Anotação</h3>
-                    <button onclick="window.closeShareModal()" class="text-slate-500 hover:text-white"><i
-                            class="fas fa-times"></i></button>
-                </div>
-                <p class="text-xs text-slate-400 mb-4">Selecione os professores ou alunos que poderão ler esta
-                    anotação em seus próprios cadernos.</p>
-
-                <div id="panel-mass-share"
-                    class="hidden mb-6 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl flex-col gap-2">
-                    <label class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Enviar para Turma
-                        Inteira</label>
-                    <div class="flex gap-2">
-                        <select id="sel-share-turma"
-                            class="flex-grow bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 outline-none focus:border-amber-500">
-                            <option value="">Selecione...</option>
-                        </select>
-                        <button onclick="window.executarEnvioMassa()"
-                            class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="relative mb-4">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                    <input type="text" id="al-share-search" placeholder="Buscar por nome..."
-                        class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:border-blue-500 outline-none">
-                </div>
-                <div id="al-share-results" class="max-h-60 overflow-y-auto custom-scroll space-y-2 mb-2 pr-2"></div>
-            </div>
-        </div>
-
-        <div id="al-modal-crop" class="fixed inset-0 z-[3000] hidden flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity"
-                onclick="window.closeCropModal()"></div>
-            <div
-                class="relative bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden fade-in">
-
-                <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
-                    <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-crop-alt mr-2"></i>
-                        Ajustar Imagem</h3>
-                    <button onclick="window.closeCropModal()" class="text-slate-500 hover:text-white"><i
-                            class="fas fa-times"></i></button>
-                </div>
-
-                <div class="w-full bg-slate-950 flex items-center justify-center p-2"
-                    style="height: 60vh; min-height: 300px; max-height: 500px;">
-                    <img id="image-to-crop" src="" class="max-w-full max-h-full block">
-                </div>
-
-                <div class="p-4 bg-slate-800/50 border-t border-slate-700 flex justify-between items-center gap-4">
-                    <div class="text-xs text-slate-400"><i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                        Arraste e use o scroll para zoom</div>
-                    <div class="flex gap-3">
-                        <button onclick="window.closeCropModal()"
-                            class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
-                        <button id="btn-confirm-crop"
-                            class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-transform hover:scale-105 shadow-lg">
-                            <i class="fas fa-check mr-2"></i> Aplicar
-                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div id="al-modal-cal" class="fixed inset-0 z-[1000] hidden">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                    onclick="window.closeCalModal()"></div>
+                <div class="absolute top-0 right-0 h-full w-full md:w-[450px] bg-slate-900 border-l border-slate-700 shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col transform transition-transform duration-300 translate-x-full"
+                    id="al-modal-panel">
+                    <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl" id="al-modal-cal-title"><i
+                                class="fas fa-calendar-day mr-2"></i> Detalhes do Evento</h3>
+                        <button id="btn-close-cal" class="text-slate-500 hover:text-white text-xl transition-colors"><i
+                                class="fas fa-times"></i></button>
+                    </div>
+                    <div class="p-6 flex-grow overflow-y-auto custom-scroll space-y-5">
+                        <input type="hidden" id="al-ev-id">
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
+                                do Evento</label><input type="text" id="al-ev-title"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Data</label><input
+                                type="date" id="al-ev-date"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Cor
+                                no Calendário</label><input type="color" id="al-ev-color" value="#3b82f6"
+                                class="w-full h-12 bg-slate-950 border border-slate-700 rounded-xl cursor-pointer p-1">
+                        </div>
+                        <div id="al-ev-visib-container" class="hidden">
+                            <label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Visibilidade</label>
+                            <select id="al-ev-visib"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-blue-500">
+                                <option value="todos">Público (Todas as Turmas)</option>
+                                <option value="turmas_especificas">Apenas Minhas Turmas</option>
+                            </select>
+                        </div>
+                        <div><label
+                                class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Descrição</label><textarea
+                                id="al-ev-desc" rows="4"
+                                class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none"></textarea>
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between gap-4">
+                        <button id="al-btn-del-ev"
+                            class="hidden bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 px-5 py-2.5 rounded-xl font-bold transition-all"><i
+                                class="fas fa-trash"></i> Excluir</button>
+                        <button id="btn-save-cal"
+                            class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold ml-auto shadow-lg shadow-blue-600/30 transition-all">Salvar
+                            Evento</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="al-modal-share" class="fixed inset-0 z-[1000] hidden flex items-center justify-center">
+                <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+                    onclick="window.closeShareModal()"></div>
+                <div
+                    class="relative bg-slate-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col p-6 m-4 fade-in">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
+                        <h3 class="text-blue-400 font-cinzel font-bold text-xl"><i class="fas fa-share-alt mr-2"></i>
+                            Compartilhar Anotação</h3>
+                        <button onclick="window.closeShareModal()" class="text-slate-500 hover:text-white"><i
+                                class="fas fa-times"></i></button>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Selecione os professores ou alunos que poderão ler esta
+                        anotação em seus próprios cadernos.</p>
+
+                    <div id="panel-mass-share"
+                        class="hidden mb-6 p-4 bg-amber-900/20 border border-amber-500/30 rounded-xl flex-col gap-2">
+                        <label class="text-[10px] text-amber-500 font-bold uppercase tracking-widest">Enviar para Turma
+                            Inteira</label>
+                        <div class="flex gap-2">
+                            <select id="sel-share-turma"
+                                class="flex-grow bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 outline-none focus:border-amber-500">
+                                <option value="">Selecione...</option>
+                            </select>
+                            <button onclick="window.executarEnvioMassa()"
+                                class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative mb-4">
+                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="al-share-search" placeholder="Buscar por nome..."
+                            class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl py-3 pl-11 pr-4 focus:border-blue-500 outline-none">
+                    </div>
+                    <div id="al-share-results" class="max-h-60 overflow-y-auto custom-scroll space-y-2 mb-2 pr-2"></div>
+                </div>
+            </div>
+
+            <div id="al-modal-crop" class="fixed inset-0 z-[3000] hidden flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md transition-opacity"
+                    onclick="window.closeCropModal()"></div>
+                <div
+                    class="relative bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col overflow-hidden fade-in">
+
+                    <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                        <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i class="fas fa-crop-alt mr-2"></i>
+                            Ajustar Imagem</h3>
+                        <button onclick="window.closeCropModal()" class="text-slate-500 hover:text-white"><i
+                                class="fas fa-times"></i></button>
+                    </div>
+
+                    <div class="w-full bg-slate-950 flex items-center justify-center p-2"
+                        style="height: 60vh; min-height: 300px; max-height: 500px;">
+                        <img id="image-to-crop" src="" class="max-w-full max-h-full block">
+                    </div>
+
+                    <div class="p-4 bg-slate-800/50 border-t border-slate-700 flex justify-between items-center gap-4">
+                        <div class="text-xs text-slate-400"><i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                            Arraste e use o scroll para zoom</div>
+                        <div class="flex gap-3">
+                            <button onclick="window.closeCropModal()"
+                                class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
+                            <button id="btn-confirm-crop"
+                                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-transform hover:scale-105 shadow-lg">
+                                <i class="fas fa-check mr-2"></i> Aplicar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
         </div>
 
