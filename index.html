@@ -1116,56 +1116,31 @@
                             </div>
                         </div>
 
-                        <div id="atab-calendario" class="aluno-tab-content w-full">
-                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
-                                <div
-                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col min-h-0">
-                                    <div
-                                        class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
-                                        <div
-                                            class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
-                                            <button id="btn-cal-prev"
-                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
-                                                    class="fas fa-chevron-left"></i></button>
-                                            <span id="al-cal-month"
-                                                class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
-                                            <button id="btn-cal-next"
-                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
-                                                    class="fas fa-chevron-right"></i></button>
+                        <div id="atab-calendario" class="aluno-tab-content h-full">
+                            <div class="min-h-[calc(100vh-350px)] flex flex-col pb-6">
+                                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col">
+                                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
+                                        <div class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                                            <button id="btn-cal-prev" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-left"></i></button>
+                                            <span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
+                                            <button id="btn-cal-next" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-right"></i></button>
                                         </div>
                                         <div class="flex items-center gap-4">
                                             <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
-                                                <button id="btn-view-month"
-                                                    class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
-                                                <button id="btn-view-week"
-                                                    class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                                <button id="btn-view-month" class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
+                                                <button id="btn-view-week" class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
                                             </div>
-                                            <button id="al-btn-add-evt"
-                                                class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
-                                                    class="fas fa-plus mr-2"></i> Evento</button>
+                                            <button id="al-btn-add-evt" class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i class="fas fa-plus mr-2"></i> Evento</button>
                                         </div>
                                     </div>
-                                    <div id="cal-header-row"
-                                        class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
-                                        <div
-                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                            Segunda</div>
-                                        <div
-                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                            Terça</div>
-                                        <div
-                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                            Quarta</div>
-                                        <div
-                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                            Quinta</div>
-                                        <div
-                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
-                                            Sexta</div>
+                                    <div id="cal-header-row" class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
+                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Segunda</div>
+                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Terça</div>
+                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quarta</div>
+                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quinta</div>
+                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Sexta</div>
                                     </div>
-                                    <div id="al-cal-grid"
-                                        class="calendar-grid rounded-b-xl overflow-y-auto custom-scroll shadow-inner flex-grow h-full auto-rows-fr min-h-0">
-                                    </div>
+                                    <div id="al-cal-grid" class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow grid auto-rows-[minmax(120px,1fr)]"></div>
                                 </div>
                             </div>
                         </div>
