@@ -6,6 +6,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
+import { arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const purify = window.DOMPurify;
 
@@ -1274,53 +1275,35 @@ window.selectColor = (c) => {
 };
 
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
+const originalOpenShare = window.openShareModal;
+
 window.openShareModal = async () => {
     const noteId = els.noteActiveId.value;
     if (!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
 
     document.getElementById('al-modal-share').classList.remove('hidden');
-    const resultsContainer = document.getElementById('al-share-results');
-    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Buscando usuários...</div>';
-
-    if (usersCacheForShare.length === 0) {
-        try {
-            const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
-            let fetchedUsers = [];
-
-            if (isStaff) {
-                // Staff (Professor/Admin) vê todo mundo cadastrado
-                const snap = await getDocs(collection(db, "users"));
-                fetchedUsers = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-            } else {
-                // Aluno vê a própria turma + Todos os Professores
-                if (!currentUser.turma) throw new Error("Você não possui uma turma vinculada.");
-
-                const qTurma = query(collection(db, "users"), where("turma", "==", currentUser.turma));
-                const qProfs = query(collection(db, "users"), where("Professor", "==", true));
-
-                const [snapTurma, snapProfs] = await Promise.all([getDocs(qTurma), getDocs(qProfs)]);
-
-                // Usa um Map para evitar professores que já caíram na regra da turma (duplicatas)
-                const mapUsers = new Map();
-                snapTurma.forEach(d => mapUsers.set(d.id, { uid: d.id, ...d.data() }));
-                snapProfs.forEach(d => mapUsers.set(d.id, { uid: d.id, ...d.data() }));
-
-                fetchedUsers = Array.from(mapUsers.values());
-            }
-
-            // Remove o próprio usuário da lista
-            usersCacheForShare = fetchedUsers.filter(u => u.uid !== currentUser.uid);
-
-            // Coloca os professores primeiro na lista
-            usersCacheForShare.sort((a, b) => (b.Professor ? 1 : 0) - (a.Professor ? 1 : 0));
-
-        } catch (e) {
-            resultsContainer.innerHTML = `<div class="text-red-400 text-center py-4 font-bold"><i class="fas fa-exclamation-triangle"></i> Erro: ${e.message}</div>`;
-            return;
-        }
+    const isStaff = currentUser.Professor || currentUser.Admin || currentUser.Coordenacao;
+    const panel = document.getElementById('panel-mass-share');
+    
+    // Mostra/Oculta painel de Massa e Carrega Turmas
+    if (isStaff) {
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+        
+        const snap = await getDocs(collection(db, "turmasCadastradas"));
+        let options = '<option value="">Selecione a Turma...</option>';
+        snap.forEach(d => {
+            options += `<option value="${d.id}">${d.data().nomeTurma || d.id}</option>`;
+        });
+        document.getElementById('sel-share-turma').innerHTML = options;
+    } else {
+        panel.classList.add('hidden');
+        panel.classList.remove('flex');
     }
 
-    window.renderShareResults('');
+    // Segue o fluxo normal de busca de usuários individuais
+    const resultsContainer = document.getElementById('al-share-results');
+    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Pronto para buscar.</div>';
 };
 
 window.closeShareModal = () => {
@@ -1370,21 +1353,16 @@ window.toggleShareNote = async (targetUid) => {
     const note = myNotes.find(n => n.id === noteId);
     if (!note) return;
 
-    let sharedList = [...(note.sharedWithUserIds || [])]; // Copia o array
-
-    if (sharedList.includes(targetUid)) {
-        sharedList = sharedList.filter(id => id !== targetUid);
-    } else {
-        sharedList.push(targetUid);
-    }
-
+    const isShared = (note.sharedWithUserIds || []).includes(targetUid);
     try {
-        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { sharedWithUserIds: sharedList });
-        // O onSnapshot do banco vai atualizar a interface automaticamente, mas para o visual ser instantâneo:
-        note.sharedWithUserIds = sharedList;
+        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { 
+            // O Firestore lida com a concorrência atômica
+            sharedWithUserIds: isShared ? arrayRemove(targetUid) : arrayUnion(targetUid) 
+        });
+        // Atualiza a UI dinamicamente
         window.renderShareResults(document.getElementById('al-share-search').value);
     } catch (e) {
-        alert("Erro de permissão: " + e.message);
+        alert("Erro ao compartilhar: " + e.message);
     }
 };
 
@@ -1702,18 +1680,23 @@ window.mostrarCentralAprovacao = () => {
 
     lista.innerHTML = pendentes.length === 0 ? 
         '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma nota aguardando sua decisão.</div>' : 
-        pendentes.map(n => `
-        <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3">
-            <div>
-                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Enviado por: ${n.userName || 'Colega'}</p>
-                <h4 class="text-white font-bold text-sm">${n.titulo || 'Sem Título'}</h4>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="window.atualizarStatusNota('${n.id}', 'Enviado')" class="flex-grow bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Aceitar Nota</button>
-                <button onclick="window.atualizarStatusNota('${n.id}', 'Recusado')" class="flex-grow bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Deixar de Seguir</button>
-            </div>
-        </div>
-    `).join('');
+        pendentes.map(n => {
+            const safeTitle = purify ? purify.sanitize(n.titulo || 'Sem Título') : escapeHTML(n.titulo || 'Sem Título');
+            const safeName = purify ? purify.sanitize(n.userName || 'Colega') : escapeHTML(n.userName || 'Colega');
+            
+            return `
+            <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3">
+                <div>
+                    <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Enviado por: ${safeName}</p>
+                    <h4 class="text-white font-bold text-sm">${safeTitle}</h4>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="window.atualizarStatusNota('${n.id}', 'Enviado')" class="flex-grow bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Aceitar Nota</button>
+                    <button onclick="window.atualizarStatusNota('${n.id}', 'Recusado')" class="flex-grow bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Deixar de Seguir</button>
+                </div>
+            </div>`;
+        }).join('');
+};
 };
 
 window.atualizarStatusNota = async (id, status) => {
@@ -1724,31 +1707,6 @@ window.atualizarStatusNota = async (id, status) => {
         if (status === 'Enviado') alert("Nota aceita! Ela agora aparece em suas 'Recebidas'.");
         window.mostrarCentralAprovacao();
     } catch (e) { console.error(e); }
-};
-
-// Modificação no Modal de Compartilhar para carregar as turmas
-const originalOpenShareModal = window.openShareModal;
-window.openShareModal = async () => {
-    const isStaff = currentUser.Professor || currentUser.Admin || currentUser.Coordenacao;
-    const panel = document.getElementById('panel-mass-share');
-    
-    if (isStaff) {
-        panel.classList.remove('hidden');
-        panel.classList.add('flex');
-        
-        // Buscando as turmas
-        const snap = await getDocs(collection(db, "turmasCadastradas"));
-        let options = '<option value="">Selecione a Turma...</option>';
-        
-        snap.forEach(d => {
-            const dados = d.data();
-            // Mostra o nome legível, mas mantém o ID no value para o Firebase
-            options += `<option value="${d.id}">${dados.nomeTurma || d.id}</option>`;
-        });
-        
-        document.getElementById('sel-share-turma').innerHTML = options;
-    }
-    if (originalOpenShareModal) originalOpenShareModal();
 };
 
 window.executarEnvioMassa = async () => {
@@ -1777,20 +1735,4 @@ window.executarEnvioMassa = async () => {
         alert(`Nota compartilhada com a turma ${turma}!`);
         window.closeShareModal();
     } catch (e) { alert("Erro: " + e.message); }
-};
-
-const originalOpenShare = window.openShareModal;
-window.openShareModal = async () => {
-    const isStaff = currentUser.Admin || currentUser.Professor || currentUser.Coordenacao;
-    const panel = document.getElementById('panel-mass-share');
-    
-    if (isStaff) {
-        panel.classList.remove('hidden');
-        panel.classList.add('flex');
-        const snap = await getDocs(collection(db, "turmasCadastradas"));
-        let html = '<option value="">Selecione a Turma...</option>';
-        snap.forEach(d => html += `<option value="${d.id}">${d.data().nomeTurma || d.id}</option>`);
-        document.getElementById('sel-share-turma').innerHTML = html;
-    }
-    if (originalOpenShare) originalOpenShare();
 };
