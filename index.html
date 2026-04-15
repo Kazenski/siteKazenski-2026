@@ -1018,8 +1018,8 @@
                         </div>
                     </div>
 
-                    <div id="atab-kanban" class="aluno-tab-content h-full">
-                        <div class="h-full flex flex-col pb-6">
+                    <div id="atab-kanban" class="aluno-tab-content w-full">
+                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
                             <div class="flex justify-end mb-6 shrink-0">
                                 <button id="btn-toggle-kanban-form"
                                     class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
@@ -1037,44 +1037,56 @@
                                     <button onclick="document.getElementById('al-kanban-form').classList.add('hidden')"
                                         class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
                                     <button id="btn-save-kanban"
-                                        class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar Tarefa</button>
+                                        class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar
+                                        Tarefa</button>
                                 </div>
                             </div>
-                            
+
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow min-h-0">
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
                                     ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                        <span class="font-cinzel font-bold tracking-widest text-blue-400">A
+                                            FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
                                     </div>
-                                    <div id="al-col-todo" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    <div id="al-col-todo"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
                                 </div>
-                                
+
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
                                     ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'em_progresso')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                        <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
+                                            EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
                                     </div>
-                                    <div id="al-col-doing" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    <div id="al-col-doing"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
                                 </div>
-                                
+
                                 <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
                                     ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
-                                    <div class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
-                                        <span class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i class="fas fa-check-circle text-slate-600"></i>
+                                    <div
+                                        class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                        <span
+                                            class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
+                                            class="fas fa-check-circle text-slate-600"></i>
                                     </div>
-                                    <div id="al-col-done" class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                    <div id="al-col-done"
+                                        class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="atab-horario" class="aluno-tab-content h-full">
-                        <div class="h-full flex flex-col pb-6">
-                            <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl flex-grow flex flex-col min-h-0">
+                    <div id="atab-horario" class="aluno-tab-content w-full">
+                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                            <div
+                                class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl flex-grow flex flex-col min-h-0">
                                 <table class="horario-tabela w-full min-w-[900px] h-full flex-grow">
                                     <thead class="shrink-0">
                                         <tr>
@@ -1095,16 +1107,20 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                                <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic shrink-0">Carregando grade horária...</p>
+                                <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic shrink-0">
+                                    Carregando grade horária...</p>
                             </div>
                         </div>
                     </div>
 
-                    <div id="atab-calendario" class="aluno-tab-content h-full">
-                        <div class="h-full flex flex-col pb-6">
-                            <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col min-h-0">
-                                <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
-                                    <div class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                    <div id="atab-calendario" class="aluno-tab-content w-full">
+                        <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                            <div
+                                class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col min-h-0">
+                                <div
+                                    class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
+                                    <div
+                                        class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
                                         <button id="btn-cal-prev"
                                             class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
                                                 class="fas fa-chevron-left"></i></button>
@@ -1128,13 +1144,24 @@
                                 </div>
                                 <div id="cal-header-row"
                                     class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Segunda</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Terça</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quarta</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quinta</div>
-                                    <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Sexta</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Segunda</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Terça</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Quarta</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Quinta</div>
+                                    <div
+                                        class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                        Sexta</div>
                                 </div>
-                                <div id="al-cal-grid" class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow auto-rows-fr">
+                                <div id="al-cal-grid"
+                                    class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow auto-rows-fr">
                                 </div>
                             </div>
                         </div>
