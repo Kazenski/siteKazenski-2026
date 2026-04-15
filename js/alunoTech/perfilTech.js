@@ -896,46 +896,22 @@ function initNotebookSystem() {
     // Filtro de pesquisa digitado pelo aluno
     els.noteSearch?.addEventListener('input', () => { renderNotes(); });
 
-    if (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao) {
-        const panelMassa = document.getElementById('panel-mass-send');
-        if(panelMassa) {
-            panelMassa.classList.remove('hidden');
-            panelMassa.classList.add('flex');
-            // Puxa as turmas cadastradas para o select
-            getDocs(collection(db, "turmasCadastradas")).then(snap => {
-                let html = '<option value="">Selecione a Turma...</option>';
-                snap.forEach(d => html += `<option value="${d.id}">${d.id}</option>`);
-                document.getElementById('sel-mass-turma').innerHTML = html;
-            });
-        }
-    }
-
-    // --- Lógica do clique nos filtros de Recebidas e Pendentes ---
-    const btnRecebidas = document.getElementById('btn-filter-recebidas');
-    const btnPendentes = document.getElementById('btn-filter-pendentes');
-
-    function resetarPillsDeFiltro() {
+    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
+        // 1. Controle Visual: Remove o destaque de outras pastas do caderno
         document.querySelectorAll('#al-notebook-tags button').forEach(btn => {
             btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30');
             btn.classList.add('text-slate-400', 'border-transparent');
         });
-        if(btnRecebidas) btnRecebidas.classList.remove('bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
-        if(btnPendentes) btnPendentes.classList.remove('bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
-    }
-
-    btnRecebidas?.addEventListener('click', () => {
-        resetarPillsDeFiltro();
+        
+        // Dá destaque ao botão de recebidas
+        const btnRecebidas = document.getElementById('btn-filter-recebidas');
         btnRecebidas.classList.add('bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
+
+        // 2. Filtra o Array (Aproveita a variável let currentTagFilter do escopo global)
         currentTagFilter = 'recebidas';
         renderNotes();
-        showEmptyNoteState();
-    });
-
-    btnPendentes?.addEventListener('click', () => {
-        resetarPillsDeFiltro();
-        btnPendentes.classList.add('bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
-        currentTagFilter = 'pendentes';
-        renderNotes();
+        
+        // Limpa a visualização da nota central
         showEmptyNoteState();
     });
 }
@@ -1049,30 +1025,18 @@ function renderNotes() {
     const filtered = myNotes.filter(n => {
         const textMatch = (n.titulo || '').toLowerCase().includes(search) || (n.conteudo || '').toLowerCase().includes(search);
         
-        // 1. REGRA MESTRA: Se o usuário atual RECUSOU, a nota morre aqui. Não exibe.
-        if (n.userId !== currentUser.uid && n.statusDestinatarios && n.statusDestinatarios[currentUser.uid] === 'Recusado') {
-            return false;
-        }
-
-        // 2. Regra de Tag Mista (Aba Ativa)
+        // Regra de Tag Mista
         let tagMatch = false;
-        const statusParaMim = (n.statusDestinatarios && n.statusDestinatarios[currentUser.uid]) || 'Pendente';
-
         if (currentTagFilter === 'all') {
-            // Em "Todas", não mostramos as pendentes para manter a tela limpa
-            tagMatch = (n.userId === currentUser.uid) || (statusParaMim === 'Enviado');
+            tagMatch = true;
         } else if (currentTagFilter === 'recebidas') {
-            tagMatch = (n.userId !== currentUser.uid) && (statusParaMim === 'Enviado');
-        } else if (currentTagFilter === 'pendentes') {
-            tagMatch = (n.userId !== currentUser.uid) && (statusParaMim === 'Pendente');
+            tagMatch = (n.userId && n.userId !== currentUser.uid); // Passa só quem não for minha
         } else {
-            // Filtro por tag customizada (esconde as pendentes)
-            tagMatch = (n.tags && n.tags.includes(currentTagFilter)) && ((n.userId === currentUser.uid) || statusParaMim === 'Enviado');
+            tagMatch = (n.tags && n.tags.includes(currentTagFilter));
         }
         
         return textMatch && tagMatch;
     });
-
     filtered.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
@@ -1091,50 +1055,18 @@ function renderNotes() {
         const safeTitle = purify ? purify.sanitize(n.titulo || 'Sem Título') : escapeHTML(n.titulo || 'Sem Título');
         const safeContent = purify ? purify.sanitize(n.conteudo || '') : escapeHTML(n.conteudo || '');
         
-        // --- VISUAL REMETENTE: Etiquetas de acompanhamento ---
-        let htmlBadges = '';
-        if (n.userId === currentUser.uid && n.sharedWithUserIds && n.sharedWithUserIds.length > 0) {
-            let tPendente = false, tRecusado = false, tEnviado = false;
-            n.sharedWithUserIds.forEach(uid => {
-                const s = n.statusDestinatarios ? n.statusDestinatarios[uid] : 'Pendente';
-                if(s === 'Pendente') tPendente = true;
-                if(s === 'Recusado') tRecusado = true;
-                if(s === 'Enviado') tEnviado = true;
-            });
-            htmlBadges += '<div class="flex gap-1 mt-1">';
-            if(tRecusado) htmlBadges += '<span class="badge-nota badge-recusado">Recusada(s)</span>';
-            if(tPendente) htmlBadges += '<span class="badge-nota badge-pendente">Pendente(s)</span>';
-            if(tEnviado) htmlBadges += '<span class="badge-nota badge-enviado">Aceita(s)</span>';
-            htmlBadges += '</div>';
-        }
-
-        // --- VISUAL DESTINATÁRIO: Botões Aceitar/Recusar se Pendente ---
-        let htmlAcoes = '';
-        if (n.userId !== currentUser.uid && (!n.statusDestinatarios || n.statusDestinatarios[currentUser.uid] === 'Pendente')) {
-            htmlAcoes = `
-                <div class="flex gap-2 mt-2 pt-2 border-t border-slate-700/50">
-                    <button onclick="event.stopPropagation(); window.atualizarStatusNota('${n.id}', 'Enviado')" class="btn-aprovar-nota w-full">Aceitar</button>
-                    <button onclick="event.stopPropagation(); window.atualizarStatusNota('${n.id}', 'Recusado')" class="btn-recusar-nota w-full">Recusar</button>
-                </div>
-            `;
-        }
-
         return `
         <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color||'#3b82f6'}">
             
             <div class="flex justify-between items-start gap-2">
-                <div class="flex flex-col flex-grow min-w-0">
-                    <div class="flex items-center gap-2">
-                        <h4 class="text-white font-bold text-xs truncate">${safeTitle}</h4>
-                        ${n.userId !== currentUser.uid ? '<span class="shrink-0 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest">Recebida</span>' : ''}
-                    </div>
-                    ${htmlBadges}
+                <div class="flex items-center gap-2 flex-grow min-w-0">
+                    <h4 class="text-white font-bold text-xs truncate">${safeTitle}</h4>
+                    ${n.userId !== currentUser.uid ? '<span class="shrink-0 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest">Recebida</span>' : ''}
                 </div>
                 ${n.favorita ? '<i class="fas fa-thumbtack text-blue-400 text-[10px] shrink-0 mt-0.5"></i>' : ''}
             </div>
 
-            <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight mt-1">${safeContent}</div>
-            ${htmlAcoes}
+            <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight">${safeContent}</div>
         </div>
     `}).join('');
     
@@ -1387,30 +1319,23 @@ window.toggleShareNote = async (targetUid) => {
     const note = myNotes.find(n => n.id === noteId);
     if (!note) return;
 
-    let sharedList = [...(note.sharedWithUserIds || [])];
-    let statusMap = { ...(note.statusDestinatarios || {}) };
+    let sharedList = [...(note.sharedWithUserIds || [])]; // Copia o array
 
     if (sharedList.includes(targetUid)) {
         sharedList = sharedList.filter(id => id !== targetUid);
-        delete statusMap[targetUid]; // Remove do mapa se desmarcar
     } else {
         sharedList.push(targetUid);
-        statusMap[targetUid] = 'Pendente'; // Nasce como pendente
     }
 
     try {
-        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { 
-            sharedWithUserIds: sharedList,
-            statusDestinatarios: statusMap 
-        });
+        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { sharedWithUserIds: sharedList });
+        // O onSnapshot do banco vai atualizar a interface automaticamente, mas para o visual ser instantâneo:
         note.sharedWithUserIds = sharedList;
-        note.statusDestinatarios = statusMap;
         window.renderShareResults(document.getElementById('al-share-search').value);
     } catch (e) {
         alert("Erro de permissão: " + e.message);
     }
 };
-
 
 
 
@@ -1714,58 +1639,3 @@ export async function monitorarAuraGlobal(uid) {
         });
     });
 }
-
-// ====================================================
-// NOVAS FUNÇÕES: PRIVACIDADE E ENVIO EM MASSA
-// ====================================================
-
-window.atualizarStatusNota = async (notaId, status) => {
-    if (status === 'Recusado') {
-        if(!confirm("Atenção: Esta nota sumirá da sua lista. Deseja prosseguir?")) return;
-    }
-    try {
-        const notaRef = doc(db, "anotacoes_pessoais", notaId);
-        // Atualiza apenas a chave correspondente ao usuário atual dentro do mapa
-        await updateDoc(notaRef, {
-            [`statusDestinatarios.${currentUser.uid}`]: status
-        });
-    } catch (e) {
-        console.error("Erro ao atualizar status:", e);
-    }
-};
-
-window.executarEnvioEmMassaTurma = async () => {
-    const turmaSelecionada = document.getElementById('sel-mass-turma').value;
-    const notaIdAtiva = els.noteActiveId.value;
-
-    if (!turmaSelecionada) return alert("Selecione uma turma no painel.");
-    if (!notaIdAtiva) return alert("Abra ou salve uma anotação primeiro para poder enviá-la em massa.");
-
-    if(!confirm(`Confirma o envio da anotação aberta para TODOS da turma ${turmaSelecionada}?`)) return;
-
-    try {
-        const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turmaSelecionada)));
-        if(snapAlunos.empty) return alert("Nenhum aluno encontrado nesta turma.");
-
-        const note = myNotes.find(n => n.id === notaIdAtiva);
-        let sharedList = [...(note.sharedWithUserIds || [])];
-        let statusMap = { ...(note.statusDestinatarios || {}) };
-
-        snapAlunos.forEach(docAluno => {
-            const uid = docAluno.id;
-            if (uid !== currentUser.uid && !sharedList.includes(uid)) {
-                sharedList.push(uid);
-                statusMap[uid] = 'Pendente'; // Força o status inicial
-            }
-        });
-
-        await updateDoc(doc(db, "anotacoes_pessoais", notaIdAtiva), { 
-            sharedWithUserIds: sharedList,
-            statusDestinatarios: statusMap
-        });
-        
-        alert("Enviado com sucesso para a turma inteira!");
-    } catch(e) {
-        alert("Erro no envio em massa: " + e.message);
-    }
-};
