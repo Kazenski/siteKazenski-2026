@@ -914,6 +914,26 @@ function initNotebookSystem() {
         // Limpa a visualização da nota central
         showEmptyNoteState();
     });
+
+    document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
+    // 1. Reset Visual (Para não ficar dois botões acesos ao mesmo tempo)
+    document.querySelectorAll('#al-notebook-tags button, #btn-filter-recebidas').forEach(btn => {
+        btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-indigo-500/20', 'border-indigo-500/50', 'text-indigo-300');
+        btn.classList.add('text-slate-400', 'border-transparent');
+    });
+
+    // 2. Dá destaque ao botão de Pendentes
+    const btnPendentes = document.getElementById('btn-filter-pendentes');
+    btnPendentes.classList.add('bg-amber-500/20', 'border-amber-500/50', 'text-amber-300');
+
+    // 3. Lógica de Filtro
+    currentTagFilter = 'pendentes';
+    activeNoteId = null; 
+    renderNotes(); // Atualiza a lista do meio (2ª coluna)
+    
+    // 4. Troca a interface da direita (3ª coluna)
+    window.mostrarCentralAprovacao(); 
+});
 }
 
 // 1. Ao clicar em "+" Nova Anotação
@@ -1023,6 +1043,16 @@ function renderNotes() {
     const search = els.noteSearch.value.toLowerCase();
 
     const filtered = myNotes.filter(n => {
+
+        const statusParaMim = n.statusDestinatarios?.[currentUser.uid] || 'Pendente';
+
+        // REGRA: Se o usuário atual recusou, a nota desaparece da listagem
+        if (n.userId !== currentUser.uid && statusParaMim === 'Recusado') return false;
+
+        if (currentTagFilter === 'pendentes') {
+            return (n.userId !== currentUser.uid && statusParaMim === 'Pendente');
+        }
+
         const textMatch = (n.titulo || '').toLowerCase().includes(search) || (n.conteudo || '').toLowerCase().includes(search);
         
         // Regra de Tag Mista
@@ -1639,3 +1669,94 @@ export async function monitorarAuraGlobal(uid) {
         });
     });
 }
+
+window.mostrarCentralAprovacao = () => {
+    // Esconde o Editor de Notas e o Estado Vazio
+    document.getElementById('al-note-active-state')?.classList.add('hidden');
+    document.getElementById('al-note-empty-state')?.classList.add('hidden');
+    
+    // Mostra o container de Aprovação (Vamos criar esse ID no HTML abaixo)
+    const containerAprovacao = document.getElementById('al-note-approval-state');
+    if (containerAprovacao) {
+        containerAprovacao.classList.remove('hidden');
+        containerAprovacao.classList.add('flex'); // Mantém o comportamento flexbox
+    }
+
+    const lista = document.getElementById('approval-list');
+    if (!lista) return;
+
+    // Filtra apenas o que é para mim e está pendente
+    const pendentes = myNotes.filter(n => 
+        n.userId !== currentUser.uid && 
+        (n.statusDestinatarios?.[currentUser.uid] === 'Pendente' || !n.statusDestinatarios?.[currentUser.uid])
+    );
+
+    if (pendentes.length === 0) {
+        lista.innerHTML = '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma aprovação pendente.</div>';
+        return;
+    }
+
+    lista.innerHTML = pendentes.map(n => `
+        <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3">
+            <div>
+                <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest">Enviado por: ${n.userName || 'Colega'}</p>
+                <h4 class="text-white font-bold text-sm">${n.titulo || 'Sem Título'}</h4>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="window.atualizarStatusNota('${n.id}', 'Enviado')" class="flex-grow bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Aceitar Nota</button>
+                <button onclick="window.atualizarStatusNota('${n.id}', 'Recusado')" class="flex-grow bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg text-[10px] font-bold uppercase transition-colors">Recusar</button>
+            </div>
+        </div>
+    `).join('');
+};
+
+window.atualizarStatusNota = async (id, status) => {
+    // Atualiza o mapa de status individual do usuário dentro da nota
+    await updateDoc(doc(db, "anotacoes_pessoais", id), {
+        [`statusDestinatarios.${currentUser.uid}`]: status
+    });
+    // Atualiza a visão caso esteja no filtro de pendentes
+    if (currentTagFilter === 'pendentes') window.mostrarCentralAprovacao();
+};
+
+// Modificação no Modal de Compartilhar para carregar as turmas
+const originalOpenShareModal = window.openShareModal;
+window.openShareModal = async () => {
+    const isStaff = currentUser.Professor || currentUser.Admin || currentUser.Coordenacao;
+    const panel = document.getElementById('panel-mass-share');
+    
+    if (isStaff) {
+        panel.classList.remove('hidden');
+        panel.classList.add('flex');
+        const snap = await getDocs(collection(db, "turmasCadastradas"));
+        let options = '<option value="">Selecione a Turma...</option>';
+        snap.forEach(d => options += `<option value="${d.id}">${d.id}</option>`);
+        document.getElementById('sel-share-turma').innerHTML = options;
+    }
+    if (originalOpenShareModal) originalOpenShareModal();
+};
+
+window.executarEnvioMassa = async () => {
+    const turma = document.getElementById('sel-share-turma').value;
+    const noteId = els.noteActiveId.value;
+    if(!turma || !noteId) return alert("Selecione a turma.");
+
+    const alunos = await getDocs(query(collection(db, "users"), where("turma", "==", turma)));
+    const uids = [];
+    const statusMap = {};
+
+    alunos.forEach(d => {
+        if(d.id !== currentUser.uid) {
+            uids.push(d.id);
+            statusMap[d.id] = 'Pendente';
+        }
+    });
+
+    await updateDoc(doc(db, "anotacoes_pessoais", noteId), {
+        sharedWithUserIds: arrayUnion(...uids),
+        statusDestinatarios: statusMap
+    });
+
+    alert("Nota enviada para a turma com sucesso!");
+    window.closeShareModal();
+};
