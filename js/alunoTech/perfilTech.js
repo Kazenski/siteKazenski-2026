@@ -738,11 +738,9 @@ async function deleteCalendarEvent() {
 
 async function loadDisciplinesMap() {
     const snap = await getDocs(collection(db, "disciplinasCadastradas"));
-    els.selEvol.innerHTML = '<option value="">Geral</option>';
     snap.forEach(d => {
         const dt = d.data();
         disciplineMap[dt.identificador] = dt.nomeExibicao;
-        els.selEvol.add(new Option(dt.nomeExibicao, dt.identificador));
     });
 }
 
@@ -761,20 +759,25 @@ async function loadBoletimAndMetrics() {
     }
 
     studentGradesData = snap.data().disciplinasComNotas || {};
-
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
 
-    // O aluno e o testador só verão as disciplinas em que realmente constam notas/matrícula:
-    Object.keys(studentGradesData).forEach(discId => {
-        const nome = disciplineMap[discId] || discId;
-        els.selEvol.add(new Option(nome, discId));
-    });
-
     let html = '';
-
+    // FILTRO: Iteramos apenas as disciplinas contidas no documento do aluno
     for (const [id, tr] of Object.entries(studentGradesData)) {
-        // Usa title para mostrar o nome completo se o mouse passar por cima
+        
+        // REGRA DE SEGURANÇA: Se a disciplina veio completamente vazia no Firebase,
+        // não vamos exibi-la para não poluir o boletim do aluno.
+        const temAlgumaNota = Object.values(tr).some(trimestre => 
+            Object.values(trimestre).some(nota => nota && nota.toString().trim() !== '')
+        );
+
+        if (!temAlgumaNota && !currentUser.Admin) continue; // Pula se estiver em branco
+
+        // 1. Popula o Select apenas com as disciplinas em que o aluno tem atividade
         const nome = disciplineMap[id] || id;
+        els.selEvol.add(new Option(nome, id));
+
+        // 2. Renderiza a tabela do boletim
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
             <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
             <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4 || '-'}</td>
@@ -783,6 +786,11 @@ async function loadBoletimAndMetrics() {
             <td class="media-final-col text-blue-400 font-bold border border-slate-700 text-center py-2 bg-blue-900/10">---</td>
         </tr>`;
     }
+    
+    if (!html) {
+        html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma avaliação respondida ainda.</td></tr>';
+    }
+    
     els.boletimBody.innerHTML = html;
 
     renderScatterChart();
