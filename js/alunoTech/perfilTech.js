@@ -764,18 +764,11 @@ async function loadBoletimAndMetrics() {
 
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
 
-    if (currentUser.Admin) {
-        // Se for Admin, mostra todas as disciplinas cadastradas na escola
-        Object.entries(disciplineMap).forEach(([id, nome]) => {
-            els.selEvol.add(new Option(nome, id));
-        });
-    } else {
-        // Se for aluno, mostra apenas as disciplinas que ele tem no boletim
-        Object.keys(studentGradesData).forEach(discId => {
-            const nome = disciplineMap[discId] || discId;
-            els.selEvol.add(new Option(nome, discId));
-        });
-    }
+    // O aluno e o testador só verão as disciplinas em que realmente constam notas/matrícula:
+    Object.keys(studentGradesData).forEach(discId => {
+        const nome = disciplineMap[discId] || discId;
+        els.selEvol.add(new Option(nome, discId));
+    });
 
     let html = '';
 
