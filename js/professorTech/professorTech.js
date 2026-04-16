@@ -3719,15 +3719,20 @@ window.profAPI = {
     // MÓDULO: LOGS DE USUÁRIO
     // ==========================================
     loadLogsAluno: async () => {
-        // Reutiliza o select do aluno do Menu Master que já criamos antes!
-        const studentId = els.masterStudentSel ? els.masterStudentSel.value : null;
+        // Busca os elementos diretamente para não depender do mapearDOM falhar
+        const selAluno = document.getElementById('prof-filter-student');
+        const logsBody = document.getElementById('logs-list-body');
+        
+        if (!logsBody) return console.error("ERRO: Tabela de logs não encontrada no HTML.");
+
+        const studentId = selAluno ? selAluno.value : null;
         
         if (!studentId) {
-            if(els.logsBody) els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) para carregar os logs.</td></tr>';
+            logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) para carregar os logs.</td></tr>';
             return;
         }
 
-        els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-blue-400"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando histórico de ações...</td></tr>';
+        logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-blue-400"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando histórico de ações...</td></tr>';
 
         try {
             // Busca os últimos 50 logs desse aluno específico
@@ -3741,7 +3746,7 @@ window.profAPI = {
             const snap = await getDocs(q);
             
             if (snap.empty) {
-                els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Nenhuma atividade registrada para este aluno.</td></tr>';
+                logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Nenhuma atividade registrada para este aluno.</td></tr>';
                 return;
             }
 
@@ -3759,19 +3764,19 @@ window.profAPI = {
                 `;
             });
 
-            els.logsBody.innerHTML = html;
+            logsBody.innerHTML = html;
 
         } catch (error) {
             console.error("Erro ao buscar logs:", error);
             
-            // Tratamento especial para o erro de Index do Firebase
+            // Tratamento MÁGICO para o erro de Índice do Firebase
             if(error.message.includes("index")) {
-                els.logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs">
-                    <i class="fas fa-exclamation-triangle mr-1"></i> O Firebase exige a criação de um "Índice" para ordenar os logs.<br>
-                    Abra o console (F12), clique no link azul que o Firebase gerou lá no erro e crie o índice!
+                logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> O Firebase exige a criação de um "Índice" para cruzar Usuário com Data.<br>
+                    <strong>Aperte F12 para abrir o console, clique no link azul que o Firebase gerou lá no erro e crie o índice!</strong>
                 </td></tr>`;
             } else {
-                els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
+                logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
             }
         }
     }
