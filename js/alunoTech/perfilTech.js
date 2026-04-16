@@ -58,8 +58,6 @@ window.registrarLogAtividade = async (acaoDescricao, detalhesExtras = "") => {
 };
 
 export async function renderAlunoTechTab() {
-
-export async function renderAlunoTechTab() {
     const container = document.getElementById('aluno-tech-content');
     if (!container) return;
 
