@@ -2169,14 +2169,21 @@
                 </div>
 
                 <div id="ptab-logs" class="prof-tab-content hidden h-full fade-in flex-col">
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-lg text-emerald-500 font-cinzel font-bold mb-1"><i class="fas fa-shoe-prints mr-2"></i> Trilha de Atividades (Logs)</h2>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe as ações recentes do aluno selecionado no Menu Master.</p>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe as ações recentes do aluno selecionado.</p>
                         </div>
-                        <button onclick="window.profAPI.loadLogsAluno()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all">
-                            <i class="fas fa-sync-alt mr-2"></i> Atualizar Logs
-                        </button>
+                        
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <select id="log-student-select" onchange="window.profAPI.loadLogsAluno()" class="bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-xl p-3 outline-none focus:border-emerald-500 min-w-[200px] shadow-inner transition-colors">
+                                <option value="">Selecione um aluno da turma...</option>
+                            </select>
+                            
+                            <button onclick="window.profAPI.loadLogsAluno()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all whitespace-nowrap">
+                                <i class="fas fa-sync-alt mr-2"></i> Atualizar
+                            </button>
+                        </div>
                     </div>
 
                     <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl">
@@ -2191,7 +2198,7 @@
                                 </thead>
                                 <tbody id="logs-list-body" class="divide-y divide-slate-700/50">
                                     <tr>
-                                        <td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) e clique em Atualizar Logs.</td>
+                                        <td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no seletor acima para carregar.</td>
                                     </tr>
                                 </tbody>
                             </table>

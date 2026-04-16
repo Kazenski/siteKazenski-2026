@@ -107,7 +107,7 @@ export async function renderProfessorTab() {
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
-    addSafeListener('logs', () => window.profAPI.loadLogsAluno());
+    addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
     if(els.evalSelectAv) {
@@ -3718,24 +3718,34 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: LOGS DE USUÁRIO
     // ==========================================
+    
+    // 1. Função que injeta os alunos no Select antes de buscar
+    prepararAbaLogs: () => {
+        const selAluno = document.getElementById('log-student-select');
+        if(selAluno && state.cache.students) {
+            selAluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
+            state.cache.students.forEach(st => selAluno.add(new Option(st.nome, st.id)));
+        }
+        window.profAPI.loadLogsAluno(); // Chama a pesquisa (se estiver vazio, pedirá para selecionar)
+    },
+
+    // 2. A pesquisa real
     loadLogsAluno: async () => {
-        // Busca os elementos diretamente para não depender do mapearDOM falhar
-        const selAluno = document.getElementById('prof-filter-student');
+        const selAluno = document.getElementById('log-student-select');
         const logsBody = document.getElementById('logs-list-body');
         
-        if (!logsBody) return console.error("ERRO: Tabela de logs não encontrada no HTML.");
+        if (!logsBody) return;
 
         const studentId = selAluno ? selAluno.value : null;
         
         if (!studentId) {
-            logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) para carregar os logs.</td></tr>';
+            logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no seletor acima para carregar os logs.</td></tr>';
             return;
         }
 
         logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-blue-400"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando histórico de ações...</td></tr>';
 
         try {
-            // Busca os últimos 50 logs desse aluno específico
             const q = query(
                 collection(db, "logs_usuarios"),
                 where("uid", "==", studentId),
@@ -3756,10 +3766,10 @@ window.profAPI = {
                 const dataFormatada = data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleString('pt-BR') : 'Sem data';
                 
                 html += `
-                    <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4 font-mono text-xs text-blue-300 whitespace-nowrap">${dataFormatada}</td>
-                        <td class="px-6 py-4 font-bold text-white">${data.acao}</td>
-                        <td class="px-6 py-4 text-xs text-slate-400">${data.detalhes || '-'}</td>
+                    <tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50">
+                        <td class="px-6 py-4 font-mono text-xs text-emerald-400 whitespace-nowrap w-48">${dataFormatada}</td>
+                        <td class="px-6 py-4 font-bold text-white whitespace-nowrap w-48">${data.acao}</td>
+                        <td class="px-6 py-4 text-xs text-slate-400 leading-relaxed">${data.detalhes || '-'}</td>
                     </tr>
                 `;
             });
@@ -3769,11 +3779,11 @@ window.profAPI = {
         } catch (error) {
             console.error("Erro ao buscar logs:", error);
             
-            // Tratamento MÁGICO para o erro de Índice do Firebase
             if(error.message.includes("index")) {
-                logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs">
-                    <i class="fas fa-exclamation-triangle mr-1"></i> O Firebase exige a criação de um "Índice" para cruzar Usuário com Data.<br>
-                    <strong>Aperte F12 para abrir o console, clique no link azul que o Firebase gerou lá no erro e crie o índice!</strong>
+                logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs bg-amber-500/10 rounded-lg">
+                    <i class="fas fa-exclamation-triangle text-xl mb-2 block"></i> 
+                    O Firebase exige a criação de um "Índice" para cruzar o Usuário com a Data da Ação.<br><br>
+                    <strong>Aperte F12 para abrir o console, clique no link azul gerado pelo Firebase no erro e crie o índice!</strong>
                 </td></tr>`;
             } else {
                 logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
