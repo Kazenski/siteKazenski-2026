@@ -3541,13 +3541,17 @@ window.profAPI = {
     cacheAvaliacoes360: [],
 
     loadAvaliacoes360: async () => {
+        // Busca direta para evitar falha no mapearDOM
+        const container = document.getElementById('aval360-list-container');
+        if (!container) return console.error("ERRO: Container da lista 360 não encontrado no HTML.");
+
         const { classId, disciplineId } = state.filters;
         if (!classId || !disciplineId) {
-            els.aval360List.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Selecione Turma e Disciplina no Menu Master para carregar.</div>';
+            container.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Selecione Turma e Disciplina no Menu Master para carregar.</div>';
             return;
         }
 
-        els.aval360List.innerHTML = '<div class="text-blue-400 text-sm col-span-full text-center py-10"><i class="fas fa-spinner fa-spin mr-2"></i> Carregando avaliações...</div>';
+        container.innerHTML = '<div class="text-blue-400 text-sm col-span-full text-center py-10"><i class="fas fa-spinner fa-spin mr-2"></i> Carregando avaliações...</div>';
 
         try {
             const q = query(
@@ -3562,13 +3566,16 @@ window.profAPI = {
             window.profAPI.renderAvaliacoes360List();
         } catch (e) {
             console.error("Erro ao buscar avaliações 360:", e);
-            els.aval360List.innerHTML = `<div class="text-red-500 text-sm col-span-full text-center py-10">Erro ao carregar dados: ${e.message}</div>`;
+            container.innerHTML = `<div class="text-red-500 text-sm col-span-full text-center py-10">Erro ao carregar dados: ${e.message}</div>`;
         }
     },
 
     renderAvaliacoes360List: () => {
+        const container = document.getElementById('aval360-list-container');
+        if (!container) return;
+
         if (window.profAPI.cacheAvaliacoes360.length === 0) {
-            els.aval360List.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Nenhuma avaliação cadastrada para esta turma.</div>';
+            container.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Nenhuma avaliação cadastrada para esta turma.</div>';
             return;
         }
 
@@ -3586,7 +3593,7 @@ window.profAPI = {
             'Alcançado': 'fa-check-circle'
         };
 
-        els.aval360List.innerHTML = window.profAPI.cacheAvaliacoes360.map(av => `
+        container.innerHTML = window.profAPI.cacheAvaliacoes360.map(av => `
             <div onclick="window.profAPI.openModalAval360('${av.id}')" class="bg-slate-800 border border-slate-700 rounded-xl p-5 cursor-pointer hover:-translate-y-1 hover:border-blue-500 transition-all flex flex-col h-full shadow-md group">
                 <div class="flex justify-between items-start mb-3">
                     <div class="text-xs text-slate-400 font-bold uppercase tracking-widest truncate pr-2"><i class="fas fa-user text-blue-500 mr-1"></i> ${av.alunoNome}</div>
@@ -3605,54 +3612,60 @@ window.profAPI = {
         const { classId } = state.filters;
         if (!classId) return alert("Selecione uma Turma no Menu Master primeiro!");
 
-        // Popula o select de alunos com a turma atual carregada no state
-        els.aval360Aluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
-        state.cache.students.forEach(st => els.aval360Aluno.add(new Option(st.nome, st.id)));
+        const modal = document.getElementById('modal-aval360');
+        const selAluno = document.getElementById('aval360-aluno');
+        const inpId = document.getElementById('aval360-id');
+        const inpQuesito = document.getElementById('aval360-quesito');
+        const inpStatus = document.getElementById('aval360-status');
+        const inpTexto = document.getElementById('aval360-texto');
+        const btnDel = document.getElementById('btn-delete-aval360');
+        const title = document.getElementById('aval360-modal-title');
+
+        // Popula o select de alunos
+        selAluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
+        state.cache.students.forEach(st => selAluno.add(new Option(st.nome, st.id)));
 
         if (id) {
-            // Edição
             const av = window.profAPI.cacheAvaliacoes360.find(x => x.id === id);
             if (!av) return;
-
-            document.getElementById('aval360-modal-title').textContent = "Atualizar Evolução do Aluno";
-            els.aval360Id.value = av.id;
-            els.aval360Aluno.value = av.alunoId;
-            els.aval360Quesito.value = av.quesito;
-            els.aval360Status.value = av.status;
-            els.aval360Texto.value = av.textoExplicativo;
-            
-            els.btnDelAval360.classList.remove('hidden');
+            title.textContent = "Atualizar Evolução do Aluno";
+            inpId.value = av.id;
+            selAluno.value = av.alunoId;
+            inpQuesito.value = av.quesito;
+            inpStatus.value = av.status;
+            inpTexto.value = av.textoExplicativo;
+            btnDel.classList.remove('hidden');
         } else {
-            // Novo
-            document.getElementById('aval360-modal-title').textContent = "Nova Avaliação 360";
-            els.aval360Id.value = '';
-            els.aval360Aluno.value = '';
-            els.aval360Quesito.value = '';
-            els.aval360Status.value = 'Identificado'; // Default
-            els.aval360Texto.value = '';
-            
-            els.btnDelAval360.classList.add('hidden');
+            title.textContent = "Nova Avaliação 360";
+            inpId.value = '';
+            selAluno.value = '';
+            inpQuesito.value = '';
+            inpStatus.value = 'Identificado';
+            inpTexto.value = '';
+            btnDel.classList.add('hidden');
         }
 
-        els.modalAval360.classList.remove('hidden');
+        modal.classList.remove('hidden');
     },
 
     closeModalAval360: () => {
-        els.modalAval360.classList.add('hidden');
+        const modal = document.getElementById('modal-aval360');
+        if(modal) modal.classList.add('hidden');
     },
 
     saveAvaliacao360: async () => {
         const { classId, disciplineId } = state.filters;
         
-        const id = els.aval360Id.value;
-        const alunoId = els.aval360Aluno.value;
-        const quesito = els.aval360Quesito.value.trim();
-        const status = els.aval360Status.value;
-        const texto = els.aval360Texto.value.trim();
+        const id = document.getElementById('aval360-id').value;
+        const selAluno = document.getElementById('aval360-aluno');
+        const alunoId = selAluno.value;
+        const quesito = document.getElementById('aval360-quesito').value.trim();
+        const status = document.getElementById('aval360-status').value;
+        const texto = document.getElementById('aval360-texto').value.trim();
 
         if (!alunoId || !quesito || !texto) return alert("Preencha o Aluno, o Quesito e o Parecer descritivo.");
 
-        const alunoNome = els.aval360Aluno.options[els.aval360Aluno.selectedIndex].text;
+        const alunoNome = selAluno.options[selAluno.selectedIndex].text;
 
         const payload = {
             alunoId,
@@ -3675,7 +3688,7 @@ window.profAPI = {
             }
             
             window.profAPI.closeModalAval360();
-            window.profAPI.loadAvaliacoes360(); // Recarrega a lista para mostrar a atualização
+            window.profAPI.loadAvaliacoes360(); 
         } catch (e) {
             console.error("Erro ao salvar:", e);
             alert("Erro ao salvar avaliação.");
@@ -3683,7 +3696,7 @@ window.profAPI = {
     },
 
     deleteAvaliacao360: async () => {
-        const id = els.aval360Id.value;
+        const id = document.getElementById('aval360-id').value;
         if (!id) return;
 
         if (confirm("Deseja realmente apagar este registro de avaliação?")) {
@@ -3696,6 +3709,6 @@ window.profAPI = {
                 alert("Erro ao excluir avaliação.");
             }
         }
-    },
+    }
 
 };
