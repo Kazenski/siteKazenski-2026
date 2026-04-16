@@ -36,6 +36,29 @@ let calView = 'month';
 let cropperInstance = null;
 let currentCropType = null;
 
+
+// ============================================================================
+// SISTEMA DE LOG E AUDITORIA DO USUÁRIO
+// ============================================================================
+window.registrarLogAtividade = async (acaoDescricao, detalhesExtras = "") => {
+    try {
+        if (!currentUser || !currentUser.uid) return;
+        const logRef = collection(db, "logs_usuarios");
+        await addDoc(logRef, {
+            uid: currentUser.uid,
+            nome: currentUser.nome || "Usuário",
+            turma: currentUser.turma || "Sem Turma",
+            acao: acaoDescricao,
+            detalhes: detalhesExtras,
+            timestamp: serverTimestamp()
+        });
+    } catch (e) {
+        console.error("Erro ao registrar log de atividade:", e);
+    }
+};
+
+export async function renderAlunoTechTab() {
+
 export async function renderAlunoTechTab() {
     const container = document.getElementById('aluno-tech-content');
     if (!container) return;
@@ -356,10 +379,12 @@ async function saveKanban() {
     try {
         if (id) {
             await updateDoc(doc(db, "kanban_atividades", id), payload);
+            window.registrarLogAtividade("Editou tarefa no Kanban", `Tarefa: ${titulo}`); 
         } else {
             payload.status = 'a_fazer';
             payload.createdAt = serverTimestamp();
             await addDoc(collection(db, "kanban_atividades"), payload);
+            window.registrarLogAtividade("Criou tarefa no Kanban", `Tarefa: ${titulo}`);
         }
         document.getElementById('al-kanban-form').classList.add('hidden');
     } catch (e) {
@@ -451,6 +476,7 @@ window.drop = async (e, novoStatus) => {
                 status: novoStatus,
                 updatedAt: serverTimestamp()
             });
+            window.registrarLogAtividade("Moveu tarefa no Kanban", `Moveu para: ${novoStatus}`);
         } catch (error) {
             console.error(error);
             alert("Erro de conexão ao mover a tarefa.");
@@ -1202,11 +1228,13 @@ async function saveNote() {
     try {
         if (id) {
             await updateDoc(doc(db, "anotacoes_pessoais", id), payload);
+            window.registrarLogAtividade("Editou anotação", `Título: ${titulo}`); // <-- INSIRA AQUI
         } else {
             payload.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(db, "anotacoes_pessoais"), payload);
             activeNoteId = docRef.id;
             els.noteActiveId.value = activeNoteId;
+            window.registrarLogAtividade("Criou anotação", `Título: ${titulo}`); // <-- INSIRA AQUI
         }
 
         // Efeito de Botão Salvo
@@ -1237,6 +1265,7 @@ async function deleteActiveNote() {
                 await updateDoc(doc(db, "anotacoes_pessoais", id), {
                     [`statusDestinatarios.${currentUser.uid}`]: 'Recusado'
                 });
+                window.registrarLogAtividade("Recusou anotação", "Removeu a nota recebida do caderno.");
                 activeNoteId = null;
                 showEmptyNoteState();
             } catch (e) {
@@ -1250,6 +1279,7 @@ async function deleteActiveNote() {
         if (confirm("Deseja apagar esta anotação permanentemente? Ela sumirá também para todos com quem compartilhou.")) {
             try {
                 await deleteDoc(doc(db, "anotacoes_pessoais", id));
+                window.registrarLogAtividade("Excluiu anotação", "Apagou permanentemente uma nota do caderno.");
                 activeNoteId = null;
                 showEmptyNoteState();
             } catch (e) {
@@ -1430,6 +1460,7 @@ window.toggleShareNote = async (targetUid) => {
             // O Firestore lida com a concorrência atômica
             sharedWithUserIds: isShared ? arrayRemove(targetUid) : arrayUnion(targetUid) 
         });
+        window.registrarLogAtividade(isShared ? "Removeu acesso de colega" : "Compartilhou anotação", `Ação com UID do colega: ${targetUid}`);
         // Atualiza a UI dinamicamente
         window.renderShareResults(document.getElementById('al-share-search').value);
     } catch (e) {
@@ -1775,6 +1806,7 @@ window.atualizarStatusNota = async (id, status) => {
         await updateDoc(doc(db, "anotacoes_pessoais", id), {
             [`statusDestinatarios.${currentUser.uid}`]: status
         });
+        window.registrarLogAtividade(status === 'Enviado' ? "Aceitou anotação recebida" : "Recusou anotação recebida", `Status: ${status}`);
         if (status === 'Enviado') alert("Nota aceita! Ela agora aparece em suas 'Recebidas'.");
         window.mostrarCentralAprovacao();
     } catch (e) { console.error(e); }
@@ -1802,6 +1834,7 @@ window.executarEnvioMassa = async () => {
             statusDestinatarios: statusMap,
             userName: currentUser.nome // Salva seu nome para o destinatário ver
         });
+        window.registrarLogAtividade("Compartilhou anotação em massa", `Enviou para a turma: ${turma}`);
 
         alert(`Nota compartilhada com a turma ${turma}!`);
         window.closeShareModal();
@@ -1888,6 +1921,8 @@ async function loadAvaliacoes360() {
                 </p>
             </div>`;
         }).join('');
+
+        window.registrarLogAtividade("Visualizou Avaliação 360", "Acompanhou seu painel de evolução contínua.");
 
     } catch (error) {
         console.error("Erro ao carregar Avaliações 360:", error);

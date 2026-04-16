@@ -1762,6 +1762,8 @@
                     <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-red-400 hover:bg-red-900/40 hover:text-red-300 rounded-lg transition-colors whitespace-nowrap border border-red-900/30"
                         data-target="reset"><i class="fas fa-radiation mr-1"></i> Reset Anual</button>
+                    <button 
+                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="logs"><i class="fas fa-history mr-1"></i> Logs do Aluno</button>
 
 
                 </div>
@@ -2162,6 +2164,37 @@
                                 <button onclick="window.profAPI.closeModalAval360()" class="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancelar</button>
                                 <button onclick="window.profAPI.saveAvaliacao360()" class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">Salvar Avaliação</button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="ptab-logs" class="prof-tab-content hidden h-full fade-in flex-col">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
+                        <div>
+                            <h2 class="text-lg text-emerald-500 font-cinzel font-bold mb-1"><i class="fas fa-shoe-prints mr-2"></i> Trilha de Atividades (Logs)</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe as ações recentes do aluno selecionado no Menu Master.</p>
+                        </div>
+                        <button onclick="window.profAPI.loadLogsAluno()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all">
+                            <i class="fas fa-sync-alt mr-2"></i> Atualizar Logs
+                        </button>
+                    </div>
+
+                    <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl">
+                        <div class="relative overflow-x-auto">
+                            <table class="w-full text-sm text-left text-slate-400">
+                                <thead class="text-[10px] text-slate-300 uppercase tracking-widest bg-slate-800/80 sticky top-0">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-4 rounded-tl-xl">Data / Hora</th>
+                                        <th scope="col" class="px-6 py-4">Ação Realizada</th>
+                                        <th scope="col" class="px-6 py-4 rounded-tr-xl">Detalhes Extras</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-list-body" class="divide-y divide-slate-700/50">
+                                    <tr>
+                                        <td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) e clique em Atualizar Logs.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

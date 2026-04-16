@@ -107,6 +107,7 @@ export async function renderProfessorTab() {
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
+    addSafeListener('logs', () => window.profAPI.loadLogsAluno());
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
     if(els.evalSelectAv) {
@@ -361,6 +362,9 @@ function mapearDOM() {
         massExt2: document.getElementById('check-mass-ext2'),
         massExt3: document.getElementById('check-mass-ext3'),
         massExt4: document.getElementById('check-mass-ext4'),
+
+        // Logs
+        logsBody: document.getElementById('logs-list-body'),
     };
 }
 
@@ -3707,6 +3711,67 @@ window.profAPI = {
             } catch (e) {
                 console.error("Erro ao excluir:", e);
                 alert("Erro ao excluir avaliação.");
+            }
+        }
+    },
+
+    // ==========================================
+    // MÓDULO: LOGS DE USUÁRIO
+    // ==========================================
+    loadLogsAluno: async () => {
+        // Reutiliza o select do aluno do Menu Master que já criamos antes!
+        const studentId = els.masterStudentSel ? els.masterStudentSel.value : null;
+        
+        if (!studentId) {
+            if(els.logsBody) els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no Menu Master (topo da página) para carregar os logs.</td></tr>';
+            return;
+        }
+
+        els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-blue-400"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando histórico de ações...</td></tr>';
+
+        try {
+            // Busca os últimos 50 logs desse aluno específico
+            const q = query(
+                collection(db, "logs_usuarios"),
+                where("uid", "==", studentId),
+                orderBy("timestamp", "desc"),
+                limit(50)
+            );
+            
+            const snap = await getDocs(q);
+            
+            if (snap.empty) {
+                els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Nenhuma atividade registrada para este aluno.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            snap.forEach(doc => {
+                const data = doc.data();
+                const dataFormatada = data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleString('pt-BR') : 'Sem data';
+                
+                html += `
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs text-blue-300 whitespace-nowrap">${dataFormatada}</td>
+                        <td class="px-6 py-4 font-bold text-white">${data.acao}</td>
+                        <td class="px-6 py-4 text-xs text-slate-400">${data.detalhes || '-'}</td>
+                    </tr>
+                `;
+            });
+
+            els.logsBody.innerHTML = html;
+
+        } catch (error) {
+            console.error("Erro ao buscar logs:", error);
+            
+            // Tratamento especial para o erro de Index do Firebase
+            if(error.message.includes("index")) {
+                els.logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> O Firebase exige a criação de um "Índice" para ordenar os logs.<br>
+                    Abra o console (F12), clique no link azul que o Firebase gerou lá no erro e crie o índice!
+                </td></tr>`;
+            } else {
+                els.logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
             }
         }
     }
