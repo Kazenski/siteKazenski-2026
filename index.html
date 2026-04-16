@@ -2099,7 +2099,25 @@
 
                 </div>
 
-                <div id="modal-aval360" class="fixed inset-0 bg-black/80 z-[2000] hidden items-center justify-center p-4 fade-in">
+                <div id="ptab-aval360" class="prof-tab-content hidden h-full fade-in flex-col">
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
+                        <div>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-sync-alt mr-2"></i> Avaliação 360 Contínua</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe a evolução técnica e comportamental dos alunos.</p>
+                        </div>
+                        <button onclick="window.profAPI.openModalAval360()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                            <i class="fas fa-plus mr-2"></i> Novo Registro 360
+                        </button>
+                    </div>
+
+                    <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6">
+                        <div id="aval360-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div class="text-slate-500 text-sm italic col-span-full">Selecione uma turma no Menu Master para carregar as avaliações.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modal-aval360" class="fixed inset-0 bg-black/80 z-[2000] hidden flex items-center justify-center p-4 fade-in">
                     <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         
                         <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 shrink-0">
@@ -2147,7 +2165,6 @@
                         </div>
                     </div>
                 </div>
-
 
                 <div id="ptab-anotacoes" class="prof-tab-content hidden h-full fade-in flex-col">
 
