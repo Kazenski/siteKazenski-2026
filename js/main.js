@@ -1,6 +1,6 @@
 import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc, collection, addDoc, serverTimestam } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
