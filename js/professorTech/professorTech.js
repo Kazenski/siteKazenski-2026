@@ -215,6 +215,7 @@ function mapearDOM() {
         btnRefreshAnotacoes: document.getElementById('btn-refresh-anotacoes'),
         anotacoesBody: document.getElementById('anotacoes-table-body'),
         anotacoesMsg: document.getElementById('anotacoes-msg'),
+
         // Modal Anotação
         anotacaoModal: document.getElementById('anotacao-modal'),
         anotacaoTitle: document.getElementById('anotacao-modal-title'),
@@ -515,7 +516,7 @@ async function loadMasterData() {
         renderChamadaList();
         renderNotasTable();
         renderExtrasTable();
-        window.profAPI.populateEvalStudents();
+        //window.profAPI.populateEvalStudents();
 
     } catch (e) {
         els.studentList.innerHTML = `<div class="text-center text-red-500 py-10 font-bold">${e.message}</div>`;
@@ -1076,232 +1077,6 @@ window.profAPI = {
         
         if (err > 0) alert(`Salvo, porém com ${err} erros.`); else alert("Pontos Extras salvos com Sucesso!");
         if(els.extrasMsg) els.extrasMsg.classList.add('hidden');
-    },
-
-    // ==========================================
-    // MÓDULO: AVALIAÇÃO 360
-    // ==========================================
-    populateEvalStudents: () => {
-        els.evalSelectAluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
-        state.cache.students.forEach(s => {
-            if(!evalState.selectedStudents.find(sel => sel.id === s.id)) {
-                els.evalSelectAluno.add(new Option(s.nome, s.id));
-            }
-        });
-    },
-
-    addEvalStudent: () => {
-        const id = els.evalSelectAluno.value;
-        if(!id) return;
-        const name = els.evalSelectAluno.options[els.evalSelectAluno.selectedIndex].text;
-        
-        if(evalState.selectedStudents.length >= 10) return alert("Máximo de 10 alunos por grupo de avaliação.");
-        
-        evalState.selectedStudents.push({ id, name });
-        window.profAPI.renderSelectedEvalStudents();
-        window.profAPI.populateEvalStudents(); // Atualiza a lista tirando o aluno adicionado
-        
-        if(evalState.selectedStudents.length === 1) {
-            els.evalForm.classList.remove('hidden');
-            window.profAPI.renderEvalTable(); 
-            window.profAPI.loadSavedEvalData(id); // Tenta carregar dados prévios se for edição individual
-        }
-    },
-
-    removeEvalStudent: (idx) => {
-        evalState.selectedStudents.splice(idx, 1);
-        window.profAPI.renderSelectedEvalStudents();
-        window.profAPI.populateEvalStudents(); // Devolve o aluno para a lista
-    },
-
-    renderSelectedEvalStudents: () => {
-        els.evalSelectedList.innerHTML = '';
-        if(evalState.selectedStudents.length === 0) {
-            els.evalSelectedList.classList.add('hidden');
-            els.evalForm.classList.add('hidden');
-            return;
-        }
-        els.evalSelectedList.classList.remove('hidden');
-        
-        evalState.selectedStudents.forEach((s, idx) => {
-            els.evalSelectedList.insertAdjacentHTML('beforeend', `
-                <div class="bg-blue-600/20 text-blue-300 border border-blue-600/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2">
-                    <span class="truncate max-w-[150px]">${s.name}</span>
-                    <button onclick="window.profAPI.removeEvalStudent(${idx})" class="hover:text-red-400 transition-colors"><i class="fas fa-times"></i></button>
-                </div>
-            `);
-        });
-    },
-
-    renderEvalTable: () => {
-        els.evalBody.innerHTML = '';
-        for (const [eixo, quesitos] of Object.entries(QUESITOS_AVALIACAO)) {
-            els.evalBody.insertAdjacentHTML('beforeend', `<tr class="eval-eixo-row"><td colspan="2">${eixo}</td></tr>`);
-
-            quesitos.forEach(q => {
-                const data = evalState.scores[q.id] || { nota: 0, comentario: '' };
-                const hasComment = data.comentario && data.comentario.trim() !== '';
-                
-                els.evalBody.insertAdjacentHTML('beforeend', `
-                    <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="py-4 pr-4 w-1/2 md:w-2/5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-slate-300 font-medium text-xs">${q.label}</span>
-                                <button class="text-lg transition-colors ${hasComment ? 'text-amber-500' : 'text-slate-600 hover:text-white'}" 
-                                    onclick="window.profAPI.openEvalComment('${q.id}', '${q.label}')" title="Comentário do Quesito">
-                                    <i class="fas ${hasComment ? 'fa-comment-dots' : 'fa-comment'}"></i>
-                                </button>
-                            </div>
-                        </td>
-                        <td class="py-4 pl-4 border-l border-slate-700/50">
-                            <div class="flex items-center gap-4">
-                                <span class="font-mono text-lg font-black w-10 text-right ${data.nota > 6 ? 'text-green-400' : (data.nota == 6 ? 'text-amber-400' : 'text-red-400')}" id="val-${q.id}">${parseFloat(data.nota).toFixed(1)}</span>
-                                <input type="range" min="0" max="10" step="0.1" value="${data.nota}" class="eval-range flex-grow" oninput="window.profAPI.updateEvalScore('${q.id}', this.value)">
-                            </div>
-                        </td>
-                    </tr>
-                `);
-            });
-        }
-        window.profAPI.updateTotalEval();
-    },
-
-    updateEvalScore: (qid, val) => {
-        const el = document.getElementById(`val-${qid}`);
-        el.textContent = parseFloat(val).toFixed(1);
-        
-        // Atualiza cor em tempo real
-        el.className = `font-mono text-lg font-black w-10 text-right ${val > 6 ? 'text-green-400' : (val == 6 ? 'text-amber-400' : 'text-red-400')}`;
-        
-        if(!evalState.scores[qid]) evalState.scores[qid] = { nota: 0, comentario: '' };
-        evalState.scores[qid].nota = val;
-        window.profAPI.updateTotalEval();
-    },
-
-    updateTotalEval: () => {
-        let sum = 0, count = 0;
-        Object.values(QUESITOS_AVALIACAO).flat().forEach(q => {
-            const val = evalState.scores[q.id]?.nota || 0;
-            sum += parseFloat(val);
-            count++;
-        });
-        const media = count > 0 ? (sum / count).toFixed(2) : "0.00";
-        els.evalTotal.textContent = media;
-        els.evalTotal.className = `text-3xl font-black ${media >= 7 ? 'text-green-400' : (media >= 6 ? 'text-amber-400' : 'text-red-500')}`;
-    },
-
-    openEvalComment: (qid, label) => {
-        evalState.currentQuesitoId = qid;
-        els.evalModalTitle.textContent = label;
-        els.evalModalText.value = evalState.scores[qid]?.comentario || "";
-        els.evalModal.classList.remove('hidden');
-        els.evalModal.classList.add('flex');
-    },
-
-    closeEvalComment: () => {
-        els.evalModal.classList.remove('flex');
-        els.evalModal.classList.add('hidden');
-    },
-
-    saveEvalComment: () => {
-        const qid = evalState.currentQuesitoId;
-        const text = els.evalModalText.value;
-        if(!evalState.scores[qid]) evalState.scores[qid] = { nota: 0 };
-        evalState.scores[qid].comentario = text;
-        window.profAPI.renderEvalTable(); // Re-renderiza para atualizar a cor do ícone
-        window.profAPI.closeEvalComment();
-    },
-
-    loadSavedEvalData: async (studentId) => {
-        const avaliacaoNome = els.evalSelectAv.value;
-        const { disciplineId } = state.filters;
-        if(!avaliacaoNome || !disciplineId) return;
-
-        try {
-            const docId = `${studentId}_${disciplineId}_${avaliacaoNome}`;
-            const snap = await getDoc(doc(db, "avaliacoes_detalhadas", docId));
-            if(snap.exists()) {
-                const data = snap.data();
-                evalState.scores = data.scores || {};
-                window.profAPI.renderEvalTable();
-            } else {
-                evalState.scores = {};
-                window.profAPI.renderEvalTable();
-            }
-        } catch(e) { console.error("Erro ao carregar dados salvos da 360", e); }
-    },
-
-    saveEval: async () => {
-        const avaliacaoNome = els.evalSelectAv.value;
-        const { classId, disciplineId } = state.filters;
-        
-        if(!avaliacaoNome) return alert("Selecione no topo da aba qual o período (N1, N2, etc.) que está avaliando.");
-        if(evalState.selectedStudents.length === 0) return alert("Adicione alunos à avaliação.");
-
-        els.evalMsg.textContent = "Processando salvamento no Firebase...";
-        els.evalMsg.className = "text-[10px] font-bold uppercase tracking-widest text-amber-400 block";
-        document.getElementById('btn-save-eval').disabled = true;
-
-        try {
-            const mediaFinal = parseFloat(els.evalTotal.textContent);
-            const batch = writeBatch(db);
-
-            const evalPayload = {
-                avaliacao: avaliacaoNome,
-                turma: classId,
-                disciplina: disciplineId,
-                avaliador: auth.currentUser.email,
-                data: serverTimestamp(),
-                media: mediaFinal,
-                scores: evalState.scores 
-            };
-
-            // Salva na coleção detalhada e lança a nota oficial no sistema de Pautas
-            evalState.selectedStudents.forEach(st => {
-                // 1. Salva Avaliação Detalhada (A ficha completa com observações)
-                const docId = `${st.id}_${disciplineId}_${avaliacaoNome}`;
-                batch.set(doc(db, "avaliacoes_detalhadas", docId), {
-                    ...evalPayload, alunoId: st.id, alunoNome: st.name
-                }, { merge: true });
-
-                // 2. Atualiza a Pauta de Notas (N1, N2...)
-                const numeroNotaStr = avaliacaoNome.replace('N', ''); // 'N1' -> '1'
-                const notaKey = `nota${numeroNotaStr}`; // 'nota1'
-                const payloadPauta = {
-                    disciplinasComNotas: {
-                        [disciplineId]: {
-                            [state.filters.quarter]: {
-                                [notaKey]: mediaFinal,
-                                updatedAt: Date.now()
-                            }
-                        }
-                    },
-                    lastUpdatedAt: serverTimestamp()
-                };
-                batch.set(doc(db, "notas", st.id), payloadPauta, { merge: true });
-            });
-
-            await batch.commit();
-
-            els.evalMsg.textContent = "Avaliação oficializada com sucesso!";
-            els.evalMsg.classList.replace('text-amber-400', 'text-green-400');
-            setTimeout(() => { els.evalMsg.classList.add('hidden'); }, 3000);
-
-            // Obrigatório esvaziar a lista e a memória para a próxima avaliação funcionar
-            evalState.selectedStudents = [];
-            evalState.scores = {};
-            window.profAPI.renderSelectedEvalStudents();
-            els.evalForm.classList.add('hidden');
-            window.profAPI.populateEvalStudents(); // Devolve os alunos pro select
-            els.evalTotal.textContent = "0.00";
-
-        } catch(e) {
-            console.error(e);
-            els.evalMsg.textContent = "Erro: " + e.message;
-            els.evalMsg.classList.replace('text-amber-400', 'text-red-500');
-        } finally {
-            document.getElementById('btn-save-eval').disabled = false;
-        }
     },
 
     // ==========================================
@@ -3921,6 +3696,6 @@ window.profAPI = {
                 alert("Erro ao excluir avaliação.");
             }
         }
-    }
+    },
 
 };
