@@ -1,6 +1,6 @@
 import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, addDoc, serverTimestam } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
@@ -394,7 +394,20 @@ function renderLoginTab() {
 
         try {
             // Tenta autenticar
-            await signInWithEmailAndPassword(auth, email, pass);
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            
+            // LOG DE LOGIN: Busca os dados básicos e grava na auditoria
+            const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+            if(userDoc.exists()) {
+                 await addDoc(collection(db, "logs_usuarios"), {
+                    uid: userCredential.user.uid,
+                    nome: userDoc.data().nome || "Usuário",
+                    turma: userDoc.data().turma || "Sem Turma",
+                    acao: "Realizou Login",
+                    detalhes: "Acessou o portal com email e senha.",
+                    timestamp: serverTimestamp()
+                 });
+            }
             
             window.showTab('inicio');
             
@@ -422,12 +435,26 @@ function renderLoginTab() {
 window.logout = async function(isAuto = false) {
     const msg = isAuto ? "Sua sessão expirou por inatividade. Faça login novamente." : "Deseja sair?";
     
-    // Se for automático (isAuto), desloga direto. Se for manual, mostra o confirm.
     if (isAuto === true || confirm(msg)) {
         try {
+            // LOG DE LOGOUT: Grava antes de destruir a sessão
+            if (auth.currentUser) {
+                const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                if(userDoc.exists()) {
+                     await addDoc(collection(db, "logs_usuarios"), {
+                        uid: auth.currentUser.uid,
+                        nome: userDoc.data().nome || "Usuário",
+                        turma: userDoc.data().turma || "Sem Turma",
+                        acao: isAuto ? "Logout Automático" : "Realizou Logout",
+                        detalhes: isAuto ? "Sessão expirada por inatividade." : "Saiu do portal manualmente.",
+                        timestamp: serverTimestamp()
+                     });
+                }
+            }
+
             localStorage.setItem('kazenski_active_tab', 'inicio'); 
             await signOut(auth);
-            if(isAuto === true) alert(msg); // Avisa o usuário que ele caiu
+            if(isAuto === true) alert(msg);
             window.showTab('inicio');
         } catch (error) {
             if(isAuto !== true) alert("Erro: " + error.message);

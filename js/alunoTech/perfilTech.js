@@ -257,18 +257,30 @@ function toggleTitleSelect() {
 
 async function saveTitle(val) {
     const titles = { ...currentUser.titulosConquistados };
-    Object.keys(titles).forEach(k => titles[k].tituloAtivadoUser = (k === val));
+    let tituloAntigo = "Aspirante";
+    let tituloNovo = "Aspirante";
+
+    Object.keys(titles).forEach(k => {
+        if (titles[k].tituloAtivadoUser) tituloAntigo = titles[k].nome; // Captura o atual
+        titles[k].tituloAtivadoUser = (k === val);
+        if (k === val) tituloNovo = titles[k].nome; // Captura o selecionado
+    });
+
     await updateDoc(doc(db, "users", currentUser.uid), { titulosConquistados: titles });
     currentUser.titulosConquistados = titles;
     els.selTitle.classList.add('hidden');
     els.badgeTitle.classList.remove('hidden');
     renderBanner();
+
+    // RASTREIO DE AUDITORIA
+    window.registrarLogAtividade("Alterou o Título (Badge)", `De: ${tituloAntigo} | Para: ${tituloNovo}`);
 }
 
 async function saveBorderColor(val) {
     els.imgProfile.style.borderColor = val;
     els.imgProfile.style.boxShadow = `0 0 20px ${val}`;
     await updateDoc(doc(db, "users", currentUser.uid), { profileBorderColor: val });
+    window.registrarLogAtividade("Alterou a Cor de Contorno", `Nova cor escolhida: ${val}`);
 }
 
 function handleUpload(input, type) {
@@ -1714,6 +1726,9 @@ async function uploadImage(fileOrBlob, type) {
     currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
     renderBanner();
     els.loading.classList.add('hidden');
+    
+    const acao = type === 'profile' ? "Alterou a Foto de Perfil" : "Alterou a Capa do Banner";
+    window.registrarLogAtividade(acao, "Fez upload de uma nova imagem com sucesso.");
 }
 
 export async function monitorarAuraGlobal(uid) {
