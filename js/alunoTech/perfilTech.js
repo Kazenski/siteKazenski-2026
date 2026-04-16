@@ -1304,7 +1304,7 @@ window.selectColor = (c) => {
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
 const originalOpenShare = window.openShareModal;
 
-window.openShareModal = async () => {
+window.owindow.openShareModal = async () => {
     const noteId = els.noteActiveId.value;
     if (!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
 
@@ -1328,9 +1328,33 @@ window.openShareModal = async () => {
         panel.classList.remove('flex');
     }
 
-    // Segue o fluxo normal de busca de usuários individuais
     const resultsContainer = document.getElementById('al-share-results');
-    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Pronto para buscar.</div>';
+    resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Carregando alunos...</div>';
+
+    try {
+        let usersQuery;
+        if (isStaff) {
+            // Professores carregam todos
+            usersQuery = collection(db, "users");
+        } else {
+            // Alunos carregam APENAS os colegas da própria turma para evitar erro de permissão
+            usersQuery = query(collection(db, "users"), where("turma", "==", currentUser.turma));
+        }
+
+        const snapAlunos = await getDocs(usersQuery);
+        usersCacheForShare = []; // Limpa cache antigo
+        
+        snapAlunos.forEach(d => {
+            if (d.id !== currentUser.uid) { // Não mostra o próprio usuário na lista
+                usersCacheForShare.push({ uid: d.id, ...d.data() });
+            }
+        });
+
+        resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6 text-sm">Pronto! Digite o nome do colega na barra acima.</div>';
+    } catch (e) {
+        console.error("Erro ao buscar alunos:", e);
+        resultsContainer.innerHTML = '<div class="text-red-500 text-center py-6 text-sm">Erro de permissão no Firebase ao carregar alunos.</div>';
+    }
 };
 
 window.closeShareModal = () => {
