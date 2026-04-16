@@ -1339,7 +1339,7 @@ window.openShareModal = async () => {
         const snap = await getDocs(collection(db, "turmasCadastradas"));
         let options = '<option value="">Selecione a Turma...</option>';
         snap.forEach(d => {
-            options += `<option value="${d.id}">${d.data().nomeTurma || d.id}</option>`;
+            options += `<option value="${d.id}">${d.data().nomeExibicao || d.id}</option>`;
         });
         document.getElementById('sel-share-turma').innerHTML = options;
     } else {
