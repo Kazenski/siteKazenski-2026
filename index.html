@@ -2074,68 +2074,69 @@
                     </div>
 
                     <div id="ptab-aval360" class="prof-tab-content hidden h-full fade-in flex-col">
-
-                        <div
-                            class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    
+                        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
                             <div>
-                                <h2 class="text-lg text-amber-500 font-cinzel font-bold"><i
-                                        class="fas fa-star mr-2"></i> Avaliação 360°</h2>
-                                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avaliação
-                                    Qualitativa e Competências</p>
+                                <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-sync-alt mr-2"></i> Avaliação 360 Contínua</h2>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe a evolução técnica e comportamental dos alunos.</p>
                             </div>
-                            <select id="eval-select-avaliacao"
-                                class="bg-slate-900 border border-slate-700 text-white text-xs font-bold tracking-widest uppercase rounded-lg p-3 outline-none focus:border-amber-500 w-full md:w-64 shadow-inner">
-                                <option value="">-- Selecione o Período --</option>
-                                <option value="N1">N1 - Avaliação 1</option>
-                                <option value="N2">N2 - Avaliação 2</option>
-                                <option value="N3">N3 - Avaliação 3</option>
-                                <option value="N4">N4 - Avaliação 4</option>
-                            </select>
+                            <button onclick="window.profAPI.openModalAval360()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                                <i class="fas fa-plus mr-2"></i> Novo Registro 360
+                            </button>
                         </div>
 
-                        <div class="bg-slate-900/50 rounded-2xl border border-slate-700 p-6 mb-6 shrink-0 shadow-xl">
-                            <label
-                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Adicionar
-                                Alunos à Avaliação (Máx 10)</label>
-                            <div class="flex gap-2 mb-4">
-                                <select id="eval-select-aluno"
-                                    class="bg-slate-800 border border-slate-700 text-white text-xs rounded-lg p-3 outline-none focus:border-amber-500 flex-grow">
-                                    <option value="">Carregue a turma no topo primeiro...</option>
-                                </select>
-                                <button onclick="window.profAPI.addEvalStudent()"
-                                    class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-lg shadow-lg transition-transform hover:scale-105"><i
-                                        class="fas fa-plus mr-1"></i> Adicionar</button>
-                            </div>
-                            <div id="eval-selected-list"
-                                class="hidden flex flex-wrap gap-2 p-4 bg-slate-950/50 rounded-xl border border-slate-800 border-dashed min-h-[60px]">
+                        <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6">
+                            <div id="aval360-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="text-slate-500 text-sm italic col-span-full">Selecione uma turma no Menu Master para carregar as avaliações.</div>
                             </div>
                         </div>
+                    </div>
 
-                        <div id="eval-form-container"
-                            class="hidden flex-grow flex flex-col bg-slate-800 rounded-2xl border border-slate-700 shadow-xl overflow-hidden relative">
-                            <div
-                                class="p-6 border-b border-slate-700 flex justify-between items-end bg-slate-800/80 sticky top-0 z-10">
-                                <h3 class="text-white font-cinzel font-bold text-lg">Formulário de Critérios</h3>
-                                <div class="text-right">
-                                    <span
-                                        class="text-[10px] text-slate-400 uppercase tracking-widest block font-bold mb-1">Nota
-                                        Final Calculada</span>
-                                    <span id="eval-total-score" class="text-3xl font-black text-green-400">0.00</span>
+                    <div id="modal-aval360" class="fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4 fade-in">
+                        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            
+                            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 shrink-0">
+                                <h3 class="text-amber-500 font-cinzel font-bold text-lg"><i class="fas fa-sync-alt mr-2"></i> <span id="aval360-modal-title">Nova Avaliação 360</span></h3>
+                                <button onclick="window.profAPI.closeModalAval360()" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+                            </div>
+
+                            <div class="p-6 overflow-y-auto custom-scroll flex-grow">
+                                <input type="hidden" id="aval360-id">
+                                
+                                <div class="mb-5">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Aluno Avaliado</label>
+                                    <select id="aval360-aluno" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                        <option value="">Selecione um aluno da turma...</option>
+                                        </select>
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Quesito / Competência</label>
+                                    <input type="text" id="aval360-quesito" placeholder="Ex: Trabalho em Equipe, Lógica de Programação, etc." class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                </div>
+
+                                <div class="mb-5">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status de Evolução</label>
+                                    <select id="aval360-status" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                        <option value="Identificado">🔴 Identificado</option>
+                                        <option value="Em evolução">🟡 Em evolução</option>
+                                        <option value="Crescimento">🔵 Crescimento</option>
+                                        <option value="Alcançado">🟢 Alcançado</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Texto Explicativo / Parecer</label>
+                                    <textarea id="aval360-texto" rows="5" placeholder="Descreva a situação atual do aluno em relação ao quesito..." class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors custom-scroll"></textarea>
                                 </div>
                             </div>
 
-                            <div class="flex-grow overflow-y-auto custom-scroll p-6">
-                                <table class="w-full text-sm border-collapse">
-                                    <tbody id="eval-table-body" class="divide-y divide-slate-700/50"></tbody>
-                                </table>
-                            </div>
-
-                            <div
-                                class="p-6 border-t border-slate-700 bg-slate-900/50 flex justify-end shrink-0 items-center gap-4">
-                                <p id="eval-msg" class="text-[10px] font-bold uppercase tracking-widest hidden"></p>
-                                <button onclick="window.profAPI.saveEval()" id="btn-save-eval"
-                                    class="bg-green-600 hover:bg-green-500 text-white font-black text-sm uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all"><i
-                                        class="fas fa-save mr-2"></i> Salvar Avaliação Oficial</button>
+                            <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between shrink-0 items-center">
+                                <button id="btn-delete-aval360" onclick="window.profAPI.deleteAvaliacao360()" class="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest hidden"><i class="fas fa-trash mr-1"></i> Excluir</button>
+                                <div class="flex-grow flex justify-end gap-3">
+                                    <button onclick="window.profAPI.closeModalAval360()" class="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancelar</button>
+                                    <button onclick="window.profAPI.saveAvaliacao360()" class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">Salvar Avaliação</button>
+                                </div>
                             </div>
                         </div>
                     </div>

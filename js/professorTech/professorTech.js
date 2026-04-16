@@ -106,6 +106,7 @@ export async function renderProfessorTab() {
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
+    addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
     if(els.evalSelectAv) {
@@ -200,16 +201,14 @@ function mapearDOM() {
         pdfMsg: document.getElementById('pdf-msg'),
 
         // Avaliação 360
-        evalSelectAv: document.getElementById('eval-select-avaliacao'),
-        evalSelectAluno: document.getElementById('eval-select-aluno'),
-        evalSelectedList: document.getElementById('eval-selected-list'),
-        evalForm: document.getElementById('eval-form-container'),
-        evalBody: document.getElementById('eval-table-body'),
-        evalTotal: document.getElementById('eval-total-score'),
-        evalMsg: document.getElementById('eval-msg'),
-        evalModal: document.getElementById('eval-comment-modal'),
-        evalModalTitle: document.getElementById('modal-quesito-title'),
-        evalModalText: document.getElementById('eval-comment-text'),
+        aval360List: document.getElementById('aval360-list-container'),
+        modalAval360: document.getElementById('modal-aval360'),
+        aval360Id: document.getElementById('aval360-id'),
+        aval360Aluno: document.getElementById('aval360-aluno'),
+        aval360Quesito: document.getElementById('aval360-quesito'),
+        aval360Status: document.getElementById('aval360-status'),
+        aval360Texto: document.getElementById('aval360-texto'),
+        btnDelAval360: document.getElementById('btn-delete-aval360'),
 
         // Anotações Conselho
         anotacaoFilter: document.getElementById('anotacao-filter-aluno'),
@@ -3756,6 +3755,171 @@ window.profAPI = {
             els.btnStartReset.disabled = false;
             els.btnStartReset.classList.remove('opacity-50', 'cursor-not-allowed');
             els.btnStartReset.innerHTML = '<i class="fas fa-radiation mr-2 text-lg"></i> Iniciar Processo de Reset';
+        }
+    },
+
+    // ==========================================
+    // MÓDULO: AVALIAÇÃO 360 CONTÍNUA
+    // ==========================================
+    
+    // Variável interna para guardar a lista carregada
+    cacheAvaliacoes360: [],
+
+    loadAvaliacoes360: async () => {
+        const { classId, disciplineId } = state.filters;
+        if (!classId || !disciplineId) {
+            els.aval360List.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Selecione Turma e Disciplina no Menu Master para carregar.</div>';
+            return;
+        }
+
+        els.aval360List.innerHTML = '<div class="text-blue-400 text-sm col-span-full text-center py-10"><i class="fas fa-spinner fa-spin mr-2"></i> Carregando avaliações...</div>';
+
+        try {
+            const q = query(
+                collection(db, "avaliacoes_360"), 
+                where("turmaId", "==", classId),
+                where("disciplinaId", "==", disciplineId)
+            );
+            
+            const snap = await getDocs(q);
+            window.profAPI.cacheAvaliacoes360 = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            
+            window.profAPI.renderAvaliacoes360List();
+        } catch (e) {
+            console.error("Erro ao buscar avaliações 360:", e);
+            els.aval360List.innerHTML = `<div class="text-red-500 text-sm col-span-full text-center py-10">Erro ao carregar dados: ${e.message}</div>`;
+        }
+    },
+
+    renderAvaliacoes360List: () => {
+        if (window.profAPI.cacheAvaliacoes360.length === 0) {
+            els.aval360List.innerHTML = '<div class="text-slate-500 text-sm italic col-span-full text-center py-10">Nenhuma avaliação cadastrada para esta turma.</div>';
+            return;
+        }
+
+        const coresStatus = {
+            'Identificado': 'bg-red-500/20 text-red-400 border-red-500/30',
+            'Em evolução': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+            'Crescimento': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            'Alcançado': 'bg-green-500/20 text-green-400 border-green-500/30'
+        };
+
+        const iconesStatus = {
+            'Identificado': 'fa-exclamation-circle',
+            'Em evolução': 'fa-arrow-up',
+            'Crescimento': 'fa-chart-line',
+            'Alcançado': 'fa-check-circle'
+        };
+
+        els.aval360List.innerHTML = window.profAPI.cacheAvaliacoes360.map(av => `
+            <div onclick="window.profAPI.openModalAval360('${av.id}')" class="bg-slate-800 border border-slate-700 rounded-xl p-5 cursor-pointer hover:-translate-y-1 hover:border-blue-500 transition-all flex flex-col h-full shadow-md group">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-widest truncate pr-2"><i class="fas fa-user text-blue-500 mr-1"></i> ${av.alunoNome}</div>
+                    <span class="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border whitespace-nowrap ${coresStatus[av.status] || coresStatus['Identificado']}"><i class="fas ${iconesStatus[av.status] || iconesStatus['Identificado']} mr-1"></i> ${av.status}</span>
+                </div>
+                <h4 class="text-white font-bold text-sm mb-2">${av.quesito}</h4>
+                <p class="text-slate-500 text-xs line-clamp-3 leading-relaxed flex-grow">${av.textoExplicativo}</p>
+                <div class="text-right mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">Atualizar <i class="fas fa-arrow-right ml-1"></i></span>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    openModalAval360: (id = null) => {
+        const { classId } = state.filters;
+        if (!classId) return alert("Selecione uma Turma no Menu Master primeiro!");
+
+        // Popula o select de alunos com a turma atual carregada no state
+        els.aval360Aluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
+        state.cache.students.forEach(st => els.aval360Aluno.add(new Option(st.nome, st.id)));
+
+        if (id) {
+            // Edição
+            const av = window.profAPI.cacheAvaliacoes360.find(x => x.id === id);
+            if (!av) return;
+
+            document.getElementById('aval360-modal-title').textContent = "Atualizar Evolução do Aluno";
+            els.aval360Id.value = av.id;
+            els.aval360Aluno.value = av.alunoId;
+            els.aval360Quesito.value = av.quesito;
+            els.aval360Status.value = av.status;
+            els.aval360Texto.value = av.textoExplicativo;
+            
+            els.btnDelAval360.classList.remove('hidden');
+        } else {
+            // Novo
+            document.getElementById('aval360-modal-title').textContent = "Nova Avaliação 360";
+            els.aval360Id.value = '';
+            els.aval360Aluno.value = '';
+            els.aval360Quesito.value = '';
+            els.aval360Status.value = 'Identificado'; // Default
+            els.aval360Texto.value = '';
+            
+            els.btnDelAval360.classList.add('hidden');
+        }
+
+        els.modalAval360.classList.remove('hidden');
+    },
+
+    closeModalAval360: () => {
+        els.modalAval360.classList.add('hidden');
+    },
+
+    saveAvaliacao360: async () => {
+        const { classId, disciplineId } = state.filters;
+        
+        const id = els.aval360Id.value;
+        const alunoId = els.aval360Aluno.value;
+        const quesito = els.aval360Quesito.value.trim();
+        const status = els.aval360Status.value;
+        const texto = els.aval360Texto.value.trim();
+
+        if (!alunoId || !quesito || !texto) return alert("Preencha o Aluno, o Quesito e o Parecer descritivo.");
+
+        const alunoNome = els.aval360Aluno.options[els.aval360Aluno.selectedIndex].text;
+
+        const payload = {
+            alunoId,
+            alunoNome,
+            turmaId: classId,
+            disciplinaId: disciplineId,
+            professorUid: auth.currentUser.uid,
+            quesito,
+            status,
+            textoExplicativo: texto,
+            dataAtualizacao: serverTimestamp()
+        };
+
+        try {
+            if (id) {
+                await updateDoc(doc(db, "avaliacoes_360", id), payload);
+            } else {
+                payload.dataCriacao = serverTimestamp();
+                await addDoc(collection(db, "avaliacoes_360"), payload);
+            }
+            
+            window.profAPI.closeModalAval360();
+            window.profAPI.loadAvaliacoes360(); // Recarrega a lista para mostrar a atualização
+        } catch (e) {
+            console.error("Erro ao salvar:", e);
+            alert("Erro ao salvar avaliação.");
+        }
+    },
+
+    deleteAvaliacao360: async () => {
+        const id = els.aval360Id.value;
+        if (!id) return;
+
+        if (confirm("Deseja realmente apagar este registro de avaliação?")) {
+            try {
+                await deleteDoc(doc(db, "avaliacoes_360", id));
+                window.profAPI.closeModalAval360();
+                window.profAPI.loadAvaliacoes360();
+            } catch (e) {
+                console.error("Erro ao excluir:", e);
+                alert("Erro ao excluir avaliação.");
+            }
         }
     }
 
