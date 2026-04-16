@@ -1,5 +1,5 @@
 import { app, db, auth } from '../core/firebase.js';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, orderBy, limit, serverTimestamp, Timestamp, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { escapeHTML } from '../core/utils.js';
 window.profAPI = window.profAPI || {};
