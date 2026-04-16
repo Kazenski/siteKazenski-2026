@@ -158,6 +158,7 @@ async function initDashboard(user) {
     loadAvisos();
     await loadBoletimAndMetrics();
     loadFrequencia();
+    loadAvaliacoes360();
     initNotebookSystem();
     initKanbanSystem();
     loadHorarioEscolar();
@@ -1806,3 +1807,91 @@ window.executarEnvioMassa = async () => {
         window.closeShareModal();
     } catch (e) { alert("Erro: " + e.message); }
 };
+
+// ============================================================================
+// LÓGICA DA AVALIAÇÃO 360 CONTÍNUA (VISÃO DO ALUNO)
+// ============================================================================
+async function loadAvaliacoes360() {
+    const container = document.getElementById('al-eval-360-content');
+    if (!container) return;
+
+    // Estado de carregamento
+    container.className = "space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px] w-full";
+    container.innerHTML = '<div class="text-center text-blue-400 py-10"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando evolução...</div>';
+
+    try {
+        // Busca apenas as avaliações deste aluno específico
+        const q = query(
+            collection(db, "avaliacoes_360"), 
+            where("alunoId", "==", currentUser.uid)
+        );
+        
+        const snap = await getDocs(q);
+        
+        if (snap.empty) {
+            // Volta pro layout centralizado se estiver vazio
+            container.className = "bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center";
+            container.innerHTML = 'Nenhuma avaliação 360 registrada no momento.';
+            return;
+        }
+
+        const avaliacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Ordena localmente da mais recente para a mais antiga
+        avaliacoes.sort((a, b) => {
+            const timeA = (a.dataAtualizacao || a.dataCriacao)?.toMillis() || 0;
+            const timeB = (b.dataAtualizacao || b.dataCriacao)?.toMillis() || 0;
+            return timeB - timeA;
+        });
+
+        // Dicionário visual idêntico ao do Professor
+        const coresStatus = {
+            'Identificado': 'bg-red-500/20 text-red-400 border-red-500/30',
+            'Em evolução': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+            'Crescimento': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            'Alcançado': 'bg-green-500/20 text-green-400 border-green-500/30'
+        };
+
+        const iconesStatus = {
+            'Identificado': 'fa-exclamation-circle',
+            'Em evolução': 'fa-arrow-up',
+            'Crescimento': 'fa-chart-line',
+            'Alcançado': 'fa-check-circle'
+        };
+
+        // Renderiza os Cards
+        container.innerHTML = avaliacoes.map(av => {
+            // Mapeia o ID da disciplina para o Nome real (já carregado pelo sistema)
+            const nomeDisc = disciplineMap[av.disciplinaId] || av.disciplinaId;
+            const cor = coresStatus[av.status] || coresStatus['Identificado'];
+            const icone = iconesStatus[av.status] || iconesStatus['Identificado'];
+            
+            // Filtro contra injeção de HTML no texto do professor
+            const safeQuesito = escapeHTML(av.quesito || 'Competência');
+            const safeTexto = escapeHTML(av.textoExplicativo || '');
+
+            return `
+            <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-md flex flex-col gap-2 relative overflow-hidden group hover:border-slate-500 transition-colors">
+                <div class="flex justify-between items-start gap-3">
+                    <div class="flex-grow min-w-0">
+                        <h4 class="text-white font-bold text-sm truncate" title="${safeQuesito}">${safeQuesito}</h4>
+                        <div class="text-[10px] text-slate-500 font-bold uppercase tracking-widest truncate mt-0.5">
+                            <i class="fas fa-chalkboard text-blue-500 mr-1"></i> ${nomeDisc}
+                        </div>
+                    </div>
+                    <span class="shrink-0 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded border whitespace-nowrap ${cor}">
+                        <i class="fas ${icone} mr-1"></i> ${av.status}
+                    </span>
+                </div>
+                <p class="text-slate-400 text-xs mt-2 leading-relaxed line-clamp-3 group-hover:line-clamp-none transition-all duration-300">
+                    ${safeTexto}
+                </p>
+            </div>`;
+        }).join('');
+
+    } catch (error) {
+        console.error("Erro ao carregar Avaliações 360:", error);
+        container.className = "bg-slate-900/50 p-6 rounded-xl border border-red-900/50 text-center flex-grow flex items-center justify-center";
+        container.innerHTML = '<span class="text-red-500 text-sm"><i class="fas fa-wifi"></i> Erro de conexão ao carregar dados.</span>';
+    }
+}
