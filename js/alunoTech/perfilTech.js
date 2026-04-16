@@ -864,26 +864,45 @@ function initNotebookSystem() {
     if (notesUnsubscribe) return;
     renderColorPicker();
 
-    const q = query(
-        collection(db, "anotacoes_pessoais"),
-        or(
-            where("userId", "==", currentUser.uid),
-            where("sharedWithUserIds", "array-contains", currentUser.uid)
-        )
-    );
+    const qMeus = query(collection(db, "anotacoes_pessoais"), where("userId", "==", currentUser.uid));
+    const qRecebidos = query(collection(db, "anotacoes_pessoais"), where("sharedWithUserIds", "array-contains", currentUser.uid));
 
-    notesUnsubscribe = onSnapshot(q, (snapshot) => {
-        myNotes = [];
-        snapshot.forEach(doc => { myNotes.push({ id: doc.id, ...doc.data() }); });
+    let minhasNotas = [];
+    let notasRecebidas = [];
+
+    // Função que processa e unifica as notas mantendo sua lógica de ordenação
+    const processarNotas = () => {
+        const combinadas = [...minhasNotas, ...notasRecebidas];
+        const unicas = Array.from(new Map(combinadas.map(n => [n.id, n])).values());
+        
+        myNotes = unicas;
         myNotes.sort((a, b) => {
             const timeA = a.updatedAt?.toMillis() || Date.now();
             const timeB = b.updatedAt?.toMillis() || Date.now();
             return timeB - timeA;
         });
+        
         updateTagFilters();
         renderNotes();
         if (!activeNoteId) showEmptyNoteState();
+    };
+
+    // Ouvinte 1 (O que eu criei)
+    const unsubMeus = onSnapshot(qMeus, (snapshot) => {
+        minhasNotas = [];
+        snapshot.forEach(doc => minhasNotas.push({ id: doc.id, ...doc.data() }));
+        processarNotas();
     });
+
+    // Ouvinte 2 (O que compartilharam comigo)
+    const unsubRecebidos = onSnapshot(qRecebidos, (snapshot) => {
+        notasRecebidas = [];
+        snapshot.forEach(doc => notasRecebidas.push({ id: doc.id, ...doc.data() }));
+        processarNotas();
+    });
+
+    // Associa os dois canceladores à variável global para não duplicar ouvintes
+    notesUnsubscribe = () => { unsubMeus(); unsubRecebidos(); };
 
     els.noteSearch?.addEventListener('input', () => { renderNotes(); });
 
@@ -1304,7 +1323,7 @@ window.selectColor = (c) => {
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
 const originalOpenShare = window.openShareModal;
 
-window.owindow.openShareModal = async () => {
+window.openShareModal = async () => {
     const noteId = els.noteActiveId.value;
     if (!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
 
@@ -1330,14 +1349,14 @@ window.owindow.openShareModal = async () => {
 
     const resultsContainer = document.getElementById('al-share-results');
     resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Carregando alunos...</div>';
-
+    
     try {
         let usersQuery;
         if (isStaff) {
-            // Professores carregam todos
+            // Se for professor/gestão, baixa todo mundo
             usersQuery = collection(db, "users");
         } else {
-            // Alunos carregam APENAS os colegas da própria turma para evitar erro de permissão
+            // Se for aluno, baixa SÓ os alunos da mesma turma dele
             usersQuery = query(collection(db, "users"), where("turma", "==", currentUser.turma));
         }
 
@@ -1345,15 +1364,15 @@ window.owindow.openShareModal = async () => {
         usersCacheForShare = []; // Limpa cache antigo
         
         snapAlunos.forEach(d => {
-            if (d.id !== currentUser.uid) { // Não mostra o próprio usuário na lista
+            if (d.id !== currentUser.uid) { // Não mostra o próprio aluno na lista dele mesmo
                 usersCacheForShare.push({ uid: d.id, ...d.data() });
             }
         });
 
         resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6 text-sm">Pronto! Digite o nome do colega na barra acima.</div>';
     } catch (e) {
-        console.error("Erro ao buscar alunos:", e);
-        resultsContainer.innerHTML = '<div class="text-red-500 text-center py-6 text-sm">Erro de permissão no Firebase ao carregar alunos.</div>';
+        console.error("Erro ao carregar alunos:", e);
+        resultsContainer.innerHTML = '<div class="text-red-500 text-center py-6 text-sm">Erro de permissão no Firebase ao listar alunos.</div>';
     }
 };
 
