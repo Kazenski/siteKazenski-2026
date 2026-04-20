@@ -20,6 +20,7 @@ let els = {}; // Cache de Elementos DOM
 // Controles de Sub-Abas e Módulos
 
 let currentShareContext = { type: 'note', id: null };
+let notesUnsubscribe = null;
 let kanbanUnsub = null;
 let myNotes = [];
 let myTasks = [];
