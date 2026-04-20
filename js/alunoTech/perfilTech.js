@@ -790,42 +790,59 @@ async function loadAvisos() {
 async function loadBoletimAndMetrics() {
     const snap = await getDoc(doc(db, "notas", currentUser.uid));
 
-    if (!snap.exists()) {
-        els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Sem notas registradas.</td></tr>';
+    // Carrega o histórico de notas (se existir)
+    studentGradesData = snap.exists() ? (snap.data().disciplinasComNotas || {}) : {};
+    
+    // Busca o map exato chamado "disciplinas" (prioriza o documento do aluno, depois o de notas)
+    const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
+
+    if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
+        els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">O aluno não está matriculado em nenhuma disciplina no momento.</td></tr>';
         return;
     }
 
-    studentGradesData = snap.data().disciplinasComNotas || {};
+    // Salva globalmente para os gráficos usarem a exata mesma referência
+    window.activeDisciplinesMap = mapDisciplinas;
+
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
-
     let html = '';
-    // FILTRO: Iteramos apenas as disciplinas contidas no documento do aluno
-    for (const [id, tr] of Object.entries(studentGradesData)) {
+    
+    // Iteramos sobre o map "disciplinas" do aluno
+    for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
         
-        // REGRA DE SEGURANÇA: Se a disciplina veio completamente vazia no Firebase,
-        // não vamos exibi-la para não poluir o boletim do aluno.
-        const temAlgumaNota = Object.values(tr).some(trimestre => 
-            Object.values(trimestre).some(nota => nota && nota.toString().trim() !== '')
-        );
+        // Se estiver como false (desmatriculado), pula esta disciplina
+        if (isEnrolled === false) continue; 
+        
+        const tr = studentGradesData[discId] || {};
+        const nome = disciplineMap[discId] || discId;
+        els.selEvol.add(new Option(nome, discId));
 
-        if (!temAlgumaNota && !currentUser.Admin) continue; // Pula se estiver em branco
+        // Pega as notas 4 (médias do trimestre) para calcular a final
+        const m1 = tr['1']?.nota4 ? parseFloat(tr['1'].nota4) : null;
+        const m2 = tr['2']?.nota4 ? parseFloat(tr['2'].nota4) : null;
+        const m3 = tr['3']?.nota4 ? parseFloat(tr['3'].nota4) : null;
+        
+        let mediaFinal = "---";
+        let bgMedia = "bg-blue-900/10 text-blue-400"; 
 
-        // 1. Popula o Select apenas com as disciplinas em que o aluno tem atividade
-        const nome = disciplineMap[id] || id;
-        els.selEvol.add(new Option(nome, id));
+        if (m1 !== null || m2 !== null || m3 !== null) {
+            const pesos = [m1, m2, m3].filter(v => v !== null);
+            const calc = (pesos.reduce((a, b) => a + b, 0) / pesos.length).toFixed(1);
+            mediaFinal = calc;
+            bgMedia = calc >= 7.0 ? "bg-green-900/20 text-green-400" : "bg-amber-900/20 text-amber-400";
+        }
 
-        // 2. Renderiza a tabela do boletim
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
             <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
             <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4 || '-'}</td>
             <td class="border border-slate-700 text-center py-2">${tr['2']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['2']?.nota4 || '-'}</td>
             <td class="border border-slate-700 text-center py-2">${tr['3']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['3']?.nota4 || '-'}</td>
-            <td class="media-final-col text-blue-400 font-bold border border-slate-700 text-center py-2 bg-blue-900/10">---</td>
+            <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${bgMedia}">${mediaFinal}</td>
         </tr>`;
     }
     
     if (!html) {
-        html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma avaliação respondida ainda.</td></tr>';
+        html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma disciplina ativa encontrada para exibir o boletim.</td></tr>';
     }
     
     els.boletimBody.innerHTML = html;
@@ -856,14 +873,19 @@ async function loadFrequencia() {
 }
 
 function renderScatterChart() {
-    if (!studentGradesData) return;
+    if (!studentGradesData || !window.activeDisciplinesMap) return;
     const pts = [];
-    Object.entries(studentGradesData).forEach(([dId, tr]) => {
+    
+    // Varre as disciplinas matriculadas para popular o gráfico corretamente
+    Object.keys(window.activeDisciplinesMap).forEach(dId => {
+        if (window.activeDisciplinesMap[dId] === false) return;
+        const tr = studentGradesData[dId] || {};
         ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach((k, i) => {
             const v = parseFloat((tr[t] || {})[k]);
             if (!isNaN(v)) pts.push({ x: Math.random() * 10, y: v, label: `${disciplineMap[dId] || dId} (T${t}-N${i + 1})` });
         }));
     });
+    
     const ctx = document.getElementById('al-chart-scatter').getContext('2d');
     if (chartInstances['scatter']) chartInstances['scatter'].destroy();
     chartInstances['scatter'] = new Chart(ctx, {
@@ -873,20 +895,31 @@ function renderScatterChart() {
 }
 
 function renderEvolutionChart(discId = "") {
-    if (!studentGradesData) return;
+    if (!studentGradesData || !window.activeDisciplinesMap) return;
     let dVals = [];
+    
     if (discId) {
         const tr = studentGradesData[discId] || {};
         ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => { const v = parseFloat((tr[t] || {})[k]); dVals.push(isNaN(v) ? null : v); }));
     } else {
         const s = Array(12).fill(0), c = Array(12).fill(0);
-        Object.values(studentGradesData).forEach(tr => { let idx = 0;['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => { const v = parseFloat((tr[t] || {})[k]); if (!isNaN(v)) { s[idx] += v; c[idx]++; } idx++; })); });
+        // Baseia a média geral também no map "disciplinas"
+        Object.keys(window.activeDisciplinesMap).forEach(dId => { 
+            if (window.activeDisciplinesMap[dId] === false) return;
+            const tr = studentGradesData[dId] || {};
+            let idx = 0;
+            ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => { 
+                const v = parseFloat((tr[t] || {})[k]); 
+                if (!isNaN(v)) { s[idx] += v; c[idx]++; } 
+                idx++; 
+            })); 
+        });
         dVals = s.map((sm, i) => c[i] ? (sm / c[i]) : null);
     }
     const ctx = document.getElementById('al-chart-evol').getContext('2d');
     if (chartInstances['evol']) chartInstances['evol'].destroy();
     chartInstances['evol'] = new Chart(ctx, {
-        type: 'line', data: { labels: ['T1N1', 'T1N2', 'T1N3', 'T1N4', 'T2N1', 'T2N2', 'T2N3', 'T2N4', 'T3N1', 'T3N2', 'T3N3', 'T3N4'], datasets: [{ label: discId ? (disciplineMap[discId] || discId) : 'Média', data: dVals, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', fill: true, tension: 0.4 }] },
+        type: 'line', data: { labels: ['T1N1', 'T1N2', 'T1N3', 'T1N4', 'T2N1', 'T2N2', 'T2N3', 'T2N4', 'T3N1', 'T3N2', 'T3N3', 'T3N4'], datasets: [{ label: discId ? (disciplineMap[discId] || discId) : 'Média Geral', data: dVals, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', fill: true, tension: 0.4 }] },
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10, grid: { color: '#334155' } }, x: { grid: { color: '#334155' } } } }
     });
 }
