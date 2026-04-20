@@ -18,7 +18,8 @@ let studentGradesData = null;
 let els = {}; // Cache de Elementos DOM
 
 // Controles de Sub-Abas e Módulos
-let notesUnsubscribe = null;
+
+let currentShareContext = { type: 'note', id: null };
 let kanbanUnsub = null;
 let myNotes = [];
 let myTasks = [];
@@ -208,7 +209,7 @@ function setupEventListeners() {
     document.getElementById('btn-note-save')?.addEventListener('click', saveNote);
     document.getElementById('btn-note-delete')?.addEventListener('click', deleteActiveNote);
     document.getElementById('btn-note-pin')?.addEventListener('click', toggleActiveNotePin);
-    document.getElementById('btn-note-share')?.addEventListener('click', window.openShareModal);
+    document.getElementById('btn-note-share')?.addEventListener('click', () => window.openShareModal('note'));
 
     // Seletor nativo de cor
     els.noteColorPicker?.addEventListener('input', (e) => { selectedNoteColor = e.target.value; });
@@ -409,41 +410,51 @@ function renderKanbanBoard() {
     const colDone = document.getElementById('al-col-done');
 
     if (!colTodo || !colDoing || !colDone) return;
-
     colTodo.innerHTML = ''; colDoing.innerHTML = ''; colDone.innerHTML = '';
 
     myTasks.forEach(t => {
         const div = document.createElement('div');
-        div.className = 'p-4 bg-slate-900 border border-slate-700 rounded-xl cursor-grab shadow-lg hover:-translate-y-1 transition-all relative group';
+        div.className = 'p-4 bg-slate-900 border border-slate-700 rounded-xl cursor-grab shadow-lg hover:-translate-y-1 transition-all relative group flex flex-col min-h-[100px]';
         div.draggable = true;
 
-        // Se a descrição for longa, permite expandir/encolher (o escapeHTML previne quebra de layout)
         const safeTitle = t.titulo ? t.titulo.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
         const safeBody = t.conteudo ? t.conteudo.replace(/</g, "&lt;").replace(/>/g, "&gt;") : '';
 
+        // Sistema de Badges para identificar Colaboração
+        const isCreator = t.userIdCriador === currentUser.uid;
+        const isShared = t.sharedWithUserIds && t.sharedWithUserIds.length > 0;
+
+        let badges = '';
+        if (!isCreator) {
+            badges += '<span class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0" title="Alguém compartilhou com você">Collab</span>';
+        } else if (isShared) {
+            badges += '<span class="bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0" title="Você compartilhou com a turma"><i class="fas fa-users mr-1"></i> Shared</span>';
+        }
+
         div.innerHTML = `
-            <div class="font-bold text-white text-sm pr-6 mb-2 truncate">${safeTitle}</div>
-            <div class="k-desc text-xs text-slate-400 whitespace-pre-wrap line-clamp-3 transition-all">${safeBody}</div>
+            <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="font-bold text-white text-sm truncate flex-grow" title="${safeTitle}">${safeTitle}</div>
+                ${badges}
+            </div>
+            <div class="k-desc text-xs text-slate-400 whitespace-pre-wrap line-clamp-3 transition-all flex-grow">${safeBody}</div>
             
-            <div class="mt-3 pt-2 border-t border-slate-800 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onclick="window.editKanbanTask('${t.id}')" class="text-slate-400 hover:text-blue-400"><i class="fas fa-edit"></i></button>
-                <button onclick="window.deleteKanbanTask('${t.id}')" class="text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
+            <div class="mt-3 pt-2 border-t border-slate-800 flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <button onclick="window.openShareModal('kanban', '${t.id}')" class="text-slate-400 hover:text-indigo-400" title="Compartilhar"><i class="fas fa-share-alt"></i></button>
+                <button onclick="window.editKanbanTask('${t.id}')" class="text-slate-400 hover:text-blue-400" title="Editar"><i class="fas fa-edit"></i></button>
+                ${isCreator ? `<button onclick="window.deleteKanbanTask('${t.id}')" class="text-slate-500 hover:text-red-500" title="Excluir"><i class="fas fa-trash"></i></button>` : ''}
             </div>
         `;
 
-        // Efeitos de clicar e segurar (Drag Start)
         div.ondragstart = (e) => {
             e.dataTransfer.setData("text/plain", t.id);
             draggedTask = t;
             setTimeout(() => div.classList.add('opacity-40', 'scale-95', 'border-purple-500'), 0);
         };
-        // Ao soltar (Drag End)
         div.ondragend = () => {
             draggedTask = null;
             div.classList.remove('opacity-40', 'scale-95', 'border-purple-500');
         };
 
-        // Distribui nas colunas baseando-se no status
         if (t.status === 'a_fazer') colTodo.appendChild(div);
         else if (t.status === 'em_progresso') colDoing.appendChild(div);
         else colDone.appendChild(div);
@@ -1397,55 +1408,51 @@ window.selectColor = (c) => {
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
 const originalOpenShare = window.openShareModal;
 
-window.openShareModal = async () => {
-    const noteId = els.noteActiveId.value;
-    if (!noteId) return alert("Salve a anotação primeiro para poder compartilhar!");
+window.openShareModal = async (type = 'note', explicitId = null) => {
+    currentShareContext.type = type;
+    
+    if (type === 'note') {
+        currentShareContext.id = els.noteActiveId.value;
+        if (!currentShareContext.id) return alert("Salve a anotação primeiro para poder compartilhar!");
+    } else if (type === 'kanban') {
+        currentShareContext.id = explicitId;
+    }
+
+    // Altera o título do modal dinamicamente
+    const titleEl = document.querySelector('#al-modal-share h3');
+    if (titleEl) {
+        titleEl.innerHTML = type === 'kanban' 
+            ? '<i class="fas fa-share-alt mr-2"></i> Compartilhar Tarefa' 
+            : '<i class="fas fa-share-alt mr-2"></i> Compartilhar Anotação';
+    }
 
     document.getElementById('al-modal-share').classList.remove('hidden');
     const isStaff = currentUser.Professor || currentUser.Admin || currentUser.Coordenacao;
     const panel = document.getElementById('panel-mass-share');
     
-    // Mostra/Oculta painel de Massa e Carrega Turmas
     if (isStaff) {
-        panel.classList.remove('hidden');
-        panel.classList.add('flex');
-        
+        panel.classList.remove('hidden'); panel.classList.add('flex');
         const snap = await getDocs(collection(db, "turmasCadastradas"));
         let options = '<option value="">Selecione a Turma...</option>';
-        snap.forEach(d => {
-            options += `<option value="${d.id}">${d.data().nomeExibicao || d.id}</option>`;
-        });
+        snap.forEach(d => options += `<option value="${d.id}">${d.data().nomeExibicao || d.id}</option>`);
         document.getElementById('sel-share-turma').innerHTML = options;
     } else {
-        panel.classList.add('hidden');
-        panel.classList.remove('flex');
+        panel.classList.add('hidden'); panel.classList.remove('flex');
     }
 
     const resultsContainer = document.getElementById('al-share-results');
     resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Carregando alunos...</div>';
     
     try {
-        let usersQuery;
-        if (isStaff) {
-            // Se for professor/gestão, baixa todo mundo
-            usersQuery = collection(db, "users");
-        } else {
-            // Se for aluno, baixa SÓ os alunos da mesma turma dele
-            usersQuery = query(collection(db, "users"), where("turma", "==", currentUser.turma));
-        }
-
+        let usersQuery = isStaff ? collection(db, "users") : query(collection(db, "users"), where("turma", "==", currentUser.turma));
         const snapAlunos = await getDocs(usersQuery);
-        usersCacheForShare = []; // Limpa cache antigo
+        usersCacheForShare = []; 
         
         snapAlunos.forEach(d => {
-            if (d.id !== currentUser.uid) { // Não mostra o próprio aluno na lista dele mesmo
-                usersCacheForShare.push({ uid: d.id, ...d.data() });
-            }
+            if (d.id !== currentUser.uid) usersCacheForShare.push({ uid: d.id, ...d.data() });
         });
-
         resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6 text-sm">Pronto! Digite o nome do colega na barra acima.</div>';
     } catch (e) {
-        console.error("Erro ao carregar alunos:", e);
         resultsContainer.innerHTML = '<div class="text-red-500 text-center py-6 text-sm">Erro de permissão no Firebase ao listar alunos.</div>';
     }
 };
@@ -1468,8 +1475,12 @@ window.renderShareResults = (searchTerm) => {
         return;
     }
 
-    const activeNote = myNotes.find(n => n.id === els.noteActiveId.value);
-    const sharedList = activeNote?.sharedWithUserIds || [];
+    // Busca a lista de quem já tem acesso dependendo de qual tela abriu o modal
+    let activeItem = currentShareContext.type === 'note' 
+        ? myNotes.find(n => n.id === currentShareContext.id) 
+        : myTasks.find(t => t.id === currentShareContext.id);
+        
+    const sharedList = activeItem?.sharedWithUserIds || [];
 
     container.innerHTML = filtered.map(u => {
         const isShared = sharedList.includes(u.uid);
@@ -1493,22 +1504,21 @@ window.renderShareResults = (searchTerm) => {
 };
 
 window.toggleShareNote = async (targetUid) => {
-    const noteId = els.noteActiveId.value;
-    const note = myNotes.find(n => n.id === noteId);
-    if (!note) return;
+    const id = currentShareContext.id;
+    const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
+    
+    let activeItem = currentShareContext.type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
+    if (!activeItem) return;
 
-    const isShared = (note.sharedWithUserIds || []).includes(targetUid);
+    const isShared = (activeItem.sharedWithUserIds || []).includes(targetUid);
+    
     try {
-        await updateDoc(doc(db, "anotacoes_pessoais", noteId), { 
-            // O Firestore lida com a concorrência atômica
+        await updateDoc(doc(db, collectionName, id), { 
             sharedWithUserIds: isShared ? arrayRemove(targetUid) : arrayUnion(targetUid) 
         });
-        window.registrarLogAtividade(isShared ? "Removeu acesso de colega" : "Compartilhou anotação", `Ação com UID do colega: ${targetUid}`);
-        // Atualiza a UI dinamicamente
+        window.registrarLogAtividade(isShared ? `Removeu acesso (${currentShareContext.type})` : `Compartilhou ${currentShareContext.type}`, `Ação com UID: ${targetUid}`);
         window.renderShareResults(document.getElementById('al-share-search').value);
-    } catch (e) {
-        alert("Erro ao compartilhar: " + e.message);
-    }
+    } catch (e) { alert("Erro ao compartilhar: " + e.message); }
 };
 
 
@@ -1518,22 +1528,24 @@ window.toggleShareNote = async (targetUid) => {
 function initKanbanSystem() {
     if (kanbanUnsub) return;
 
+    // Busca o que o aluno criou OU o que compartilharam com ele
     const q = query(collection(db, "kanban_atividades"),
-        where("userIdCriador", "==", currentUser.uid)
+        or(
+            where("userIdCriador", "==", currentUser.uid),
+            where("sharedWithUserIds", "array-contains", currentUser.uid)
+        )
     );
 
     kanbanUnsub = onSnapshot(q, (snap) => {
         myTasks = [];
         snap.forEach(doc => myTasks.push({ id: doc.id, ...doc.data() }));
 
-        // Ordena as tarefas da mais recente para a mais antiga localmente (evita erro de índice no Firebase)
         myTasks.sort((a, b) => {
             const timeA = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : Date.now();
             const timeB = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Date.now();
             return timeB - timeA;
         });
 
-        // Chama a função que desenha o quadro com o visual novo!
         renderKanbanBoard();
     }, (error) => {
         console.error("Erro ao carregar o Kanban:", error);
@@ -1860,8 +1872,8 @@ window.atualizarStatusNota = async (id, status) => {
 
 window.executarEnvioMassa = async () => {
     const turma = document.getElementById('sel-share-turma').value;
-    const noteId = els.noteActiveId.value;
-    if (!turma || !noteId) return alert("Selecione a turma.");
+    const id = currentShareContext.id;
+    if (!turma || !id) return alert("Selecione a turma.");
 
     try {
         const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turma)));
@@ -1875,14 +1887,19 @@ window.executarEnvioMassa = async () => {
             }
         });
 
-        await updateDoc(doc(db, "anotacoes_pessoais", noteId), {
-            sharedWithUserIds: uids,
-            statusDestinatarios: statusMap,
-            userName: currentUser.nome // Salva seu nome para o destinatário ver
-        });
-        window.registrarLogAtividade("Compartilhou anotação em massa", `Enviou para a turma: ${turma}`);
+        const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
+        const payload = { sharedWithUserIds: uids };
 
-        alert(`Nota compartilhada com a turma ${turma}!`);
+        // Exclusividade das Anotações
+        if (currentShareContext.type === 'note') {
+            payload.statusDestinatarios = statusMap;
+            payload.userName = currentUser.nome;
+        }
+
+        await updateDoc(doc(db, collectionName, id), payload);
+        window.registrarLogAtividade(`Compartilhou ${currentShareContext.type} em massa`, `Turma: ${turma}`);
+
+        alert(`Compartilhado com a turma ${turma} com sucesso!`);
         window.closeShareModal();
     } catch (e) { alert("Erro: " + e.message); }
 };
