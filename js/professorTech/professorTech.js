@@ -3763,7 +3763,13 @@ window.profAPI = {
             let html = '';
             snap.forEach(doc => {
                 const data = doc.data();
-                const dataFormatada = data.timestamp ? new Date(data.timestamp.toMillis()).toLocaleString('pt-BR') : 'Sem data';
+                let dataFormatada = 'Sem data';
+                    if (data.timestamp) {
+                        // Tenta usar a função nativa do Firebase (toDate), se falhar, converte via JavaScript normal
+                        dataFormatada = typeof data.timestamp.toDate === 'function' 
+                            ? data.timestamp.toDate().toLocaleString('pt-BR') 
+                            : new Date(data.timestamp).toLocaleString('pt-BR');
+                    }
                 
                 html += `
                     <tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50">
