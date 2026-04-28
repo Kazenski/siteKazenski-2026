@@ -40,12 +40,12 @@ export async function renderInicioTab() {
 
             <div class="absolute bottom-0 left-0 w-full z-30 pb-6 px-10 md:px-24 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pt-10">
                 <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-1">
-                    <h3 class="text-blue-500/80 font-cinzel font-bold tracking-widest text-[9px] uppercase">
+                    <h3 class="text-blue-500/80 font-cinzel font-bold tracking-widest text-[9px] uppercase select-none">
                         <i class="fas fa-thumbtack mr-1"></i> Feed de Atualizações
                     </h3>
                 </div>
                 
-                <div id="inicio-cards-container" class="flex gap-4 overflow-hidden pb-2 no-scrollbar">
+                <div id="inicio-cards-container" class="flex gap-4 overflow-hidden pb-2 no-scrollbar cursor-grab active:cursor-grabbing">
                     <div class="flex items-center justify-center w-full h-24 text-blue-500">
                         <i class="fas fa-circle-notch fa-spin text-2xl"></i>
                     </div>
@@ -90,15 +90,14 @@ function renderSmallCards() {
     container.innerHTML = slides.map((slide, index) => {
         const imgUrl = slide.imagemURL || 'https://placehold.co/400x300/1e293b/a1a1aa?text=Eduardo';
         
-        // Cards reduzidos: w-48 (mobile) e w-64 (desktop) com altura discreta
         return `
-            <div class="card-carrossel shrink-0 cursor-pointer group w-48 md:w-64 h-28 md:h-36 relative rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-all duration-500 shadow-xl"
-                 onclick="window.inicio.expandNews('${imgUrl}', ${index})">
+            <div class="card-carrossel shrink-0 group w-48 md:w-64 h-28 md:h-36 relative rounded-lg overflow-hidden border border-white/10 hover:border-blue-500/50 transition-all duration-500 shadow-xl"
+                 onclick="if(!window.isDraggingCard) window.inicio.expandNews('${imgUrl}', ${index})">
                 
-                <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110">
-                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-transparent"></div>
+                <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110 pointer-events-none">
+                <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/10 to-transparent pointer-events-none"></div>
                 
-                <div class="absolute bottom-2 left-3 right-3">
+                <div class="absolute bottom-2 left-3 right-3 pointer-events-none">
                     <h4 class="text-white font-cinzel font-bold text-[10px] md:text-xs leading-tight drop-shadow-md line-clamp-2 uppercase tracking-wide">${escapeHTML(slide.titulo)}</h4>
                 </div>
             </div>
@@ -158,11 +157,19 @@ window.inicio = {
     }
 };
 
+// ============================================================================
+// LÓGICA DO CARROSSEL AUTOMÁTICO E COM ARRASTO
+// ============================================================================
+window.isDraggingCard = false; // Controle global para não clicar enquanto arrasta
+
 const CarrosselInicio = {
     container: null,
     cards: [],
     intervalo: null,
-    velocidade: 4000, // Um pouco mais lento para ficar mais suave
+    velocidade: 4000,
+    isTransitioning: false,
+    startX: 0,
+    isDragging: false,
 
     init() {
         this.container = document.getElementById('inicio-cards-container');
@@ -172,28 +179,55 @@ const CarrosselInicio = {
 
         this.container.style.display = 'flex';
         this.container.style.alignItems = 'center';
-        this.container.style.transition = 'transform 1s ease-in-out';
+        
         this.iniciarAutoPlay();
         this.configurarEventos();
     },
 
     moverProximo() {
-        if (!this.container || isViewingCard) return;
+        if (!this.container || isViewingCard || this.isTransitioning) return;
+        this.isTransitioning = true;
 
         const primeiroCard = this.container.firstElementChild;
         if (!primeiroCard) return;
         
-        // Gap de 16px (gap-4)
         const larguraCard = primeiroCard.offsetWidth + 16; 
         
-        this.container.style.transition = 'transform 1s ease-in-out';
+        this.container.style.transition = 'transform 0.8s ease-in-out';
         this.container.style.transform = `translateX(-${larguraCard}px)`;
 
         setTimeout(() => {
             this.container.style.transition = 'none';
             this.container.appendChild(primeiroCard);
             this.container.style.transform = `translateX(0)`;
-        }, 1000);
+            this.isTransitioning = false;
+        }, 800);
+    },
+
+    moverAnterior() {
+        if (!this.container || isViewingCard || this.isTransitioning) return;
+        this.isTransitioning = true;
+
+        const ultimoCard = this.container.lastElementChild;
+        if (!ultimoCard) return;
+
+        const larguraCard = ultimoCard.offsetWidth + 16;
+
+        // Joga o último card para o começo "invisivelmente" e desloca o container para a esquerda
+        this.container.style.transition = 'none';
+        this.container.prepend(ultimoCard);
+        this.container.style.transform = `translateX(-${larguraCard}px)`;
+
+        // Força a re-renderização do navegador para ele entender a posição antes de animar
+        void this.container.offsetWidth;
+
+        // Anima de volta para a posição 0 suavemente
+        this.container.style.transition = 'transform 0.8s ease-in-out';
+        this.container.style.transform = `translateX(0)`;
+
+        setTimeout(() => {
+            this.isTransitioning = false;
+        }, 800);
     },
 
     iniciarAutoPlay() {
@@ -207,7 +241,53 @@ const CarrosselInicio = {
 
     configurarEventos() {
         if(!this.container) return;
+        
         this.container.addEventListener('mouseenter', () => this.pararAutoPlay());
-        this.container.addEventListener('mouseleave', () => this.iniciarAutoPlay());
+        this.container.addEventListener('mouseleave', () => {
+            this.iniciarAutoPlay();
+            if(this.isDragging) this.isDragging = false;
+        });
+
+        // Lógica de Swipe/Arrastar
+        const handleStart = (e) => {
+            this.isDragging = true;
+            window.isDraggingCard = false;
+            this.startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+            this.pararAutoPlay();
+        };
+
+        const handleMove = (e) => {
+            if (!this.isDragging) return;
+            window.isDraggingCard = true; // Impede que abra a notícia se estiver apenas deslizando
+        };
+
+        const handleEnd = (e) => {
+            if (!this.isDragging) return;
+            this.isDragging = false;
+            
+            const endX = e.type.includes('mouse') ? e.pageX : e.changedTouches[0].clientX;
+            const diff = this.startX - endX;
+
+            // Se arrastou mais de 40 pixels, aciona o movimento
+            if (diff > 40) {
+                this.moverProximo();
+            } else if (diff < -40) {
+                this.moverAnterior();
+            }
+
+            // Reseta o clique com um leve delay
+            setTimeout(() => window.isDraggingCard = false, 100);
+            this.iniciarAutoPlay();
+        };
+
+        // Eventos para Mouse
+        this.container.addEventListener('mousedown', handleStart);
+        this.container.addEventListener('mousemove', handleMove);
+        this.container.addEventListener('mouseup', handleEnd);
+
+        // Eventos para Touch (Mobile)
+        this.container.addEventListener('touchstart', handleStart, { passive: true });
+        this.container.addEventListener('touchmove', handleMove, { passive: true });
+        this.container.addEventListener('touchend', handleEnd);
     }
 };
