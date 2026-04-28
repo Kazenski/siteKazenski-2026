@@ -14,9 +14,12 @@ export async function renderInicioTab() {
     const container = document.getElementById('inicio-content');
     if (!container) return;
 
-    // Resetamos o estado ao entrar na aba
+    // Reseta o estado ao entrar na aba
     isViewingCard = false;
     clearTimeout(bgTimeout);
+    
+    // Parar o carrossel anterior caso o usuário troque de aba e volte
+    CarrosselInicio.pararAutoPlay();
 
     container.innerHTML = `
         <div class="relative w-full h-full overflow-hidden bg-slate-950 fade-in">
@@ -46,10 +49,10 @@ export async function renderInicioTab() {
                     <h3 class="text-blue-500 font-cinzel font-bold tracking-widest text-sm uppercase">
                         <i class="fas fa-thumbtack mr-2"></i> Destaques e Novidades
                     </h3>
-                    <span class="text-[10px] text-slate-500 uppercase tracking-widest animate-pulse">Selecione para expandir</span>
+                    <span class="text-[10px] text-slate-500 uppercase tracking-widest animate-pulse">Passe o mouse para pausar</span>
                 </div>
                 
-                <div id="inicio-cards-container" class="flex gap-6 overflow-x-auto pb-4 pt-2 snap-x snap-mandatory no-scrollbar" style="scroll-behavior: smooth;">
+                <div id="inicio-cards-container" class="flex gap-6 overflow-hidden pb-4 pt-2 no-scrollbar">
                     <div class="flex items-center justify-center w-full h-32 text-blue-500">
                         <i class="fas fa-circle-notch fa-spin text-3xl"></i>
                     </div>
@@ -80,6 +83,8 @@ async function fetchNoticias() {
         
         if (slides.length > 0) {
             renderSmallCards();
+            // INICIALIZA O CARROSSEL AQUI, APÓS OS CARDS EXISTIREM NA TELA
+            CarrosselInicio.init(); 
         } else {
             container.innerHTML = `<div class="text-slate-500 italic text-sm">Nenhuma atualização disponível no momento.</div>`;
         }
@@ -96,8 +101,9 @@ function renderSmallCards() {
     container.innerHTML = slides.map((slide, index) => {
         const imgUrl = slide.imagemURL || 'https://placehold.co/600x400/1e293b/a1a1aa?text=Kazenski';
         
+        // Alterado: Adicionada a classe card-carrossel para o JS identificar, e mantida a escala/tamanho reduzido (w-64)
         return `
-            <div class="shrink-0 snap-start cursor-pointer group w-64 md:w-[22rem] h-36 md:h-44 relative rounded-xl overflow-hidden border-2 border-slate-800 hover:border-blue-500 transition-all duration-300 transform hover:-translate-y-1 shadow-2xl"
+            <div class="card-carrossel shrink-0 cursor-pointer group w-64 md:w-[22rem] h-36 md:h-44 relative rounded-xl overflow-hidden border-2 border-slate-800 hover:border-blue-500 transition-all duration-300 shadow-2xl"
                  onclick="window.inicio.expandNews('${imgUrl}', ${index})">
                 
                 <img src="${imgUrl}" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
@@ -111,9 +117,7 @@ function renderSmallCards() {
     }).join('');
 }
 
-// ---------------------------------------------------------------------------
 // AÇÕES DE INTERATIVIDADE
-// ---------------------------------------------------------------------------
 window.inicio = {
     expandNews: function(imgUrl, index) {
         const bgEl = document.getElementById('inicio-main-bg');
@@ -173,5 +177,73 @@ window.inicio = {
             infoEl.classList.remove('opacity-100', 'translate-y-0');
             infoEl.classList.add('opacity-0', 'translate-y-10');
         }
+    }
+};
+
+// LÓGICA DO CARROSSEL AUTOMÁTICO
+const CarrosselInicio = {
+    container: null, // Será definido dinamicamente no init()
+    cards: [],
+    intervalo: null,
+    velocidade: 3000, // 3 segundos por transição
+
+    init() {
+        this.container = document.getElementById('inicio-cards-container');
+        if (!this.container) return;
+
+        this.cards = Array.from(this.container.querySelectorAll('.card-carrossel'));
+        
+        // Só inicializa o autoplay se houver mais de um card (para fazer sentido a rotação)
+        if (this.cards.length <= 1) return;
+
+        this.configurarEstilosIniciais();
+        this.iniciarAutoPlay();
+        this.configurarEventos();
+    },
+
+    configurarEstilosIniciais() {
+        if (this.container) {
+            this.container.style.display = 'flex';
+            this.container.style.alignItems = 'center';
+            this.container.style.transition = 'transform 0.8s ease-in-out';
+        }
+    },
+
+    moverProximo() {
+        if (!this.container || isViewingCard) return; // Pausa se estiver lendo a notícia expandida
+
+        const primeiroCard = this.container.firstElementChild;
+        if (!primeiroCard) return;
+        
+        // Pega a largura exata mais a margem/gap do Tailwind (gap-6 = 24px)
+        const larguraCard = primeiroCard.offsetWidth + 24; 
+        
+        this.container.style.transition = 'transform 0.8s ease-in-out';
+        this.container.style.transform = `translateX(-${larguraCard}px)`;
+
+        // Após a animação (800ms), move o primeiro elemento para o final do contêiner e reseta o transform
+        setTimeout(() => {
+            this.container.style.transition = 'none';
+            this.container.appendChild(primeiroCard);
+            this.container.style.transform = `translateX(0)`;
+        }, 800);
+    },
+
+    iniciarAutoPlay() {
+        this.pararAutoPlay();
+        this.intervalo = setInterval(() => {
+            this.moverProximo();
+        }, this.velocidade);
+    },
+
+    pararAutoPlay() {
+        if (this.intervalo) clearInterval(this.intervalo);
+    },
+
+    configurarEventos() {
+        if(!this.container) return;
+        // Pausa quando o usuário passa o mouse por cima
+        this.container.addEventListener('mouseenter', () => this.pararAutoPlay());
+        this.container.addEventListener('mouseleave', () => this.iniciarAutoPlay());
     }
 };
