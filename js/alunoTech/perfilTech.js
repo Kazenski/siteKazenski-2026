@@ -1437,6 +1437,9 @@ window.openShareModal = async (type = 'note', explicitId = null) => {
         let options = '<option value="">Selecione a Turma...</option>';
         snap.forEach(d => options += `<option value="${d.id}">${d.data().nomeExibicao || d.id}</option>`);
         document.getElementById('sel-share-turma').innerHTML = options;
+
+        // Renderiza as tags das turmas que já possuem acesso em massa
+        window.renderTurmasCompartilhadas(currentShareContext.id, type);
     } else {
         panel.classList.add('hidden'); panel.classList.remove('flex');
     }
@@ -1455,6 +1458,77 @@ window.openShareModal = async (type = 'note', explicitId = null) => {
         resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6 text-sm">Pronto! Digite o nome do colega na barra acima.</div>';
     } catch (e) {
         resultsContainer.innerHTML = '<div class="text-red-500 text-center py-6 text-sm">Erro de permissão no Firebase ao listar alunos.</div>';
+    }
+};
+
+window.renderTurmasCompartilhadas = (id, type = currentShareContext.type) => {
+    const panel = document.getElementById('panel-mass-share');
+    if (!panel) return;
+
+    // Cria o container dinamicamente caso não exista no index.html
+    let container = document.getElementById('turmas-compartilhadas-list');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'turmas-compartilhadas-list';
+        container.className = 'mt-3 flex flex-wrap gap-2 border-t border-amber-500/20 pt-3';
+        panel.appendChild(container);
+    }
+
+    let activeItem = type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
+    
+    // Nova propriedade rastreável no banco de dados
+    const turmas = activeItem?.turmasCompartilhadas || [];
+
+    if (turmas.length === 0) {
+        container.innerHTML = '<span class="text-[10px] text-slate-500 italic w-full text-center">Nenhuma turma recebeu este item em massa ainda.</span>';
+        return;
+    }
+
+    container.innerHTML = '<span class="text-[10px] text-amber-500/70 w-full mb-1 font-bold uppercase tracking-widest"><i class="fas fa-check-double mr-1"></i> Turmas com Acesso:</span>' + 
+        turmas.map(t => `
+        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-1.5 rounded font-bold flex items-center gap-2 shadow-sm">
+            <i class="fas fa-users"></i> ${t}
+            <button onclick="window.removerTurmaCompartilhada('${t}')" class="hover:text-red-400 hover:bg-red-500/20 rounded-full w-5 h-5 flex items-center justify-center transition-colors ml-1" title="Revogar acesso de toda a turma">
+                <i class="fas fa-times"></i>
+            </button>
+        </span>
+    `).join('');
+};
+
+window.removerTurmaCompartilhada = async (turmaId) => {
+    if(!confirm(`Atenção: Deseja revogar o acesso de TODOS os alunos da turma ${turmaId}?`)) return;
+
+    const id = currentShareContext.id;
+    const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
+    
+    try {
+        const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turmaId)));
+        const uidsToRemove = [];
+        
+        snapAlunos.forEach(d => uidsToRemove.push(d.id));
+
+        const updates = {
+            turmasCompartilhadas: arrayRemove(turmaId)
+        };
+
+        if (uidsToRemove.length > 0) {
+            updates.sharedWithUserIds = arrayRemove(...uidsToRemove);
+        }
+
+        await updateDoc(doc(db, collectionName, id), updates);
+        window.registrarLogAtividade(`Revogou acesso em massa (${currentShareContext.type})`, `Turma: ${turmaId}`);
+        
+        // Atualiza o cache local para resposta imediata da interface
+        let activeItem = currentShareContext.type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
+        if (activeItem) {
+            activeItem.turmasCompartilhadas = (activeItem.turmasCompartilhadas || []).filter(t => t !== turmaId);
+            activeItem.sharedWithUserIds = (activeItem.sharedWithUserIds || []).filter(uid => !uidsToRemove.includes(uid));
+        }
+
+        window.renderTurmasCompartilhadas(id);
+        window.renderShareResults(document.getElementById('al-share-search').value || ''); 
+    } catch (e) {
+        alert("Erro ao remover turma: " + e.message);
     }
 };
 
@@ -1876,33 +1950,64 @@ window.executarEnvioMassa = async () => {
     const id = currentShareContext.id;
     if (!turma || !id) return alert("Selecione a turma.");
 
+    // Bloqueia duplicação caso a turma já esteja no array de rastreio
+    let activeItem = currentShareContext.type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
+    if (activeItem?.turmasCompartilhadas?.includes(turma)) {
+        return alert("Esta turma já possui acesso a este item.");
+    }
+
     try {
         const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turma)));
         const uids = [];
-        const statusMap = {};
+        const updates = {};
 
         snapAlunos.forEach(d => {
             if (d.id !== currentUser.uid) {
                 uids.push(d.id);
-                statusMap[d.id] = 'Pendente';
+                // Utilização de notação de ponto (dot notation) para não destruir as chaves existentes do Map
+                if (currentShareContext.type === 'note') {
+                    updates[`statusDestinatarios.${d.id}`] = 'Pendente';
+                }
             }
         });
 
-        const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
-        const payload = { sharedWithUserIds: uids };
-
-        // Exclusividade das Anotações
-        if (currentShareContext.type === 'note') {
-            payload.statusDestinatarios = statusMap;
-            payload.userName = currentUser.nome;
+        if (uids.length === 0) {
+            return alert("Nenhuma conta de aluno encontrada vinculada a esta turma.");
         }
 
-        await updateDoc(doc(db, collectionName, id), payload);
+        const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
+        
+        // Uso de arrayUnion garante que adicionamos aos existentes ao invés de sobrescrever
+        updates.sharedWithUserIds = arrayUnion(...uids);
+        updates.turmasCompartilhadas = arrayUnion(turma); 
+
+        if (currentShareContext.type === 'note') {
+            updates.userName = currentUser.nome;
+        }
+
+        await updateDoc(doc(db, collectionName, id), updates);
         window.registrarLogAtividade(`Compartilhou ${currentShareContext.type} em massa`, `Turma: ${turma}`);
 
+        // Força a injeção no cache local para renderizar imediatamente a nova tag
+        if (activeItem) {
+            if (!activeItem.turmasCompartilhadas) activeItem.turmasCompartilhadas = [];
+            activeItem.turmasCompartilhadas.push(turma);
+            
+            if (!activeItem.sharedWithUserIds) activeItem.sharedWithUserIds = [];
+            activeItem.sharedWithUserIds.push(...uids);
+        }
+
         alert(`Compartilhado com a turma ${turma} com sucesso!`);
-        window.closeShareModal();
-    } catch (e) { alert("Erro: " + e.message); }
+        
+        // Renderiza as tags atualizadas de turmas no modal
+        window.renderTurmasCompartilhadas(id);
+        
+        // Atualiza os botões na lista de pesquisa individual (Enviado / Remover)
+        window.renderShareResults(document.getElementById('al-share-search').value || '');
+        
+    } catch (e) { 
+        alert("Erro de conexão ao processar o envio: " + e.message); 
+    }
 };
 
 // ============================================================================
