@@ -2170,6 +2170,11 @@ window.profAPI = {
             els.analiseDashboard.classList.remove('hidden');
             els.analiseDashboard.classList.add('flex');
 
+            // FOCO NA EXPORTAÇÃO:
+            // Faz o scroll suave até a área de exportação para facilitar o trabalho do professor
+            const btnPdfArea = document.getElementById('btn-gen-pdf');
+            if(btnPdfArea) btnPdfArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
         } catch(e) {
             console.error(e);
             els.analiseMsg.textContent = "Erro ao carregar dados: " + e.message;
@@ -2235,7 +2240,6 @@ window.profAPI = {
         window.profAPI.renderGenericChart('presence', 'doughnut', ['Presente', 'Falta', 'Justificado'], [p, f, j], 'Frequência', ['#4ade80', '#ef4444', '#f59e0b']);
 
         // --- GRÁFICO: Evolução (Prepara Select) ---
-        // --- GRÁFICO: Evolução (Prepara Select) ---
         els.selEvolutionDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
         
         // Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
@@ -2256,88 +2260,8 @@ window.profAPI = {
         // --- ANÁLISE PREDITIVA (Avisos de IA) ---
         window.profAPI.runPredictiveAnalysis();
 
-        // Cria uma lista visual com os dias exatos das faltas formatada como [F] e [J]
-        // --- RELATÓRIO ANALÍTICO DE FALTAS EM FORMATO TABELA (MATRIZ INDIVIDUAL) ---
-        // Replica a clareza da exportação PDF diretamente na interface
-        let tableHTML = `
-            <div class="mt-8 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl flex-shrink-0 mb-10">
-                <div class="p-5 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
-                    <h4 class="text-white font-black uppercase tracking-tighter flex items-center gap-2">
-                        <i class="fas fa-table text-amber-500"></i> Relatório Analítico de Frequência
-                    </h4>
-                    <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-slate-400 border border-slate-700">
-                        MATRIZ DE DADOS OFICIAIS
-                    </span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-slate-900/50">
-                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700">Data da Aula</th>
-                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700">Disciplina</th>
-                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700 text-center">Status</th>
-                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700 text-center">Registro</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-        `;
-
-        if (presencas.length === 0) {
-            tableHTML += `<tr><td colspan="4" class="p-10 text-center text-slate-500 italic text-sm">Nenhum registro de frequência encontrado para os filtros atuais.</td></tr>`;
-        } else {
-            presencas.forEach(p => {
-                const isFalta = p.status === 'ausente';
-                const isJust = p.status === 'justificado';
-                
-                let badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-green-500/10 text-green-400 border border-green-500/20">PRESENTE</span>';
-                let mark = '<span class="text-green-500/30 font-mono">P</span>';
-
-                if(isFalta) {
-                    badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30">AUSENTE</span>';
-                    mark = '<span class="text-red-500 font-black font-mono">F</span>';
-                } else if(isJust) {
-                    badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20">JUSTIFICADO</span>';
-                    mark = '<span class="text-amber-400 font-black font-mono">J</span>';
-                }
-
-                const dName = state.cache.disciplinesMap.get(p.disciplineId) || p.disciplineId;
-
-                tableHTML += `
-                    <tr class="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
-                        <td class="p-4 text-xs font-mono text-slate-300">${p.date.toLocaleDateString('pt-BR')}</td>
-                        <td class="p-4 text-xs font-bold text-slate-400 uppercase tracking-widest">${dName}</td>
-                        <td class="p-4 text-center">${badge}</td>
-                        <td class="p-4 text-center text-lg">${mark}</td>
-                    </tr>
-                `;
-            });
-        }
-
-        // Rodapé com o totalizador igual ao PDF
-        const totalFaltas = presencas.filter(x => x.status === 'ausente').length;
-        tableHTML += `
-                        </tbody>
-                        <tfoot class="bg-slate-900/80">
-                            <tr>
-                                <td colspan="3" class="p-4 text-right text-[10px] font-black uppercase text-slate-500">Contagem Total de Faltas no Período:</td>
-                                <td class="p-4 text-center text-xl font-black text-red-500">${totalFaltas}</td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        // Injeção limpa no DOM
         const oldHist = document.getElementById('hist-faltas-dinamico');
         if(oldHist) oldHist.remove();
-        
-        const histDiv = document.createElement('div');
-        histDiv.id = 'hist-faltas-dinamico';
-        histDiv.className = 'w-full flex-shrink-0 z-10'; 
-        histDiv.innerHTML = tableHTML;
-        
-        els.predictiveList.parentElement.appendChild(histDiv);
     },
 
     updateEvolutionChart: (discId) => {
