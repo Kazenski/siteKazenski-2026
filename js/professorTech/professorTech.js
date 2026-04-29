@@ -2236,7 +2236,7 @@ window.profAPI = {
         // --- GRÁFICO: Evolução (Prepara Select) ---
         els.selEvolutionDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
         
-        // CORREÇÃO 1: Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
+        // Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
         const studentObj = state.cache.students.find(s => s.id === currentStudentAnalysisData.uid);
         const studentDisciplines = studentObj?.disciplinas || {}; 
         
@@ -2255,7 +2255,7 @@ window.profAPI = {
         window.profAPI.runPredictiveAnalysis();
 
         // Cria uma lista visual com os dias exatos das faltas formatada como [F] e [J]
-        let faltasListHTML = '<div class="mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700"><h4 class="text-white font-bold mb-3 border-b border-slate-700 pb-2"><i class="fas fa-calendar-times text-amber-500 mr-2"></i>Histórico de Ausências e Justificativas</h4><ul class="grid grid-cols-2 md:grid-cols-4 gap-3">';
+        let faltasListHTML = '<div class="mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"><h4 class="text-white font-bold mb-3 border-b border-slate-700 pb-2"><i class="fas fa-calendar-times text-amber-500 mr-2"></i>Histórico de Ausências e Justificativas</h4><ul class="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-2">';
         
         // Filtra apenas o que não for presença
         const historico = presencas.filter(p => p.status === 'ausente' || p.status === 'justificado' || String(p.status).startsWith('justi'));
@@ -2280,10 +2280,12 @@ window.profAPI = {
         
         const histDiv = document.createElement('div');
         histDiv.id = 'hist-faltas-dinamico';
-        histDiv.className = 'w-full';
+        
+        // MÁGICA AQUI: flex-shrink-0 impede que o flexbox amasse a div, e o mb-8 garante uma margem inferior para desgrudar do bloco de baixo.
+        histDiv.className = 'w-full flex-shrink-0 mb-8 relative z-10'; 
         histDiv.innerHTML = faltasListHTML;
         
-        // Anexa logo abaixo da lista preditiva
+        // Injeta a div de histórico. 
         els.predictiveList.parentElement.appendChild(histDiv);
     },
 
