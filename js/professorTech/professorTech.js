@@ -77,22 +77,19 @@ export async function renderProfessorTab() {
     mapearDOM(); // 1º - O sistema "lê" todos os botões da tela
     setupSubTabs();
     await initFilters();
-    els.inputDate.valueAsDate = new Date();
-
-    // ==========================================
-    // EVENTOS INICIAIS (Sempre APÓS o mapearDOM)
-    // ==========================================
     
-    // Básicos
-    els.btnLoad.onclick = loadMasterData;
-    els.btnGenReport.onclick = generateReport;
-    els.btnPdf.onclick = generatePdf;
+    // Proteção: Só define a data se o campo existir na tela atual
+    if (els.inputDate) els.inputDate.valueAsDate = new Date();
+
+    // EVENTOS INICIAIS (Sempre APÓS o mapearDOM)
+    if (els.btnLoad) els.btnLoad.onclick = loadMasterData;
+    if (els.btnGenReport) els.btnGenReport.onclick = generateReport;
+    if (els.btnPdf) els.btnPdf.onclick = generatePdf;
 
     // Gatilhos de Anotações
-    els.btnRefreshAnotacoes.onclick = () => window.profAPI.loadAnotacoes();
-    els.anotacaoFilter.addEventListener('input', () => window.profAPI.renderAnotacoesTable());
+    if (els.btnRefreshAnotacoes) els.btnRefreshAnotacoes.onclick = () => window.profAPI.loadAnotacoes();
+    if (els.anotacaoFilter) els.anotacaoFilter.addEventListener('input', () => window.profAPI.renderAnotacoesTable());
 
-    // FUNÇÃO SEGURA PARA ADICIONAR EVENTOS (Evita erros no console)
     const addSafeListener = (target, func) => {
         // Adicionada a classe .prof-subtab-btn para não conflitar com a aba do Aluno
         const btn = document.querySelector(`.prof-subtab-btn[data-target="${target}"]`);
