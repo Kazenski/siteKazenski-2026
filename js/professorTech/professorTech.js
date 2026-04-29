@@ -2119,32 +2119,46 @@ window.profAPI = {
             const notasSnap = await getDoc(doc(db, "notas", uid));
             const notasData = notasSnap.exists() ? notasSnap.data().disciplinasComNotas || {} : {};
 
-            // 2. Busca Presenças do aluno na turma (todas as disciplinas)
-            const { classId } = state.filters;
+            // 2. Busca Presenças do aluno (Removido o orderBy para evitar falha de Index no Firebase)
+            const { classId, disciplineId } = state.filters;
             const presSnap = await getDocs(query(
                 collection(db, "presencas"), 
-                where("turma", "==", classId),
-                orderBy("data_aula_timestamp", "asc")
+                where("turma", "==", classId)
             ));
             
             const presencasData = [];
             presSnap.forEach(d => {
                 const data = d.data();
+                const dId = data.disciplineId || data.disciplinaId;
+                
+                // CRÍTICO: Filtrar as faltas para considerar SOMENTE a disciplina selecionada pelo professor
+                if (dId !== disciplineId) return;
+
                 const rawStatus = data.registros ? data.registros[uid] : null;
                 
                 if(rawStatus) {
-                    // Normaliza os status do banco para bater com o resto do sistema
                     let status = rawStatus;
                     if(status === 'falta') status = 'ausente';
                     if(status === 'justificada' || String(status).startsWith('justi')) status = 'justificado';
 
+                    // Extração robusta de data para não quebrar a tela
+                    let dateObj = new Date();
+                    if (data.data_aula_timestamp) {
+                        dateObj = typeof data.data_aula_timestamp.toDate === 'function'
+                            ? data.data_aula_timestamp.toDate()
+                            : new Date(data.data_aula_timestamp);
+                    }
+
                     presencasData.push({
-                        date: data.data_aula_timestamp.toDate(),
-                        disciplineId: data.disciplineId || data.disciplinaId,
+                        date: dateObj,
+                        disciplineId: dId,
                         status: status
                     });
                 }
             });
+
+            // Ordena o array de presenças no JavaScript em vez do Firebase para garantir funcionamento
+            presencasData.sort((a, b) => a.date - b.date);
 
             currentStudentAnalysisData = { notas: notasData, presencas: presencasData, uid: uid };
             
@@ -2433,24 +2447,30 @@ window.profAPI = {
             // --- PROCESSAMENTO DOS DADOS ---
             const dataFaltas = {}; 
             let totalFaltasTurma = 0;
-            let alunosRisco = 0;
             const uniqueAulas = new Set();
             
+            // Inicializa a contagem de faltas para todos os alunos da turma
             students.forEach(s => dataFaltas[s.id] = { ausente: 0, presente: 0, justificado: 0 });
 
             presSnap.forEach(doc => {
                 const p = doc.data();
-                // Aceita as duas formas que podem estar salvas no banco
                 const dId = p.disciplineId || p.disciplinaId;
-                const pTime = p.data_aula_timestamp ? p.data_aula_timestamp.toMillis() : 0;
                 
-                // Filtra pela disciplina correta e pelo período de datas
+                // Tratamento seguro da data (Evita falhas se o Firebase entregar timestamp ou string)
+                let pTime = 0;
+                if (p.data_aula_timestamp) {
+                    pTime = typeof p.data_aula_timestamp.toMillis === 'function' 
+                        ? p.data_aula_timestamp.toMillis() 
+                        : new Date(p.data_aula_timestamp).getTime();
+                }
+                
+                // Filtra EXATAMENTE pela disciplina atual e pelos limites de data
                 if(dId === disciplineId && pTime >= startLimit && pTime <= endLimit) {
                     uniqueAulas.add(doc.id);
                     if(p.registros) {
                         Object.entries(p.registros).forEach(([uid, status]) => {
                             if(dataFaltas[uid]) {
-                                // Normaliza os status para evitar bugs de digitação do banco (falta, justificada)
+                                // Normalização contra erros de digitação no banco
                                 let s = status;
                                 if(s === 'justificada' || String(s).startsWith('justi')) s = 'justificado';
                                 if(s === 'falta') s = 'ausente';
@@ -2466,13 +2486,7 @@ window.profAPI = {
             const totalAulas = uniqueAulas.size;
             geralAnalysisCache.faltasMap = dataFaltas;
 
-            // Calcula Risco (> 20% faltas)
-            students.forEach(s => {
-                const f = dataFaltas[s.id]?.ausente || 0;
-                if(totalAulas > 0 && (f/totalAulas) > 0.20) alunosRisco++;
-            });
-
-            // Processa Notas
+            // Processa Notas (Estrutura: disciplinasComNotas > discId > trimestres > nota1..4)
             const scatterData = []; 
             const panoramaData = []; 
             let somaMedias = 0;
@@ -2502,6 +2516,7 @@ window.profAPI = {
                     });
                 });
 
+                // Só considera o aluno para a média da turma se ele tiver ao menos uma nota lançada
                 if(countAluno > 0) {
                     const mediaFinal = somaAluno / countAluno;
                     somaMedias += mediaFinal;
@@ -2512,12 +2527,15 @@ window.profAPI = {
                 }
             });
 
-            // --- TOOLTIP ALUNOS EM RISCO ---
+            // --- CÁLCULO UNIFICADO: ALUNOS EM RISCO E TOOLTIP ---
+            let alunosRisco = 0;
             let alunosRiscoNomes = [];
+            
             students.forEach(s => {
                 const f = dataFaltas[s.id]?.ausente || 0;
-                if(totalAulas > 0 && (f/totalAulas) > 0.20) {
-                    alunosRisco++;
+                // Critério de risco: mais de 20% de falta das aulas DADAS nesta disciplina
+                if(totalAulas > 0 && (f / totalAulas) > 0.20) {
+                    alunosRisco++; // Conta apenas UMA vez
                     alunosRiscoNomes.push(s.nome);
                 }
             });
