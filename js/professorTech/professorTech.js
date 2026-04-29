@@ -2115,12 +2115,13 @@ window.profAPI = {
         els.analiseMsg.classList.remove('hidden');
 
         try {
-            // 1. Busca Notas de todas as disciplinas
             const notasSnap = await getDoc(doc(db, "notas", uid));
             const notasData = notasSnap.exists() ? notasSnap.data().disciplinasComNotas || {} : {};
 
-            // 2. Busca Presenças do aluno (Removido o orderBy para evitar falha de Index no Firebase)
+            // 2. Busca Presenças com Sincronização Total (Mesma lógica da Visão Geral)
             const { classId, disciplineId } = state.filters;
+            
+            // Removemos o orderBy para evitar falhas de Index do Firebase e filtramos no JS
             const presSnap = await getDocs(query(
                 collection(db, "presencas"), 
                 where("turma", "==", classId)
@@ -2129,10 +2130,11 @@ window.profAPI = {
             const presencasData = [];
             presSnap.forEach(d => {
                 const data = d.data();
+                // Normalização: Lê tanto 'disciplineId' quanto 'disciplinaId'
                 const dId = data.disciplineId || data.disciplinaId;
                 
-                // CRÍTICO: Filtrar as faltas para considerar SOMENTE a disciplina selecionada pelo professor
-                if (dId !== disciplineId) return;
+                // Se houver disciplina selecionada no filtro master, aplica o filtro rigoroso
+                if (disciplineId && dId !== disciplineId) return;
 
                 const rawStatus = data.registros ? data.registros[uid] : null;
                 
@@ -2141,11 +2143,11 @@ window.profAPI = {
                     if(status === 'falta') status = 'ausente';
                     if(status === 'justificada' || String(status).startsWith('justi')) status = 'justificado';
 
-                    // Extração robusta de data para não quebrar a tela
+                    // Conversão de data ultra-segura
                     let dateObj = new Date();
                     if (data.data_aula_timestamp) {
-                        dateObj = typeof data.data_aula_timestamp.toDate === 'function'
-                            ? data.data_aula_timestamp.toDate()
+                        dateObj = typeof data.data_aula_timestamp.toDate === 'function' 
+                            ? data.data_aula_timestamp.toDate() 
                             : new Date(data.data_aula_timestamp);
                     }
 
@@ -2157,7 +2159,7 @@ window.profAPI = {
                 }
             });
 
-            // Ordena o array de presenças no JavaScript em vez do Firebase para garantir funcionamento
+            // Ordenação cronológica manual
             presencasData.sort((a, b) => a.date - b.date);
 
             currentStudentAnalysisData = { notas: notasData, presencas: presencasData, uid: uid };
@@ -2255,37 +2257,86 @@ window.profAPI = {
         window.profAPI.runPredictiveAnalysis();
 
         // Cria uma lista visual com os dias exatos das faltas formatada como [F] e [J]
-        let faltasListHTML = '<div class="mt-6 bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-lg"><h4 class="text-white font-bold mb-3 border-b border-slate-700 pb-2"><i class="fas fa-calendar-times text-amber-500 mr-2"></i>Histórico de Ausências e Justificativas</h4><ul class="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-48 overflow-y-auto pr-2">';
-        
-        // Filtra apenas o que não for presença
-        const historico = presencas.filter(p => p.status === 'ausente' || p.status === 'justificado' || String(p.status).startsWith('justi'));
-        
-        if (historico.length === 0) {
-            faltasListHTML += '<li class="text-slate-400 text-xs col-span-full italic">Excelente! Nenhuma falta ou justificativa registrada.</li>';
+        // --- RELATÓRIO ANALÍTICO DE FALTAS EM FORMATO TABELA (MATRIZ INDIVIDUAL) ---
+        // Replica a clareza da exportação PDF diretamente na interface
+        let tableHTML = `
+            <div class="mt-8 bg-slate-800/50 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl flex-shrink-0 mb-10">
+                <div class="p-5 border-b border-slate-700 bg-slate-800 flex justify-between items-center">
+                    <h4 class="text-white font-black uppercase tracking-tighter flex items-center gap-2">
+                        <i class="fas fa-table text-amber-500"></i> Relatório Analítico de Frequência
+                    </h4>
+                    <span class="text-[10px] font-bold bg-slate-900 px-3 py-1 rounded-full text-slate-400 border border-slate-700">
+                        MATRIZ DE DADOS OFICIAIS
+                    </span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900/50">
+                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700">Data da Aula</th>
+                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700">Disciplina</th>
+                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700 text-center">Status</th>
+                                <th class="p-4 text-[10px] font-black uppercase text-slate-500 border-b border-slate-700 text-center">Registro</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+        if (presencas.length === 0) {
+            tableHTML += `<tr><td colspan="4" class="p-10 text-center text-slate-500 italic text-sm">Nenhum registro de frequência encontrado para os filtros atuais.</td></tr>`;
         } else {
-            // Ordena da mais recente para a mais antiga
-            historico.sort((a,b) => b.date - a.date).forEach(p => {
-                const dStr = p.date.toLocaleDateString('pt-BR');
-                const isJustificado = p.status === 'justificado' || String(p.status).startsWith('justi');
-                const badge = !isJustificado ? '<span class="text-red-400 font-black bg-red-500/10 px-2 py-0.5 rounded border border-red-500/30">[F]</span>' : '<span class="text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">[J]</span>';
-                const discName = state.cache.disciplinesMap.get(p.disciplineId) || p.disciplineId;
-                faltasListHTML += `<li class="text-xs text-slate-300 bg-slate-900 p-2 rounded border border-slate-700 flex justify-between items-center" title="${discName}"><span class="font-mono">${dStr}</span> ${badge}</li>`;
+            presencas.forEach(p => {
+                const isFalta = p.status === 'ausente';
+                const isJust = p.status === 'justificado';
+                
+                let badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-green-500/10 text-green-400 border border-green-500/20">PRESENTE</span>';
+                let mark = '<span class="text-green-500/30 font-mono">P</span>';
+
+                if(isFalta) {
+                    badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30">AUSENTE</span>';
+                    mark = '<span class="text-red-500 font-black font-mono">F</span>';
+                } else if(isJust) {
+                    badge = '<span class="px-2 py-1 rounded text-[9px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/20">JUSTIFICADO</span>';
+                    mark = '<span class="text-amber-400 font-black font-mono">J</span>';
+                }
+
+                const dName = state.cache.disciplinesMap.get(p.disciplineId) || p.disciplineId;
+
+                tableHTML += `
+                    <tr class="border-b border-slate-700/30 hover:bg-slate-700/20 transition-colors">
+                        <td class="p-4 text-xs font-mono text-slate-300">${p.date.toLocaleDateString('pt-BR')}</td>
+                        <td class="p-4 text-xs font-bold text-slate-400 uppercase tracking-widest">${dName}</td>
+                        <td class="p-4 text-center">${badge}</td>
+                        <td class="p-4 text-center text-lg">${mark}</td>
+                    </tr>
+                `;
             });
         }
-        faltasListHTML += '</ul></div>';
-        
-        // Remove a lista anterior para não duplicar ao trocar de aluno
+
+        // Rodapé com o totalizador igual ao PDF
+        const totalFaltas = presencas.filter(x => x.status === 'ausente').length;
+        tableHTML += `
+                        </tbody>
+                        <tfoot class="bg-slate-900/80">
+                            <tr>
+                                <td colspan="3" class="p-4 text-right text-[10px] font-black uppercase text-slate-500">Contagem Total de Faltas no Período:</td>
+                                <td class="p-4 text-center text-xl font-black text-red-500">${totalFaltas}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        `;
+
+        // Injeção limpa no DOM
         const oldHist = document.getElementById('hist-faltas-dinamico');
         if(oldHist) oldHist.remove();
         
         const histDiv = document.createElement('div');
         histDiv.id = 'hist-faltas-dinamico';
+        histDiv.className = 'w-full flex-shrink-0 z-10'; 
+        histDiv.innerHTML = tableHTML;
         
-        // MÁGICA AQUI: flex-shrink-0 impede que o flexbox amasse a div, e o mb-8 garante uma margem inferior para desgrudar do bloco de baixo.
-        histDiv.className = 'w-full flex-shrink-0 mb-8 relative z-10'; 
-        histDiv.innerHTML = faltasListHTML;
-        
-        // Injeta a div de histórico. 
         els.predictiveList.parentElement.appendChild(histDiv);
     },
 
