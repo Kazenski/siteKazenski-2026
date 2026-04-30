@@ -17,8 +17,8 @@ const gestaoAuraAPI = {
             const pContainer = document.getElementById('aura-podium-container');
             const lContainer = document.getElementById('aura-lista-container');
             
-            pContainer.innerHTML = '<div class="text-white w-full text-center">Carregando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
-            lContainer.innerHTML = '';
+            if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
+            if (lContainer) lContainer.innerHTML = '';
 
             // Busca os dados da coleção 'users'
             const q = query(collection(db, "users"));
@@ -29,7 +29,7 @@ const gestaoAuraAPI = {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 
-                // RESTRIÇÃO RÍGIDA: Apenas alunos COM REGISTRO ATIVO podem aparecer
+                // RESTRIÇÃO ABSOLUTA E BLINDADA: Só alunos com registroAtivo estritamente verdadeiro entram
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
 
@@ -39,7 +39,7 @@ const gestaoAuraAPI = {
                         nome: data.nome || "Anônimo",
                         turma: data.turma || "Sem Turma",
                         disc: data.disciplina || "Diversos",
-                        aura: parseInt(data.aura) || 0 // Pega o número inteiro gerado no login
+                        aura: parseInt(data.aura) || 0 // Pega a aura forjada no banco de dados
                     });
                 }
             });

@@ -144,30 +144,52 @@ function stopSessionManager() {
 // SISTEMA DE AURA (CÁLCULO E SINCRONIZAÇÃO)
 // ============================================================================
 
-function calcularAuraDoUsuario(dados) {
+async function calcularAuraDoUsuario(dadosUser, uid) {
     let auraTotal = 0;
     
-    // 1. Regra das Notas: (N1, N2, N3, N4) * 2500
-    const notas = ['n1', 'n2', 'n3', 'n4'];
-    notas.forEach(campo => {
-        if (dados[campo] !== undefined && dados[campo] !== null && dados[campo] !== "") {
-            const valorStr = String(dados[campo]).replace(',', '.');
-            const valorNota = parseFloat(valorStr);
-            if (!isNaN(valorNota)) {
-                auraTotal += Math.floor(valorNota * 2500);
+    try {
+        // 1. Regra das Notas: Buscando na coleção "notas" o documento do usuário
+        const notaRef = doc(db, 'notas', uid);
+        const notaSnap = await getDoc(notaRef);
+        
+        if (notaSnap.exists()) {
+            const notaData = notaSnap.data();
+            const disciplinas = notaData.disciplinasComNotas || {};
+            
+            // Itera sobre as disciplinas (ex: "Banco de Dados", "Lógica")
+            for (const disc in disciplinas) {
+                const trimestres = disciplinas[disc];
+                
+                // Itera sobre os trimestres (1, 2, 3)
+                for (const tri in trimestres) {
+                    const notasTri = trimestres[tri];
+                    
+                    // Lê N1, N2, N3 e N4 (aceitando maiúsculas e minúsculas por segurança)
+                    ['n1', 'n2', 'n3', 'n4', 'N1', 'N2', 'N3', 'N4'].forEach(campo => {
+                        if (notasTri[campo] !== undefined && notasTri[campo] !== null && notasTri[campo] !== "") {
+                            const valorStr = String(notasTri[campo]).replace(',', '.');
+                            const valorNota = parseFloat(valorStr);
+                            if (!isNaN(valorNota)) {
+                                auraTotal += Math.floor(valorNota * 2500);
+                            }
+                        }
+                    });
+                }
             }
         }
-    });
+    } catch (error) {
+        console.error(`[Aura] Erro ao cruzar notas do aluno ${uid}:`, error);
+    }
 
-    // 2. Regra das Atividades Extras: Cada atividade * 100
-    if (dados.atividadesExtras !== undefined && dados.atividadesExtras !== null && dados.atividadesExtras !== "") {
-        const extras = parseInt(dados.atividadesExtras);
+    // 2. Regra das Atividades Extras (lido de 'users')
+    if (dadosUser.atividadesExtras !== undefined && dadosUser.atividadesExtras !== null && dadosUser.atividadesExtras !== "") {
+        const extras = parseInt(dadosUser.atividadesExtras);
         if (!isNaN(extras)) auraTotal += (extras * 100);
     }
 
-    // 3. Modificadores Manuais 
-    if (dados.auraManual !== undefined && dados.auraManual !== null && dados.auraManual !== "") {
-        const manual = parseInt(dados.auraManual);
+    // 3. Modificadores Manuais (lido de 'users')
+    if (dadosUser.auraManual !== undefined && dadosUser.auraManual !== null && dadosUser.auraManual !== "") {
+        const manual = parseInt(dadosUser.auraManual);
         if (!isNaN(manual)) auraTotal += manual;
     }
 
@@ -175,32 +197,31 @@ function calcularAuraDoUsuario(dados) {
 }
 
 async function sincronizarAuraGeralSilencioso() {
-    console.log("[Auditoria Aura] Iniciando varredura silenciosa da coleção users...");
+    console.log("[Auditoria Aura] Iniciando varredura e cruzamento com a coleção de notas...");
     try {
         const usersRef = collection(db, "users");
         const snapshot = await getDocs(usersRef);
         let atualizados = 0;
 
         for (const documento of snapshot.docs) {
-            const userData = documento.data();
+            const d = documento.data();
             
-            // Filtro exigido: registroAtivo True
-            if (userData.registroAtivo === true || userData.registroAtivo === "true") {
-                const auraCorreta = calcularAuraDoUsuario(userData);
+            if (d.registroAtivo === true || d.registroAtivo === "true") {
+                // Agora enviamos o 'd' e o 'documento.id' e esperamos (await) o cálculo terminar
+                const auraCorreta = await calcularAuraDoUsuario(d, documento.id);
                 
-                // Se não existir o campo ou estiver desatualizado, ele grava/cria
-                if (userData.aura !== auraCorreta) {
+                if (d.aura !== auraCorreta) {
                     try {
                         const refDoc = doc(db, 'users', documento.id);
                         await updateDoc(refDoc, { aura: auraCorreta });
                         atualizados++;
                     } catch (err) {
-                        console.error(`[Auditoria Aura] Falha ao salvar no uid ${documento.id}:`, err);
+                        console.error(`[Auditoria Aura] Falha ao atualizar uid ${documento.id}:`, err);
                     }
                 }
             }
         }
-        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras criadas/atualizadas.`);
+        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras forjadas com notas.`);
     } catch (error) {
         console.error("[Auditoria Aura] Erro crítico no sync silencioso:", error);
     }
@@ -229,29 +250,24 @@ onAuthStateChanged(auth, async (user) => {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             
             if (userDoc.exists()) {
-                const data = userDoc.data(); 
+                const data = userDoc.data();
                 
-                // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
                 userRoles.Admin = (data.Admin === true || data.Admin === "true");
                 userRoles.Professor = (data.Professor === true || data.Professor === "true");
                 userRoles.Coordenacao = (data.Coordenacao === true || data.Coordenacao === "true");
-                
-                // Aceita "Moderador" (maiúsculo) ou "moderador" (minúsculo), em Boolean ou String
                 userRoles.Moderador = (data.Moderador === true || data.Moderador === "true" || data.moderador === true || data.moderador === "true");
-                
                 userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
                 userRoles.Visitante = false;
 
-                // Define o rótulo de exibição baseado na maior autoridade
                 if (userRoles.Admin) displayRoleName = 'Admin';
                 else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
                 else if (userRoles.Professor) displayRoleName = 'Professor';
                 else if (userRoles.Moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
 
-                // AURA: CALCULAR E SALVAR NO LOGIN (agora dentro do contexto do 'data')
+                // AURA: CALCULAR E SALVAR NO LOGIN (AGORA ASSÍNCRONO COM AS NOTAS)
                 if (data.registroAtivo === true || data.registroAtivo === "true") {
-                    const auraCalculada = calcularAuraDoUsuario(data);
+                    const auraCalculada = await calcularAuraDoUsuario(data, user.uid);
                     if (data.aura !== auraCalculada) {
                         await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
                     }
