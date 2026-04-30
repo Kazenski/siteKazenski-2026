@@ -177,44 +177,33 @@ function calcularAuraDoUsuario(dados) {
 async function sincronizarAuraGeralSilencioso() {
     console.log("[Auditoria Aura] Iniciando varredura silenciosa da coleção users...");
     try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const usersRef = collection(db, "users");
+        const snapshot = await getDocs(usersRef);
+        let atualizados = 0;
+
+        for (const documento of snapshot.docs) {
+            const userData = documento.data();
             
-            if (userDoc.exists()) {
-                const data = userDoc.data();
+            // Filtro exigido: registroAtivo True
+            if (userData.registroAtivo === true || userData.registroAtivo === "true") {
+                const auraCorreta = calcularAuraDoUsuario(userData);
                 
-                // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
-                userRoles.Admin = (data.Admin === true || data.Admin === "true");
-                userRoles.Professor = (data.Professor === true || data.Professor === "true");
-                userRoles.Coordenacao = (data.Coordenacao === true || data.Coordenacao === "true");
-                
-                // Aceita "Moderador" (maiúsculo) ou "moderador" (minúsculo), em Boolean ou String
-                userRoles.Moderador = (data.Moderador === true || data.Moderador === "true" || data.moderador === true || data.moderador === "true");
-                
-                userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
-                userRoles.Visitante = false;
-
-                // Define o rótulo de exibição baseado na maior autoridade
-                if (userRoles.Admin) displayRoleName = 'Admin';
-                else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
-                else if (userRoles.Professor) displayRoleName = 'Professor';
-                else if (userRoles.Moderador) displayRoleName = 'Moderador';
-                else if (userRoles.Aluno) displayRoleName = 'Aluno';
-
-                // AURA: CALCULAR E SALVAR NO LOGIN
-                const auraCalculada = calcularAuraDoUsuario(data);
-                if (data.aura !== auraCalculada) {
-                    await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
+                // Se não existir o campo ou estiver desatualizado, ele grava/cria
+                if (userData.aura !== auraCorreta) {
+                    try {
+                        const refDoc = doc(db, 'users', documento.id);
+                        await updateDoc(refDoc, { aura: auraCorreta });
+                        atualizados++;
+                    } catch (err) {
+                        console.error(`[Auditoria Aura] Falha ao salvar no uid ${documento.id}:`, err);
+                    }
                 }
             }
-        } catch (error) {
-            console.error("Erro ao mapear permissões:", error);
         }
-
-        // AURA: SYNC SILENCIOSO SE FOR ADMIN
-        if (user.email === "kazenski.developer@gmail.com") {
-            sincronizarAuraGeralSilencioso(); // Executa em background
-        }
-        
+        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras criadas/atualizadas.`);
+    } catch (error) {
+        console.error("[Auditoria Aura] Erro crítico no sync silencioso:", error);
+    }
 }
 
 // ============================================================================
@@ -240,7 +229,7 @@ onAuthStateChanged(auth, async (user) => {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             
             if (userDoc.exists()) {
-                const data = userDoc.data();
+                const data = userDoc.data(); 
                 
                 // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
                 userRoles.Admin = (data.Admin === true || data.Admin === "true");
@@ -259,22 +248,22 @@ onAuthStateChanged(auth, async (user) => {
                 else if (userRoles.Professor) displayRoleName = 'Professor';
                 else if (userRoles.Moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
-            }
 
-            // AURA: CALCULAR E SALVAR NO LOGIN
-            const auraCalculada = calcularAuraDoUsuario(data);
-            // Se o campo não existir ou estiver diferente, atualiza
-            if (data.aura !== auraCalculada) {
-                await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
+                // AURA: CALCULAR E SALVAR NO LOGIN (agora dentro do contexto do 'data')
+                if (data.registroAtivo === true || data.registroAtivo === "true") {
+                    const auraCalculada = calcularAuraDoUsuario(data);
+                    if (data.aura !== auraCalculada) {
+                        await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
+                    }
+                }
             }
-
-            // AURA: SYNC SILENCIOSO SE FOR ADMIN
-            if (user.email === "kazenski.developer@gmail.com") {
-                sincronizarAuraGeralSilencioso(); // Executa em background
-            }
-
         } catch (error) {
             console.error("Erro ao mapear permissões:", error);
+        }
+
+        // AURA: SYNC SILENCIOSO SE FOR ADMIN
+        if (user.email === "kazenski.developer@gmail.com") {
+            sincronizarAuraGeralSilencioso(); 
         }
 
         emailEl.textContent = user.email;

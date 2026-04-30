@@ -29,14 +29,17 @@ const gestaoAuraAPI = {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
                 
-                // Mapeia quem entra no ranking: tem que ser aluno (ex: tem turma) e ter aura definida (ou default 0)
-                if (data.Aluno === true || data.Aluno === "true" || data.turma) {
+                // RESTRIÇÃO RÍGIDA: Apenas alunos COM REGISTRO ATIVO podem aparecer
+                const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
+                const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
+
+                if (isAtivo && isAluno) {
                     this.listaCompleta.push({
                         id: doc.id,
                         nome: data.nome || "Anônimo",
                         turma: data.turma || "Sem Turma",
-                        disc: data.disciplina || "Diversos", // Ajuste se seu DB tiver outro campo para disciplina
-                        aura: parseInt(data.aura) || 0 // Converte para INT com segurança
+                        disc: data.disciplina || "Diversos",
+                        aura: parseInt(data.aura) || 0 // Pega o número inteiro gerado no login
                     });
                 }
             });
@@ -142,7 +145,6 @@ const gestaoAuraAPI = {
         if(top3[2]) ordemPodio.push({ pos: 3, obj: top3[2], class: 'podium-3' }); 
 
         ordemPodio.forEach(item => {
-            // Formata o número (ex: 32500 vira 32.500)
             const auraFormatada = item.obj.aura.toLocaleString('pt-BR');
             
             pContainer.innerHTML += `
@@ -153,7 +155,8 @@ const gestaoAuraAPI = {
                     </div>
                     <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold truncate w-full px-1">${item.obj.turma}</div>
                     
-                    <div class="mt-auto mb-2 flex flex-col xl:flex-row items-center justify-center gap-1 xl:gap-2 bg-slate-950/50 px-2 py-1.5 rounded-lg border border-slate-700/50 w-full overflow-hidden">
+                    <!-- SELO NO PÓDIO (Layout Aluno Tech) -->
+                    <div class="mt-auto mb-2 flex items-center justify-center gap-1 xl:gap-2 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] w-max max-w-full overflow-hidden mx-auto">
                         <span class="font-black font-cinzel text-blue-400 text-xs md:text-sm truncate">${auraFormatada}</span>
                         <img src="${this.ICONE_AURA}" class="w-3 h-3 md:w-4 md:h-4 object-contain animate-pulse shrink-0" alt="Aura">
                     </div>
@@ -175,16 +178,16 @@ const gestaoAuraAPI = {
                         </div>
                     </div>
                     
-                    <!-- SELO IDÊNTICO AO DO PERFIL DO ALUNO TECH -->
-                    <div class="flex items-center gap-2 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] shrink-0">
+                    <!-- SELO NA LISTA (Layout Aluno Tech) -->
+                    <div class="flex items-center gap-2 bg-blue-900/20 px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] shrink-0">
                         <span class="font-black font-cinzel text-sm md:text-base text-blue-400">${auraFormatada}</span>
-                        <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
+                        <img src="${this.ICONE_AURA}" class="w-4 h-4 md:w-5 md:h-5 object-contain" alt="Aura">
                     </div>
                 </div>
             `;
         });
     }
-    
+
 };
 
 export { gestaoAuraAPI };
