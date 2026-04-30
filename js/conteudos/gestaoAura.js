@@ -16,7 +16,7 @@ const gestaoAuraAPI = {
         try {
             const pContainer = document.getElementById('aura-podium-container');
             const lContainer = document.getElementById('aura-lista-container');
-            
+
             if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
             if (lContainer) lContainer.innerHTML = '';
 
@@ -28,7 +28,7 @@ const gestaoAuraAPI = {
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                
+
                 // RESTRIÇÃO ABSOLUTA E BLINDADA: Só alunos com registroAtivo estritamente verdadeiro entram
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
@@ -60,7 +60,7 @@ const gestaoAuraAPI = {
             btn.addEventListener('click', (e) => {
                 botoes.forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-900/30'));
                 botoes.forEach(b => b.classList.add('bg-slate-800', 'text-slate-400'));
-                
+
                 const target = e.currentTarget;
                 target.classList.remove('bg-slate-800', 'text-slate-400');
                 target.classList.add('active', 'bg-blue-600', 'text-white', 'shadow-lg', 'shadow-blue-900/30');
@@ -70,9 +70,9 @@ const gestaoAuraAPI = {
                     content.classList.remove('active');
                     content.classList.add('hidden');
                 });
-                
+
                 const tabAtiva = document.getElementById(`aura-tab-${tabId}`);
-                if(tabAtiva) {
+                if (tabAtiva) {
                     tabAtiva.classList.remove('hidden');
                     tabAtiva.classList.add('active');
                 }
@@ -86,22 +86,22 @@ const gestaoAuraAPI = {
         const selDisc = document.getElementById('aura-filter-disc');
 
         // Adiciona os event listeners apenas uma vez na inicialização
-        if(inputNome) inputNome.addEventListener('input', () => this.aplicarFiltros());
-        if(selTurma) selTurma.addEventListener('change', () => this.aplicarFiltros());
-        if(selDisc) selDisc.addEventListener('change', () => this.aplicarFiltros());
+        if (inputNome) inputNome.addEventListener('input', () => this.aplicarFiltros());
+        if (selTurma) selTurma.addEventListener('change', () => this.aplicarFiltros());
+        if (selDisc) selDisc.addEventListener('change', () => this.aplicarFiltros());
     },
 
     formatarNomePrivacidade(nomeCompleto) {
         if (!nomeCompleto) return "";
         const partes = nomeCompleto.trim().split(" ");
         if (partes.length === 1) return partes[0];
-        
+
         const primeiro = partes[0];
         const iniciais = partes.slice(1).map(p => {
-            if(p.length <= 2) return ""; 
+            if (p.length <= 2) return "";
             return p.charAt(0).toUpperCase() + ".";
         }).filter(p => p !== "").join(" ");
-        
+
         return `${primeiro} ${iniciais}`;
     },
 
@@ -121,70 +121,87 @@ const gestaoAuraAPI = {
     },
 
     renderRanking(lista) {
-        const ranking = [...lista].sort((a, b) => b.aura - a.aura);
-        
+        // 1. Filtro de segurança (redundante, mas importante)
+        const ativos = lista.filter(aluno => aluno.aura > 0);
+
+        // 2. Descobrir quais são as 3 maiores pontuações únicas
+        const pontuacoesUnicas = [...new Set(ativos.map(a => a.aura))].sort((a, b) => b - a);
+
+        const top1Aura = pontuacoesUnicas[0];
+        const top2Aura = pontuacoesUnicas[1];
+        const top3Aura = pontuacoesUnicas[2];
+
+        // 3. Separar grupos do pódio
+        const grupo1 = ativos.filter(a => a.aura === top1Aura);
+        const grupo2 = ativos.filter(a => a.aura === top2Aura);
+        const grupo3 = ativos.filter(a => a.aura === top3Aura);
+
+        // 4. Todos os outros vão para a lista (quem não está nos 3 maiores valores)
+        const demais = ativos.filter(a => a.aura < top3Aura || (pontuacoesUnicas.length < 3 && a.aura < pontuacoesUnicas[pontuacoesUnicas.length - 1]));
+
         const pContainer = document.getElementById('aura-podium-container');
         const lContainer = document.getElementById('aura-lista-container');
-        
         if (!pContainer || !lContainer) return;
 
         pContainer.innerHTML = '';
         lContainer.innerHTML = '';
 
-        if(ranking.length === 0) {
-            lContainer.innerHTML = '<div class="text-center text-slate-500 italic py-10 font-bold w-full">O mercado de aura está vazio no momento.</div>';
-            return;
-        }
+        // Função auxiliar para gerar o HTML de múltiplos nomes dentro de um pódio
+        const gerarNomesPodio = (grupo) => {
+            return grupo.map(aluno => `
+            <div class="py-1 border-b border-white/5 last:border-0 w-full text-center">
+                <div class="font-bold text-white text-[11px] md:text-sm leading-tight">${this.formatarNomePrivacidade(aluno.nome)}</div>
+                <div class="text-[9px] text-slate-400 uppercase tracking-tighter">${aluno.turma}</div>
+            </div>
+        `).join('');
+        };
 
-        const top3 = ranking.slice(0, 3);
-        const demais = ranking.slice(3);
+        // Ordem visual do Pódio: 2º | 1º | 3º
+        const ordens = [
+            { rank: 2, grupo: grupo2, aura: top2Aura, classe: 'podium-2' },
+            { rank: 1, grupo: grupo1, aura: top1Aura, classe: 'podium-1' },
+            { rank: 3, grupo: grupo3, aura: top3Aura, classe: 'podium-3' }
+        ];
 
-        const ordemPodio = [];
-        if(top3[1]) ordemPodio.push({ pos: 2, obj: top3[1], class: 'podium-2' }); 
-        if(top3[0]) ordemPodio.push({ pos: 1, obj: top3[0], class: 'podium-1' }); 
-        if(top3[2]) ordemPodio.push({ pos: 3, obj: top3[2], class: 'podium-3' }); 
-
-        ordemPodio.forEach(item => {
-            const auraFormatada = item.obj.aura.toLocaleString('pt-BR');
-            
-            pContainer.innerHTML += `
-                <div class="podium-card ${item.class}">
-                    <div class="podium-pos">${item.pos}</div>
-                    <div class="mt-8 text-xs md:text-sm font-bold text-white break-words w-full px-1" title="${item.obj.nome}">
-                        ${this.formatarNomePrivacidade(item.obj.nome)}
-                    </div>
-                    <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold truncate w-full px-1">${item.obj.turma}</div>
+        ordens.forEach(item => {
+            if (item.grupo.length > 0) {
+                const auraFormatada = item.aura.toLocaleString('pt-BR');
+                pContainer.innerHTML += `
+                <div class="podium-card ${item.classe} flex flex-col items-center">
+                    <div class="podium-pos">${item.rank}</div>
                     
-                    <!-- SELO NO PÓDIO (Layout Aluno Tech) -->
-                    <div class="mt-auto mb-2 flex items-center justify-center gap-1 xl:gap-2 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] w-max max-w-full overflow-hidden mx-auto">
-                        <span class="font-black font-cinzel text-blue-400 text-xs md:text-sm truncate">${auraFormatada}</span>
-                        <img src="${this.ICONE_AURA}" class="w-3 h-3 md:w-4 md:h-4 object-contain animate-pulse shrink-0" alt="Aura">
+                    <!-- Container de Nomes com Scroll caso haja muitos empates -->
+                    <div class="mt-8 mb-2 w-full px-2 max-h-[120px] overflow-y-auto custom-scroll flex flex-col items-center">
+                        ${gerarNomesPodio(item.grupo)}
+                    </div>
+                    
+                    <div class="mt-auto mb-2 flex items-center gap-2 bg-blue-900/40 px-3 py-1 rounded-full border border-blue-400/30 shadow-lg">
+                        <span class="font-black font-cinzel text-[11px] md:text-xs text-blue-300">${auraFormatada}</span>
+                        <img src="${this.ICONE_AURA}" class="w-3 h-3 object-contain animate-pulse" alt="Aura">
                     </div>
                 </div>
             `;
+            }
         });
 
-        demais.forEach((aluno, index) => {
-            const posicaoReal = index + 4;
+        // Renderiza o restante da lista normalmente
+        demais.sort((a, b) => b.aura - a.aura).forEach((aluno, index) => {
             const auraFormatada = aluno.aura.toLocaleString('pt-BR');
-
             lContainer.innerHTML += `
-                <div class="aura-list-item group">
-                    <div class="flex items-center gap-2 md:gap-4 overflow-hidden pr-2">
-                        <span class="text-slate-500 font-black text-lg md:text-xl w-6 md:w-8 text-center shrink-0 group-hover:text-blue-500 transition-colors">#${posicaoReal}</span>
-                        <div class="truncate">
-                            <div class="font-bold text-sm md:text-base text-slate-200 group-hover:text-white transition-colors truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
-                            <div class="text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-slate-500 mt-0.5 truncate">${aluno.turma} • ${aluno.disc}</div>
-                        </div>
-                    </div>
-                    
-                    <!-- SELO NA LISTA (Layout Aluno Tech) -->
-                    <div class="flex items-center gap-2 bg-blue-900/20 px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] shrink-0">
-                        <span class="font-black font-cinzel text-sm md:text-base text-blue-400">${auraFormatada}</span>
-                        <img src="${this.ICONE_AURA}" class="w-4 h-4 md:w-5 md:h-5 object-contain" alt="Aura">
+            <div class="aura-list-item group">
+                <div class="flex items-center gap-3 truncate">
+                    <span class="text-slate-500 font-black text-sm w-6">#${index + 4}</span>
+                    <div class="truncate">
+                        <div class="font-bold text-slate-200 group-hover:text-white truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
+                        <div class="text-[10px] uppercase text-slate-500">${aluno.turma} • ${aluno.disc}</div>
                     </div>
                 </div>
-            `;
+                <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+                    <span class="font-black font-cinzel text-blue-400 text-sm">${auraFormatada}</span>
+                    <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
+                </div>
+            </div>
+        `;
         });
     }
 

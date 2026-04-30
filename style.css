@@ -773,6 +773,10 @@ main, .tab-content {
     position: relative;
     border: 1px solid #334155;
     border-bottom: none;
+    min-height: 220px;
+    height: auto;
+    padding-bottom: 10px;
+    transition: all 0.3s ease;
 }
 
 /* Alturas e Bordas do Pódio */
@@ -827,4 +831,10 @@ main, .tab-content {
     transform: translateX(5px); 
     border-color: #3b82f6; 
     background: rgba(30, 41, 59, 0.9);
+}
+/* Centralização vertical dos nomes se houver poucos */
+.podium-card .custom-scroll {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
