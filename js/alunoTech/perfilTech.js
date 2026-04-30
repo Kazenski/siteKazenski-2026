@@ -1876,7 +1876,7 @@ export async function monitorarAuraGlobal(uid) {
     // Regra para Cargos Administrativos
     if (userData.Admin || userData.Professor || userData.Coordenacao) {
         if (auraValEl && auraCont) {
-            auraValEl.textContent = "MAX";
+            auraValEl.textContent = "52.000";
             auraCont.title = "NÍVEL AUTORIDADE:&#10;Aura máxima concedida para Administradores e Professores.";
             auraCont.classList.remove('hidden');
             auraCont.classList.add('flex');
