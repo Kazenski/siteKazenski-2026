@@ -177,34 +177,44 @@ function calcularAuraDoUsuario(dados) {
 async function sincronizarAuraGeralSilencioso() {
     console.log("[Auditoria Aura] Iniciando varredura silenciosa da coleção users...");
     try {
-        const usersRef = collection(db, "users");
-        const snapshot = await getDocs(usersRef);
-        let atualizados = 0;
-
-        // Usamos um for...of para processar um a um e evitar sobrecarga de rede
-        for (const documento of snapshot.docs) {
-            const d = documento.data();
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
             
-            // Filtro exigido: registroAtivo True
-            if (d.registroAtivo === true || d.registroAtivo === "true") {
-                const auraCorreta = calcularAuraDoUsuario(d);
+            if (userDoc.exists()) {
+                const data = userDoc.data();
                 
-                // Se não existir o campo ou estiver desatualizado, ele grava/cria
-                if (d.aura !== auraCorreta) {
-                    try {
-                        const refDoc = doc(db, 'users', documento.id);
-                        await updateDoc(refDoc, { aura: auraCorreta });
-                        atualizados++;
-                    } catch (err) {
-                        console.error(`[Auditoria Aura] Falha ao salvar no uid ${documento.id}:`, err);
-                    }
+                // Mapeamento aceitando tanto Boolean (true) quanto String ("true")
+                userRoles.Admin = (data.Admin === true || data.Admin === "true");
+                userRoles.Professor = (data.Professor === true || data.Professor === "true");
+                userRoles.Coordenacao = (data.Coordenacao === true || data.Coordenacao === "true");
+                
+                // Aceita "Moderador" (maiúsculo) ou "moderador" (minúsculo), em Boolean ou String
+                userRoles.Moderador = (data.Moderador === true || data.Moderador === "true" || data.moderador === true || data.moderador === "true");
+                
+                userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
+                userRoles.Visitante = false;
+
+                // Define o rótulo de exibição baseado na maior autoridade
+                if (userRoles.Admin) displayRoleName = 'Admin';
+                else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
+                else if (userRoles.Professor) displayRoleName = 'Professor';
+                else if (userRoles.Moderador) displayRoleName = 'Moderador';
+                else if (userRoles.Aluno) displayRoleName = 'Aluno';
+
+                // AURA: CALCULAR E SALVAR NO LOGIN
+                const auraCalculada = calcularAuraDoUsuario(data);
+                if (data.aura !== auraCalculada) {
+                    await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
                 }
             }
+        } catch (error) {
+            console.error("Erro ao mapear permissões:", error);
         }
-        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras criadas/atualizadas.`);
-    } catch (error) {
-        console.error("[Auditoria Aura] Erro crítico no sync silencioso:", error);
-    }
+
+        // AURA: SYNC SILENCIOSO SE FOR ADMIN
+        if (user.email === "kazenski.developer@gmail.com") {
+            sincronizarAuraGeralSilencioso(); // Executa em background
+        }
+        
 }
 
 // ============================================================================
