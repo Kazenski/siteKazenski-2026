@@ -102,7 +102,8 @@
                 </div>
 
                 <div id="aura-container"
-                    class="hidden items-center gap-2 mr-4 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]"
+                    class="hidden items-center gap-2 mr-4 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] cursor-pointer hover:bg-blue-900/40 transition-colors"
+                    onclick="window.showTab('gestao-aura')"
                     title="REGRAS DE AURA:&#10;• Notas (N1 a N4): 2500 auras por ponto.&#10;• Atividades Extras: 100 auras por atividade.">
                     <img src="imagens/aura/aura.png" alt="Aura"
                         class="w-6 h-6 object-contain animate-pulse cursor-help">
@@ -1118,29 +1119,54 @@
 
                         <div id="atab-calendario" class="aluno-tab-content h-full">
                             <div class="min-h-[calc(100vh-350px)] flex flex-col pb-6">
-                                <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col">
-                                    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
-                                        <div class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
-                                            <button id="btn-cal-prev" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-left"></i></button>
-                                            <span id="al-cal-month" class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
-                                            <button id="btn-cal-next" class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i class="fas fa-chevron-right"></i></button>
+                                <div
+                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col">
+                                    <div
+                                        class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
+                                        <div
+                                            class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                                            <button id="btn-cal-prev"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-left"></i></button>
+                                            <span id="al-cal-month"
+                                                class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
+                                            <button id="btn-cal-next"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-right"></i></button>
                                         </div>
                                         <div class="flex items-center gap-4">
                                             <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
-                                                <button id="btn-view-month" class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
-                                                <button id="btn-view-week" class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                                <button id="btn-view-month"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
+                                                <button id="btn-view-week"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
                                             </div>
-                                            <button id="al-btn-add-evt" class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i class="fas fa-plus mr-2"></i> Evento</button>
+                                            <button id="al-btn-add-evt"
+                                                class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
+                                                    class="fas fa-plus mr-2"></i> Evento</button>
                                         </div>
                                     </div>
-                                    <div id="cal-header-row" class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
-                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Segunda</div>
-                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Terça</div>
-                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quarta</div>
-                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Quinta</div>
-                                        <div class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">Sexta</div>
+                                    <div id="cal-header-row"
+                                        class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Segunda</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Terça</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quarta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quinta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Sexta</div>
                                     </div>
-                                    <div id="al-cal-grid" class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow grid auto-rows-[minmax(120px,1fr)]"></div>
+                                    <div id="al-cal-grid"
+                                        class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow grid auto-rows-[minmax(120px,1fr)]">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1762,8 +1788,9 @@
                     <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-red-400 hover:bg-red-900/40 hover:text-red-300 rounded-lg transition-colors whitespace-nowrap border border-red-900/30"
                         data-target="reset"><i class="fas fa-radiation mr-1"></i> Reset Anual</button>
-                    <button 
-                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap" data-target="logs"><i class="fas fa-history mr-1"></i> Logs do Aluno</button>
+                    <button
+                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                        data-target="logs"><i class="fas fa-history mr-1"></i> Logs do Aluno</button>
 
 
                 </div>
@@ -2102,49 +2129,72 @@
                 </div>
 
                 <div id="ptab-aval360" class="prof-tab-content hidden h-full fade-in flex-col">
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex justify-between items-center">
                         <div>
-                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i class="fas fa-sync-alt mr-2"></i> Avaliação 360 Contínua</h2>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe a evolução técnica e comportamental dos alunos.</p>
+                            <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-sync-alt mr-2"></i> Avaliação 360 Contínua</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe a
+                                evolução técnica e comportamental dos alunos.</p>
                         </div>
-                        <button onclick="window.profAPI.openModalAval360()" class="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
+                        <button onclick="window.profAPI.openModalAval360()"
+                            class="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all">
                             <i class="fas fa-plus mr-2"></i> Novo Registro 360
                         </button>
                     </div>
 
-                    <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6">
+                    <div
+                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6">
                         <div id="aval360-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div class="text-slate-500 text-sm italic col-span-full">Selecione uma turma no Menu Master para carregar as avaliações.</div>
+                            <div class="text-slate-500 text-sm italic col-span-full">Selecione uma turma no Menu Master
+                                para carregar as avaliações.</div>
                         </div>
                     </div>
                 </div>
 
-                <div id="modal-aval360" class="fixed inset-0 bg-black/80 z-[2000] hidden flex items-center justify-center p-4 fade-in">
-                    <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                        
-                        <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 shrink-0">
-                            <h3 class="text-amber-500 font-cinzel font-bold text-lg"><i class="fas fa-sync-alt mr-2"></i> <span id="aval360-modal-title">Nova Avaliação 360</span></h3>
-                            <button onclick="window.profAPI.closeModalAval360()" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+                <div id="modal-aval360"
+                    class="fixed inset-0 bg-black/80 z-[2000] hidden flex items-center justify-center p-4 fade-in">
+                    <div
+                        class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+                        <div
+                            class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50 shrink-0">
+                            <h3 class="text-amber-500 font-cinzel font-bold text-lg"><i
+                                    class="fas fa-sync-alt mr-2"></i> <span id="aval360-modal-title">Nova Avaliação
+                                    360</span></h3>
+                            <button onclick="window.profAPI.closeModalAval360()"
+                                class="text-slate-500 hover:text-white transition-colors"><i
+                                    class="fas fa-times text-xl"></i></button>
                         </div>
 
                         <div class="p-6 overflow-y-auto custom-scroll flex-grow">
                             <input type="hidden" id="aval360-id">
-                            
+
                             <div class="mb-5">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Aluno Avaliado</label>
-                                <select id="aval360-aluno" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Aluno
+                                    Avaliado</label>
+                                <select id="aval360-aluno"
+                                    class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
                                     <option value="">Selecione um aluno da turma...</option>
-                                    </select>
+                                </select>
                             </div>
 
                             <div class="mb-5">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Quesito / Competência</label>
-                                <input type="text" id="aval360-quesito" placeholder="Ex: Trabalho em Equipe, Lógica de Programação, etc." class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Quesito
+                                    / Competência</label>
+                                <input type="text" id="aval360-quesito"
+                                    placeholder="Ex: Trabalho em Equipe, Lógica de Programação, etc."
+                                    class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
                             </div>
 
                             <div class="mb-5">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status de Evolução</label>
-                                <select id="aval360-status" class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Status
+                                    de Evolução</label>
+                                <select id="aval360-status"
+                                    class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors">
                                     <option value="Identificado">🔴 Identificado</option>
                                     <option value="Em evolução">🟡 Em evolução</option>
                                     <option value="Crescimento">🔵 Crescimento</option>
@@ -2153,43 +2203,60 @@
                             </div>
 
                             <div class="mb-2">
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Texto Explicativo / Parecer</label>
-                                <textarea id="aval360-texto" rows="5" placeholder="Descreva a situação atual do aluno em relação ao quesito..." class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors custom-scroll"></textarea>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Texto
+                                    Explicativo / Parecer</label>
+                                <textarea id="aval360-texto" rows="5"
+                                    placeholder="Descreva a situação atual do aluno em relação ao quesito..."
+                                    class="w-full bg-slate-800 border border-slate-700 text-white text-sm rounded-xl p-3 outline-none focus:border-amber-500 transition-colors custom-scroll"></textarea>
                             </div>
                         </div>
 
-                        <div class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between shrink-0 items-center">
-                            <button id="btn-delete-aval360" onclick="window.profAPI.deleteAvaliacao360()" class="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest hidden"><i class="fas fa-trash mr-1"></i> Excluir</button>
+                        <div
+                            class="p-6 border-t border-slate-800 bg-slate-800/30 flex justify-between shrink-0 items-center">
+                            <button id="btn-delete-aval360" onclick="window.profAPI.deleteAvaliacao360()"
+                                class="text-red-500 hover:text-red-400 text-xs font-bold uppercase tracking-widest hidden"><i
+                                    class="fas fa-trash mr-1"></i> Excluir</button>
                             <div class="flex-grow flex justify-end gap-3">
-                                <button onclick="window.profAPI.closeModalAval360()" class="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancelar</button>
-                                <button onclick="window.profAPI.saveAvaliacao360()" class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">Salvar Avaliação</button>
+                                <button onclick="window.profAPI.closeModalAval360()"
+                                    class="px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-white transition-colors">Cancelar</button>
+                                <button onclick="window.profAPI.saveAvaliacao360()"
+                                    class="bg-green-600 hover:bg-green-500 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(22,163,74,0.4)] transition-all">Salvar
+                                    Avaliação</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="ptab-logs" class="prof-tab-content hidden h-full fade-in flex-col">
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h2 class="text-lg text-emerald-500 font-cinzel font-bold mb-1"><i class="fas fa-shoe-prints mr-2"></i> Trilha de Atividades (Logs)</h2>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe as ações recentes do aluno selecionado.</p>
+                            <h2 class="text-lg text-emerald-500 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-shoe-prints mr-2"></i> Trilha de Atividades (Logs)</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe as ações
+                                recentes do aluno selecionado.</p>
                         </div>
-                        
+
                         <div class="flex items-center gap-3 w-full md:w-auto">
-                            <select id="log-student-select" onchange="window.profAPI.loadLogsAluno()" class="bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-xl p-3 outline-none focus:border-emerald-500 min-w-[200px] shadow-inner transition-colors">
+                            <select id="log-student-select" onchange="window.profAPI.loadLogsAluno()"
+                                class="bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-xl p-3 outline-none focus:border-emerald-500 min-w-[200px] shadow-inner transition-colors">
                                 <option value="">Selecione um aluno da turma...</option>
                             </select>
-                            
-                            <button onclick="window.profAPI.loadLogsAluno()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all whitespace-nowrap">
+
+                            <button onclick="window.profAPI.loadLogsAluno()"
+                                class="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all whitespace-nowrap">
                                 <i class="fas fa-sync-alt mr-2"></i> Atualizar
                             </button>
                         </div>
                     </div>
 
-                    <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl">
+                    <div
+                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl">
                         <div class="relative overflow-x-auto">
                             <table class="w-full text-sm text-left text-slate-400">
-                                <thead class="text-[10px] text-slate-300 uppercase tracking-widest bg-slate-800/80 sticky top-0">
+                                <thead
+                                    class="text-[10px] text-slate-300 uppercase tracking-widest bg-slate-800/80 sticky top-0">
                                     <tr>
                                         <th scope="col" class="px-6 py-4 rounded-tl-xl">Data / Hora</th>
                                         <th scope="col" class="px-6 py-4">Ação Realizada</th>
@@ -2198,7 +2265,8 @@
                                 </thead>
                                 <tbody id="logs-list-body" class="divide-y divide-slate-700/50">
                                     <tr>
-                                        <td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no seletor acima para carregar.</td>
+                                        <td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione
+                                            um aluno no seletor acima para carregar.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -3308,6 +3376,89 @@
 
         <div id="admin-tech-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+
+        <!-- ABA GESTÃO DE AURA -->
+        <div id="gestao-aura-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12">
+            <div class="h-full flex flex-col pb-20 max-w-7xl mx-auto w-full">
+
+                <!-- Header da Página -->
+                <div
+                    class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
+                    <h2
+                        class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase shrink-0">
+                        <i class="fas fa-fire-alt text-blue-500 mr-2"></i> Gestão de Aura
+                    </h2>
+
+                    <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto items-center">
+                        <button
+                            class="aura-subtab-btn active px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors whitespace-nowrap shadow-lg shadow-blue-900/30"
+                            data-target="ranking">
+                            <i class="fas fa-trophy mr-2"></i> Ranking
+                        </button>
+                        <button
+                            class="aura-subtab-btn px-4 py-2 text-xs md:text-sm font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
+                            data-target="loja">
+                            <i class="fas fa-store mr-2"></i> Loja Aura
+                        </button>
+                    </div>
+                </div>
+
+                <div id="aura-tab-ranking" class="aura-tab-content active flex-grow flex flex-col fade-in h-full">
+
+                    <div
+                        class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0 mb-6">
+                        <div class="relative flex-grow">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="text" id="aura-search-nome" placeholder="Buscar por nome do aluno..."
+                                class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
+                        </div>
+                        <select id="aura-filter-turma"
+                            class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[180px]">
+                            <option value="">Todas as Turmas</option>
+                            <option value="112_ds">112_ds</option>
+                            <option value="113_ds">113_ds</option>
+                        </select>
+                        <select id="aura-filter-disc"
+                            class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm min-w-[180px]">
+                            <option value="">Todas as Disciplinas</option>
+                            <option value="Programação">Programação</option>
+                            <option value="Banco de Dados">Banco de Dados</option>
+                            <option value="Redes">Redes</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col lg:flex-row gap-6 flex-grow min-h-[500px]">
+                        <div class="w-full lg:w-5/12 bg-slate-900/50 border border-slate-700 rounded-2xl p-6 flex items-end justify-center gap-2 sm:gap-4 shadow-xl shrink-0 min-h-[350px] relative"
+                            id="aura-podium-container">
+                        </div>
+
+                        <div
+                            class="w-full lg:w-7/12 bg-slate-900/50 border border-slate-700 rounded-2xl p-6 shadow-xl flex flex-col">
+                            <h3
+                                class="text-blue-400 font-cinzel font-bold text-lg mb-4 uppercase tracking-widest border-b border-slate-700 pb-2">
+                                <i class="fas fa-list-ol mr-2"></i> Demais Ranqueados</h3>
+                            <div class="flex-grow overflow-y-auto custom-scroll pr-2 space-y-3"
+                                id="aura-lista-container">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="aura-tab-loja" class="aura-tab-content hidden h-full fade-in flex-col">
+                    <div
+                        class="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 text-center min-h-[400px] flex flex-col items-center justify-center shadow-xl">
+                        <img src="imagens/aura/aura.png" alt="Aura" class="w-20 h-20 mb-6 animate-pulse opacity-70">
+                        <h2 class="text-3xl font-cinzel font-bold text-white mb-2">Loja Aura</h2>
+                        <p
+                            class="text-slate-400 max-w-md mx-auto uppercase tracking-widest text-xs font-bold leading-relaxed">
+                            O mercado de recompensas está sendo forjado. Em breve, troque sua Aura por benefícios
+                            exclusivos e itens de jogo.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
 
     </main>
 

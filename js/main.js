@@ -11,6 +11,7 @@ import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
 import './atualizacoes/atualizacoes.js';
+import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
@@ -32,6 +33,7 @@ let isProfessorLoaded = false;
 let isModeradorLoaded = false;
 let isConexaoAlunoLoaded = false;
 let isProjetosLoaded = false;
+let isGestaoAuraLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -310,6 +312,12 @@ window.showTab = function(tabId) {
         if (!isProjetosLoaded) {             
             renderProjetosTab();              
             isProjetosLoaded = true;          
+        }                                     
+    }
+    else if (tabId === 'gestao-aura') {       
+        if (!isGestaoAuraLoaded) {             
+            gestaoAuraAPI.init();              
+            isGestaoAuraLoaded = true;          
         }                                     
     }
 };
