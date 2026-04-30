@@ -39,7 +39,8 @@ let isGestaoAuraLoaded = false;
 const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true }, 
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
-    { id: 'projetos', label: 'Projetos', showTo: (r) => true },
+    
+    { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => true }, 
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
     

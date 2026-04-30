@@ -730,15 +730,37 @@ main, .tab-content {
 /* COMPONENTE: GESTÃO DE AURA                                     */
 /* ============================================================== */
 
+/* Para garantir que não haja scroll na tela inteira, o CSS já deve tratar o #app-main, mas reforçamos o container de Gestão Aura */
+#gestao-aura-content {
+    overflow: hidden; /* Remove o scroll duplo */
+}
+
 /* Botões da sub-aba Aura */
 .aura-subtab-btn { border-bottom: 2px solid transparent; }
 .aura-subtab-btn.active { border-bottom-color: #3b82f6; }
 .aura-tab-content { display: none; }
 .aura-tab-content.active { display: flex; animation: fadeIn 0.3s ease-out forwards; }
 
+/* Layout Geral - Ajuste para responsividade extrema */
+@media (max-width: 1024px) {
+    #aura-tab-ranking {
+        flex-direction: column;
+    }
+    .podium-card {
+        width: 30%;
+        max-width: none;
+    }
+    .podium-1 { height: 220px; }
+    .podium-2 { height: 180px; }
+    .podium-3 { height: 140px; }
+    #aura-podium-container {
+        min-height: 250px;
+    }
+}
+
 /* Pódio do Top 3 */
 .podium-card {
-    background: #1e293b; /* slate-800 */
+    background: #1e293b; 
     border-radius: 12px 12px 0 0;
     padding: 15px 10px;
     text-align: center;
@@ -754,26 +776,37 @@ main, .tab-content {
 }
 
 /* Alturas e Bordas do Pódio */
-.podium-1 { height: 280px; border-top: 4px solid #facc15; z-index: 3; background: linear-gradient(to top, #1e293b, rgba(250, 204, 21, 0.1)); }
-.podium-2 { height: 220px; border-top: 4px solid #94a3b8; z-index: 2; background: linear-gradient(to top, #1e293b, rgba(148, 163, 184, 0.1)); }
-.podium-3 { height: 170px; border-top: 4px solid #b45309; z-index: 1; background: linear-gradient(to top, #1e293b, rgba(180, 83, 9, 0.1)); }
+@media (min-width: 1025px) {
+    .podium-1 { height: 280px; border-top: 4px solid #facc15; z-index: 3; background: linear-gradient(to top, #1e293b, rgba(250, 204, 21, 0.1)); }
+    .podium-2 { height: 220px; border-top: 4px solid #94a3b8; z-index: 2; background: linear-gradient(to top, #1e293b, rgba(148, 163, 184, 0.1)); }
+    .podium-3 { height: 170px; border-top: 4px solid #b45309; z-index: 1; background: linear-gradient(to top, #1e293b, rgba(180, 83, 9, 0.1)); }
+}
+@media (max-width: 1024px) {
+    .podium-1 { border-top: 4px solid #facc15; z-index: 3; background: linear-gradient(to top, #1e293b, rgba(250, 204, 21, 0.1)); }
+    .podium-2 { border-top: 4px solid #94a3b8; z-index: 2; background: linear-gradient(to top, #1e293b, rgba(148, 163, 184, 0.1)); }
+    .podium-3 { border-top: 4px solid #b45309; z-index: 1; background: linear-gradient(to top, #1e293b, rgba(180, 83, 9, 0.1)); }
+}
 
 /* Círculo do Número da Posição */
 .podium-pos {
     position: absolute;
     top: -25px;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 900;
-    font-size: 1.5rem;
-    color: #0f172a; /* slate-900 */
+    font-size: 1.2rem;
+    color: #0f172a; 
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
     border: 3px solid #0f172a;
 }
+@media (min-width: 768px) {
+    .podium-pos { width: 50px; height: 50px; font-size: 1.5rem; top: -25px; }
+}
+
 .podium-1 .podium-pos { background: #facc15; }
 .podium-2 .podium-pos { background: #cbd5e1; }
 .podium-3 .podium-pos { background: #d97706; }
@@ -782,12 +815,13 @@ main, .tab-content {
 .aura-list-item {
     background: #1e293b;
     border: 1px solid #334155;
-    padding: 15px 20px;
+    padding: 12px 16px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     transition: transform 0.2s, border-color 0.2s;
+    margin-bottom: 8px; /* Ajuste para espaçamento consistente */
 }
 .aura-list-item:hover { 
     transform: translateX(5px); 
