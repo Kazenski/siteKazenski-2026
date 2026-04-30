@@ -148,7 +148,6 @@ async function calcularAuraDoUsuario(dadosUser, uid) {
     let auraTotal = 0;
     
     try {
-        // 1. Regra das Notas: Buscando na coleção "notas" o documento do usuário
         const notaRef = doc(db, 'notas', uid);
         const notaSnap = await getDoc(notaRef);
         
@@ -156,48 +155,55 @@ async function calcularAuraDoUsuario(dadosUser, uid) {
             const notaData = notaSnap.data();
             const disciplinas = notaData.disciplinasComNotas || {};
             
-            // Itera sobre as disciplinas (ex: "Banco de Dados", "Lógica")
             for (const disc in disciplinas) {
                 const trimestres = disciplinas[disc];
                 
-                // Itera sobre os trimestres (1, 2, 3)
                 for (const tri in trimestres) {
-                    const notasTri = trimestres[tri];
+                    const dadosTri = trimestres[tri];
                     
-                    // Lê N1, N2, N3 e N4 (aceitando maiúsculas e minúsculas por segurança)
-                    ['n1', 'n2', 'n3', 'n4', 'N1', 'N2', 'N3', 'N4'].forEach(campo => {
-                        if (notasTri[campo] !== undefined && notasTri[campo] !== null && notasTri[campo] !== "") {
-                            const valorStr = String(notasTri[campo]).replace(',', '.');
-                            const valorNota = parseFloat(valorStr);
+                    // 1. Soma das Notas (nota1, nota2, nota3, nota4)
+                    // Cada ponto de nota vale 2500 de Aura
+                    ['nota1', 'nota2', 'nota3', 'nota4'].forEach(campo => {
+                        if (dadosTri[campo] !== undefined && dadosTri[campo] !== null && dadosTri[campo] !== "") {
+                            const valorNota = parseFloat(String(dadosTri[campo]).replace(',', '.'));
                             if (!isNaN(valorNota)) {
                                 auraTotal += Math.floor(valorNota * 2500);
                             }
+                        }
+                    });
+
+                    // 2. Soma das Atividades Extras (ext1, ext2, ext3, ext4)
+                    // Se o campo for 'true' ou houver valor, ganha 100 de Aura
+                    ['ext1', 'ext2', 'ext3', 'ext4'].forEach(campo => {
+                        const v = dadosTri[campo];
+                        if (v === true || v === "true" || (typeof v === "number" && v > 0)) {
+                            auraTotal += 100;
                         }
                     });
                 }
             }
         }
     } catch (error) {
-        console.error(`[Aura] Erro ao cruzar notas do aluno ${uid}:`, error);
+        console.error(`[Aura] Erro ao processar notas do aluno ${uid}:`, error);
     }
 
-    // 2. Regra das Atividades Extras (lido de 'users')
-    if (dadosUser.atividadesExtras !== undefined && dadosUser.atividadesExtras !== null && dadosUser.atividadesExtras !== "") {
-        const extras = parseInt(dadosUser.atividadesExtras);
-        if (!isNaN(extras)) auraTotal += (extras * 100);
-    }
-
-    // 3. Modificadores Manuais (lido de 'users')
-    if (dadosUser.auraManual !== undefined && dadosUser.auraManual !== null && dadosUser.auraManual !== "") {
+    // 3. Modificadores Manuais vindos do documento do Usuário
+    if (dadosUser.auraManual) {
         const manual = parseInt(dadosUser.auraManual);
         if (!isNaN(manual)) auraTotal += manual;
+    }
+
+    // Adicional: Atividades extras que possam estar no doc do usuário
+    if (dadosUser.atividadesExtras) {
+        const extrasDoc = parseInt(dadosUser.atividadesExtras);
+        if (!isNaN(extrasDoc)) auraTotal += (extrasDoc * 100);
     }
 
     return auraTotal;
 }
 
 async function sincronizarAuraGeralSilencioso() {
-    console.log("[Auditoria Aura] Iniciando varredura e cruzamento com a coleção de notas...");
+    console.log("[Auditoria Aura] Iniciando varredura detalhada...");
     try {
         const usersRef = collection(db, "users");
         const snapshot = await getDocs(usersRef);
@@ -205,25 +211,31 @@ async function sincronizarAuraGeralSilencioso() {
 
         for (const documento of snapshot.docs) {
             const d = documento.data();
+            const uid = documento.id;
             
-            if (d.registroAtivo === true || d.registroAtivo === "true") {
-                // Agora enviamos o 'd' e o 'documento.id' e esperamos (await) o cálculo terminar
-                const auraCorreta = await calcularAuraDoUsuario(d, documento.id);
+            // FILTRO RÍGIDO: Apenas registroAtivo true
+            const isAtivo = (d.registroAtivo === true || d.registroAtivo === "true");
+
+            if (isAtivo) {
+                const auraCorreta = await calcularAuraDoUsuario(d, uid);
                 
-                if (d.aura !== auraCorreta) {
-                    try {
-                        const refDoc = doc(db, 'users', documento.id);
-                        await updateDoc(refDoc, { aura: auraCorreta });
-                        atualizados++;
-                    } catch (err) {
-                        console.error(`[Auditoria Aura] Falha ao atualizar uid ${documento.id}:`, err);
-                    }
+                if (auraCorreta > 0) {
+                    console.log(`[Forja] ${d.nome || uid}: ${auraCorreta.toLocaleString('pt-BR')} Aura`);
+                }
+
+                if (d.aura === undefined || d.aura !== auraCorreta) {
+                    const refDoc = doc(db, 'users', uid);
+                    await updateDoc(refDoc, { 
+                        aura: auraCorreta,
+                        sincronizadoEm: new Date().toISOString() 
+                    });
+                    atualizados++;
                 }
             }
         }
-        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras forjadas com notas.`);
+        console.log(`[Auditoria Aura] Finalizado. ${atualizados} heróis tiveram sua Aura atualizada.`);
     } catch (error) {
-        console.error("[Auditoria Aura] Erro crítico no sync silencioso:", error);
+        console.error("[Auditoria Aura] Erro:", error);
     }
 }
 
