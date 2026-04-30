@@ -150,9 +150,9 @@ function calcularAuraDoUsuario(dados) {
     // 1. Regra das Notas: (N1, N2, N3, N4) * 2500
     const notas = ['n1', 'n2', 'n3', 'n4'];
     notas.forEach(campo => {
-        if (dados[campo]) {
-            // Substitui vírgula por ponto para evitar erro no parseFloat ("8,5" -> 8.5)
-            const valorNota = parseFloat(dados[campo].toString().replace(',', '.'));
+        if (dados[campo] !== undefined && dados[campo] !== null && dados[campo] !== "") {
+            const valorStr = String(dados[campo]).replace(',', '.');
+            const valorNota = parseFloat(valorStr);
             if (!isNaN(valorNota)) {
                 auraTotal += Math.floor(valorNota * 2500);
             }
@@ -160,51 +160,50 @@ function calcularAuraDoUsuario(dados) {
     });
 
     // 2. Regra das Atividades Extras: Cada atividade * 100
-    if (dados.atividadesExtras) {
+    if (dados.atividadesExtras !== undefined && dados.atividadesExtras !== null && dados.atividadesExtras !== "") {
         const extras = parseInt(dados.atividadesExtras);
-        if (!isNaN(extras)) {
-            auraTotal += (extras * 100);
-        }
+        if (!isNaN(extras)) auraTotal += (extras * 100);
     }
 
-    // 3. Modificadores Manuais (se você quiser adicionar ou tirar aura manualmente depois no Firebase)
-    if (dados.auraManual && !isNaN(parseInt(dados.auraManual))) {
-        auraTotal += parseInt(dados.auraManual);
+    // 3. Modificadores Manuais 
+    if (dados.auraManual !== undefined && dados.auraManual !== null && dados.auraManual !== "") {
+        const manual = parseInt(dados.auraManual);
+        if (!isNaN(manual)) auraTotal += manual;
     }
 
     return auraTotal;
 }
 
 async function sincronizarAuraGeralSilencioso() {
+    console.log("[Auditoria Aura] Iniciando varredura silenciosa da coleção users...");
     try {
         const usersRef = collection(db, "users");
         const snapshot = await getDocs(usersRef);
         let atualizados = 0;
-        const promessas = [];
 
-        snapshot.forEach((documento) => {
+        // Usamos um for...of para processar um a um e evitar sobrecarga de rede
+        for (const documento of snapshot.docs) {
             const d = documento.data();
             
-            // Só calcula para alunos com registro ativo
+            // Filtro exigido: registroAtivo True
             if (d.registroAtivo === true || d.registroAtivo === "true") {
                 const auraCorreta = calcularAuraDoUsuario(d);
                 
-                // Só dispara a gravação no Firebase se o valor estiver defasado (poupa o banco)
+                // Se não existir o campo ou estiver desatualizado, ele grava/cria
                 if (d.aura !== auraCorreta) {
-                    const refDoc = doc(db, 'users', documento.id);
-                    promessas.push(updateDoc(refDoc, { aura: auraCorreta }));
-                    atualizados++;
+                    try {
+                        const refDoc = doc(db, 'users', documento.id);
+                        await updateDoc(refDoc, { aura: auraCorreta });
+                        atualizados++;
+                    } catch (err) {
+                        console.error(`[Auditoria Aura] Falha ao salvar no uid ${documento.id}:`, err);
+                    }
                 }
             }
-        });
-
-        // Aguarda todas as gravações paralelas terminarem
-        await Promise.all(promessas);
-        if (atualizados > 0) {
-            console.log(`[Auditoria] Sincronização Silenciosa de Aura: ${atualizados} alunos atualizados.`);
         }
+        console.log(`[Auditoria Aura] Varredura concluída. ${atualizados} Auras criadas/atualizadas.`);
     } catch (error) {
-        console.error("[Auditoria] Erro no sync silencioso de aura:", error);
+        console.error("[Auditoria Aura] Erro crítico no sync silencioso:", error);
     }
 }
 

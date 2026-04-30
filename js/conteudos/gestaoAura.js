@@ -129,7 +129,7 @@ const gestaoAuraAPI = {
         lContainer.innerHTML = '';
 
         if(ranking.length === 0) {
-            lContainer.innerHTML = '<div class="text-center text-slate-500 italic py-10 font-bold w-full">Nenhuma Aura encontrada nesta busca.</div>';
+            lContainer.innerHTML = '<div class="text-center text-slate-500 italic py-10 font-bold w-full">O mercado de aura está vazio no momento.</div>';
             return;
         }
 
@@ -137,12 +137,14 @@ const gestaoAuraAPI = {
         const demais = ranking.slice(3);
 
         const ordemPodio = [];
-        // Checagem de segurança se a lista tiver menos de 3 alunos no total
         if(top3[1]) ordemPodio.push({ pos: 2, obj: top3[1], class: 'podium-2' }); 
         if(top3[0]) ordemPodio.push({ pos: 1, obj: top3[0], class: 'podium-1' }); 
         if(top3[2]) ordemPodio.push({ pos: 3, obj: top3[2], class: 'podium-3' }); 
 
         ordemPodio.forEach(item => {
+            // Formata o número (ex: 32500 vira 32.500)
+            const auraFormatada = item.obj.aura.toLocaleString('pt-BR');
+            
             pContainer.innerHTML += `
                 <div class="podium-card ${item.class}">
                     <div class="podium-pos">${item.pos}</div>
@@ -152,7 +154,7 @@ const gestaoAuraAPI = {
                     <div class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold truncate w-full px-1">${item.obj.turma}</div>
                     
                     <div class="mt-auto mb-2 flex flex-col xl:flex-row items-center justify-center gap-1 xl:gap-2 bg-slate-950/50 px-2 py-1.5 rounded-lg border border-slate-700/50 w-full overflow-hidden">
-                        <span class="font-black font-cinzel text-blue-400 text-xs md:text-sm truncate">${item.obj.aura}</span>
+                        <span class="font-black font-cinzel text-blue-400 text-xs md:text-sm truncate">${auraFormatada}</span>
                         <img src="${this.ICONE_AURA}" class="w-3 h-3 md:w-4 md:h-4 object-contain animate-pulse shrink-0" alt="Aura">
                     </div>
                 </div>
@@ -161,6 +163,8 @@ const gestaoAuraAPI = {
 
         demais.forEach((aluno, index) => {
             const posicaoReal = index + 4;
+            const auraFormatada = aluno.aura.toLocaleString('pt-BR');
+
             lContainer.innerHTML += `
                 <div class="aura-list-item group">
                     <div class="flex items-center gap-2 md:gap-4 overflow-hidden pr-2">
@@ -170,14 +174,17 @@ const gestaoAuraAPI = {
                             <div class="text-[9px] md:text-[10px] uppercase tracking-widest font-bold text-slate-500 mt-0.5 truncate">${aluno.turma} • ${aluno.disc}</div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 bg-slate-900 px-3 md:px-4 py-2 rounded-lg border border-slate-700 shrink-0">
-                        <span class="font-black font-cinzel text-sm md:text-base text-blue-400">${aluno.aura}</span>
-                        <img src="${this.ICONE_AURA}" class="w-4 h-4 md:w-5 md:h-5 object-contain" alt="Aura">
+                    
+                    <!-- SELO IDÊNTICO AO DO PERFIL DO ALUNO TECH -->
+                    <div class="flex items-center gap-2 bg-blue-900/20 px-3 py-1.5 rounded-full border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)] shrink-0">
+                        <span class="font-black font-cinzel text-sm md:text-base text-blue-400">${auraFormatada}</span>
+                        <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
                     </div>
                 </div>
             `;
         });
     }
+    
 };
 
 export { gestaoAuraAPI };
