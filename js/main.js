@@ -1,6 +1,6 @@
 import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, addDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
@@ -141,6 +141,74 @@ function stopSessionManager() {
 }
 
 // ============================================================================
+// SISTEMA DE AURA (CÁLCULO E SINCRONIZAÇÃO)
+// ============================================================================
+
+function calcularAuraDoUsuario(dados) {
+    let auraTotal = 0;
+    
+    // 1. Regra das Notas: (N1, N2, N3, N4) * 2500
+    const notas = ['n1', 'n2', 'n3', 'n4'];
+    notas.forEach(campo => {
+        if (dados[campo]) {
+            // Substitui vírgula por ponto para evitar erro no parseFloat ("8,5" -> 8.5)
+            const valorNota = parseFloat(dados[campo].toString().replace(',', '.'));
+            if (!isNaN(valorNota)) {
+                auraTotal += Math.floor(valorNota * 2500);
+            }
+        }
+    });
+
+    // 2. Regra das Atividades Extras: Cada atividade * 100
+    if (dados.atividadesExtras) {
+        const extras = parseInt(dados.atividadesExtras);
+        if (!isNaN(extras)) {
+            auraTotal += (extras * 100);
+        }
+    }
+
+    // 3. Modificadores Manuais (se você quiser adicionar ou tirar aura manualmente depois no Firebase)
+    if (dados.auraManual && !isNaN(parseInt(dados.auraManual))) {
+        auraTotal += parseInt(dados.auraManual);
+    }
+
+    return auraTotal;
+}
+
+async function sincronizarAuraGeralSilencioso() {
+    try {
+        const usersRef = collection(db, "users");
+        const snapshot = await getDocs(usersRef);
+        let atualizados = 0;
+        const promessas = [];
+
+        snapshot.forEach((documento) => {
+            const d = documento.data();
+            
+            // Só calcula para alunos com registro ativo
+            if (d.registroAtivo === true || d.registroAtivo === "true") {
+                const auraCorreta = calcularAuraDoUsuario(d);
+                
+                // Só dispara a gravação no Firebase se o valor estiver defasado (poupa o banco)
+                if (d.aura !== auraCorreta) {
+                    const refDoc = doc(db, 'users', documento.id);
+                    promessas.push(updateDoc(refDoc, { aura: auraCorreta }));
+                    atualizados++;
+                }
+            }
+        });
+
+        // Aguarda todas as gravações paralelas terminarem
+        await Promise.all(promessas);
+        if (atualizados > 0) {
+            console.log(`[Auditoria] Sincronização Silenciosa de Aura: ${atualizados} alunos atualizados.`);
+        }
+    } catch (error) {
+        console.error("[Auditoria] Erro no sync silencioso de aura:", error);
+    }
+}
+
+// ============================================================================
 // GERENCIAMENTO DE AUTHENTICATION
 // ============================================================================
 
@@ -183,6 +251,19 @@ onAuthStateChanged(auth, async (user) => {
                 else if (userRoles.Moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
             }
+
+            // AURA: CALCULAR E SALVAR NO LOGIN
+            const auraCalculada = calcularAuraDoUsuario(data);
+            // Se o campo não existir ou estiver diferente, atualiza
+            if (data.aura !== auraCalculada) {
+                await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
+            }
+
+            // AURA: SYNC SILENCIOSO SE FOR ADMIN
+            if (user.email === "kazenski.developer@gmail.com") {
+                sincronizarAuraGeralSilencioso(); // Executa em background
+            }
+
         } catch (error) {
             console.error("Erro ao mapear permissões:", error);
         }
