@@ -20,7 +20,23 @@ const gestaoAuraAPI = {
             if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
             if (lContainer) lContainer.innerHTML = '';
 
-            // Busca os dados da coleção 'users'
+            // 1. Busca nomes de exibição das disciplinas (Lógica do perfilTech)
+            const discsSnap = await getDocs(collection(db, "disciplinasCadastradas"));
+            const mapaNomesDiscs = {};
+            discsSnap.forEach(d => {
+                mapaNomesDiscs[d.id] = d.data().nomeExibicao || d.id;
+            });
+
+            // Popula o select de disciplinas com os nomes reais
+            const selDisc = document.getElementById('aura-filter-disc');
+            if (selDisc) {
+                selDisc.innerHTML = '<option value="">Todas as Disciplinas</option>';
+                Object.entries(mapaNomesDiscs).forEach(([id, nome]) => {
+                    selDisc.innerHTML += `<option value="${id}">${nome}</option>`;
+                });
+            }
+
+            // 2. Busca os dados dos usuários
             const q = query(collection(db, "users"));
             const querySnapshot = await getDocs(q);
 
@@ -29,22 +45,31 @@ const gestaoAuraAPI = {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // RESTRIÇÃO ABSOLUTA E BLINDADA: Só alunos com registroAtivo estritamente verdadeiro entram
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
 
                 if (isAtivo && isAluno) {
+                    // Mapeia disciplinas do usuário (booleanos) para nomes de exibição
+                    let nomesExibicao = [];
+                    if (data.disciplinas) {
+                        Object.entries(data.disciplinas).forEach(([id, ativo]) => {
+                            if (ativo === true && mapaNomesDiscs[id]) {
+                                nomesExibicao.push(mapaNomesDiscs[id]);
+                            }
+                        });
+                    }
+
                     this.listaCompleta.push({
                         id: doc.id,
                         nome: data.nome || "Anônimo",
                         turma: data.turma || "Sem Turma",
-                        disc: data.disciplina || "Diversos",
-                        aura: parseInt(data.aura) || 0 // Pega a aura forjada no banco de dados
+                        disciplinasMap: data.disciplinas || {}, // Mapa original para o filtro
+                        disc: nomesExibicao.join(" • ") || "Diversos",
+                        aura: parseInt(data.aura) || 0
                     });
                 }
             });
 
-            // Aplica os filtros na tela
             this.aplicarFiltros();
 
         } catch (error) {
@@ -108,12 +133,13 @@ const gestaoAuraAPI = {
     aplicarFiltros() {
         const txtNome = document.getElementById('aura-search-nome')?.value.toLowerCase() || "";
         const txtTurma = document.getElementById('aura-filter-turma')?.value || "";
-        const txtDisc = document.getElementById('aura-filter-disc')?.value || "";
+        const idDiscSel = document.getElementById('aura-filter-disc')?.value || ""; // Recebe o ID do select
 
         const filtrados = this.listaCompleta.filter(a => {
             const matchNome = a.nome.toLowerCase().includes(txtNome);
             const matchTurma = txtTurma === "" || a.turma === txtTurma;
-            const matchDisc = txtDisc === "" || a.disc === txtDisc;
+            // Verifica no mapa de booleanos se o usuário possui esta disciplina ativa
+            const matchDisc = idDiscSel === "" || (a.disciplinasMap[idDiscSel] === true);
             return matchNome && matchTurma && matchDisc;
         });
 
