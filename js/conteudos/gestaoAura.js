@@ -17,26 +17,10 @@ const gestaoAuraAPI = {
             const pContainer = document.getElementById('aura-podium-container');
             const lContainer = document.getElementById('aura-lista-container');
 
-            if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
+            if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Carregando dados ... <i class="fas fa-spinner fa-spin"></i></div>';
             if (lContainer) lContainer.innerHTML = '';
 
-            // 1. Busca nomes de exibição das disciplinas (Lógica do perfilTech)
-            const discsSnap = await getDocs(collection(db, "disciplinasCadastradas"));
-            const mapaNomesDiscs = {};
-            discsSnap.forEach(d => {
-                mapaNomesDiscs[d.id] = d.data().nomeExibicao || d.id;
-            });
-
-            // Popula o select de disciplinas com os nomes reais
-            const selDisc = document.getElementById('aura-filter-disc');
-            if (selDisc) {
-                selDisc.innerHTML = '<option value="">Todas as Disciplinas</option>';
-                Object.entries(mapaNomesDiscs).forEach(([id, nome]) => {
-                    selDisc.innerHTML += `<option value="${id}">${nome}</option>`;
-                });
-            }
-
-            // 2. Busca os dados dos usuários
+            // Busca os dados da coleção 'users' diretamente
             const q = query(collection(db, "users"));
             const querySnapshot = await getDocs(q);
 
@@ -45,26 +29,15 @@ const gestaoAuraAPI = {
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
 
+                // RESTRIÇÃO ABSOLUTA E BLINDADA
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
 
                 if (isAtivo && isAluno) {
-                    // Mapeia disciplinas do usuário (booleanos) para nomes de exibição
-                    let nomesExibicao = [];
-                    if (data.disciplinas) {
-                        Object.entries(data.disciplinas).forEach(([id, ativo]) => {
-                            if (ativo === true && mapaNomesDiscs[id]) {
-                                nomesExibicao.push(mapaNomesDiscs[id]);
-                            }
-                        });
-                    }
-
                     this.listaCompleta.push({
                         id: doc.id,
                         nome: data.nome || "Anônimo",
                         turma: data.turma || "Sem Turma",
-                        disciplinasMap: data.disciplinas || {}, // Mapa original para o filtro
-                        disc: nomesExibicao.join(" • ") || "Diversos",
                         aura: parseInt(data.aura) || 0
                     });
                 }
@@ -108,12 +81,9 @@ const gestaoAuraAPI = {
     configurarFiltros() {
         const inputNome = document.getElementById('aura-search-nome');
         const selTurma = document.getElementById('aura-filter-turma');
-        const selDisc = document.getElementById('aura-filter-disc');
 
-        // Adiciona os event listeners apenas uma vez na inicialização
         if (inputNome) inputNome.addEventListener('input', () => this.aplicarFiltros());
         if (selTurma) selTurma.addEventListener('change', () => this.aplicarFiltros());
-        if (selDisc) selDisc.addEventListener('change', () => this.aplicarFiltros());
     },
 
     formatarNomePrivacidade(nomeCompleto) {
@@ -133,14 +103,11 @@ const gestaoAuraAPI = {
     aplicarFiltros() {
         const txtNome = document.getElementById('aura-search-nome')?.value.toLowerCase() || "";
         const txtTurma = document.getElementById('aura-filter-turma')?.value || "";
-        const idDiscSel = document.getElementById('aura-filter-disc')?.value || ""; // Recebe o ID do select
 
         const filtrados = this.listaCompleta.filter(a => {
             const matchNome = a.nome.toLowerCase().includes(txtNome);
             const matchTurma = txtTurma === "" || a.turma === txtTurma;
-            // Verifica no mapa de booleanos se o usuário possui esta disciplina ativa
-            const matchDisc = idDiscSel === "" || (a.disciplinasMap[idDiscSel] === true);
-            return matchNome && matchTurma && matchDisc;
+            return matchNome && matchTurma;
         });
 
         this.renderRanking(filtrados);
@@ -214,20 +181,21 @@ const gestaoAuraAPI = {
         demais.sort((a, b) => b.aura - a.aura).forEach((aluno, index) => {
             const auraFormatada = aluno.aura.toLocaleString('pt-BR');
             lContainer.innerHTML += `
-            <div class="aura-list-item group">
-                <div class="flex items-center gap-3 truncate">
-                    <span class="text-slate-500 font-black text-sm w-6">#${index + 4}</span>
-                    <div class="truncate">
-                        <div class="font-bold text-slate-200 group-hover:text-white truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
-                        <div class="text-[10px] uppercase text-slate-500">${aluno.turma} • ${aluno.disc}</div>
+                <div class="aura-list-item group">
+                    <div class="flex items-center gap-3 truncate">
+                        <span class="text-slate-500 font-black text-sm w-6">#${index + 4}</span>
+                        <div class="truncate">
+                            <div class="font-bold text-slate-200 group-hover:text-white truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
+                            <!-- Exibe apenas a turma, removendo o ponto e a disciplina conforme solicitado -->
+                            <div class="text-[10px] uppercase text-slate-500">${aluno.turma}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+                        <span class="font-black font-cinzel text-blue-400 text-sm">${auraFormatada}</span>
+                        <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
                     </div>
                 </div>
-                <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
-                    <span class="font-black font-cinzel text-blue-400 text-sm">${auraFormatada}</span>
-                    <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
-                </div>
-            </div>
-        `;
+            `;
         });
     }
 
