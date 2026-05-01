@@ -3408,18 +3408,21 @@
                     <div
                         class="w-full lg:w-1/2 flex flex-col gap-6 shrink-0 lg:h-full lg:overflow-y-auto custom-scroll pr-2">
                         <div
-                            class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col gap-4 shadow-lg shrink-0 w-full">
-                            <div class="relative w-full">
+                            class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex flex-col md:flex-row gap-4 shadow-lg shrink-0 w-full">
+
+                            <div class="relative w-full md:w-2/3">
                                 <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
                                 <input type="text" id="aura-search-nome" placeholder="Buscar por nome do aluno..."
                                     class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                            <div class="w-full md:w-1/3">
                                 <select id="aura-filter-turma"
-                                    class="bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-white focus:border-blue-500 outline-none cursor-pointer">
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:border-blue-500 outline-none cursor-pointer">
                                     <option value="">Todas as Turmas</option>
                                 </select>
                             </div>
+
                         </div>
 
                         <div class="bg-slate-900/50 border border-slate-700 rounded-2xl p-4 md:p-6 flex items-end justify-center gap-2 md:gap-9 shadow-xl min-h-[420px] w-full relative"
