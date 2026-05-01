@@ -17,31 +17,44 @@ const gestaoAuraAPI = {
             const pContainer = document.getElementById('aura-podium-container');
             const lContainer = document.getElementById('aura-lista-container');
 
-            if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Carregando dados ... <i class="fas fa-spinner fa-spin"></i></div>';
+            if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
             if (lContainer) lContainer.innerHTML = '';
 
-            // Busca os dados da coleção 'users' diretamente
+            // Busca os dados dos usuários[cite: 11]
             const q = query(collection(db, "users"));
             const querySnapshot = await getDocs(q);
 
             this.listaCompleta = [];
+            const turmasEncontradas = new Set();
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
 
-                // RESTRIÇÃO ABSOLUTA E BLINDADA
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
 
                 if (isAtivo && isAluno) {
+                    const turma = data.turma || "Sem Turma";
+                    turmasEncontradas.add(turma);
+
                     this.listaCompleta.push({
                         id: doc.id,
                         nome: data.nome || "Anônimo",
-                        turma: data.turma || "Sem Turma",
+                        turma: turma,
                         aura: parseInt(data.aura) || 0
                     });
                 }
             });
+
+            // Popula o select de turmas de forma única[cite: 13]
+            const selTurma = document.getElementById('aura-filter-turma');
+            if (selTurma) {
+                selTurma.innerHTML = '<option value="">Todas as Turmas</option>';
+                const turmasOrdenadas = Array.from(turmasEncontradas).sort();
+                turmasOrdenadas.forEach(turma => {
+                    selTurma.innerHTML += `<option value="${turma}">${turma}</option>`;
+                });
+            }
 
             this.aplicarFiltros();
 
@@ -181,21 +194,20 @@ const gestaoAuraAPI = {
         demais.sort((a, b) => b.aura - a.aura).forEach((aluno, index) => {
             const auraFormatada = aluno.aura.toLocaleString('pt-BR');
             lContainer.innerHTML += `
-                <div class="aura-list-item group">
-                    <div class="flex items-center gap-3 truncate">
-                        <span class="text-slate-500 font-black text-sm w-6">#${index + 4}</span>
-                        <div class="truncate">
-                            <div class="font-bold text-slate-200 group-hover:text-white truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
-                            <!-- Exibe apenas a turma, removendo o ponto e a disciplina conforme solicitado -->
-                            <div class="text-[10px] uppercase text-slate-500">${aluno.turma}</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
-                        <span class="font-black font-cinzel text-blue-400 text-sm">${auraFormatada}</span>
-                        <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
+            <div class="aura-list-item group">
+                <div class="flex items-center gap-3 truncate">
+                    <span class="text-slate-500 font-black text-sm w-6">#${index + 4}</span>
+                    <div class="truncate">
+                        <div class="font-bold text-slate-200 group-hover:text-white truncate">${this.formatarNomePrivacidade(aluno.nome)}</div>
+                        <div class="text-[10px] uppercase text-slate-500">${aluno.turma}</div>
                     </div>
                 </div>
-            `;
+                <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-700">
+                    <span class="font-black font-cinzel text-blue-400 text-sm">${auraFormatada}</span>
+                    <img src="${this.ICONE_AURA}" class="w-4 h-4 object-contain" alt="Aura">
+                </div>
+            </div>
+        `;
         });
     }
 
