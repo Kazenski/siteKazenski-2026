@@ -40,7 +40,7 @@ const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true }, 
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
     
-    { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => true }, 
+    { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno }, 
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
     
