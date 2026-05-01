@@ -20,22 +20,23 @@ const gestaoAuraAPI = {
             if (pContainer) pContainer.innerHTML = '<div class="text-white w-full text-center">Invocando heróis da base... <i class="fas fa-spinner fa-spin"></i></div>';
             if (lContainer) lContainer.innerHTML = '';
 
-            // Busca os dados dos usuários[cite: 11]
+            // Busca os dados da coleção 'users'
             const q = query(collection(db, "users"));
             const querySnapshot = await getDocs(q);
 
             this.listaCompleta = [];
-            const turmasEncontradas = new Set();
+            const turmasEncontradas = new Set(); // Para listar turmas únicas
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
 
+                // RESTRIÇÃO ABSOLUTA E BLINDADA: Só alunos com registroAtivo verdadeiro
                 const isAtivo = (data.registroAtivo === true || data.registroAtivo === "true");
                 const isAluno = (data.Aluno === true || data.Aluno === "true" || data.turma);
 
                 if (isAtivo && isAluno) {
                     const turma = data.turma || "Sem Turma";
-                    turmasEncontradas.add(turma);
+                    turmasEncontradas.add(turma); // Adiciona a turma no Set para evitar duplicatas
 
                     this.listaCompleta.push({
                         id: doc.id,
@@ -46,7 +47,7 @@ const gestaoAuraAPI = {
                 }
             });
 
-            // Popula o select de turmas de forma única[cite: 13]
+            // Popula o select de turmas de forma única e ordenada
             const selTurma = document.getElementById('aura-filter-turma');
             if (selTurma) {
                 selTurma.innerHTML = '<option value="">Todas as Turmas</option>';
@@ -127,7 +128,7 @@ const gestaoAuraAPI = {
     },
 
     renderRanking(lista) {
-        // 1. Filtro de segurança (redundante, mas importante)
+        // 1. Filtro de segurança
         const ativos = lista.filter(aluno => aluno.aura > 0);
 
         // 2. Descobrir quais são as 3 maiores pontuações únicas
@@ -142,7 +143,7 @@ const gestaoAuraAPI = {
         const grupo2 = ativos.filter(a => a.aura === top2Aura);
         const grupo3 = ativos.filter(a => a.aura === top3Aura);
 
-        // 4. Todos os outros vão para a lista (quem não está nos 3 maiores valores)
+        // 4. Todos os outros vão para a lista
         const demais = ativos.filter(a => a.aura < top3Aura || (pontuacoesUnicas.length < 3 && a.aura < pontuacoesUnicas[pontuacoesUnicas.length - 1]));
 
         const pContainer = document.getElementById('aura-podium-container');
@@ -152,7 +153,7 @@ const gestaoAuraAPI = {
         pContainer.innerHTML = '';
         lContainer.innerHTML = '';
 
-        // Função auxiliar para gerar o HTML de múltiplos nomes dentro de um pódio
+        // Pódio (inalterado)
         const gerarNomesPodio = (grupo) => {
             return grupo.map(aluno => `
             <div class="py-1 border-b border-white/5 last:border-0 w-full text-center">
@@ -162,7 +163,6 @@ const gestaoAuraAPI = {
         `).join('');
         };
 
-        // Ordem visual do Pódio: 2º | 1º | 3º
         const ordens = [
             { rank: 2, grupo: grupo2, aura: top2Aura, classe: 'podium-2' },
             { rank: 1, grupo: grupo1, aura: top1Aura, classe: 'podium-1' },
@@ -176,7 +176,6 @@ const gestaoAuraAPI = {
                 <div class="podium-card ${item.classe} flex flex-col items-center">
                     <div class="podium-pos">${item.rank}</div>
                     
-                    <!-- Container de Nomes com Scroll caso haja muitos empates -->
                     <div class="mt-8 mb-2 w-full px-2 max-h-[120px] overflow-y-auto custom-scroll flex flex-col items-center">
                         ${gerarNomesPodio(item.grupo)}
                     </div>
@@ -190,7 +189,7 @@ const gestaoAuraAPI = {
             }
         });
 
-        // Renderiza o restante da lista normalmente
+        // Lista da direita (Ajustado: removido o "DIVERSOS")
         demais.sort((a, b) => b.aura - a.aura).forEach((aluno, index) => {
             const auraFormatada = aluno.aura.toLocaleString('pt-BR');
             lContainer.innerHTML += `

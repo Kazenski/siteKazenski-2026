@@ -3414,19 +3414,17 @@
                                 <input type="text" id="aura-search-nome" placeholder="Buscar por nome do aluno..."
                                     class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-blue-500">
                             </div>
-                            <div class="flex flex-col sm:flex-row gap-4 w-full">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="relative">
+                                    <i
+                                        class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                                    <input type="text" id="aura-search-nome" placeholder="Buscar por nome do aluno..."
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl py-3 pl-12 pr-4 focus:border-blue-500 outline-none transition-all text-white">
+                                </div>
+
                                 <select id="aura-filter-turma"
-                                    class="w-full sm:w-1/2 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm">
+                                    class="bg-slate-900 border border-slate-700 rounded-xl py-3 px-4 text-white focus:border-blue-500 outline-none cursor-pointer">
                                     <option value="">Todas as Turmas</option>
-                                    <option value="112_ds">112_ds</option>
-                                    <option value="113_ds">113_ds</option>
-                                </select>
-                                <select id="aura-filter-disc"
-                                    class="w-full sm:w-1/2 bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-3 outline-none focus:border-blue-500 text-sm">
-                                    <option value="">Todas as Disciplinas</option>
-                                    <option value="Programação">Programação</option>
-                                    <option value="Banco de Dados">Banco de Dados</option>
-                                    <option value="Redes">Redes</option>
                                 </select>
                             </div>
                         </div>
@@ -3440,7 +3438,8 @@
                         class="w-full lg:w-1/2 bg-slate-900/50 border border-slate-700 rounded-2xl p-4 md:p-6 shadow-xl flex flex-col h-full overflow-hidden">
                         <h3
                             class="text-blue-400 font-cinzel font-bold text-lg mb-4 uppercase tracking-widest border-b border-slate-700 pb-2 shrink-0">
-                            <i class="fas fa-list-ol mr-2"></i> Demais Ranqueados</h3>
+                            <i class="fas fa-list-ol mr-2"></i> Demais Ranqueados
+                        </h3>
                         <div class="flex-grow overflow-y-auto custom-scroll pr-2" id="aura-lista-container">
                         </div>
                     </div>
