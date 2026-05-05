@@ -323,6 +323,7 @@
                         <h3 class="text-purple-400 font-cinzel font-bold text-xl mb-6"><i
                                 class="fas fa-broadcast-tower mr-2"></i> Emitir Novo Episódio</h3>
                         <form id="form-podcast" class="space-y-4">
+                            <input type="hidden" id="pod-id">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label
                                         class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título
@@ -352,9 +353,13 @@
                                         class="w-full bg-slate-900 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-slate-600 file:text-white hover:file:bg-slate-500 cursor-pointer">
                                 </div>
                             </div>
-                            <div class="flex justify-end pt-2"><button type="submit" id="btn-submit-pod"
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button type="button" id="btn-delete-pod" class="hidden px-6 py-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/50 rounded-xl font-bold text-xs uppercase tracking-widest transition-all">Excluir</button>
+                                <button type="button" id="btn-cancel-pod" class="hidden px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
+                                <button type="submit" id="btn-submit-pod"
                                     class="px-8 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar
-                                    Podcast</button></div>
+                                    Podcast</button>
+                            </div>
                         </form>
                     </div>
 

@@ -37,7 +37,7 @@ export async function renderConteudosTab() {
                 // Garante que o array de favoritos exista na memória
                 if (!currentUser.favoritos) currentUser.favoritos = [];
             }
-        } catch(e) { console.error("Erro ao buscar usuário", e); }
+        } catch (e) { console.error("Erro ao buscar usuário", e); }
     } else {
         currentUser = null;
     }
@@ -46,7 +46,7 @@ export async function renderConteudosTab() {
     setupSubTabs();
     aplicarPermissoes(); // Esconderá os botões de edição/criação automaticamente pois currentUser é null
     await setupFiltros();
-    
+
     // Inicia os Listeners do banco para carregar o acervo
     initMateriais();
     initMusicas();
@@ -60,10 +60,10 @@ function mapearDOM() {
         adminMat: document.getElementById('cont-admin-mat'),
         adminMus: document.getElementById('cont-admin-mus'),
         adminPod: document.getElementById('cont-admin-pod'),
-        
+
         // Botão Novo (Toggle)
         btnToggleAdmin: document.getElementById('btn-toggle-admin-cont'),
-        
+
         // Formulários
         formMat: document.getElementById('form-material'),
         formMus: document.getElementById('form-music'),
@@ -121,11 +121,11 @@ function setupSubTabs() {
     els.btnToggleAdmin?.addEventListener('click', () => {
         const activeTab = document.querySelector('.cont-tab-content.active');
         if (!activeTab) return;
-        
+
         const adminPanel = activeTab.querySelector('[id^="cont-admin-"]');
         if (adminPanel) {
             adminPanel.classList.toggle('hidden');
-            if(!adminPanel.classList.contains('hidden')) {
+            if (!adminPanel.classList.contains('hidden')) {
                 adminPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         }
@@ -144,14 +144,14 @@ function setupSubTabs() {
             // FIX: Remove a classe 'active' e esconde todas as abas
             contents.forEach(c => {
                 c.classList.remove('active');
-                c.classList.replace('flex', 'hidden'); 
-                c.classList.replace('block', 'hidden'); 
+                c.classList.replace('flex', 'hidden');
+                c.classList.replace('block', 'hidden');
             });
 
             // Ativa a aba correta
             const targetId = btn.getAttribute('data-target');
             const targetContent = document.getElementById(`ctab-${targetId}`);
-            
+
             targetContent.classList.add('active'); // <--- ISSO CONSERTA O BOTÃO DE NOVO
             targetContent.classList.replace('hidden', 'flex');
 
@@ -161,7 +161,7 @@ function setupSubTabs() {
             els.adminPod?.classList.add('hidden');
 
             // Regra do Player flutuante
-            if(targetId === 'materiais') {
+            if (targetId === 'materiais') {
                 els.playerBox.classList.add('hidden');
             } else if (els.audioEngine.src) {
                 els.playerBox.classList.remove('hidden');
@@ -185,15 +185,15 @@ async function setupFiltros() {
             disciplineMap[d.data().identificador] = nome;
             discHtml += `<option value="${nome}">${nome}</option>`;
         });
-        
+
         const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
         pSnap.forEach(p => { profHtml += `<option value="${p.data().nome}">${p.data().nome}</option>`; });
-    } catch(e) { console.warn("Modo Visitante: Filtros restritos."); }
+    } catch (e) { console.warn("Modo Visitante: Filtros restritos."); }
 
-    if(els.filterDisc) els.filterDisc.innerHTML = discHtml;
+    if (els.filterDisc) els.filterDisc.innerHTML = discHtml;
     const selectAdd = document.getElementById('mat-disciplina');
-    if(selectAdd) selectAdd.innerHTML = discHtml.replace('<option value="">Todas as Disciplinas</option>', '');
-    if(els.filterProf) els.filterProf.innerHTML = profHtml;
+    if (selectAdd) selectAdd.innerHTML = discHtml.replace('<option value="">Todas as Disciplinas</option>', '');
+    if (els.filterProf) els.filterProf.innerHTML = profHtml;
 
     // INJEÇÃO DO BOTÃO DE FAVORITOS
     const filterContainer = els.filterDisc?.parentElement;
@@ -206,7 +206,7 @@ async function setupFiltros() {
             if (!currentUser) { alert('Faça login no portal para acessar seus favoritos.'); return; }
             const isActive = favBtn.dataset.active === 'true';
             favBtn.dataset.active = isActive ? 'false' : 'true';
-            
+
             // Alterna o visual do botão
             if (!isActive) {
                 favBtn.classList.add('text-amber-400', 'border-amber-500', 'bg-amber-500/10');
@@ -215,8 +215,8 @@ async function setupFiltros() {
                 favBtn.classList.remove('text-amber-400', 'border-amber-500', 'bg-amber-500/10');
                 favBtn.innerHTML = '<i class="far fa-star"></i> Favoritos';
             }
-            
-            currentPage = 1; 
+
+            currentPage = 1;
             renderMaterials();
         };
         filterContainer.appendChild(favBtn);
@@ -283,7 +283,7 @@ function initMateriais() {
 }
 
 function renderMaterials() {
-    if(!els.matGrid) return;
+    if (!els.matGrid) return;
     const search = els.searchMat.value.toLowerCase();
     const fDisc = els.filterDisc.value;
     const fProf = els.filterProf.value;
@@ -293,10 +293,10 @@ function renderMaterials() {
         const matchText = m.titulo.toLowerCase().includes(search) || (m.texto || '').toLowerCase().includes(search);
         const matchDisc = (fDisc === "" || m.disciplina === fDisc);
         const matchProf = (fProf === "" || m.autorNome === fProf);
-        
+
         // Lógica do Filtro de Favoritos
         const matchFav = !showFavs || (currentUser && currentUser.favoritos && currentUser.favoritos.includes(m.id));
-        
+
         return matchText && matchDisc && matchProf && matchFav;
     });
 
@@ -307,7 +307,7 @@ function renderMaterials() {
 
     els.matGrid.innerHTML = paginatedItems.map(mat => {
         const thumb = mat.urlImage || 'https://placehold.co/400x200/1e293b/a1a1aa?text=Sem+Capa';
-        
+
         // Verifica se é favorito para botar a estrela no canto
         const isFav = currentUser && currentUser.favoritos && currentUser.favoritos.includes(mat.id);
         const favIcon = isFav ? '<div class="absolute top-2 right-2 bg-slate-900/80 p-1.5 rounded-lg border border-amber-500/50 backdrop-blur-sm z-10"><i class="fas fa-star text-amber-400 drop-shadow-md text-sm"></i></div>' : '';
@@ -347,7 +347,7 @@ function initMusicas() {
         renderMusicasList();
     });
     els.searchMus?.addEventListener('input', renderMusicasList);
-    
+
     els.formMus?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('btn-submit-mus');
@@ -357,11 +357,11 @@ function initMusicas() {
             const audio = document.getElementById('mus-file-audio').files[0];
             const capa = document.getElementById('mus-file-image').files[0];
             const idStorage = idDoc || Date.now().toString();
-            
+
             let updateData = {
-                titulo: document.getElementById('mus-titulo').value, 
+                titulo: document.getElementById('mus-titulo').value,
                 artista: document.getElementById('mus-artista').value,
-                letra: document.getElementById('mus-letra').value, 
+                letra: document.getElementById('mus-letra').value,
                 updatedAt: serverTimestamp()
             };
 
@@ -374,172 +374,173 @@ function initMusicas() {
             } else {
                 updateData.createdAt = serverTimestamp();
                 await addDoc(collection(db, "musicas"), updateData);
-                alert("Trilha registrada!"); 
+                alert("Trilha registrada!");
             }
             window.conteudosAPI.cancelarEdicaoMedia('musica');
-        } catch(err) { alert("Falha no registro."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
+        } catch (err) { alert("Falha no registro."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
     });
 
     document.getElementById('btn-cancel-mus')?.addEventListener('click', () => window.conteudosAPI.cancelarEdicaoMedia('musica'));
     document.getElementById('btn-delete-mus')?.addEventListener('click', () => {
         const id = document.getElementById('mus-id').value;
-        if(id) window.conteudosAPI.excluirMedia(id, 'musica');
+        if (id) window.conteudosAPI.excluirMedia(id, 'musica');
     });
 }
 
-function initPodcasts() {function initPodcasts() {
-    onSnapshot(query(collection(db, "podcasts_kazenski"), orderBy("createdAt", "desc")), (snap) => {
-        podcastsGrimorio = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderPodcastsList();
-    });
-    els.searchPod?.addEventListener('input', renderPodcastsList);
+function initPodcasts() {
+    function initPodcasts() {
+        onSnapshot(query(collection(db, "podcasts_kazenski"), orderBy("createdAt", "desc")), (snap) => {
+            podcastsGrimorio = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            renderPodcastsList();
+        });
+        els.searchPod?.addEventListener('input', renderPodcastsList);
 
-    els.formPod?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('btn-submit-pod');
-        const orig = btn.innerHTML; btn.innerHTML = "Transmitindo..."; btn.disabled = true;
-        try {
-            const idDoc = document.getElementById('pod-id').value;
-            const audio = document.getElementById('pod-file-audio').files[0];
-            const capa = document.getElementById('pod-file-image').files[0];
-            const idStorage = idDoc || Date.now().toString();
-            
-            let updateData = {
-                titulo: document.getElementById('pod-titulo').value, 
-                criador: document.getElementById('pod-professor').value,
-                descricao: document.getElementById('pod-descricao').value, 
-                updatedAt: serverTimestamp()
-            };
+        els.formPod?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit-pod');
+            const orig = btn.innerHTML; btn.innerHTML = "Transmitindo..."; btn.disabled = true;
+            try {
+                const idDoc = document.getElementById('pod-id').value;
+                const audio = document.getElementById('pod-file-audio').files[0];
+                const capa = document.getElementById('pod-file-image').files[0];
+                const idStorage = idDoc || Date.now().toString();
 
-            if (audio) { const rAudio = ref(storage, `podcasts/${idStorage}_audio`); await uploadBytes(rAudio, audio); updateData.audioURL = await getDownloadURL(rAudio); }
-            if (capa) { const rCapa = ref(storage, `podcasts/${idStorage}_capa`); await uploadBytes(rCapa, capa); updateData.coverArtUrl = await getDownloadURL(rCapa); }
+                let updateData = {
+                    titulo: document.getElementById('pod-titulo').value,
+                    criador: document.getElementById('pod-professor').value,
+                    descricao: document.getElementById('pod-descricao').value,
+                    updatedAt: serverTimestamp()
+                };
 
-            if (idDoc) {
-                await setDoc(doc(db, "podcasts_kazenski", idDoc), updateData, { merge: true });
-                alert("Podcast atualizado!");
-            } else {
-                updateData.createdAt = serverTimestamp();
-                await addDoc(collection(db, "podcasts_kazenski"), updateData);
-                alert("Episódio Publicado!"); 
-            }
-            window.conteudosAPI.cancelarEdicaoMedia('podcast');
-        } catch(err) { alert("Erro no envio."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
-    });
+                if (audio) { const rAudio = ref(storage, `podcasts/${idStorage}_audio`); await uploadBytes(rAudio, audio); updateData.audioURL = await getDownloadURL(rAudio); }
+                if (capa) { const rCapa = ref(storage, `podcasts/${idStorage}_capa`); await uploadBytes(rCapa, capa); updateData.coverArtUrl = await getDownloadURL(rCapa); }
 
-    document.getElementById('btn-cancel-pod')?.addEventListener('click', () => window.conteudosAPI.cancelarEdicaoMedia('podcast'));
-    document.getElementById('btn-delete-pod')?.addEventListener('click', () => {
-        const id = document.getElementById('pod-id').value;
-        if(id) window.conteudosAPI.excluirMedia(id, 'podcast');
-    });
-}
+                if (idDoc) {
+                    await setDoc(doc(db, "podcasts_kazenski", idDoc), updateData, { merge: true });
+                    alert("Podcast atualizado!");
+                } else {
+                    updateData.createdAt = serverTimestamp();
+                    await addDoc(collection(db, "podcasts_kazenski"), updateData);
+                    alert("Episódio Publicado!");
+                }
+                window.conteudosAPI.cancelarEdicaoMedia('podcast');
+            } catch (err) { alert("Erro no envio."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
+        });
 
-function renderMusicasList() {
-    if(!els.musList) return;
-    const term = els.searchMus.value.toLowerCase();
-    const filtered = musicasGrimorio.filter(m => m.titulo.toLowerCase().includes(term) || m.artista.toLowerCase().includes(term));
-    
-    els.musList.innerHTML = filtered.map((m, idx) => {
-        // HIGHLIGHT SE ESTIVER TOCANDO
-        const isActive = m.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-emerald-500' : 'border-transparent hover:bg-slate-800';
-        // SHRINK-0 NA THUMB PARA NÃO SER ESMAGADA
-        const thumb = m.albumArtUrl ? `<img src="${m.albumArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-music"></i></div>`;
-        
-        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'musica')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
+        document.getElementById('btn-cancel-pod')?.addEventListener('click', () => window.conteudosAPI.cancelarEdicaoMedia('podcast'));
+        document.getElementById('btn-delete-pod')?.addEventListener('click', () => {
+            const id = document.getElementById('pod-id').value;
+            if (id) window.conteudosAPI.excluirMedia(id, 'podcast');
+        });
+    }
+
+    function renderMusicasList() {
+        if (!els.musList) return;
+        const term = els.searchMus.value.toLowerCase();
+        const filtered = musicasGrimorio.filter(m => m.titulo.toLowerCase().includes(term) || m.artista.toLowerCase().includes(term));
+
+        els.musList.innerHTML = filtered.map((m, idx) => {
+            // HIGHLIGHT SE ESTIVER TOCANDO
+            const isActive = m.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-emerald-500' : 'border-transparent hover:bg-slate-800';
+            // SHRINK-0 NA THUMB PARA NÃO SER ESMAGADA
+            const thumb = m.albumArtUrl ? `<img src="${m.albumArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-music"></i></div>`;
+
+            return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'musica')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
             ${thumb}
             <div class="flex-grow min-w-0 overflow-hidden">
                 <h4 class="text-white text-sm font-bold truncate">${escapeHTML(m.titulo)}</h4>
                 <p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(m.artista)}</p>
             </div>
         </li>`;
-    }).join('');
-}
+        }).join('');
+    }
 
-function renderPodcastsList() {
-    if(!els.podList) return;
-    const term = els.searchPod.value.toLowerCase();
-    const filtered = podcastsGrimorio.filter(p => p.titulo.toLowerCase().includes(term) || (p.criador || p.professor).toLowerCase().includes(term));
-    
-    els.podList.innerHTML = filtered.map((p, idx) => {
-        const isActive = p.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-purple-500' : 'border-transparent hover:bg-slate-800';
-        const thumb = p.coverArtUrl ? `<img src="${p.coverArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-microphone"></i></div>`;
-        
-        return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'podcast')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
+    function renderPodcastsList() {
+        if (!els.podList) return;
+        const term = els.searchPod.value.toLowerCase();
+        const filtered = podcastsGrimorio.filter(p => p.titulo.toLowerCase().includes(term) || (p.criador || p.professor).toLowerCase().includes(term));
+
+        els.podList.innerHTML = filtered.map((p, idx) => {
+            const isActive = p.id === currentPlayingId ? 'bg-slate-800 ring-2 ring-purple-500' : 'border-transparent hover:bg-slate-800';
+            const thumb = p.coverArtUrl ? `<img src="${p.coverArtUrl}" class="w-10 h-10 rounded object-cover border border-slate-700 shrink-0">` : `<div class="w-10 h-10 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded flex items-center justify-center shrink-0"><i class="fas fa-microphone"></i></div>`;
+
+            return `<li onclick="window.conteudosAPI.tocarMedia(${idx}, 'podcast')" class="flex items-center gap-3 p-3 cursor-pointer rounded-xl transition-all border ${isActive}">
             ${thumb}
             <div class="flex-grow min-w-0 overflow-hidden">
                 <h4 class="text-white text-sm font-bold truncate">${escapeHTML(p.titulo)}</h4>
                 <p class="text-[9px] text-slate-500 uppercase tracking-widest truncate">${escapeHTML(p.criador || p.professor)}</p>
             </div>
         </li>`;
-    }).join('');
-}
+        }).join('');
+    }
 
-// ==========================================
-// AUDIO PLAYER GLOABAL
-// ==========================================
-function setupPlayerEventListeners() {
-    els.audioEngine.addEventListener('timeupdate', () => {
-        if (els.audioEngine.duration) {
-            els.progress.value = (els.audioEngine.currentTime / els.audioEngine.duration) * 100 || 0;
-            els.timeCurr.textContent = formatSeg(els.audioEngine.currentTime);
-            els.timeTotal.textContent = formatSeg(els.audioEngine.duration);
-        }
-    });
-    
-    // Atualizado para respeitar o Modo de Repetição
-    els.audioEngine.addEventListener('ended', () => {
-        if (repeatMode === 2) { // Repetir atual 1x
-            els.audioEngine.currentTime = 0;
-            els.audioEngine.play();
-        } else {
-            window.conteudosAPI.nextAudio(true); // Envia true para saber que foi automático
-        }
-    });
+    // ==========================================
+    // AUDIO PLAYER GLOABAL
+    // ==========================================
+    function setupPlayerEventListeners() {
+        els.audioEngine.addEventListener('timeupdate', () => {
+            if (els.audioEngine.duration) {
+                els.progress.value = (els.audioEngine.currentTime / els.audioEngine.duration) * 100 || 0;
+                els.timeCurr.textContent = formatSeg(els.audioEngine.currentTime);
+                els.timeTotal.textContent = formatSeg(els.audioEngine.duration);
+            }
+        });
 
-    els.audioEngine.addEventListener('play', () => window.conteudosAPI.syncPlayButtons());
-    
-    els.audioEngine.addEventListener('pause', () => window.conteudosAPI.syncPlayButtons());
+        // Atualizado para respeitar o Modo de Repetição
+        els.audioEngine.addEventListener('ended', () => {
+            if (repeatMode === 2) { // Repetir atual 1x
+                els.audioEngine.currentTime = 0;
+                els.audioEngine.play();
+            } else {
+                window.conteudosAPI.nextAudio(true); // Envia true para saber que foi automático
+            }
+        });
 
-    els.progress.addEventListener('input', (e) => {
-        if(els.audioEngine.duration) els.audioEngine.currentTime = (e.target.value / 100) * els.audioEngine.duration;
-    });
-    
-    els.volume?.addEventListener('input', (e) => {
-        els.audioEngine.volume = e.target.value;
-    });
-}
+        els.audioEngine.addEventListener('play', () => window.conteudosAPI.syncPlayButtons());
 
-function formatSeg(s) {
-    if(isNaN(s) || s < 0) return "0:00";
-    const min = Math.floor(s / 60); const seg = Math.floor(s % 60);
-    return `${min}:${seg.toString().padStart(2, '0')}`;
-}
+        els.audioEngine.addEventListener('pause', () => window.conteudosAPI.syncPlayButtons());
 
-// ==========================================
-// API GLOBAL (Injetada no Window para os botões do HTML)
-// ==========================================
-window.conteudosAPI = {
-    mudarPaginaMat: (dir) => { currentPage += dir; renderMaterials(); },
-    
-    expandir: (id) => {
-        const mat = materialsCache.find(m => m.id === id);
-        if(!mat) return;
-        
-        document.getElementById('mat-det-meta').textContent = `${mat.disciplina} | Prof. ${mat.autorNome}`;
-        document.getElementById('mat-det-title').textContent = mat.titulo;
-        
-        let bodyHtml = '';
-        
-        // 1. IMAGEM DA CAPA (Grande e no topo)
-        if (mat.urlImage) {
-            bodyHtml += `<img src="${mat.urlImage}" class="w-full h-48 md:h-64 object-cover rounded-xl mb-6 shadow-lg border border-slate-700 shrink-0">`;
-        }
-        
-        // 2. TEXTO DO CONTEÚDO
-        bodyHtml += `<div class="text-slate-300 whitespace-pre-wrap leading-relaxed">${escapeHTML(mat.texto || 'Nenhum conteúdo textual fornecido.')}</div>`;
-        
-        // 3. CARD DE PDF (Substituto da miniatura, imitando um anexo interativo)
-        if (mat.urlPdf) {
-            bodyHtml += `
+        els.progress.addEventListener('input', (e) => {
+            if (els.audioEngine.duration) els.audioEngine.currentTime = (e.target.value / 100) * els.audioEngine.duration;
+        });
+
+        els.volume?.addEventListener('input', (e) => {
+            els.audioEngine.volume = e.target.value;
+        });
+    }
+
+    function formatSeg(s) {
+        if (isNaN(s) || s < 0) return "0:00";
+        const min = Math.floor(s / 60); const seg = Math.floor(s % 60);
+        return `${min}:${seg.toString().padStart(2, '0')}`;
+    }
+
+    // ==========================================
+    // API GLOBAL (Injetada no Window para os botões do HTML)
+    // ==========================================
+    window.conteudosAPI = {
+        mudarPaginaMat: (dir) => { currentPage += dir; renderMaterials(); },
+
+        expandir: (id) => {
+            const mat = materialsCache.find(m => m.id === id);
+            if (!mat) return;
+
+            document.getElementById('mat-det-meta').textContent = `${mat.disciplina} | Prof. ${mat.autorNome}`;
+            document.getElementById('mat-det-title').textContent = mat.titulo;
+
+            let bodyHtml = '';
+
+            // 1. IMAGEM DA CAPA (Grande e no topo)
+            if (mat.urlImage) {
+                bodyHtml += `<img src="${mat.urlImage}" class="w-full h-48 md:h-64 object-cover rounded-xl mb-6 shadow-lg border border-slate-700 shrink-0">`;
+            }
+
+            // 2. TEXTO DO CONTEÚDO
+            bodyHtml += `<div class="text-slate-300 whitespace-pre-wrap leading-relaxed">${escapeHTML(mat.texto || 'Nenhum conteúdo textual fornecido.')}</div>`;
+
+            // 3. CARD DE PDF (Substituto da miniatura, imitando um anexo interativo)
+            if (mat.urlPdf) {
+                bodyHtml += `
             <div class="mt-8 p-4 bg-slate-900/50 border border-red-500/30 rounded-xl flex items-center gap-4 hover:bg-slate-800 transition-colors cursor-pointer group shadow-md" onclick="window.open('${mat.urlPdf}', '_blank')">
                 <div class="w-12 h-12 bg-red-500/10 text-red-500 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                     <i class="fas fa-file-pdf text-2xl"></i>
@@ -550,238 +551,238 @@ window.conteudosAPI = {
                 </div>
                 <i class="fas fa-external-link-alt text-slate-500"></i>
             </div>`;
-        }
+            }
 
-        document.getElementById('mat-det-body').innerHTML = bodyHtml;
-        
-        // RODAPÉ: Links Externos e Botões de Ação
-        // RODAPÉ: Botão Favorito, Links Externos e Botões de Ação
-        let footerHtml = '';
+            document.getElementById('mat-det-body').innerHTML = bodyHtml;
 
-        if (currentUser) {
-            const isFav = currentUser.favoritos && currentUser.favoritos.includes(mat.id);
-            const favClass = isFav ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
-            const favText = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
-            
-            footerHtml += `<button id="btn-modal-fav" onclick="window.conteudosAPI.toggleFavorito('${mat.id}')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${favClass}">${favText}</button>`;
-        }
+            // RODAPÉ: Links Externos e Botões de Ação
+            // RODAPÉ: Botão Favorito, Links Externos e Botões de Ação
+            let footerHtml = '';
 
-        (mat.links || []).forEach((l, i) => {
-            footerHtml += `<a href="${l}" target="_blank" class="px-5 py-2.5 border border-blue-500/50 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i+1}</a>`;
-        });
-        
-        const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.uid === mat.autorUID);
-        if(canEdit) {
-            footerHtml += `<div class="ml-auto flex gap-2">
+            if (currentUser) {
+                const isFav = currentUser.favoritos && currentUser.favoritos.includes(mat.id);
+                const favClass = isFav ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
+                const favText = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
+
+                footerHtml += `<button id="btn-modal-fav" onclick="window.conteudosAPI.toggleFavorito('${mat.id}')" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-colors ${favClass}">${favText}</button>`;
+            }
+
+            (mat.links || []).forEach((l, i) => {
+                footerHtml += `<a href="${l}" target="_blank" class="px-5 py-2.5 border border-blue-500/50 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500 hover:text-white transition-colors"><i class="fas fa-external-link-alt mr-1"></i> Link ${i + 1}</a>`;
+            });
+
+            const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.uid === mat.autorUID);
+            if (canEdit) {
+                footerHtml += `<div class="ml-auto flex gap-2">
                 <button onclick="window.conteudosAPI.editarMat('${mat.id}')" class="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-colors"><i class="fas fa-edit"></i></button>
                 <button onclick="window.conteudosAPI.excluirMat('${mat.id}')" class="px-4 py-2 bg-red-900/30 text-red-400 rounded-xl text-xs font-bold hover:bg-red-600 hover:text-white transition-colors"><i class="fas fa-trash"></i></button>
             </div>`;
-        }
-        
-        document.getElementById('mat-det-footer').innerHTML = footerHtml;
-        
-        // Abertura da Gaveta
-        const modal = document.getElementById('cont-modal-mat');
-        const panel = document.getElementById('cont-modal-panel');
-        modal.classList.remove('hidden');
-        setTimeout(() => panel.classList.remove('translate-x-full'), 10);
-    },
+            }
 
-    fecharMat: () => {
-        const modal = document.getElementById('cont-modal-mat');
-        const panel = document.getElementById('cont-modal-panel');
-        panel.classList.add('translate-x-full');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-    },
-    
-    editarMat: (id) => {
-        window.conteudosAPI.fecharMat();
-        const mat = materialsCache.find(m => m.id === id);
-        if(!mat) return;
-        currentMaterialEditId = id;
-        document.getElementById('mat-titulo').value = mat.titulo;
-        document.getElementById('mat-disciplina').value = mat.disciplina;
-        document.getElementById('mat-texto').value = mat.texto || '';
-        
-        const container = document.getElementById('mat-link-inputs-container');
-        container.innerHTML = '<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes Externas (Links)</label>';
-        if (mat.links && mat.links.length > 0) {
-            mat.links.forEach(l => {
-                const i = document.createElement('input'); i.type='url'; i.value=l; i.className='link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none mb-2';
-                container.appendChild(i);
-            });
-        } else { container.innerHTML += '<input type="url" class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none" placeholder="https://...">'; }
-        
-        els.adminMat.classList.remove('hidden');
-        els.adminMat.scrollIntoView({behavior: 'smooth'});
-        document.getElementById('btn-submit-mat').textContent = "Atualizar Conhecimento";
-    },
+            document.getElementById('mat-det-footer').innerHTML = footerHtml;
 
-    excluirMat: async (id) => {
-        if(confirm("Apagar permanentemente este conhecimento?")) {
-            await deleteDoc(doc(db, "materiaisDidaticos", id));
+            // Abertura da Gaveta
+            const modal = document.getElementById('cont-modal-mat');
+            const panel = document.getElementById('cont-modal-panel');
+            modal.classList.remove('hidden');
+            setTimeout(() => panel.classList.remove('translate-x-full'), 10);
+        },
+
+        fecharMat: () => {
+            const modal = document.getElementById('cont-modal-mat');
+            const panel = document.getElementById('cont-modal-panel');
+            panel.classList.add('translate-x-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        },
+
+        editarMat: (id) => {
             window.conteudosAPI.fecharMat();
-        }
-    },
+            const mat = materialsCache.find(m => m.id === id);
+            if (!mat) return;
+            currentMaterialEditId = id;
+            document.getElementById('mat-titulo').value = mat.titulo;
+            document.getElementById('mat-disciplina').value = mat.disciplina;
+            document.getElementById('mat-texto').value = mat.texto || '';
 
-    toggleFavorito: async (id) => {
-        if (!currentUser) return;
-        if (!currentUser.favoritos) currentUser.favoritos = [];
-        
-        const idx = currentUser.favoritos.indexOf(id);
-        if (idx > -1) {
-            currentUser.favoritos.splice(idx, 1); // Remove
-        } else {
-            currentUser.favoritos.push(id); // Adiciona
-        }
-        
-        try {
-            // Atualiza direto na conta do usuário no Firebase
-            await setDoc(doc(db, "users", currentUser.uid), { favoritos: currentUser.favoritos }, { merge: true });
-            
-            // Atualiza a visualização do botão no Modal aberto
-            const btnFav = document.getElementById('btn-modal-fav');
-            if (btnFav) {
-                const isFav = idx === -1; // Se era -1, acabou de ser adicionado
-                btnFav.innerHTML = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
-                btnFav.className = isFav ? 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
+            const container = document.getElementById('mat-link-inputs-container');
+            container.innerHTML = '<label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Fontes Externas (Links)</label>';
+            if (mat.links && mat.links.length > 0) {
+                mat.links.forEach(l => {
+                    const i = document.createElement('input'); i.type = 'url'; i.value = l; i.className = 'link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none mb-2';
+                    container.appendChild(i);
+                });
+            } else { container.innerHTML += '<input type="url" class="link-input w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none" placeholder="https://...">'; }
+
+            els.adminMat.classList.remove('hidden');
+            els.adminMat.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('btn-submit-mat').textContent = "Atualizar Conhecimento";
+        },
+
+        excluirMat: async (id) => {
+            if (confirm("Apagar permanentemente este conhecimento?")) {
+                await deleteDoc(doc(db, "materiaisDidaticos", id));
+                window.conteudosAPI.fecharMat();
+            }
+        },
+
+        toggleFavorito: async (id) => {
+            if (!currentUser) return;
+            if (!currentUser.favoritos) currentUser.favoritos = [];
+
+            const idx = currentUser.favoritos.indexOf(id);
+            if (idx > -1) {
+                currentUser.favoritos.splice(idx, 1); // Remove
+            } else {
+                currentUser.favoritos.push(id); // Adiciona
             }
 
-            // Re-renderiza a grade de fundo para atualizar a estrelinha no card e o filtro
-            renderMaterials();
-            
-        } catch(err) {
-            console.error("Erro ao favoritar: ", err);
-            alert("Erro de comunicação com o Grimório ao favoritar.");
-        }
-    },
-
-    editarMedia: (idx, tipo) => {
-        const isMus = tipo === 'musica';
-        const item = activeAudioList[idx];
-        if (!item) return;
-
-        if (isMus) {
-            document.getElementById('mus-id').value = item.id;
-            document.getElementById('mus-titulo').value = item.titulo;
-            document.getElementById('mus-artista').value = item.artista || '';
-            document.getElementById('mus-letra').value = item.letra || '';
-            
-            document.getElementById('btn-submit-mus').textContent = "Atualizar Trilha";
-            document.getElementById('btn-cancel-mus').classList.remove('hidden');
-            document.getElementById('btn-delete-mus').classList.remove('hidden');
-            
-            // Remove a exigência do arquivo no input (mantém o arquivo atual se não upar outro)
-            document.getElementById('mus-file-audio').removeAttribute('required');
-            document.getElementById('mus-file-image').removeAttribute('required');
-
-            els.adminMus.classList.remove('hidden');
-            els.adminMus.scrollIntoView({behavior: 'smooth'});
-        } else {
-            document.getElementById('pod-id').value = item.id;
-            document.getElementById('pod-titulo').value = item.titulo;
-            document.getElementById('pod-professor').value = item.criador || item.professor || '';
-            document.getElementById('pod-descricao').value = item.descricao || '';
-
-            document.getElementById('btn-submit-pod').textContent = "Atualizar Podcast";
-            document.getElementById('btn-cancel-pod').classList.remove('hidden');
-            document.getElementById('btn-delete-pod').classList.remove('hidden');
-
-            document.getElementById('pod-file-audio').removeAttribute('required');
-            document.getElementById('pod-file-image').removeAttribute('required');
-
-            els.adminPod.classList.remove('hidden');
-            els.adminPod.scrollIntoView({behavior: 'smooth'});
-        }
-    },
-
-    cancelarEdicaoMedia: (tipo) => {
-        if (tipo === 'musica') {
-            els.formMus.reset();
-            document.getElementById('mus-id').value = '';
-            document.getElementById('btn-submit-mus').textContent = "Registrar Trilha";
-            document.getElementById('btn-cancel-mus').classList.add('hidden');
-            document.getElementById('btn-delete-mus').classList.add('hidden');
-            document.getElementById('mus-file-audio').setAttribute('required', 'true');
-            document.getElementById('mus-file-image').setAttribute('required', 'true');
-            els.adminMus.classList.add('hidden');
-        } else {
-            els.formPod.reset();
-            document.getElementById('pod-id').value = '';
-            document.getElementById('btn-submit-pod').textContent = "Publicar Podcast";
-            document.getElementById('btn-cancel-pod').classList.add('hidden');
-            document.getElementById('btn-delete-pod').classList.add('hidden');
-            document.getElementById('pod-file-audio').setAttribute('required', 'true');
-            document.getElementById('pod-file-image').setAttribute('required', 'true');
-            els.adminPod.classList.add('hidden');
-        }
-    },
-
-    excluirMedia: async (id, tipo) => {
-        if(confirm("Deseja apagar permanentemente este conteúdo?")) {
-            const isMus = tipo === 'musica';
-            const colecao = isMus ? "musicas" : "podcasts_kazenski";
             try {
-                await deleteDoc(doc(db, colecao, id));
-                window.conteudosAPI.cancelarEdicaoMedia(tipo);
-                
-                // Fecha a visualização se o que foi apagado estava aberto
-                if (currentPlayingId === id) {
-                    const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
-                    const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
-                    view.classList.add('hidden');
-                    placeholder.classList.remove('hidden');
-                    window.conteudosAPI.closePlayer();
+                // Atualiza direto na conta do usuário no Firebase
+                await setDoc(doc(db, "users", currentUser.uid), { favoritos: currentUser.favoritos }, { merge: true });
+
+                // Atualiza a visualização do botão no Modal aberto
+                const btnFav = document.getElementById('btn-modal-fav');
+                if (btnFav) {
+                    const isFav = idx === -1; // Se era -1, acabou de ser adicionado
+                    btnFav.innerHTML = isFav ? '<i class="fas fa-star mr-1"></i> Desfavoritar' : '<i class="far fa-star mr-1"></i> Favoritar';
+                    btnFav.className = isFav ? 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-600 hover:text-white' : 'px-5 py-2.5 rounded-xl text-xs font-bold transition-colors bg-slate-800 text-slate-300 border border-transparent hover:bg-amber-600 hover:text-white';
                 }
-            } catch(e) {
-                console.error("Erro ao excluir", e);
-                alert("Erro ao excluir conteúdo.");
+
+                // Re-renderiza a grade de fundo para atualizar a estrelinha no card e o filtro
+                renderMaterials();
+
+            } catch (err) {
+                console.error("Erro ao favoritar: ", err);
+                alert("Erro de comunicação com o Grimório ao favoritar.");
             }
-        }
-    },
+        },
 
-    tocarMedia: (idx, tipo) => {
-        const lista = tipo === 'musica' ? musicasGrimorio : podcastsGrimorio;
-        const term = tipo === 'musica' ? els.searchMus.value.toLowerCase() : els.searchPod.value.toLowerCase();
-        
-        activeAudioList = lista.filter(item => {
-            if(tipo === 'musica') return item.titulo.toLowerCase().includes(term) || item.artista.toLowerCase().includes(term);
-            return item.titulo.toLowerCase().includes(term) || (item.criador || item.professor).toLowerCase().includes(term);
-        });
+        editarMedia: (idx, tipo) => {
+            const isMus = tipo === 'musica';
+            const item = activeAudioList[idx];
+            if (!item) return;
 
-        currentIdx = idx;
-        const item = activeAudioList[idx];
-        if(!item) return;
+            if (isMus) {
+                document.getElementById('mus-id').value = item.id;
+                document.getElementById('mus-titulo').value = item.titulo;
+                document.getElementById('mus-artista').value = item.artista || '';
+                document.getElementById('mus-letra').value = item.letra || '';
 
-        currentPlayingId = item.id;
-        renderMusicasList();
-        renderPodcastsList();
+                document.getElementById('btn-submit-mus').textContent = "Atualizar Trilha";
+                document.getElementById('btn-cancel-mus').classList.remove('hidden');
+                document.getElementById('btn-delete-mus').classList.remove('hidden');
 
-        const isMus = tipo === 'musica';
-        const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
-        const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
-        
-        placeholder.classList.add('hidden');
-        view.classList.remove('hidden');
-        view.classList.add('flex');
+                // Remove a exigência do arquivo no input (mantém o arquivo atual se não upar outro)
+                document.getElementById('mus-file-audio').removeAttribute('required');
+                document.getElementById('mus-file-image').removeAttribute('required');
 
-        const cor = isMus ? 'emerald' : 'purple';
-        const iconeDL = isMus ? '<i class="fas fa-file-alt mr-2"></i> Baixar Letra' : '<i class="fas fa-file-alt mr-2"></i> Resumo';
-        const imgUrl = item.albumArtUrl || item.coverArtUrl || '';
+                els.adminMus.classList.remove('hidden');
+                els.adminMus.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                document.getElementById('pod-id').value = item.id;
+                document.getElementById('pod-titulo').value = item.titulo;
+                document.getElementById('pod-professor').value = item.criador || item.professor || '';
+                document.getElementById('pod-descricao').value = item.descricao || '';
 
-        // VERIFICAÇÃO DE PERMISSÃO PARA O BOTÃO EDITAR
-        const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao);
-        let btnEditHtml = '';
-        if (canEdit) {
-            btnEditHtml = `<button onclick="window.conteudosAPI.editarMedia(${idx}, '${tipo}')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors ml-auto flex items-center border border-slate-700 hover:border-${cor}-500"><i class="fas fa-edit mr-2"></i> Editar</button>`;
-        }
+                document.getElementById('btn-submit-pod').textContent = "Atualizar Podcast";
+                document.getElementById('btn-cancel-pod').classList.remove('hidden');
+                document.getElementById('btn-delete-pod').classList.remove('hidden');
 
-        // 1. GERA A CAPA PRINCIPAL (Ou a Imagem, ou o Ícone Grande)
-        const mainThumbHtml = imgUrl 
-            ? `<img src="${imgUrl}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block">` 
-            : `<div class="w-32 h-32 md:w-40 md:h-40 rounded-xl shadow-2xl border border-${cor}-500/30 bg-${cor}-500/10 text-${cor}-400 shrink-0 hidden md:flex items-center justify-center text-5xl"><i class="fas ${isMus ? 'fa-music' : 'fa-microphone'}"></i></div>`;
+                document.getElementById('pod-file-audio').removeAttribute('required');
+                document.getElementById('pod-file-image').removeAttribute('required');
 
-        view.innerHTML = `
+                els.adminPod.classList.remove('hidden');
+                els.adminPod.scrollIntoView({ behavior: 'smooth' });
+            }
+        },
+
+        cancelarEdicaoMedia: (tipo) => {
+            if (tipo === 'musica') {
+                els.formMus.reset();
+                document.getElementById('mus-id').value = '';
+                document.getElementById('btn-submit-mus').textContent = "Registrar Trilha";
+                document.getElementById('btn-cancel-mus').classList.add('hidden');
+                document.getElementById('btn-delete-mus').classList.add('hidden');
+                document.getElementById('mus-file-audio').setAttribute('required', 'true');
+                document.getElementById('mus-file-image').setAttribute('required', 'true');
+                els.adminMus.classList.add('hidden');
+            } else {
+                els.formPod.reset();
+                document.getElementById('pod-id').value = '';
+                document.getElementById('btn-submit-pod').textContent = "Publicar Podcast";
+                document.getElementById('btn-cancel-pod').classList.add('hidden');
+                document.getElementById('btn-delete-pod').classList.add('hidden');
+                document.getElementById('pod-file-audio').setAttribute('required', 'true');
+                document.getElementById('pod-file-image').setAttribute('required', 'true');
+                els.adminPod.classList.add('hidden');
+            }
+        },
+
+        excluirMedia: async (id, tipo) => {
+            if (confirm("Deseja apagar permanentemente este conteúdo?")) {
+                const isMus = tipo === 'musica';
+                const colecao = isMus ? "musicas" : "podcasts_kazenski";
+                try {
+                    await deleteDoc(doc(db, colecao, id));
+                    window.conteudosAPI.cancelarEdicaoMedia(tipo);
+
+                    // Fecha a visualização se o que foi apagado estava aberto
+                    if (currentPlayingId === id) {
+                        const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
+                        const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
+                        view.classList.add('hidden');
+                        placeholder.classList.remove('hidden');
+                        window.conteudosAPI.closePlayer();
+                    }
+                } catch (e) {
+                    console.error("Erro ao excluir", e);
+                    alert("Erro ao excluir conteúdo.");
+                }
+            }
+        },
+
+        tocarMedia: (idx, tipo) => {
+            const lista = tipo === 'musica' ? musicasGrimorio : podcastsGrimorio;
+            const term = tipo === 'musica' ? els.searchMus.value.toLowerCase() : els.searchPod.value.toLowerCase();
+
+            activeAudioList = lista.filter(item => {
+                if (tipo === 'musica') return item.titulo.toLowerCase().includes(term) || item.artista.toLowerCase().includes(term);
+                return item.titulo.toLowerCase().includes(term) || (item.criador || item.professor).toLowerCase().includes(term);
+            });
+
+            currentIdx = idx;
+            const item = activeAudioList[idx];
+            if (!item) return;
+
+            currentPlayingId = item.id;
+            renderMusicasList();
+            renderPodcastsList();
+
+            const isMus = tipo === 'musica';
+            const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
+            const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
+
+            placeholder.classList.add('hidden');
+            view.classList.remove('hidden');
+            view.classList.add('flex');
+
+            const cor = isMus ? 'emerald' : 'purple';
+            const iconeDL = isMus ? '<i class="fas fa-file-alt mr-2"></i> Baixar Letra' : '<i class="fas fa-file-alt mr-2"></i> Resumo';
+            const imgUrl = item.albumArtUrl || item.coverArtUrl || '';
+
+            // VERIFICAÇÃO DE PERMISSÃO PARA O BOTÃO EDITAR
+            const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao);
+            let btnEditHtml = '';
+            if (canEdit) {
+                btnEditHtml = `<button onclick="window.conteudosAPI.editarMedia(${idx}, '${tipo}')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors ml-auto flex items-center border border-slate-700 hover:border-${cor}-500"><i class="fas fa-edit mr-2"></i> Editar</button>`;
+            }
+
+            // 1. GERA A CAPA PRINCIPAL (Ou a Imagem, ou o Ícone Grande)
+            const mainThumbHtml = imgUrl
+                ? `<img src="${imgUrl}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block">`
+                : `<div class="w-32 h-32 md:w-40 md:h-40 rounded-xl shadow-2xl border border-${cor}-500/30 bg-${cor}-500/10 text-${cor}-400 shrink-0 hidden md:flex items-center justify-center text-5xl"><i class="fas ${isMus ? 'fa-music' : 'fa-microphone'}"></i></div>`;
+
+            view.innerHTML = `
             <div class="flex flex-col h-full fade-in overflow-hidden">
                 <div class="flex items-end gap-6 mb-6 shrink-0 w-full relative">
                     ${mainThumbHtml}
@@ -806,119 +807,120 @@ window.conteudosAPI = {
             </div>
         `;
 
-        // 2. GERA A CAPA DO PLAYER FLUTUANTE (Alterna entre Img e Ícone)
-        window.conteudosAPI.maximizePlayer();
-        if (imgUrl) {
-            els.thumb.src = imgUrl;
-            els.thumb.classList.remove('hidden');
-            if(els.fallbackIcon) els.fallbackIcon.classList.add('hidden');
-        } else {
-            els.thumb.classList.add('hidden');
-            if(els.fallbackIcon) {
-                els.fallbackIcon.className = `fas ${isMus ? 'fa-music text-emerald-400' : 'fa-microphone text-purple-400'} text-lg`;
-                els.fallbackIcon.classList.remove('hidden');
+            // 2. GERA A CAPA DO PLAYER FLUTUANTE (Alterna entre Img e Ícone)
+            window.conteudosAPI.maximizePlayer();
+            if (imgUrl) {
+                els.thumb.src = imgUrl;
+                els.thumb.classList.remove('hidden');
+                if (els.fallbackIcon) els.fallbackIcon.classList.add('hidden');
+            } else {
+                els.thumb.classList.add('hidden');
+                if (els.fallbackIcon) {
+                    els.fallbackIcon.className = `fas ${isMus ? 'fa-music text-emerald-400' : 'fa-microphone text-purple-400'} text-lg`;
+                    els.fallbackIcon.classList.remove('hidden');
+                }
             }
-        }
 
-        els.title.textContent = item.titulo;
-        els.artist.textContent = item.artista || item.criador || item.professor;
-        
-        els.audioEngine.src = item.audioURL;
-        els.audioEngine.play();
-        els.btnPlayPause.innerHTML = '<i class="fas fa-pause ml-0"></i>';
-    },
+            els.title.textContent = item.titulo;
+            els.artist.textContent = item.artista || item.criador || item.professor;
 
-    togglePlay: () => {
-        if (els.audioEngine.paused) {
+            els.audioEngine.src = item.audioURL;
             els.audioEngine.play();
-        } else {
-            els.audioEngine.pause();
-        }
-        window.conteudosAPI.syncPlayButtons();
-    },
-    
-    prevAudio: () => { if(currentIdx > 0) window.conteudosAPI.tocarMedia(currentIdx - 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
-    
-    nextAudio: (autoAdvance = false) => { 
-        if (activeAudioList.length === 0) return;
-        const tipoAtual = activeAudioList[0].letra !== undefined ? 'musica' : 'podcast';
+            els.btnPlayPause.innerHTML = '<i class="fas fa-pause ml-0"></i>';
+        },
 
-        if (isShuffle) {
-            let nextIdx = currentIdx;
-            while (nextIdx === currentIdx && activeAudioList.length > 1) {
-                nextIdx = Math.floor(Math.random() * activeAudioList.length);
+        togglePlay: () => {
+            if (els.audioEngine.paused) {
+                els.audioEngine.play();
+            } else {
+                els.audioEngine.pause();
             }
-            window.conteudosAPI.tocarMedia(nextIdx, tipoAtual);
-            return;
-        }
+            window.conteudosAPI.syncPlayButtons();
+        },
 
-        if (currentIdx < activeAudioList.length - 1) { 
-            window.conteudosAPI.tocarMedia(currentIdx + 1, tipoAtual); 
-        } else if (autoAdvance && repeatMode === 1) {
-            // Se chegou ao fim, foi automático e está no modo "Repetir Tudo", volta pro começo
-            window.conteudosAPI.tocarMedia(0, tipoAtual);
-        }
-    },
+        prevAudio: () => { if (currentIdx > 0) window.conteudosAPI.tocarMedia(currentIdx - 1, activeAudioList[0].letra !== undefined ? 'musica' : 'podcast'); },
 
-    toggleShuffle: () => {
-        isShuffle = !isShuffle;
-        els.btnShuffle.classList.toggle('text-blue-500', isShuffle);
-        els.btnShuffle.classList.toggle('text-slate-400', !isShuffle);
-    },
+        nextAudio: (autoAdvance = false) => {
+            if (activeAudioList.length === 0) return;
+            const tipoAtual = activeAudioList[0].letra !== undefined ? 'musica' : 'podcast';
 
-    toggleRepeat: () => {
-        repeatMode = (repeatMode + 1) % 3;
-        if (repeatMode === 0) {
-            els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
-            els.btnRepeat.classList.replace('text-blue-500', 'text-slate-400');
-        } else if (repeatMode === 1) {
-            els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
-            els.btnRepeat.classList.replace('text-slate-400', 'text-blue-500');
-        } else {
-            els.btnRepeat.innerHTML = '<i class="fas fa-redo text-blue-500 relative"><span class="absolute -bottom-1 -right-1 text-[8px] font-black bg-slate-900 rounded-full px-0.5 shadow">1</span></i>';
-        }
-    },
+            if (isShuffle) {
+                let nextIdx = currentIdx;
+                while (nextIdx === currentIdx && activeAudioList.length > 1) {
+                    nextIdx = Math.floor(Math.random() * activeAudioList.length);
+                }
+                window.conteudosAPI.tocarMedia(nextIdx, tipoAtual);
+                return;
+            }
 
-    // NOVA FUNÇÃO DE DOWNLOAD: Busca direto do Objeto em vez do HTML
-    dlTextoAtual: () => {
-        const item = activeAudioList[currentIdx];
-        if(!item) return;
-        const texto = item.letra || item.descricao || 'Sem registros';
-        const b = new Blob([`${item.titulo}\n\n${texto}`], { type: 'text/plain' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${item.titulo}.txt`; a.click();
-    },
+            if (currentIdx < activeAudioList.length - 1) {
+                window.conteudosAPI.tocarMedia(currentIdx + 1, tipoAtual);
+            } else if (autoAdvance && repeatMode === 1) {
+                // Se chegou ao fim, foi automático e está no modo "Repetir Tudo", volta pro começo
+                window.conteudosAPI.tocarMedia(0, tipoAtual);
+            }
+        },
 
-    minimizePlayer: () => {
-        els.playerBox.classList.add('hidden');
-        els.miniPlayerBox.classList.remove('hidden');
-        els.miniPlayerBox.classList.add('flex');
-    },
+        toggleShuffle: () => {
+            isShuffle = !isShuffle;
+            els.btnShuffle.classList.toggle('text-blue-500', isShuffle);
+            els.btnShuffle.classList.toggle('text-slate-400', !isShuffle);
+        },
 
-    maximizePlayer: () => {
-        els.miniPlayerBox.classList.add('hidden');
-        els.miniPlayerBox.classList.remove('flex');
-        els.playerBox.classList.remove('hidden');
-    },
+        toggleRepeat: () => {
+            repeatMode = (repeatMode + 1) % 3;
+            if (repeatMode === 0) {
+                els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
+                els.btnRepeat.classList.replace('text-blue-500', 'text-slate-400');
+            } else if (repeatMode === 1) {
+                els.btnRepeat.innerHTML = '<i class="fas fa-redo"></i>';
+                els.btnRepeat.classList.replace('text-slate-400', 'text-blue-500');
+            } else {
+                els.btnRepeat.innerHTML = '<i class="fas fa-redo text-blue-500 relative"><span class="absolute -bottom-1 -right-1 text-[8px] font-black bg-slate-900 rounded-full px-0.5 shadow">1</span></i>';
+            }
+        },
 
-    closePlayer: () => {
-        els.audioEngine.pause();
-        els.audioEngine.currentTime = 0;
-        els.playerBox.classList.add('hidden');
-        els.miniPlayerBox.classList.add('hidden');
-        els.miniPlayerBox.classList.remove('flex');
-    },
+        // NOVA FUNÇÃO DE DOWNLOAD: Busca direto do Objeto em vez do HTML
+        dlTextoAtual: () => {
+            const item = activeAudioList[currentIdx];
+            if (!item) return;
+            const texto = item.letra || item.descricao || 'Sem registros';
+            const b = new Blob([`${item.titulo}\n\n${texto}`], { type: 'text/plain' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `${item.titulo}.txt`; a.click();
+        },
 
-    syncPlayButtons: () => {
-        const isPaused = els.audioEngine.paused;
-        
-        // Ícones para o player grande
-        if(els.btnPlayPause) {
-            els.btnPlayPause.innerHTML = isPaused ? '<i class="fas fa-play ml-1 text-xl"></i>' : '<i class="fas fa-pause text-xl"></i>';
-        }
-        
-        // Ícones para a pílula pequena
-        if(els.btnPlayPauseMini) {
-            els.btnPlayPauseMini.innerHTML = isPaused ? '<i class="fas fa-play ml-0.5"></i>' : '<i class="fas fa-pause"></i>';
+        minimizePlayer: () => {
+            els.playerBox.classList.add('hidden');
+            els.miniPlayerBox.classList.remove('hidden');
+            els.miniPlayerBox.classList.add('flex');
+        },
+
+        maximizePlayer: () => {
+            els.miniPlayerBox.classList.add('hidden');
+            els.miniPlayerBox.classList.remove('flex');
+            els.playerBox.classList.remove('hidden');
+        },
+
+        closePlayer: () => {
+            els.audioEngine.pause();
+            els.audioEngine.currentTime = 0;
+            els.playerBox.classList.add('hidden');
+            els.miniPlayerBox.classList.add('hidden');
+            els.miniPlayerBox.classList.remove('flex');
+        },
+
+        syncPlayButtons: () => {
+            const isPaused = els.audioEngine.paused;
+
+            // Ícones para o player grande
+            if (els.btnPlayPause) {
+                els.btnPlayPause.innerHTML = isPaused ? '<i class="fas fa-play ml-1 text-xl"></i>' : '<i class="fas fa-pause text-xl"></i>';
+            }
+
+            // Ícones para a pílula pequena
+            if (els.btnPlayPauseMini) {
+                els.btnPlayPauseMini.innerHTML = isPaused ? '<i class="fas fa-play ml-0.5"></i>' : '<i class="fas fa-pause"></i>';
+            }
         }
     }
-};
+}
