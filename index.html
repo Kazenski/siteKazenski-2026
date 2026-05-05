@@ -679,19 +679,26 @@
 
         <div id="login-content" class="tab-content hidden h-full items-center justify-center"></div>
 
-        <div id="modal-painel-aval" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 md:p-8 fade-in">
-                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
-                    <button onclick="document.getElementById('modal-painel-aval').classList.add('hidden')" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-full transition-all z-20"><i class="fas fa-times"></i></button>
-                    
-                    <div class="p-6 md:p-8 border-b border-slate-800 shrink-0 bg-slate-900/50">
-                        <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1" id="painel-aval-meta">Professor / Turmas</div>
-                        <h2 id="painel-aval-titulo" class="text-2xl md:text-4xl font-cinzel font-bold text-white pr-12 leading-tight">Título da Avaliação</h2>
-                    </div>
-                    
-                    <div class="flex-grow overflow-y-auto custom-scroll p-6 md:p-8 bg-slate-950/30" id="painel-aval-body">
-                        </div>
+        <div id="modal-painel-aval"
+            class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 md:p-8 fade-in">
+            <div
+                class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+                <button onclick="document.getElementById('modal-painel-aval').classList.add('hidden')"
+                    class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-full transition-all z-20"><i
+                        class="fas fa-times"></i></button>
+
+                <div class="p-6 md:p-8 border-b border-slate-800 shrink-0 bg-slate-900/50">
+                    <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1"
+                        id="painel-aval-meta">Professor / Turmas</div>
+                    <h2 id="painel-aval-titulo"
+                        class="text-2xl md:text-4xl font-cinzel font-bold text-white pr-12 leading-tight">Título da
+                        Avaliação</h2>
+                </div>
+
+                <div class="flex-grow overflow-y-auto custom-scroll p-6 md:p-8 bg-slate-950/30" id="painel-aval-body">
                 </div>
             </div>
+        </div>
 
         <div id="login-content" class="tab-content hidden h-full items-center justify-center"></div>
 
@@ -791,6 +798,8 @@
                         <button id="btn-tab-calendario"
                             class="aluno-tab-btn text-center md:text-left col-span-2 sm:col-span-1"
                             data-target="calendario">Calendário</button>
+                        <button id="btn-tab-mochila" class="aluno-tab-btn text-center" data-target="mochila">Mochila
+                            Tech</button>
                     </nav>
 
                     <div class="px-6 md:px-14 py-6 pb-32">
@@ -1207,6 +1216,35 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div id="atab-mochila" class="aluno-tab-content h-full flex-col fade-in w-full">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[calc(100vh-350px)] pb-6">
+                                <div
+                                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3
+                                        class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+                                        <i class="fas fa-scroll mr-2 text-blue-500"></i> Mochila Pedagógica
+                                        (Consumíveis)
+                                    </h3>
+                                    <div id="al-mochila-itens"
+                                        class="space-y-3 overflow-y-auto custom-scroll flex-grow pr-1 max-h-[450px]">
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3
+                                        class="text-purple-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+                                        <i class="fas fa-palette mr-2 text-purple-500"></i> Galeria de Estilos (Skins &
+                                        Temas)
+                                    </h3>
+                                    <div id="al-mochila-estilos"
+                                        class="space-y-3 overflow-y-auto custom-scroll flex-grow pr-1 max-h-[450px]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
 
                     </div>
                 </div>

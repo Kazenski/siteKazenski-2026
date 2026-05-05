@@ -1,4 +1,4 @@
-import { db } from '../core/firebase.js'; // Usa as instâncias do seu projeto
+import { db, auth, storage } from '../core/firebase.js';
 import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 
@@ -360,24 +360,94 @@ const gestaoAuraAPI = {
                 timestamp: serverTimestamp()
             });
 
-            // 6. Atualiza o inventário do usuário
+            // 6. Atualiza o inventário do usuário com EMPILHAMENTO
             const userRef = doc(db, "users", auth.currentUser.uid);
-            if (tipo === 'mochila') {
+            
+            // ATENÇÃO: 'itemCompleto' seria o objeto inteiro do item que veio do Firestore
+            if (tipo === 'consumivel') {
                 const mochila = data.mochilaPedagogica || [];
-                mochila.push({ id: itemId, usado: false, data: new Date().toISOString() });
+                // Procura se o aluno já tem este item na mochila
+                const idx = mochila.findIndex(i => i.id === itemId);
+                
+                if (idx > -1) {
+                    // Empilha (1x vira 2x, etc)
+                    mochila[idx].quantidade = (mochila[idx].quantidade || 1) + 1;
+                    mochila[idx].usosRestantes = (mochila[idx].usosRestantes || 0) + (itemCompleto.usosRestantes || 1);
+                } else {
+                    // Adiciona o primeiro
+                    mochila.push({ 
+                        id: itemId, 
+                        nome: itemCompleto.nome, 
+                        iconeUrl: itemCompleto.iconeOrClass, // Salva a URL para renderizar fácil no Perfil
+                        quantidade: 1, 
+                        usosRestantes: itemCompleto.usosRestantes || 1 
+                    });
+                }
                 await updateDoc(userRef, { mochilaPedagogica: mochila });
+                
             } else {
+                // Skin ou Tema (Não empilha)
                 const colecao = data.colecaoCosmeticos || [];
-                colecao.push(itemId);
+                // Salvamos um objeto com o ID e a classe CSS para o perfil injetar direto
+                colecao.push({ id: itemId, classeCSS: itemCompleto.iconeOrClass, tipo: tipo, nome: itemCompleto.nome });
                 await updateDoc(userRef, { colecaoCosmeticos: colecao });
             }
 
-            alert("Aquisição bem-sucedida! O seu Saldo Histórico permanece intacto.");
-            window.gestaoAuraAPI.abrirLojaPedagogica(); // Recarrega a loja para atualizar os números
+            alert("Aquisição bem-sucedida! O item foi enviado para o seu Perfil Tech.");
+        }
+    },
 
-        } catch (e) {
-            console.error("Erro na transação:", e);
-            alert("Erro de comunicação com o Grimório ao processar a compra.");
+    cadastrarNovoItemLoja: async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-salvar-item-loja');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando Item...'; 
+        btn.disabled = true;
+
+        try {
+            const tipo = document.getElementById('item-tipo').value; // 'consumivel', 'skin', 'tema'
+            let iconeOrClass = '';
+
+            if (tipo === 'consumivel') {
+                const file = document.getElementById('item-icone').files[0];
+                if (!file) { alert("Consumíveis exigem uma imagem de ícone!"); btn.innerHTML = originalText; btn.disabled = false; return; }
+                
+                // Controle de Qualidade de Imagem (Máximo 200KB)
+                if (file.size > 200 * 1024) {
+                    alert("A imagem é muito pesada! O limite é 200KB para manter a loja super rápida.");
+                    btn.innerHTML = originalText; btn.disabled = false;
+                    return;
+                }
+                const fileRef = ref(storage, `loja_icones/${Date.now()}_${file.name}`);
+                await uploadBytes(fileRef, file);
+                iconeOrClass = await getDownloadURL(fileRef);
+            } else {
+                // Se for Skin/Tema, salva o nome da classe CSS que fizemos no style.css (ex: 'border-cyberpunk')
+                iconeOrClass = document.getElementById('item-classe-css').value;
+            }
+
+            const novoItem = {
+                nome: document.getElementById('item-nome').value,
+                descricao: document.getElementById('item-desc').value,
+                preco: parseFloat(document.getElementById('item-preco').value),
+                tipo: tipo,
+                usosRestantes: parseFloat(document.getElementById('item-usos').value) || 1, // 1x, 2x, 3x
+                iconeOrClass: iconeOrClass,
+                ativo: true,
+                criadoEm: serverTimestamp()
+            };
+
+            await addDoc(collection(db, "loja_pedagogica_itens"), novoItem);
+            alert("Item adicionado ao catálogo com sucesso!");
+            document.getElementById('modal-cadastro-item-loja').classList.add('hidden');
+            window.gestaoAuraAPI.abrirLojaPedagogica(); // Atualiza a vitrine
+            
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao forjar o item no Grimório.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
         }
     },
 

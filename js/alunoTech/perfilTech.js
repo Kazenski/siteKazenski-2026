@@ -186,6 +186,7 @@ async function initDashboard(user) {
     initKanbanSystem();
     loadHorarioEscolar();
     initCalendarSystem();
+    window.mochilaAPI.init(); 
 }
 
 // ============================================================================
@@ -1794,6 +1795,26 @@ async function renderBanner() {
     els.imgProfile.src = pic;
     if (currentUser.coverImageURL) els.bgCover.style.backgroundImage = `url('${currentUser.coverImageURL}')`;
 
+    // APLICAÇÃO DINÂMICA DE SKINS DE BORDA COMPRADAS
+    // Limpa efeitos anteriores conhecidos para evitar conflitos no re-render
+    els.imgProfile.classList.remove('border-rainbow', 'border-valiriano', 'border-cyberpunk');
+    if (currentUser.skinAtiva) {
+        els.imgProfile.style.borderWidth = "0px"; // Permite que o outline/border do gradiente CSS atue livremente
+        els.imgProfile.classList.add(currentUser.skinAtiva);
+    } else {
+        els.imgProfile.style.borderWidth = "4px";
+        els.imgProfile.style.borderColor = currentUser.profileBorderColor || "#00e5ff";
+    }
+
+    // APLICAÇÃO DINÂMICA DE TEMAS NO CONTAINER DO PERFIL
+    const cardPerfil = document.getElementById('dashboard-aluno');
+    if (cardPerfil) {
+        cardPerfil.classList.remove('theme-hacker', 'theme-arcano');
+        if (currentUser.temaAtivo) {
+            cardPerfil.classList.add(currentUser.temaAtivo);
+        }
+    }
+
     // ==========================================
     // NOVA LÓGICA DE RENDERIZAÇÃO DE TÍTULOS
     // ==========================================
@@ -2109,3 +2130,180 @@ async function loadAvaliacoes360() {
         container.innerHTML = '<span class="text-red-500 text-sm"><i class="fas fa-wifi"></i> Erro de conexão ao carregar dados.</span>';
     }
 }
+
+// ============================================================================
+// MOTOR DE CONTROLE DA MOCHILA PEDAGÓGICA (INVENTÁRIO E COSMÉTICOS)
+// ============================================================================
+window.mochilaAPI = {
+    init() {
+        // Vincula e atualiza em tempo real as prateleiras se houver modificações no documento do user
+        this.renderizarMochilaUI();
+    },
+
+    renderizarMochilaUI() {
+        const itemContainer = document.getElementById('al-mochila-itens');
+        const estiloContainer = document.getElementById('al-mochila-estilos');
+        if (!itemContainer || !estiloContainer) return;
+
+        const mochila = currentUser.mochilaPedagogica || [];
+        const cosmeticos = currentUser.colecaoCosmeticos || [];
+        
+        const skinAtiva = currentUser.skinAtiva || '';
+        const temaAtivo = currentUser.temaAtivo || '';
+
+        // 1. CONSTRUÇÃO VISUAL DOS CONSUMÍVEIS (MOCHILA PEDAGÓGICA)
+        if (mochila.length === 0) {
+            itemContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-8 text-slate-500 italic text-xs">
+                    <i class="fas fa-box-open text-2xl mb-2 opacity-40"></i>
+                    Sua mochila pedagógica está vazia. Visite a Loja de Aura!
+                </div>`;
+        } else {
+            itemContainer.innerHTML = mochila.map(item => `
+                <div class="bg-slate-950/40 border border-slate-700/50 p-4 rounded-xl flex items-center justify-between gap-4 group hover:border-blue-500/50 transition-all shadow-md">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center text-xl shrink-0 shadow-inner">
+                            <i class="fas ${item.icone || 'fa-scroll'}"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white text-xs font-black uppercase tracking-wider">${escapeHTML(item.nome || 'Bônus Pedagógico')}</h4>
+                            <p class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest font-semibold">
+                                Quantidade: <span class="text-blue-400 font-black">${item.quantidade || 1}x</span> 
+                                | Cargas por item: <span class="text-amber-400 font-black">${item.usosRestantes || 1}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="window.mochilaAPI.invocarConsumivel('${item.id}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/30">
+                        Usar 1x
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 2. CONSTRUÇÃO VISUAL DOS ESTILOS (ATIVÁVEL/DESATIVÁVEL COM MARCADOR "EM USO")
+        // Geramos dinamicamente os itens estáticos baseados no catálogo para o aluno gerenciar
+        const listaEstilosDisponiveis = [
+            { id: 'borda_rainbow', nome: 'Borda Arco-Íris', classe: 'border-rainbow', tipo: 'skin' },
+            { id: 'borda_valiriano', nome: 'Fogo Valiriano', classe: 'border-valiriano', tipo: 'skin' },
+            { id: 'borda_cyberpunk', nome: 'Neon Cyberpunk', classe: 'border-cyberpunk', tipo: 'skin' },
+            { id: 'tema_hacker', nome: 'Terminal Hacker', classe: 'theme-hacker', tipo: 'tema' },
+            { id: 'tema_arcano', nome: 'Mestre Arcano', classe: 'theme-arcano', tipo: 'tema' }
+        ];
+
+        // Filtra para exibir apenas os estilos que o aluno já comprou na loja
+        const estilosAdquiridos = listaEstilosDisponiveis.filter(est => cosmeticos.includes(est.id));
+
+        if (estilosAdquiridos.length === 0) {
+            estiloContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-8 text-slate-500 italic text-xs">
+                    <i class="fas fa-palette text-2xl mb-2 opacity-40"></i>
+                    Nenhum estilo visual desbloqueado nesta jornada.
+                </div>`;
+        } else {
+            estiloContainer.innerHTML = estilosAdquiridos.map(cos => {
+                const isSkin = cos.tipo === 'skin';
+                const isActive = isSkin ? (skinAtiva === cos.classe) : (temaAtivo === cos.classe);
+
+                // Alternador de estados estruturado (Marcador Inteligente)
+                const botaoAcao = isActive 
+                    ? `<button onclick="window.mochilaAPI.removerCosmetico('${cos.tipo}')" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><i class="fas fa-check-circle"></i> Em Uso</button>`
+                    : `<button onclick="window.mochilaAPI.ativarCosmetico('${cos.classe}', '${cos.tipo}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors">Ativar</button>`;
+
+                return `
+                    <div class="bg-slate-950/40 border ${isActive ? 'border-emerald-500/30 bg-emerald-950/5' : 'border-slate-800'} p-3 rounded-xl flex items-center justify-between gap-4 transition-all">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg border-2 ${isSkin ? cos.classe : 'border-slate-700'} bg-slate-900 shrink-0 flex items-center justify-center text-[9px] font-black text-slate-500 uppercase">
+                                ${isSkin ? 'Borda' : 'Tema'}
+                            </div>
+                            <div>
+                                <h4 class="text-white text-xs font-bold uppercase tracking-wider">${escapeHTML(cos.nome)}</h4>
+                                <p class="text-[8px] text-slate-500 font-bold uppercase mt-0.5">${isSkin ? 'Modificador de Foto' : 'Tema da Interface'}</p>
+                            </div>
+                        </div>
+                        ${botaoAcao}
+                    </div>
+                `;
+            }).join('');
+        }
+    },
+
+    async activarCosmetico(classeCSS, tipo) {
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            const updatePayload = tipo === 'skin' ? { skinAtiva: classeCSS } : { temaAtivo: classeCSS };
+            
+            await updateDoc(userRef, updatePayload);
+            currentUser[tipo === 'skin' ? 'skinAtiva' : 'temaAtivo'] = classeCSS;
+            
+            // Recarrega os elementos e a interface da aba
+            renderBanner();
+            this.renderizarMochilaUI();
+            window.registrarLogAtividade(`Equipou Cosmético`, `Tipo: ${tipo} | Classe: ${classeCSS}`);
+        } catch (e) {
+            console.error("Erro ao equipar cosmético:", e);
+            alert("Sua energia falhou ao tentar equipar este item.");
+        }
+    },
+
+    async removerCosmetico(tipo) {
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            const updatePayload = tipo === 'skin' ? { skinAtiva: "" } : { temaAtivo: "" };
+            
+            await updateDoc(userRef, updatePayload);
+            currentUser[tipo === 'skin' ? 'skinAtiva' : 'temaAtivo'] = "";
+            
+            renderBanner();
+            this.renderizarMochilaUI();
+            window.registrarLogAtividade(`Desequipou Cosmético`, `Tipo: ${tipo}`);
+        } catch (e) {
+            console.error(e);
+        }
+    },
+
+    async invocarConsumivel(itemId) {
+        if (!confirm("Confirmar invocação deste bônus pedagógico? O uso será gravado no prontuário do conselho para o professor aplicar.")) return;
+
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            let mochila = [...(currentUser.mochilaPedagogica || [])];
+
+            const idx = mochila.findIndex(i => i.id === itemId);
+            if (idx > -1) {
+                const nomeItem = mochila[idx].nome;
+
+                // Lógica detalhada de consumo de pilha
+                if (mochila[idx].usosRestantes > 1) {
+                    mochila[idx].usosRestantes -= 1;
+                } else {
+                    mochila[idx].quantidade -= 1;
+                    if (mochila[idx].quantidade <= 0) {
+                        mochila.splice(idx, 1); // Remove completamente da mochila se zerar o estoque
+                    } else {
+                        mochila[idx].usosRestantes = 1; // Reseta as cargas internas para o próximo da pilha
+                    }
+                }
+
+                await updateDoc(userRef, { mochilaPedagogica: mochila });
+                currentUser.mochilaPedagogica = mochila;
+
+                // Envia para a trilha permanente de auditoria do professor
+                await addDoc(collection(db, "logs_pedagogicos"), {
+                    alunoUid: currentUser.uid,
+                    alunoNome: currentUser.nome,
+                    itemNome: nomeItem,
+                    acao: "Ativação de Consumível Loja",
+                    turma: currentUser.turma || "Sem Turma",
+                    data: serverTimestamp(),
+                    status: "pendente"
+                });
+
+                alert(`Poder ativado! O item "${nomeItem}" foi descontado do inventário.`);
+                this.renderizarMochilaUI();
+            }
+        } catch (e) {
+            console.error("Erro ao consumir item:", e);
+            alert("Falha técnica ao tentar ler a mochila do usuário.");
+        }
+    }
+};
