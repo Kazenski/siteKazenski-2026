@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../core/firebase.js';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, getDocs, collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { escapeHTML } from '../core/utils.js';
 
 let currentUser = null;
@@ -68,9 +68,11 @@ function construirEstruturaInterface(container) {
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Turmas Alvo (separadas por vírgula)</label>
-                    <input type="text" id="aval-turmas" required placeholder="Ex: Info1, Info2, Mec2" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Selecione as Turmas Alvo</label>
+                    <div id="container-check-turmas" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="text-slate-600 text-[10px] animate-pulse">Carregando turmas...</div>
+                    </div>
                 </div>
 
                 <div>
@@ -98,19 +100,108 @@ function setupEventosIniciais() {
     const btnToggle = document.getElementById('btn-toggle-form-aval');
     const containerForm = document.getElementById('container-form-aval');
     const btnCancel = document.getElementById('btn-cancel-aval');
+    const form = document.getElementById('form-nova-aval');
 
     if (btnToggle && containerForm) {
         btnToggle.addEventListener('click', () => {
+            const isVisible = !containerForm.classList.contains('hidden');
+            if (!isVisible) carregarTurmasDisponiveis(); // Recarrega as turmas ao abrir
             containerForm.classList.toggle('hidden');
         });
     }
 
     if (btnCancel && containerForm) {
         btnCancel.addEventListener('click', () => {
-            document.getElementById('form-nova-aval').reset();
+            form.reset();
             containerForm.classList.add('hidden');
         });
     }
 
-    // Aqui adicionaremos o evento de submit do formulário no próximo passo
+    if (form) {
+        form.addEventListener('submit', salvarAvaliacao);
+    }
+    
+    // Inicia a listagem de avaliações existentes (Snapshot)
+    ouvirAvaliacoes();
+}
+
+async function carregarTurmasDisponiveis() {
+    const container = document.getElementById('container-check-turmas');
+    if (!container) return;
+
+    try {
+        // Buscamos os usuários professores/admin para ver quais turmas eles atendem ou uma lista global
+        // Aqui, busco os nomes de turmas únicos na coleção de usuários
+        const q = query(collection(db, "users"), where("registroAtivo", "==", true));
+        const snap = await getDocs(q);
+        
+        const turmasSet = new Set();
+        snap.forEach(doc => {
+            const t = doc.data().turma;
+            if (t && t !== "Sem Turma") turmasSet.add(t);
+        });
+
+        const turmasOrdenadas = Array.from(turmasSet).sort();
+
+        if (turmasOrdenadas.length === 0) {
+            container.innerHTML = '<p class="text-slate-500 text-xs italic">Nenhuma turma ativa encontrada.</p>';
+            return;
+        }
+
+        container.innerHTML = turmasOrdenadas.map(t => `
+            <label class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded-lg cursor-pointer transition-colors group">
+                <input type="checkbox" name="turmas-selecionadas" value="${t}" class="w-4 h-4 accent-blue-500">
+                <span class="text-xs text-slate-300 group-hover:text-white">${t}</span>
+            </label>
+        `).join('');
+
+    } catch (err) {
+        console.error("Erro ao carregar turmas:", err);
+        container.innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar turmas.</p>';
+    }
+}
+
+async function salvarAvaliacao(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-submit-aval');
+    const orig = btn.innerHTML;
+    
+    // Coleta as turmas selecionadas
+    const turmas = Array.from(document.querySelectorAll('input[name="turmas-selecionadas"]:checked')).map(cb => cb.value);
+    
+    if (turmas.length === 0) {
+        alert("Selecione pelo menos uma turma para esta avaliação.");
+        return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publicando...';
+    btn.disabled = true;
+
+    try {
+        const payload = {
+            titulo: document.getElementById('aval-titulo').value,
+            notaMaxima: parseFloat(document.getElementById('aval-nota').value),
+            dataAbertura: new Date(document.getElementById('aval-abertura').value),
+            dataFechamento: new Date(document.getElementById('aval-fechamento').value),
+            turmasAlvo: turmas,
+            descricao: document.getElementById('aval-descricao').value,
+            criadoPor: currentUser.nome,
+            professorUid: currentUser.uid,
+            dataCriacao: serverTimestamp(),
+            status: 'ativa'
+        };
+
+        await addDoc(collection(db, "avaliacoes_digitais"), payload);
+        
+        alert("Avaliação publicada com sucesso!");
+        e.target.reset();
+        document.getElementById('container-form-aval').classList.add('hidden');
+        
+    } catch (err) {
+        console.error("Erro ao publicar avaliação:", err);
+        alert("Falha ao salvar no Grimório.");
+    } finally {
+        btn.innerHTML = orig;
+        btn.disabled = false;
+    }
 }
