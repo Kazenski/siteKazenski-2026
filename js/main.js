@@ -4,6 +4,7 @@ import { doc, getDoc, collection, addDoc, updateDoc, getDocs } from "https://www
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
+import { renderAvaliacoesTab } from './avaliacoesDigitais/avaliacoesDigitais.js';
 
 // IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
 import { renderInicioTab } from './inicio/inicio.js';
@@ -34,6 +35,7 @@ let isModeradorLoaded = false;
 let isConexaoAlunoLoaded = false;
 let isProjetosLoaded = false;
 let isGestaoAuraLoaded = false;
+let isAvaliacoesLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
@@ -47,6 +49,7 @@ const MENU_ARCHITECTURE = [
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
     { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
+    { id: 'avaliacoes', label: 'Avaliações Digitais', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     { id: 'moderador-tech', label: 'Moderador Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador },
     { id: 'professor', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
     { id: 'admin-tech', label: 'Admin Tech', showTo: (r) => r.Admin }
@@ -420,6 +423,12 @@ window.showTab = function(tabId) {
         if (!isProjetosLoaded) {             
             renderProjetosTab();              
             isProjetosLoaded = true;          
+        }                                     
+    }
+    else if (tabId === 'avaliacoes') {       
+        if (!isAvaliacoesLoaded) {             
+            renderAvaliacoesTab();              
+            isAvaliacoesLoaded = true;          
         }                                     
     }
     else if (tabId === 'gestao-aura') {       
