@@ -679,25 +679,19 @@
 
         <div id="login-content" class="tab-content hidden h-full items-center justify-center"></div>
 
-        <div id="modal-painel-aval"
-            class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-50 hidden flex-col items-center justify-center p-4 fade-in">
-            <div
-                class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative">
-                <button onclick="document.getElementById('modal-painel-aval').classList.add('hidden')"
-                    class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors text-2xl z-10"><i
-                        class="fas fa-times"></i></button>
-
-                <div class="p-6 border-b border-slate-800 shrink-0 bg-slate-900">
-                    <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1"
-                        id="painel-aval-meta">Professor / Turmas</div>
-                    <h2 id="painel-aval-titulo" class="text-2xl md:text-3xl font-cinzel font-bold text-white pr-8">
-                        Título da Avaliação</h2>
-                </div>
-
-                <div class="flex-grow overflow-y-auto custom-scroll p-6 bg-slate-950/50" id="painel-aval-body">
+        <div id="modal-painel-aval" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 md:p-8 fade-in">
+                <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
+                    <button onclick="document.getElementById('modal-painel-aval').classList.add('hidden')" class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white rounded-full transition-all z-20"><i class="fas fa-times"></i></button>
+                    
+                    <div class="p-6 md:p-8 border-b border-slate-800 shrink-0 bg-slate-900/50">
+                        <div class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1" id="painel-aval-meta">Professor / Turmas</div>
+                        <h2 id="painel-aval-titulo" class="text-2xl md:text-4xl font-cinzel font-bold text-white pr-12 leading-tight">Título da Avaliação</h2>
+                    </div>
+                    
+                    <div class="flex-grow overflow-y-auto custom-scroll p-6 md:p-8 bg-slate-950/30" id="painel-aval-body">
+                        </div>
                 </div>
             </div>
-        </div>
 
         <div id="login-content" class="tab-content hidden h-full items-center justify-center"></div>
 
