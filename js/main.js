@@ -1,6 +1,6 @@
 import { auth, db, rtdb } from './core/firebase.js';
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc, collection, addDoc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, addDoc, updateDoc, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
@@ -54,6 +54,69 @@ const MENU_ARCHITECTURE = [
     { id: 'professor', label: 'Professor Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao },
     { id: 'admin-tech', label: 'Admin Tech', showTo: (r) => r.Admin }
 ];
+
+// ============================================================================
+// SISTEMA DE NOTIFICAÇÕES GLOBAIS (BADGES NO MENU)
+// ============================================================================
+let globalBadges = { avaliacoes: false };
+let unsubAvaliacoes = null;
+let unsubEntregas = null;
+
+function iniciarMonitoramentoNotificacoes(uid, turma) {
+    if (!turma) return;
+
+    // Ouve as avaliações ativas e as entregas feitas por esse aluno específico
+    const qAval = query(collection(db, "avaliacoes_digitais"), where("status", "==", "ativa"));
+    const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", uid));
+
+    let avaliacoes = [];
+    let entregas = [];
+
+    const recalcularBadge = () => {
+        const agora = new Date();
+        let pendentes = 0;
+
+        avaliacoes.forEach(a => {
+            if (a.oculta) return;
+            if (!a.turmasAlvo || !a.turmasAlvo.includes(turma)) return;
+            
+            const dAberta = a.dataAbertura ? a.dataAbertura.toDate() : null;
+            const dFecha = a.dataFechamento ? a.dataFechamento.toDate() : null;
+
+            if (dAberta && dAberta > agora) return; // Ainda não abriu para o aluno
+            if (dFecha && dFecha < agora) return; // O prazo já acabou (não notifica mais, apenas mostra atrasado/encerrado na aba)
+
+            // Verifica se o aluno já enviou algo para esta avaliação
+            const jaEntregou = entregas.some(e => e.avaliacaoId === a.id);
+            if (!jaEntregou) {
+                pendentes++;
+            }
+        });
+
+        const hasPending = pendentes > 0;
+        // Se o status da bolinha mudar (ex: ele acabou de entregar), atualiza o menu
+        if (globalBadges.avaliacoes !== hasPending) {
+            globalBadges.avaliacoes = hasPending;
+            buildTopMenu(); 
+        }
+    };
+
+    unsubAvaliacoes = onSnapshot(qAval, (snap) => {
+        avaliacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        recalcularBadge();
+    });
+
+    unsubEntregas = onSnapshot(qEntregas, (snap) => {
+        entregas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        recalcularBadge();
+    });
+}
+
+function pararMonitoramentoNotificacoes() {
+    if (unsubAvaliacoes) unsubAvaliacoes();
+    if (unsubEntregas) unsubEntregas();
+    globalBadges.avaliacoes = false;
+}
 
 // ============================================================================
 // GESTÃO DE SESSÃO (REALTIME DATABASE)
@@ -287,6 +350,13 @@ onAuthStateChanged(auth, async (user) => {
                         await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
                     }
                 }
+
+                // INICIA MONITORAMENTO DE AVALIAÇÕES (Bolhinha Amarela) SE FOR ALUNO
+                if (userRoles.Aluno) {
+                    iniciarMonitoramentoNotificacoes(user.uid, data.turma);
+                } else {
+                    pararMonitoramentoNotificacoes(); // Admin/Professores não precisam da bolinha de pendência
+                }
             }
         } catch (error) {
             console.error("Erro ao mapear permissões:", error);
@@ -307,6 +377,7 @@ onAuthStateChanged(auth, async (user) => {
     } else {
 
         stopSessionManager();
+        pararMonitoramentoNotificacoes();
         loadingEl.classList.add('hidden');
         infoEl.classList.add('hidden');
         infoEl.classList.remove('flex');
@@ -332,12 +403,20 @@ function buildTopMenu() {
     MENU_ARCHITECTURE.forEach(item => {
         if (item.showTo(userRoles)) {
             const btn = document.createElement('button');
-            btn.textContent = item.label;
             
-            // Estilização idêntica ao que você pediu
+            // Estilização com Flexbox para alinhar o texto e a bolinha
             const isActive = activeTabId === item.id;
-            btn.className = `nav-item-btn px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${isActive ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
+            btn.className = `nav-item-btn flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${isActive ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
             
+            // Texto base do botão
+            let innerHTML = `<span>${item.label}</span>`;
+            
+            // Se for a aba de avaliações e houver pendências, adiciona a bolinha (Ping animation Tailwind)
+            if (item.id === 'avaliacoes' && globalBadges.avaliacoes) {
+                innerHTML += `<span class="relative flex h-2.5 w-2.5" title="Você possui atividades pendentes!"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span></span>`;
+            }
+            
+            btn.innerHTML = innerHTML;
             btn.onclick = () => window.showTab(item.id);
             btn.dataset.target = item.id;
             
