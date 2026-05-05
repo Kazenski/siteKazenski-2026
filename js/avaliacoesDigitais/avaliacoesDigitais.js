@@ -60,11 +60,11 @@ function construirEstruturaInterface(container) {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Data de Abertura</label>
-                        <input type="datetime-local" id="aval-abertura" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none style-calendar">
+                        <input type="datetime-local" id="aval-abertura" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Prazo de Encerramento</label>
-                        <input type="datetime-local" id="aval-fechamento" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none style-calendar">
+                        <input type="datetime-local" id="aval-fechamento" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
                     </div>
                 </div>
 
@@ -204,4 +204,93 @@ async function salvarAvaliacao(e) {
         btn.innerHTML = orig;
         btn.disabled = false;
     }
+}
+
+let avaliacoesListener = null;
+
+function ouvirAvaliacoes() {
+    const grid = document.getElementById('grid-avaliacoes');
+    if (!grid) return;
+
+    // Traz todas as avaliações ordenadas pela mais recente
+    const q = query(collection(db, "avaliacoes_digitais"), orderBy("dataCriacao", "desc"));
+
+    avaliacoesListener = onSnapshot(q, (snapshot) => {
+        const avaliacoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderGridAvaliacoes(avaliacoes);
+    }, (err) => {
+        console.error("Erro ao ouvir avaliações:", err);
+        grid.innerHTML = '<p class="text-red-500 text-xs font-bold text-center mt-10">Erro ao carregar o quadro de atividades.</p>';
+    });
+}
+
+function renderGridAvaliacoes(avaliacoes) {
+    const grid = document.getElementById('grid-avaliacoes');
+    if (!grid) return;
+
+    let visiveis = avaliacoes;
+    
+    // Regra de Ocultação para Alunos
+    if (!isStaff && currentUser) {
+        const turmaAluno = currentUser.turma;
+        const agora = new Date();
+        visiveis = avaliacoes.filter(a => {
+            if (!a.turmasAlvo || !a.turmasAlvo.includes(turmaAluno)) return false;
+            if (a.dataAbertura && a.dataAbertura.toDate() > agora) return false; // Ainda não abriu
+            return true;
+        });
+    }
+
+    if (visiveis.length === 0) {
+        grid.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-full text-slate-500 mt-10">
+                <i class="fas fa-box-open text-4xl mb-4 opacity-50"></i>
+                <p class="font-bold uppercase tracking-widest text-xs text-center">Nenhuma avaliação disponível no momento.</p>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = visiveis.map(aval => {
+        // Formata as Datas (Firestore Timestamp -> Leitura humana)
+        const dAberta = aval.dataAbertura ? aval.dataAbertura.toDate() : null;
+        const dFecha = aval.dataFechamento ? aval.dataFechamento.toDate() : null;
+        
+        const strAbertura = dAberta ? `${dAberta.toLocaleDateString('pt-BR')} às ${dAberta.getHours().toString().padStart(2,'0')}:${dAberta.getMinutes().toString().padStart(2,'0')}` : 'N/A';
+        const strFechamento = dFecha ? `${dFecha.toLocaleDateString('pt-BR')} às ${dFecha.getHours().toString().padStart(2,'0')}:${dFecha.getMinutes().toString().padStart(2,'0')}` : 'N/A';
+        const turmas = (aval.turmasAlvo || []).join(', ');
+
+        // Verificação visual se a data já passou (para colocar vermelho)
+        const expirou = dFecha && (dFecha < new Date());
+        const corPrazo = expirou ? 'text-red-400' : 'text-amber-400';
+        const iconePrazo = expirou ? 'fa-calendar-times' : 'fa-clock';
+
+        return `
+            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-colors relative overflow-hidden group">
+                ${expirou ? '<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>' : ''}
+                
+                <div class="flex justify-between items-start mb-3 pr-24">
+                    <h4 class="text-lg font-bold text-blue-400 font-cinzel leading-tight">${escapeHTML(aval.titulo)}</h4>
+                </div>
+                
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Valor: ${aval.notaMaxima}</span>
+                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmas}</span>
+                </div>
+
+                <div class="text-xs text-slate-400 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-1.5">
+                    <p><i class="far fa-calendar-alt w-4 text-emerald-400"></i> <span class="font-bold">Abertura:</span> ${strAbertura}</p>
+                    <p class="${corPrazo}"><i class="far ${iconePrazo} w-4"></i> <span class="font-bold">Encerramento:</span> ${strFechamento}</p>
+                </div>
+                
+                <p class="text-sm text-slate-300 line-clamp-2">${escapeHTML(aval.descricao)}</p>
+                
+                <div class="mt-4 flex justify-end gap-2 pt-3 border-t border-slate-700/50">
+                    <button class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center">
+                        <i class="fas fa-folder-open mr-2"></i> Abrir Painel
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
