@@ -186,7 +186,7 @@ async function initDashboard(user) {
     initKanbanSystem();
     loadHorarioEscolar();
     initCalendarSystem();
-    window.mochilaAPI.init(); 
+    window.mochilaAPI.init();
 }
 
 // ============================================================================
@@ -232,7 +232,7 @@ function setupEventListeners() {
         canvas.toBlob(async (blob) => {
             if (!blob) return els.loading.classList.add('hidden');
             await uploadImage(blob, currentCropType);
-        }, 'image/webp', 0.85); 
+        }, 'image/webp', 0.85);
     });
 
     // Eventos do Kanban
@@ -294,8 +294,8 @@ function handleUpload(input, type) {
         currentCropType = type;
         const reader = new FileReader();
 
-        reader.onload = function(e) {
-            els.imageToCrop.onload = function() {
+        reader.onload = function (e) {
+            els.imageToCrop.onload = function () {
                 openCropModal(type);
             };
             els.imageToCrop.src = e.target.result;
@@ -311,8 +311,8 @@ function openCropModal(type) {
 
     const isProfile = type === 'profile';
     const aspectRatio = isProfile ? 1 / 1 : 21 / 9; // 1:1 perfil, 21:9 banner
-    
-    if(isProfile) els.imageToCrop.parentElement.classList.add('cropper-profile-mode');
+
+    if (isProfile) els.imageToCrop.parentElement.classList.add('cropper-profile-mode');
     else els.imageToCrop.parentElement.classList.remove('cropper-profile-mode');
 
     cropperInstance = new Cropper(els.imageToCrop, {
@@ -392,7 +392,7 @@ async function saveKanban() {
     try {
         if (id) {
             await updateDoc(doc(db, "kanban_atividades", id), payload);
-            window.registrarLogAtividade("Editou tarefa no Kanban", `Tarefa: ${titulo}`); 
+            window.registrarLogAtividade("Editou tarefa no Kanban", `Tarefa: ${titulo}`);
         } else {
             payload.status = 'a_fazer';
             payload.createdAt = serverTimestamp();
@@ -557,7 +557,7 @@ async function fetchCalendarEvents() {
         // Executa as buscas de calendário e avaliações paralelamente
         const resultsCal = await Promise.all(queriesCal.map(q => getDocs(q)));
         const resultsAva = await Promise.all(queriesAva.map(q => getDocs(q)));
-        
+
         const uniqueEvents = new Map();
 
         // Insere Eventos Comuns no Calendário
@@ -570,7 +570,7 @@ async function fetchCalendarEvents() {
             snap.forEach(doc => {
                 const data = doc.data();
                 const nomeDisc = disciplineMap[data.disciplina] || data.disciplina;
-                
+
                 uniqueEvents.set(doc.id, {
                     id: doc.id,
                     titulo: `Prova: ${nomeDisc}`, // Título adaptado
@@ -586,8 +586,8 @@ async function fetchCalendarEvents() {
 
         calEvents = Array.from(uniqueEvents.values());
         renderCalendarGrid();
-    } catch (e) { 
-        console.error("Erro no calendário:", e); 
+    } catch (e) {
+        console.error("Erro no calendário:", e);
     }
 }
 
@@ -702,20 +702,20 @@ window.openCalModal = (event = null, dateStr = null) => {
         document.getElementById('al-ev-id').value = event.id;
         document.getElementById('al-ev-title').value = event.titulo;
         document.getElementById('al-ev-date').value = event.dataInicio?.toDate().toISOString().split('T')[0];
-        
+
         // Se for avaliação e o usuário for gestão, avisa onde ele deve editar
         let descText = event.descricao || '';
-        if(event.isAvaliacao && isStaff) {
+        if (event.isAvaliacao && isStaff) {
             descText = "⚠️ Atenção: Esta é uma Avaliação.\nPara editá-la, acesse a aba Professor Tech > Provas/Trabalhos.\n\n" + descText;
         }
         document.getElementById('al-ev-desc').value = descText;
-        
+
         document.getElementById('al-ev-color').value = event.cor || '#3b82f6';
         document.getElementById('al-ev-visib').value = event.visibilidade || 'todos';
 
         // NOVA REGRA: Só edita se for staff, for o dono (ou admin) E NÃO FOR UMA AVALIAÇÃO
         const canEdit = isStaff && (currentUser.Admin || event.instrutorUID === currentUser.uid) && !event.isAvaliacao;
-        
+
         document.getElementById('al-btn-del-ev').classList.toggle('hidden', !canEdit);
         document.getElementById('btn-save-cal').classList.toggle('hidden', !canEdit);
         inps.forEach(id => document.getElementById(id).disabled = !canEdit);
@@ -805,7 +805,7 @@ async function loadBoletimAndMetrics() {
 
     // Carrega o histórico de notas (se existir)
     studentGradesData = snap.exists() ? (snap.data().disciplinasComNotas || {}) : {};
-    
+
     // Busca o map exato chamado "disciplinas" (prioriza o documento do aluno, depois o de notas)
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
@@ -819,13 +819,13 @@ async function loadBoletimAndMetrics() {
 
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
     let html = '';
-    
+
     // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
-        
+
         // Se estiver como false (desmatriculado), pula esta disciplina
-        if (isEnrolled === false) continue; 
-        
+        if (isEnrolled === false) continue;
+
         const tr = studentGradesData[discId] || {};
         const nome = disciplineMap[discId] || discId;
         els.selEvol.add(new Option(nome, discId));
@@ -834,9 +834,9 @@ async function loadBoletimAndMetrics() {
         const m1 = tr['1']?.nota4 ? parseFloat(tr['1'].nota4) : null;
         const m2 = tr['2']?.nota4 ? parseFloat(tr['2'].nota4) : null;
         const m3 = tr['3']?.nota4 ? parseFloat(tr['3'].nota4) : null;
-        
+
         let mediaFinal = "---";
-        let bgMedia = "bg-blue-900/10 text-blue-400"; 
+        let bgMedia = "bg-blue-900/10 text-blue-400";
 
         if (m1 !== null || m2 !== null || m3 !== null) {
             const pesos = [m1, m2, m3].filter(v => v !== null);
@@ -853,11 +853,11 @@ async function loadBoletimAndMetrics() {
             <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${bgMedia}">${mediaFinal}</td>
         </tr>`;
     }
-    
+
     if (!html) {
         html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma disciplina ativa encontrada para exibir o boletim.</td></tr>';
     }
-    
+
     els.boletimBody.innerHTML = html;
 
     renderScatterChart();
@@ -888,7 +888,7 @@ async function loadFrequencia() {
 function renderScatterChart() {
     if (!studentGradesData || !window.activeDisciplinesMap) return;
     const pts = [];
-    
+
     // Varre as disciplinas matriculadas para popular o gráfico corretamente
     Object.keys(window.activeDisciplinesMap).forEach(dId => {
         if (window.activeDisciplinesMap[dId] === false) return;
@@ -898,7 +898,7 @@ function renderScatterChart() {
             if (!isNaN(v)) pts.push({ x: Math.random() * 10, y: v, label: `${disciplineMap[dId] || dId} (T${t}-N${i + 1})` });
         }));
     });
-    
+
     const ctx = document.getElementById('al-chart-scatter').getContext('2d');
     if (chartInstances['scatter']) chartInstances['scatter'].destroy();
     chartInstances['scatter'] = new Chart(ctx, {
@@ -910,22 +910,22 @@ function renderScatterChart() {
 function renderEvolutionChart(discId = "") {
     if (!studentGradesData || !window.activeDisciplinesMap) return;
     let dVals = [];
-    
+
     if (discId) {
         const tr = studentGradesData[discId] || {};
         ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => { const v = parseFloat((tr[t] || {})[k]); dVals.push(isNaN(v) ? null : v); }));
     } else {
         const s = Array(12).fill(0), c = Array(12).fill(0);
         // Baseia a média geral também no map "disciplinas"
-        Object.keys(window.activeDisciplinesMap).forEach(dId => { 
+        Object.keys(window.activeDisciplinesMap).forEach(dId => {
             if (window.activeDisciplinesMap[dId] === false) return;
             const tr = studentGradesData[dId] || {};
             let idx = 0;
-            ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => { 
-                const v = parseFloat((tr[t] || {})[k]); 
-                if (!isNaN(v)) { s[idx] += v; c[idx]++; } 
-                idx++; 
-            })); 
+            ['1', '2', '3'].forEach(t => ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
+                const v = parseFloat((tr[t] || {})[k]);
+                if (!isNaN(v)) { s[idx] += v; c[idx]++; }
+                idx++;
+            }));
         });
         dVals = s.map((sm, i) => c[i] ? (sm / c[i]) : null);
     }
@@ -957,14 +957,14 @@ function initNotebookSystem() {
     const processarNotas = () => {
         const combinadas = [...minhasNotas, ...notasRecebidas];
         const unicas = Array.from(new Map(combinadas.map(n => [n.id, n])).values());
-        
+
         myNotes = unicas;
         myNotes.sort((a, b) => {
             const timeA = a.updatedAt?.toMillis() || Date.now();
             const timeB = b.updatedAt?.toMillis() || Date.now();
             return timeB - timeA;
         });
-        
+
         updateTagFilters();
         renderNotes();
         if (!activeNoteId) showEmptyNoteState();
@@ -1022,7 +1022,7 @@ function createNewNote() {
     // 1. RESET DE INTERFACE: Oculta aprovações e o estado vazio, mostra o editor
     document.getElementById('al-note-approval-state')?.classList.add('hidden');
     document.getElementById('al-note-empty-state')?.classList.add('hidden');
-    
+
     const activeState = document.getElementById('al-note-active-state');
     if (activeState) {
         activeState.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
@@ -1038,9 +1038,9 @@ function createNewNote() {
     els.noteActiveTitle.value = '';
     els.noteActiveBody.value = '';
     els.noteActiveTags.value = '';
-    
+
     // Reseta o seletor de cores para a cor padrão
-    renderColorPicker(); 
+    renderColorPicker();
     if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`;
 
     // 3. CONTROLE DE BOTÕES E INFOS
@@ -1055,7 +1055,7 @@ function createNewNote() {
 
     // 4. FINALIZAÇÃO VISUAL
     updatePinIconVisuals();
-    
+
     // Remove qualquer destaque de seleção da lista de notas da coluna 2
     document.querySelectorAll('[id^="note-item-"]').forEach(el => {
         el.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-900/20', 'border-blue-500');
@@ -1069,7 +1069,7 @@ window.selectNote = async (id) => {
     // --- RESET DE INTERFACE: Garante que o editor apareça e a aprovação suma ---
     document.getElementById('al-note-approval-state')?.classList.add('hidden');
     document.getElementById('al-note-empty-state')?.classList.add('hidden');
-    
+
     const activeState = document.getElementById('al-note-active-state');
     if (activeState) {
         activeState.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
@@ -1093,7 +1093,7 @@ window.selectNote = async (id) => {
 
     renderColorPicker(); // Força a atualização visual da bolinha de cor
     if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`; // Borda superior do painel
-    
+
     updatePinIconVisuals();
     showActiveNoteState();
 
@@ -1109,43 +1109,43 @@ window.selectNote = async (id) => {
 
     // Verifica se a nota tem um autor diferente do usuário logado (nota recebida)
     if (n.userId && n.userId !== currentUser.uid) {
-        if(senderInfoDiv) {
+        if (senderInfoDiv) {
             senderInfoDiv.classList.remove('hidden');
             senderInfoDiv.classList.add('flex');
         }
-        
+
         // Coloca um estado de carregamento rápido enquanto vai no banco de dados
-        if(senderNameEl) senderNameEl.textContent = 'Buscando usuário...'; 
-        if(senderEmailEl) senderEmailEl.textContent = ''; 
-        
+        if (senderNameEl) senderNameEl.textContent = 'Buscando usuário...';
+        if (senderEmailEl) senderEmailEl.textContent = '';
+
         try {
             // CRUZA OS DADOS: Busca o perfil real de quem enviou na coleção "users"
             const userSnap = await getDoc(doc(db, "users", n.userId));
-            
+
             if (userSnap.exists()) {
                 const userData = userSnap.data();
-                if(senderNameEl) senderNameEl.textContent = userData.nome || 'Usuário sem nome'; 
+                if (senderNameEl) senderNameEl.textContent = userData.nome || 'Usuário sem nome';
                 // Exibe o email se existir na modelagem do banco (ou exibe a matrícula/turma se preferir)
-                if(senderEmailEl) senderEmailEl.textContent = userData.email ? `(${userData.email})` : ''; 
+                if (senderEmailEl) senderEmailEl.textContent = userData.email ? `(${userData.email})` : '';
             } else {
-                if(senderNameEl) senderNameEl.textContent = 'Usuário não encontrado';
+                if (senderNameEl) senderNameEl.textContent = 'Usuário não encontrado';
             }
-        } catch(e) {
+        } catch (e) {
             console.error("Erro ao buscar autor da nota:", e);
-            if(senderNameEl) senderNameEl.textContent = 'Erro ao identificar';
+            if (senderNameEl) senderNameEl.textContent = 'Erro ao identificar';
         }
-        
+
         // Oculta botão de salvar se a nota for de outra pessoa (modo leitura)
-        if(btnSave) btnSave.classList.add('hidden');
+        if (btnSave) btnSave.classList.add('hidden');
     } else {
         // Se a nota for própria do usuário
-        if(senderInfoDiv) {
+        if (senderInfoDiv) {
             senderInfoDiv.classList.add('hidden');
             senderInfoDiv.classList.remove('flex');
         }
-        
+
         // Garante que o botão de salvar esteja visível para editar a própria nota
-        if(btnSave) btnSave.classList.remove('hidden');
+        if (btnSave) btnSave.classList.remove('hidden');
     }
 };
 
@@ -1171,10 +1171,10 @@ function renderNotes() {
         } else {
             tagMatch = (n.tags && n.tags.includes(currentTagFilter)) && ((n.userId === currentUser.uid) || statusParaMim === 'Enviado');
         }
-        
+
         return textMatch && tagMatch;
     });
-    
+
     filtered.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
@@ -1189,17 +1189,17 @@ function renderNotes() {
 
     els.noteList.innerHTML = paginated.map(n => {
         const isActive = n.id === activeNoteId ? 'bg-blue-900/20 border-blue-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-700/80';
-        
+
         const safeTitle = purify ? purify.sanitize(n.titulo || 'Sem Título') : escapeHTML(n.titulo || 'Sem Título');
         const safeContent = purify ? purify.sanitize(n.conteudo || '') : escapeHTML(n.conteudo || '');
-        
+
         // VISÃO DO REMETENTE: Etiquetas de Status (Nova Lógica)
         let statusHtml = '';
         if (n.userId === currentUser.uid && n.sharedWithUserIds && n.sharedWithUserIds.length > 0) {
             const stats = Object.values(n.statusDestinatarios || {});
             const hasRecused = stats.includes('Recusado');
             const hasPending = stats.includes('Pendente');
-            
+
             statusHtml += '<div class="flex gap-1.5 mt-1.5">';
             if (hasRecused) statusHtml += '<span class="text-[8px] bg-red-500/20 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Recusada(s)</span>';
             if (hasPending) statusHtml += '<span class="text-[8px] bg-amber-500/20 border border-amber-500/30 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">Pendente(s)</span>';
@@ -1208,7 +1208,7 @@ function renderNotes() {
         }
 
         return `
-        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color||'#3b82f6'}">
+        <div id="note-item-${n.id}" onclick="window.selectNote('${n.id}')" class="p-3 border-l-4 rounded-r-xl border-t border-b border-r cursor-pointer transition-all flex flex-col gap-1 mb-2 ${isActive}" style="border-left-color: ${n.color || '#3b82f6'}">
             
             <div class="flex justify-between items-start gap-2">
                 <div class="flex flex-col flex-grow min-w-0">
@@ -1223,7 +1223,7 @@ function renderNotes() {
             <div class="text-slate-500 text-[10px] line-clamp-2 leading-tight mt-1">${safeContent}</div>
         </div>
     `}).join('');
-    
+
     const pagWrapper = document.getElementById('notes-pagination');
     if (totalPages > 1) {
         pagWrapper.classList.replace('hidden', 'flex');
@@ -1310,7 +1310,7 @@ async function saveNote() {
 async function deleteActiveNote() {
     const id = els.noteActiveId.value;
     if (!id) { showEmptyNoteState(); return; } // Se for nova e não salva, só limpa a tela
-    
+
     const n = myNotes.find(x => x.id === id);
     if (!n) return;
 
@@ -1329,7 +1329,7 @@ async function deleteActiveNote() {
                 alert("Erro ao remover a anotação da sua listagem.");
             }
         }
-    } 
+    }
     // Se a nota foi criada por mim (eu sou o dono)
     else {
         if (confirm("Deseja apagar esta anotação permanentemente? Ela sumirá também para todos com quem compartilhou.")) {
@@ -1412,7 +1412,7 @@ const originalOpenShare = window.openShareModal;
 
 window.openShareModal = async (type = 'note', explicitId = null) => {
     currentShareContext.type = type;
-    
+
     if (type === 'note') {
         currentShareContext.id = els.noteActiveId.value;
         if (!currentShareContext.id) return alert("Salve a anotação primeiro para poder compartilhar!");
@@ -1422,27 +1422,27 @@ window.openShareModal = async (type = 'note', explicitId = null) => {
 
     const titleEl = document.querySelector('#al-modal-share h3');
     if (titleEl) {
-        titleEl.innerHTML = type === 'kanban' 
-            ? '<i class="fas fa-share-alt mr-2"></i> Compartilhar Tarefa' 
+        titleEl.innerHTML = type === 'kanban'
+            ? '<i class="fas fa-share-alt mr-2"></i> Compartilhar Tarefa'
             : '<i class="fas fa-share-alt mr-2"></i> Compartilhar Anotação';
     }
 
     document.getElementById('al-modal-share').classList.remove('hidden');
     const isStaff = currentUser.Professor || currentUser.Admin || currentUser.Coordenacao;
     const panel = document.getElementById('panel-mass-share');
-    
+
     if (isStaff) {
         panel.classList.remove('hidden'); panel.classList.add('flex');
         const snap = await getDocs(collection(db, "turmasCadastradas"));
         let options = '<option value="">Selecione a Turma...</option>';
-        
+
         snap.forEach(d => {
             const data = d.data();
             // Vinculamos o valor da option ao 'identificador' que bate com o campo 'turma' do usuário
             const idValue = data.identificador || d.id;
             options += `<option value="${idValue}">${data.nomeExibicao || idValue}</option>`;
         });
-        
+
         document.getElementById('sel-share-turma').innerHTML = options;
         window.renderTurmasCompartilhadas(currentShareContext.id, type);
     } else {
@@ -1451,7 +1451,7 @@ window.openShareModal = async (type = 'note', explicitId = null) => {
 
     const resultsContainer = document.getElementById('al-share-results');
     resultsContainer.innerHTML = '<div class="text-center text-slate-500 py-6"><i class="fas fa-circle-notch fa-spin text-2xl mb-2"></i><br>Carregando alunos...</div>';
-    
+
     try {
         let q;
         if (isStaff) {
@@ -1461,10 +1461,10 @@ window.openShareModal = async (type = 'note', explicitId = null) => {
             // Aluno vê apenas colegas da mesma turma (usando campo 'turma')
             q = query(collection(db, "users"), where("turma", "==", currentUser.turma));
         }
-        
+
         const snapAlunos = await getDocs(q);
-        usersCacheForShare = []; 
-        
+        usersCacheForShare = [];
+
         snapAlunos.forEach(d => {
             const data = d.data();
             // Valida se é outro usuário e se possui o campo Aluno como true
@@ -1499,7 +1499,7 @@ window.renderTurmasCompartilhadas = (id, type = currentShareContext.type) => {
         return;
     }
 
-    container.innerHTML = '<span class="text-[10px] text-amber-500/70 w-full mb-1 font-bold uppercase tracking-widest"><i class="fas fa-check-double mr-1"></i> Turmas com Acesso:</span>' + 
+    container.innerHTML = '<span class="text-[10px] text-amber-500/70 w-full mb-1 font-bold uppercase tracking-widest"><i class="fas fa-check-double mr-1"></i> Turmas com Acesso:</span>' +
         turmas.map(t => `
         <span class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-1.5 rounded font-bold flex items-center gap-2 shadow-sm">
             <i class="fas fa-users"></i> ${t}
@@ -1511,11 +1511,11 @@ window.renderTurmasCompartilhadas = (id, type = currentShareContext.type) => {
 };
 
 window.removerTurmaCompartilhada = async (turmaIdParam) => {
-    if(!confirm(`Deseja revogar o acesso de todos os alunos da turma ${turmaIdParam}?`)) return;
+    if (!confirm(`Deseja revogar o acesso de todos os alunos da turma ${turmaIdParam}?`)) return;
 
     const id = currentShareContext.id;
     const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
-    
+
     try {
         // Busca todos os alunos vinculados a essa string 'turma'
         const snapAlunos = await getDocs(query(collection(db, "users"), where("turma", "==", turmaIdParam), where("Aluno", "==", true)));
@@ -1532,7 +1532,7 @@ window.removerTurmaCompartilhada = async (turmaIdParam) => {
 
         await updateDoc(doc(db, collectionName, id), updates);
         window.registrarLogAtividade(`Revogou acesso da turma`, `Turma: ${turmaIdParam}`);
-        
+
         let activeItem = currentShareContext.type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
         if (activeItem) {
             activeItem.turmasCompartilhadas = (activeItem.turmasCompartilhadas || []).filter(t => t !== turmaIdParam);
@@ -1540,7 +1540,7 @@ window.removerTurmaCompartilhada = async (turmaIdParam) => {
         }
 
         window.renderTurmasCompartilhadas(id);
-        window.renderShareResults(document.getElementById('al-share-search').value || ''); 
+        window.renderShareResults(document.getElementById('al-share-search').value || '');
     } catch (e) {
         alert("Erro ao remover: " + e.message);
     }
@@ -1565,10 +1565,10 @@ window.renderShareResults = (searchTerm) => {
     }
 
     // Busca a lista de quem já tem acesso dependendo de qual tela abriu o modal
-    let activeItem = currentShareContext.type === 'note' 
-        ? myNotes.find(n => n.id === currentShareContext.id) 
+    let activeItem = currentShareContext.type === 'note'
+        ? myNotes.find(n => n.id === currentShareContext.id)
         : myTasks.find(t => t.id === currentShareContext.id);
-        
+
     const sharedList = activeItem?.sharedWithUserIds || [];
 
     container.innerHTML = filtered.map(u => {
@@ -1595,15 +1595,15 @@ window.renderShareResults = (searchTerm) => {
 window.toggleShareNote = async (targetUid) => {
     const id = currentShareContext.id;
     const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
-    
+
     let activeItem = currentShareContext.type === 'note' ? myNotes.find(n => n.id === id) : myTasks.find(t => t.id === id);
     if (!activeItem) return;
 
     const isShared = (activeItem.sharedWithUserIds || []).includes(targetUid);
-    
+
     try {
-        await updateDoc(doc(db, collectionName, id), { 
-            sharedWithUserIds: isShared ? arrayRemove(targetUid) : arrayUnion(targetUid) 
+        await updateDoc(doc(db, collectionName, id), {
+            sharedWithUserIds: isShared ? arrayRemove(targetUid) : arrayUnion(targetUid)
         });
         window.registrarLogAtividade(isShared ? `Removeu acesso (${currentShareContext.type})` : `Compartilhou ${currentShareContext.type}`, `Ação com UID: ${targetUid}`);
         window.renderShareResults(document.getElementById('al-share-search').value);
@@ -1645,27 +1645,27 @@ async function loadHorarioEscolar() {
     // 1. Limpa a tabela
     ['segunda', 'terca', 'quarta', 'quinta', 'sexta'].forEach(d => {
         const cell = document.getElementById(`cell-${d}-feira`);
-        if(cell) cell.innerHTML = '';
+        if (cell) cell.innerHTML = '';
     });
 
     // 2. Lógica para destacar o dia de hoje
     const diasIds = ['segunda-feira', 'terca-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira'];
     const diaHoje = new Date().getDay(); // 0 = Dom, 1 = Seg ... 5 = Sex
-    
+
     // Remove destaques anteriores
     document.querySelectorAll('.horario-tabela th').forEach(th => th.classList.remove('bg-blue-600', 'text-white'));
     document.querySelectorAll('.horario-tabela td').forEach(td => td.classList.remove('bg-blue-900/20'));
 
-    if(diaHoje >= 1 && diaHoje <= 5) {
+    if (diaHoje >= 1 && diaHoje <= 5) {
         const idHoje = diasIds[diaHoje - 1];
         const th = document.querySelector(`th[data-dia-id="${idHoje}"]`);
         const td = document.getElementById(`cell-${idHoje}`);
-        
-        if(th) {
+
+        if (th) {
             th.classList.add('bg-blue-600', 'text-white');
-            th.style.color = '#ffffff'; 
+            th.style.color = '#ffffff';
         }
-        if(td) td.classList.add('bg-blue-900/20');
+        if (td) td.classList.add('bg-blue-900/20');
     }
 
     // 3. Busca os dados no Firebase dependendo de quem está logado
@@ -1681,26 +1681,26 @@ async function loadHorarioEscolar() {
     try {
         const snap = await getDocs(q);
         els.horarioMsg.style.display = snap.empty ? 'block' : 'none';
-        
+
         // 4. Preenche as aulas
         snap.forEach(doc => {
-            const a = doc.data(); 
-            
+            const a = doc.data();
+
             // FIX DO DIA: Garante que "segunda" vire "segunda-feira" para achar o ID no HTML
             let diaDB = (a.diaSemana || '').toLowerCase();
             if (!diaDB.includes('-feira')) diaDB += '-feira';
-            
+
             const cell = document.getElementById(`cell-${diaDB}`);
-            
-            if(cell) {
+
+            if (cell) {
                 // Truque de UX: Se for o professor olhando, mostra a Turma. Se for aluno, mostra o Professor.
-                const subTexto = currentUser.Professor 
-                    ? `<i class="fas fa-users mr-1"></i> Turma: ${a.turmaId}` 
+                const subTexto = currentUser.Professor
+                    ? `<i class="fas fa-users mr-1"></i> Turma: ${a.turmaId}`
                     : `<i class="fas fa-chalkboard-teacher mr-1"></i> ${a.professorNome}`;
 
                 cell.innerHTML += `
                     <div class="aula-card p-3 bg-slate-900/80 border-l-4 border-blue-500 mb-3 rounded-lg shadow-md transition hover:-translate-y-1">
-                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${a.ordem}ª - ${disciplineMap[a.disciplina]||a.disciplina}</h4>
+                        <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">${a.ordem}ª - ${disciplineMap[a.disciplina] || a.disciplina}</h4>
                         <p class="text-[10px] font-bold text-blue-400 mt-1.5">${subTexto}</p>
                     </div>
                 `;
@@ -1824,22 +1824,22 @@ async function renderBanner() {
 
     if (Object.keys(titulos).length > 0) {
         for (const [id, dados] of Object.entries(titulos)) {
-            
+
             // 1. Formata a Data
             let dataFormatada = "";
             if (dados.concedidoEm) {
                 try {
                     const dateObj = dados.concedidoEm.toDate ? dados.concedidoEm.toDate() : new Date(dados.concedidoEm);
                     dataFormatada = dateObj.toLocaleDateString('pt-BR');
-                } catch(e) {}
+                } catch (e) { }
             }
 
             // 2. Ajuste do ícone para o Dropdown
             let iconeSelect = dados.icone || '🏆';
             if (iconeSelect.includes('fa-')) {
-                iconeSelect = '🎖️'; 
+                iconeSelect = '🎖️';
             }
-            
+
             // 3. Monta a string da Option
             const nomeStr = dados.nome || 'Título Desconhecido';
             const labelStr = `${iconeSelect} - ${nomeStr}${dataFormatada ? ' - ' + dataFormatada : ''}`;
@@ -1880,7 +1880,7 @@ async function uploadImage(fileOrBlob, type) {
     currentUser[type === 'profile' ? 'photoURL' : 'coverImageURL'] = url;
     renderBanner();
     els.loading.classList.add('hidden');
-    
+
     const acao = type === 'profile' ? "Alterou a Foto de Perfil" : "Alterou a Capa do Banner";
     window.registrarLogAtividade(acao, "Fez upload de uma nova imagem com sucesso.");
 }
@@ -1893,7 +1893,7 @@ export async function monitorarAuraGlobal(uid) {
     if (!userDoc.exists()) return;
 
     const userData = userDoc.data();
-    
+
     // Regra para Cargos Administrativos
     if (userData.Admin || userData.Professor || userData.Coordenacao) {
         if (auraValEl && auraCont) {
@@ -1912,8 +1912,8 @@ export async function monitorarAuraGlobal(uid) {
             const disciplinas = docSnap.data().disciplinasComNotas || {};
             Object.values(disciplinas).forEach(trimestres => {
                 Object.values(trimestres).forEach(notas => {
-                    const soma = (parseFloat(notas.nota1) || 0) + (parseFloat(notas.nota2) || 0) + 
-                                 (parseFloat(notas.nota3) || 0) + (parseFloat(notas.nota4) || 0);
+                    const soma = (parseFloat(notas.nota1) || 0) + (parseFloat(notas.nota2) || 0) +
+                        (parseFloat(notas.nota3) || 0) + (parseFloat(notas.nota4) || 0);
                     totalAura += soma * 2500;
                 });
             });
@@ -1948,12 +1948,12 @@ window.mostrarCentralAprovacao = () => {
     const lista = document.getElementById('approval-list');
     const pendentes = myNotes.filter(n => n.userId !== currentUser.uid && (n.statusDestinatarios?.[currentUser.uid] === 'Pendente' || !n.statusDestinatarios?.[currentUser.uid]));
 
-    lista.innerHTML = pendentes.length === 0 ? 
-        '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma nota aguardando sua decisão.</div>' : 
+    lista.innerHTML = pendentes.length === 0 ?
+        '<div class="text-slate-500 italic text-center py-20 text-sm">Nenhuma nota aguardando sua decisão.</div>' :
         pendentes.map(n => {
             const safeTitle = purify ? purify.sanitize(n.titulo || 'Sem Título') : escapeHTML(n.titulo || 'Sem Título');
             const safeName = purify ? purify.sanitize(n.userName || 'Colega') : escapeHTML(n.userName || 'Colega');
-            
+
             return `
             <div class="bg-slate-800/40 border border-slate-700/50 p-4 rounded-xl flex flex-col gap-3">
                 <div>
@@ -2009,7 +2009,7 @@ window.executarEnvioMassa = async () => {
         }
 
         const collectionName = currentShareContext.type === 'note' ? "anotacoes_pessoais" : "kanban_atividades";
-        
+
         const payload = {
             sharedWithUserIds: arrayUnion(...uids),
             turmasCompartilhadas: arrayUnion(turma)
@@ -2034,10 +2034,10 @@ window.executarEnvioMassa = async () => {
         alert(`Sucesso! Acesso concedido a ${uids.length} alunos da turma ${turma}.`);
         window.renderTurmasCompartilhadas(id);
         window.renderShareResults(document.getElementById('al-share-search').value || '');
-        
-    } catch (e) { 
+
+    } catch (e) {
         console.error("Erro no envio em massa:", e);
-        alert("Erro ao processar o compartilhamento em massa."); 
+        alert("Erro ao processar o compartilhamento em massa.");
     }
 };
 
@@ -2055,12 +2055,12 @@ async function loadAvaliacoes360() {
     try {
         // Busca apenas as avaliações deste aluno específico
         const q = query(
-            collection(db, "avaliacoes_360"), 
+            collection(db, "avaliacoes_360"),
             where("alunoId", "==", currentUser.uid)
         );
-        
+
         const snap = await getDocs(q);
-        
+
         if (snap.empty) {
             // Volta pro layout centralizado se estiver vazio
             container.className = "bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center";
@@ -2069,7 +2069,7 @@ async function loadAvaliacoes360() {
         }
 
         const avaliacoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        
+
         // Ordena localmente da mais recente para a mais antiga
         avaliacoes.sort((a, b) => {
             const timeA = (a.dataAtualizacao || a.dataCriacao)?.toMillis() || 0;
@@ -2098,7 +2098,7 @@ async function loadAvaliacoes360() {
             const nomeDisc = disciplineMap[av.disciplinaId] || av.disciplinaId;
             const cor = coresStatus[av.status] || coresStatus['Identificado'];
             const icone = iconesStatus[av.status] || iconesStatus['Identificado'];
-            
+
             // Filtro contra injeção de HTML no texto do professor
             const safeQuesito = escapeHTML(av.quesito || 'Competência');
             const safeTexto = escapeHTML(av.textoExplicativo || '');
@@ -2136,7 +2136,6 @@ async function loadAvaliacoes360() {
 // ============================================================================
 window.mochilaAPI = {
     init() {
-        // Vincula e atualiza em tempo real as prateleiras se houver modificações no documento do user
         this.renderizarMochilaUI();
     },
 
@@ -2146,7 +2145,7 @@ window.mochilaAPI = {
         if (!itemContainer || !estiloContainer) return;
 
         const mochila = currentUser.mochilaPedagogica || [];
-        const cosmeticos = currentUser.colecaoCosmeticos || [];
+        const academicoCosmeticos = currentUser.colecaoCosmeticos || [];
         
         const skinAtiva = currentUser.skinAtiva || '';
         const temaAtivo = currentUser.temaAtivo || '';
@@ -2169,7 +2168,7 @@ window.mochilaAPI = {
                             <h4 class="text-white text-xs font-black uppercase tracking-wider">${escapeHTML(item.nome || 'Bônus Pedagógico')}</h4>
                             <p class="text-[9px] text-slate-400 mt-1 uppercase tracking-widest font-semibold">
                                 Quantidade: <span class="text-blue-400 font-black">${item.quantidade || 1}x</span> 
-                                | Cargas por item: <span class="text-amber-400 font-black">${item.usosRestantes || 1}</span>
+                                | Cargas: <span class="text-amber-400 font-black">${item.usosRestantes || 1}</span>
                             </p>
                         </div>
                     </div>
@@ -2180,8 +2179,7 @@ window.mochilaAPI = {
             `).join('');
         }
 
-        // 2. CONSTRUÇÃO VISUAL DOS ESTILOS (ATIVÁVEL/DESATIVÁVEL COM MARCADOR "EM USO")
-        // Geramos dinamicamente os itens estáticos baseados no catálogo para o aluno gerenciar
+        // 2. CONSTRUÇÃO VISUAL DOS ESTILOS ATIVÁVEIS
         const listaEstilosDisponiveis = [
             { id: 'borda_rainbow', nome: 'Borda Arco-Íris', classe: 'border-rainbow', tipo: 'skin' },
             { id: 'borda_valiriano', nome: 'Fogo Valiriano', classe: 'border-valiriano', tipo: 'skin' },
@@ -2190,8 +2188,7 @@ window.mochilaAPI = {
             { id: 'tema_arcano', nome: 'Mestre Arcano', classe: 'theme-arcano', tipo: 'tema' }
         ];
 
-        // Filtra para exibir apenas os estilos que o aluno já comprou na loja
-        const estilosAdquiridos = listaEstilosDisponiveis.filter(est => cosmeticos.includes(est.id));
+        const estilosAdquiridos = listaEstilosDisponiveis.filter(est => academicoCosmeticos.includes(est.id));
 
         if (estilosAdquiridos.length === 0) {
             estiloContainer.innerHTML = `
@@ -2204,10 +2201,9 @@ window.mochilaAPI = {
                 const isSkin = cos.tipo === 'skin';
                 const isActive = isSkin ? (skinAtiva === cos.classe) : (temaAtivo === cos.classe);
 
-                // Alternador de estados estruturado (Marcador Inteligente)
                 const botaoAcao = isActive 
                     ? `<button onclick="window.mochilaAPI.removerCosmetico('${cos.tipo}')" class="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 rounded-lg text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><i class="fas fa-check-circle"></i> Em Uso</button>`
-                    : `<button onclick="window.mochilaAPI.ativarCosmetico('${cos.classe}', '${cos.tipo}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors">Ativar</button>`;
+                    : `<button onclick="window.mochilaAPI.activarCosmetico('${cos.classe}', '${cos.tipo}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 border border-slate-600 text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-colors">Ativar</button>`;
 
                 return `
                     <div class="bg-slate-950/40 border ${isActive ? 'border-emerald-500/30 bg-emerald-950/5' : 'border-slate-800'} p-3 rounded-xl flex items-center justify-between gap-4 transition-all">
@@ -2235,7 +2231,6 @@ window.mochilaAPI = {
             await updateDoc(userRef, updatePayload);
             currentUser[tipo === 'skin' ? 'skinAtiva' : 'temaAtivo'] = classeCSS;
             
-            // Recarrega os elementos e a interface da aba
             renderBanner();
             this.renderizarMochilaUI();
             window.registrarLogAtividade(`Equipou Cosmético`, `Tipo: ${tipo} | Classe: ${classeCSS}`);
@@ -2272,22 +2267,20 @@ window.mochilaAPI = {
             if (idx > -1) {
                 const nomeItem = mochila[idx].nome;
 
-                // Lógica detalhada de consumo de pilha
                 if (mochila[idx].usosRestantes > 1) {
                     mochila[idx].usosRestantes -= 1;
                 } else {
                     mochila[idx].quantidade -= 1;
                     if (mochila[idx].quantidade <= 0) {
-                        mochila.splice(idx, 1); // Remove completamente da mochila se zerar o estoque
+                        mochila.splice(idx, 1);
                     } else {
-                        mochila[idx].usosRestantes = 1; // Reseta as cargas internas para o próximo da pilha
+                        mochila[idx].usosRestantes = 1;
                     }
                 }
 
                 await updateDoc(userRef, { mochilaPedagogica: mochila });
                 currentUser.mochilaPedagogica = mochila;
 
-                // Envia para a trilha permanente de auditoria do professor
                 await addDoc(collection(db, "logs_pedagogicos"), {
                     alunoUid: currentUser.uid,
                     alunoNome: currentUser.nome,
@@ -2306,4 +2299,5 @@ window.mochilaAPI = {
             alert("Falha técnica ao tentar ler a mochila do usuário.");
         }
     }
+
 };
