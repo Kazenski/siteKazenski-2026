@@ -1,6 +1,27 @@
 import { db } from '../core/firebase.js'; // Usa as instâncias do seu projeto
 import { collection, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+
+const CATALOGO_LOJA = {
+    // SKINS DE BORDA
+    skins: [
+        { id: 'borda_rainbow', nome: 'Borda Arco-Íris', preco: 50000, classe: 'border-rainbow', descricao: 'Efeito cromático animado.' },
+        { id: 'borda_valiriano', nome: 'Fogo Valiriano', preco: 75000, classe: 'border-valiriano', descricao: 'Chamas esmeraldas pulsantes.' },
+        { id: 'borda_cyberpunk', nome: 'Neon Cyberpunk', preco: 100000, classe: 'border-cyberpunk', descricao: 'Estética futurista instável.' }
+    ],
+    // TEMAS DE PERFIL
+    temas: [
+        { id: 'tema_hacker', nome: 'Terminal Hacker', preco: 40000, classe: 'theme-hacker', descricao: 'Fundo preto e texto verde neon.' },
+        { id: 'tema_arcano', nome: 'Mestre Arcano', preco: 60000, classe: 'theme-arcano', descricao: 'Energia mística roxa e dourada.' }
+    ],
+    // CONSUMÍVEIS (MOCHILA PEDAGÓGICA)
+    consumiveis: [
+        { id: 'item_pergaminho', nome: 'Pergaminho da Sabedoria', preco: 25000, icone: 'fa-scroll', acao: '+0.5 na nota de um projeto' },
+        { id: 'item_pocao_tempo', nome: 'Poção do Tempo', preco: 15000, icone: 'fa-hourglass-half', acao: '+2 dias de prazo em uma tarefa' },
+        { id: 'item_escudo', nome: 'Escudo de Faltas', preco: 30000, icone: 'fa-shield-alt', acao: 'Justifica uma ausência específica' }
+    ]
+};
+
 const gestaoAuraAPI = {
     // Array para armazenar os dados puxados
     listaCompleta: [],
@@ -208,7 +229,157 @@ const gestaoAuraAPI = {
             </div>
         `;
         });
-    }
+    },
+
+    comprarItem: async (itemId, preco, tipo) => {
+        if (!currentUser) return;
+        
+        // 1. Verifica Saldo
+        const saldoAtual = currentUser.aura || 0;
+        if (saldoAtual < preco) {
+            alert("Aura insuficiente para esta aquisição!");
+            return;
+        }
+
+        // 2. Verifica se já possui (apenas para Skins e Temas)
+        const colecao = currentUser.colecaoCosmeticos || [];
+        if (tipo !== 'consumivel' && colecao.includes(itemId)) {
+            alert("Você já possui este item em sua coleção!");
+            return;
+        }
+
+        if (!confirm(`Confirmar troca de ${preco.toLocaleString()} Auras por este item?`)) return;
+
+        try {
+            const userRef = doc(db, "users", currentUser.uid);
+            let updateData = { aura: saldoAtual - preco };
+
+            if (tipo === 'consumivel') {
+                // Adiciona na mochila (permite duplicatas)
+                const mochila = currentUser.mochilaPedagogica || [];
+                mochila.push({ id: itemId, dataCompra: new Date().toISOString(), usado: false });
+                updateData.mochilaPedagogica = mochila;
+            } else {
+                // Adiciona na coleção de cosméticos
+                colecao.push(itemId);
+                updateData.colecaoCosmeticos = colecao;
+            }
+
+            await updateDoc(userRef, updateData);
+            alert("Item adquirido com sucesso! Verifique seu Perfil Tech.");
+            
+            // Recarrega a UI da loja
+            gestaoAuraAPI.renderLojaAlunos();
+
+        } catch (error) {
+            console.error("Erro na transação:", error);
+            alert("Falha na comunicação com o Grimório.");
+        }
+    },
+
+    abrirLojaPedagogica: async () => {
+        const container = document.getElementById('gestao-aura-content');
+        if (!container) return;
+
+        // 1. Loading de Contabilidade
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center h-64 fade-in">
+                <div class="relative w-20 h-20 mb-4">
+                    <div class="absolute inset-0 border-4 border-blue-500/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin"></div>
+                    <i class="fas fa-coins absolute inset-0 flex items-center justify-center text-blue-500 text-xl"></i>
+                </div>
+                <p class="text-blue-400 font-cinzel font-bold animate-pulse uppercase tracking-widest text-[10px]">Sincronizando Saldo Pedagógico...</p>
+            </div>
+        `;
+
+        try {
+            // 2. Busca histórico de gastos e dados do user
+            const [userSnap, comprasSnap] = await Promise.all([
+                getDoc(doc(db, "users", auth.currentUser.uid)),
+                getDocs(query(collection(db, "historico_compras"), where("alunoUid", "==", auth.currentUser.uid)))
+            ]);
+
+            const userData = userSnap.data();
+            let totalGasto = 0;
+            comprasSnap.forEach(d => totalGasto += d.data().preco);
+
+            const auraTotal = userData.aura || 0;
+            const auraDisponivel = auraTotal - totalGasto;
+
+            // 3. Chama a renderização da interface (Passando os valores calculados)
+            window.gestaoAuraAPI.renderizarLojaUI(auraTotal, totalGasto, auraDisponivel);
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<p class="text-red-500 text-center py-10">Erro ao carregar o mercado.</p>`;
+        }
+    },
+
+    processarCompra: async (itemId, preco, tipo) => {
+        if (!auth.currentUser) return;
+
+        try {
+            // 1. Recalcula o saldo disponível por segurança antes de cobrar
+            const [userSnap, comprasSnap] = await Promise.all([
+                getDoc(doc(db, "users", auth.currentUser.uid)),
+                getDocs(query(collection(db, "historico_compras"), where("alunoUid", "==", auth.currentUser.uid)))
+            ]);
+
+            let totalGasto = 0;
+            comprasSnap.forEach(d => totalGasto += d.data().preco);
+            
+            const data = userSnap.data();
+            const auraTotal = data.aura || 0;
+            const auraDisponivel = auraTotal - totalGasto;
+
+            // 2. Valida se o aluno tem saldo
+            if (auraDisponivel < preco) {
+                alert("Você não possui Moedas Pedagógicas suficientes para esta troca.");
+                return;
+            }
+
+            // 3. Valida se o aluno já tem o item (Cosméticos não podem ser comprados duas vezes)
+            if (tipo !== 'mochila') {
+                const colecao = data.colecaoCosmeticos || [];
+                if (colecao.includes(itemId)) {
+                    alert("Você já possui este item na sua coleção! Verifique seu Perfil.");
+                    return;
+                }
+            }
+
+            // 4. Pede confirmação
+            if (!confirm(`Deseja investir ${preco.toLocaleString('pt-BR')} Auras neste item?`)) return;
+
+            // 5. Registra o gasto no histórico (NÃO mexe na Aura Total)
+            await addDoc(collection(db, "historico_compras"), {
+                alunoUid: auth.currentUser.uid,
+                itemId: itemId,
+                preco: preco,
+                tipo: tipo,
+                timestamp: serverTimestamp()
+            });
+
+            // 6. Atualiza o inventário do usuário
+            const userRef = doc(db, "users", auth.currentUser.uid);
+            if (tipo === 'mochila') {
+                const mochila = data.mochilaPedagogica || [];
+                mochila.push({ id: itemId, usado: false, data: new Date().toISOString() });
+                await updateDoc(userRef, { mochilaPedagogica: mochila });
+            } else {
+                const colecao = data.colecaoCosmeticos || [];
+                colecao.push(itemId);
+                await updateDoc(userRef, { colecaoCosmeticos: colecao });
+            }
+
+            alert("Aquisição bem-sucedida! O seu Saldo Histórico permanece intacto.");
+            window.gestaoAuraAPI.abrirLojaPedagogica(); // Recarrega a loja para atualizar os números
+
+        } catch (e) {
+            console.error("Erro na transação:", e);
+            alert("Erro de comunicação com o Grimório ao processar a compra.");
+        }
+    },
 
 };
 
