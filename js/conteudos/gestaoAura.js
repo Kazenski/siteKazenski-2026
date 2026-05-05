@@ -316,7 +316,7 @@ const gestaoAuraAPI = {
         }
     },
 
-    processarCompra: async (itemId, preco, tipo) => {
+    processarCompra: async (itemId, preco, tipo, itemCompleto = {}) => {
         if (!auth.currentUser) return;
 
         try {
@@ -340,9 +340,14 @@ const gestaoAuraAPI = {
             }
 
             // 3. Valida se o aluno já tem o item (Cosméticos não podem ser comprados duas vezes)
-            if (tipo !== 'mochila') {
+            if (tipo !== 'consumivel' && tipo !== 'mochila') {
                 const colecao = data.colecaoCosmeticos || [];
-                if (colecao.includes(itemId)) {
+                // Checagem segura caso a coleção tenha strings antigas ou os novos objetos
+                const jaPossui = typeof colecao[0] === 'string' 
+                    ? colecao.includes(itemId) 
+                    : colecao.some(c => c.id === itemId);
+
+                if (jaPossui) {
                     alert("Você já possui este item na sua coleção! Verifique seu Perfil.");
                     return;
                 }
@@ -363,8 +368,7 @@ const gestaoAuraAPI = {
             // 6. Atualiza o inventário do usuário com EMPILHAMENTO
             const userRef = doc(db, "users", auth.currentUser.uid);
             
-            // ATENÇÃO: 'itemCompleto' seria o objeto inteiro do item que veio do Firestore
-            if (tipo === 'consumivel') {
+            if (tipo === 'consumivel' || tipo === 'mochila') {
                 const mochila = data.mochilaPedagogica || [];
                 // Procura se o aluno já tem este item na mochila
                 const idx = mochila.findIndex(i => i.id === itemId);
@@ -377,8 +381,8 @@ const gestaoAuraAPI = {
                     // Adiciona o primeiro
                     mochila.push({ 
                         id: itemId, 
-                        nome: itemCompleto.nome, 
-                        iconeUrl: itemCompleto.iconeOrClass, // Salva a URL para renderizar fácil no Perfil
+                        nome: itemCompleto.nome || 'Consumível', 
+                        iconeUrl: itemCompleto.iconeOrClass || '', 
                         quantidade: 1, 
                         usosRestantes: itemCompleto.usosRestantes || 1 
                     });
@@ -388,12 +392,21 @@ const gestaoAuraAPI = {
             } else {
                 // Skin ou Tema (Não empilha)
                 const colecao = data.colecaoCosmeticos || [];
-                // Salvamos um objeto com o ID e a classe CSS para o perfil injetar direto
-                colecao.push({ id: itemId, classeCSS: itemCompleto.iconeOrClass, tipo: tipo, nome: itemCompleto.nome });
+                colecao.push({ 
+                    id: itemId, 
+                    classeCSS: itemCompleto.iconeOrClass || '', 
+                    tipo: tipo, 
+                    nome: itemCompleto.nome || 'Estilo' 
+                });
                 await updateDoc(userRef, { colecaoCosmeticos: colecao });
             }
 
-            alert("Aquisição bem-sucedida! O item foi enviado para o seu Perfil Tech.");
+            alert("Aquisição bem-sucedida! O item foi enviado para a sua Mochila Tech.");
+            if(window.gestaoAuraAPI) window.gestaoAuraAPI.abrirLojaPedagogica(); 
+
+        } catch (error) { // <--- AQUI ESTÁ O CATCH QUE FALTAVA
+            console.error("Erro na transação:", error);
+            alert("Erro de comunicação com o Grimório ao processar a compra.");
         }
     },
 
