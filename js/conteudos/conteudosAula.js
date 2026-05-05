@@ -910,12 +910,10 @@ window.conteudosAPI = {
     syncPlayButtons: () => {
         const isPaused = els.audioEngine.paused;
 
-        // Ícones para o player grande
         if (els.btnPlayPause) {
             els.btnPlayPause.innerHTML = isPaused ? '<i class="fas fa-play ml-1 text-xl"></i>' : '<i class="fas fa-pause text-xl"></i>';
         }
 
-        // Ícones para a pílula pequena
         if (els.btnPlayPauseMini) {
             els.btnPlayPauseMini.innerHTML = isPaused ? '<i class="fas fa-play ml-0.5"></i>' : '<i class="fas fa-pause"></i>';
         }
