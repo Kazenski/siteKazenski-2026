@@ -353,22 +353,41 @@ function initMusicas() {
         const btn = document.getElementById('btn-submit-mus');
         const orig = btn.innerHTML; btn.innerHTML = "Gravando..."; btn.disabled = true;
         try {
+            const idDoc = document.getElementById('mus-id').value;
             const audio = document.getElementById('mus-file-audio').files[0];
             const capa = document.getElementById('mus-file-image').files[0];
-            const id = Date.now().toString();
-            const rAudio = ref(storage, `musicas/${id}_audio`); const rCapa = ref(storage, `musicas/${id}_capa`);
-            await uploadBytes(rAudio, audio); await uploadBytes(rCapa, capa);
-            await addDoc(collection(db, "musicas"), {
-                titulo: document.getElementById('mus-titulo').value, artista: document.getElementById('mus-artista').value,
-                letra: document.getElementById('mus-letra').value, audioURL: await getDownloadURL(rAudio),
-                albumArtUrl: await getDownloadURL(rCapa), createdAt: serverTimestamp()
-            });
-            alert("Trilha registrada!"); e.target.reset();
-        } catch(err) { alert("Falha no registro."); } finally { btn.innerHTML = orig; btn.disabled = false; }
+            const idStorage = idDoc || Date.now().toString();
+            
+            let updateData = {
+                titulo: document.getElementById('mus-titulo').value, 
+                artista: document.getElementById('mus-artista').value,
+                letra: document.getElementById('mus-letra').value, 
+                updatedAt: serverTimestamp()
+            };
+
+            if (audio) { const rAudio = ref(storage, `musicas/${idStorage}_audio`); await uploadBytes(rAudio, audio); updateData.audioURL = await getDownloadURL(rAudio); }
+            if (capa) { const rCapa = ref(storage, `musicas/${idStorage}_capa`); await uploadBytes(rCapa, capa); updateData.albumArtUrl = await getDownloadURL(rCapa); }
+
+            if (idDoc) {
+                await setDoc(doc(db, "musicas", idDoc), updateData, { merge: true });
+                alert("Trilha atualizada!");
+            } else {
+                updateData.createdAt = serverTimestamp();
+                await addDoc(collection(db, "musicas"), updateData);
+                alert("Trilha registrada!"); 
+            }
+            window.conteudosAPI.cancelarEdicaoMedia('musica');
+        } catch(err) { alert("Falha no registro."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
+    });
+
+    document.getElementById('btn-cancel-mus')?.addEventListener('click', () => window.conteudosAPI.cancelarEdicaoMedia('musica'));
+    document.getElementById('btn-delete-mus')?.addEventListener('click', () => {
+        const id = document.getElementById('mus-id').value;
+        if(id) window.conteudosAPI.excluirMedia(id, 'musica');
     });
 }
 
-function initPodcasts() {
+function initPodcasts() {function initPodcasts() {
     onSnapshot(query(collection(db, "podcasts_kazenski"), orderBy("createdAt", "desc")), (snap) => {
         podcastsGrimorio = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderPodcastsList();
@@ -380,18 +399,37 @@ function initPodcasts() {
         const btn = document.getElementById('btn-submit-pod');
         const orig = btn.innerHTML; btn.innerHTML = "Transmitindo..."; btn.disabled = true;
         try {
+            const idDoc = document.getElementById('pod-id').value;
             const audio = document.getElementById('pod-file-audio').files[0];
             const capa = document.getElementById('pod-file-image').files[0];
-            const id = Date.now().toString();
-            const rAudio = ref(storage, `podcasts/${id}_audio`); const rCapa = ref(storage, `podcasts/${id}_capa`);
-            await uploadBytes(rAudio, audio); await uploadBytes(rCapa, capa);
-            await addDoc(collection(db, "podcasts_kazenski"), {
-                titulo: document.getElementById('pod-titulo').value, criador: document.getElementById('pod-professor').value,
-                descricao: document.getElementById('pod-descricao').value, audioURL: await getDownloadURL(rAudio),
-                coverArtUrl: await getDownloadURL(rCapa), createdAt: serverTimestamp()
-            });
-            alert("Episódio Publicado!"); e.target.reset();
-        } catch(err) { alert("Erro no envio."); } finally { btn.innerHTML = orig; btn.disabled = false; }
+            const idStorage = idDoc || Date.now().toString();
+            
+            let updateData = {
+                titulo: document.getElementById('pod-titulo').value, 
+                criador: document.getElementById('pod-professor').value,
+                descricao: document.getElementById('pod-descricao').value, 
+                updatedAt: serverTimestamp()
+            };
+
+            if (audio) { const rAudio = ref(storage, `podcasts/${idStorage}_audio`); await uploadBytes(rAudio, audio); updateData.audioURL = await getDownloadURL(rAudio); }
+            if (capa) { const rCapa = ref(storage, `podcasts/${idStorage}_capa`); await uploadBytes(rCapa, capa); updateData.coverArtUrl = await getDownloadURL(rCapa); }
+
+            if (idDoc) {
+                await setDoc(doc(db, "podcasts_kazenski", idDoc), updateData, { merge: true });
+                alert("Podcast atualizado!");
+            } else {
+                updateData.createdAt = serverTimestamp();
+                await addDoc(collection(db, "podcasts_kazenski"), updateData);
+                alert("Episódio Publicado!"); 
+            }
+            window.conteudosAPI.cancelarEdicaoMedia('podcast');
+        } catch(err) { alert("Erro no envio."); console.error(err); } finally { btn.innerHTML = orig; btn.disabled = false; }
+    });
+
+    document.getElementById('btn-cancel-pod')?.addEventListener('click', () => window.conteudosAPI.cancelarEdicaoMedia('podcast'));
+    document.getElementById('btn-delete-pod')?.addEventListener('click', () => {
+        const id = document.getElementById('pod-id').value;
+        if(id) window.conteudosAPI.excluirMedia(id, 'podcast');
     });
 }
 
@@ -618,6 +656,90 @@ window.conteudosAPI = {
         }
     },
 
+    editarMedia: (idx, tipo) => {
+        const isMus = tipo === 'musica';
+        const item = activeAudioList[idx];
+        if (!item) return;
+
+        if (isMus) {
+            document.getElementById('mus-id').value = item.id;
+            document.getElementById('mus-titulo').value = item.titulo;
+            document.getElementById('mus-artista').value = item.artista || '';
+            document.getElementById('mus-letra').value = item.letra || '';
+            
+            document.getElementById('btn-submit-mus').textContent = "Atualizar Trilha";
+            document.getElementById('btn-cancel-mus').classList.remove('hidden');
+            document.getElementById('btn-delete-mus').classList.remove('hidden');
+            
+            // Remove a exigência do arquivo no input (mantém o arquivo atual se não upar outro)
+            document.getElementById('mus-file-audio').removeAttribute('required');
+            document.getElementById('mus-file-image').removeAttribute('required');
+
+            els.adminMus.classList.remove('hidden');
+            els.adminMus.scrollIntoView({behavior: 'smooth'});
+        } else {
+            document.getElementById('pod-id').value = item.id;
+            document.getElementById('pod-titulo').value = item.titulo;
+            document.getElementById('pod-professor').value = item.criador || item.professor || '';
+            document.getElementById('pod-descricao').value = item.descricao || '';
+
+            document.getElementById('btn-submit-pod').textContent = "Atualizar Podcast";
+            document.getElementById('btn-cancel-pod').classList.remove('hidden');
+            document.getElementById('btn-delete-pod').classList.remove('hidden');
+
+            document.getElementById('pod-file-audio').removeAttribute('required');
+            document.getElementById('pod-file-image').removeAttribute('required');
+
+            els.adminPod.classList.remove('hidden');
+            els.adminPod.scrollIntoView({behavior: 'smooth'});
+        }
+    },
+
+    cancelarEdicaoMedia: (tipo) => {
+        if (tipo === 'musica') {
+            els.formMus.reset();
+            document.getElementById('mus-id').value = '';
+            document.getElementById('btn-submit-mus').textContent = "Registrar Trilha";
+            document.getElementById('btn-cancel-mus').classList.add('hidden');
+            document.getElementById('btn-delete-mus').classList.add('hidden');
+            document.getElementById('mus-file-audio').setAttribute('required', 'true');
+            document.getElementById('mus-file-image').setAttribute('required', 'true');
+            els.adminMus.classList.add('hidden');
+        } else {
+            els.formPod.reset();
+            document.getElementById('pod-id').value = '';
+            document.getElementById('btn-submit-pod').textContent = "Publicar Podcast";
+            document.getElementById('btn-cancel-pod').classList.add('hidden');
+            document.getElementById('btn-delete-pod').classList.add('hidden');
+            document.getElementById('pod-file-audio').setAttribute('required', 'true');
+            document.getElementById('pod-file-image').setAttribute('required', 'true');
+            els.adminPod.classList.add('hidden');
+        }
+    },
+
+    excluirMedia: async (id, tipo) => {
+        if(confirm("Deseja apagar permanentemente este conteúdo?")) {
+            const isMus = tipo === 'musica';
+            const colecao = isMus ? "musicas" : "podcasts_kazenski";
+            try {
+                await deleteDoc(doc(db, colecao, id));
+                window.conteudosAPI.cancelarEdicaoMedia(tipo);
+                
+                // Fecha a visualização se o que foi apagado estava aberto
+                if (currentPlayingId === id) {
+                    const placeholder = document.getElementById(isMus ? 'music-placeholder' : 'podcast-placeholder');
+                    const view = document.getElementById(isMus ? 'music-details-view' : 'podcast-details-view');
+                    view.classList.add('hidden');
+                    placeholder.classList.remove('hidden');
+                    window.conteudosAPI.closePlayer();
+                }
+            } catch(e) {
+                console.error("Erro ao excluir", e);
+                alert("Erro ao excluir conteúdo.");
+            }
+        }
+    },
+
     tocarMedia: (idx, tipo) => {
         const lista = tipo === 'musica' ? musicasGrimorio : podcastsGrimorio;
         const term = tipo === 'musica' ? els.searchMus.value.toLowerCase() : els.searchPod.value.toLowerCase();
@@ -647,6 +769,13 @@ window.conteudosAPI = {
         const iconeDL = isMus ? '<i class="fas fa-file-alt mr-2"></i> Baixar Letra' : '<i class="fas fa-file-alt mr-2"></i> Resumo';
         const imgUrl = item.albumArtUrl || item.coverArtUrl || '';
 
+        // VERIFICAÇÃO DE PERMISSÃO PARA O BOTÃO EDITAR
+        const canEdit = currentUser && (currentUser.Admin || currentUser.Professor || currentUser.Coordenacao);
+        let btnEditHtml = '';
+        if (canEdit) {
+            btnEditHtml = `<button onclick="window.conteudosAPI.editarMedia(${idx}, '${tipo}')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors ml-auto flex items-center border border-slate-700 hover:border-${cor}-500"><i class="fas fa-edit mr-2"></i> Editar</button>`;
+        }
+
         // 1. GERA A CAPA PRINCIPAL (Ou a Imagem, ou o Ícone Grande)
         const mainThumbHtml = imgUrl 
             ? `<img src="${imgUrl}" class="w-32 h-32 md:w-40 md:h-40 rounded-xl object-cover shadow-2xl border border-slate-700 shrink-0 hidden md:block">` 
@@ -654,10 +783,13 @@ window.conteudosAPI = {
 
         view.innerHTML = `
             <div class="flex flex-col h-full fade-in overflow-hidden">
-                <div class="flex items-end gap-6 mb-6 shrink-0">
+                <div class="flex items-end gap-6 mb-6 shrink-0 w-full relative">
                     ${mainThumbHtml}
                     <div class="flex-grow min-w-0">
-                        <div class="text-[10px] text-${cor}-500 font-bold uppercase tracking-widest mb-2">${isMus ? 'Trilha Sonora' : 'Podcast Episódio'}</div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="text-[10px] text-${cor}-500 font-bold uppercase tracking-widest">${isMus ? 'Trilha Sonora' : 'Podcast Episódio'}</div>
+                            ${btnEditHtml}
+                        </div>
                         <h1 class="text-3xl md:text-5xl font-cinzel font-black text-white leading-tight mb-2 truncate">${escapeHTML(item.titulo)}</h1>
                         <p class="text-slate-400 font-bold truncate">${escapeHTML(item.artista || item.criador || item.professor)}</p>
                     </div>
