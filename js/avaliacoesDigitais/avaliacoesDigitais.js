@@ -227,14 +227,24 @@ function ouvirAvaliacoes() {
     });
 }
 
-function renderGridAvaliacoes(avaliacoes) {
+async function renderGridAvaliacoes(avaliacoes) {
     const grid = document.getElementById('grid-avaliacoes');
     if (!grid) return;
 
     let visiveis = avaliacoes;
+    let entregasAlunoIds = []; // Vai guardar as IDs das atividades que o aluno já fez
     
-    // Filtro do Aluno: Não vê ocultas, filtra por turma e data de abertura
+    // Filtro e Busca para o Aluno
     if (!isStaff && currentUser) {
+        try {
+            // Busca rapidinho as entregas apenas deste aluno
+            const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid));
+            const snapEntregas = await getDocs(qEntregas);
+            entregasAlunoIds = snapEntregas.docs.map(d => d.data().avaliacaoId);
+        } catch(e) {
+            console.error("Erro ao buscar status de entregas:", e);
+        }
+
         const turmaAluno = currentUser.turma;
         const agora = new Date();
         visiveis = avaliacoes.filter(a => {
@@ -257,18 +267,47 @@ function renderGridAvaliacoes(avaliacoes) {
         const strFechamento = dFecha ? `${dFecha.toLocaleDateString('pt-BR')} às ${dFecha.getHours().toString().padStart(2,'0')}:${dFecha.getMinutes().toString().padStart(2,'0')}` : 'N/A';
         
         const expirou = dFecha && (dFecha < new Date());
-        const corPrazo = expirou ? 'text-red-400' : 'text-emerald-400';
-        
-        // Estilo especial se estiver oculta (Apenas Staff enxerga isso)
         const opacidade = aval.oculta ? 'opacity-60 grayscale hover:grayscale-0' : '';
-        const badgeOculta = aval.oculta ? `<div class="absolute top-0 left-0 bg-slate-950 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg border-b border-r border-slate-700"><i class="fas fa-eye-slash"></i> Oculta</div>` : '';
         
-        // Botões do Professor
+        // ESTILOS PADRÃO
+        let bordaCard = 'border-slate-700';
+        let badgeStatus = '';
+        let corPrazo = expirou ? 'text-red-400' : 'text-emerald-400';
+        let extraPt = 'pt-2'; // Padding top dinâmico
+
+        // SISTEMA DE TAGS INTELIGENTES
+        if (aval.oculta) {
+            badgeStatus = `<div class="absolute top-0 left-0 bg-slate-950 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg border-b border-r border-slate-700"><i class="fas fa-eye-slash"></i> Oculta</div>`;
+            extraPt = 'pt-4';
+        } else if (!isStaff) {
+            // VISÃO DO ALUNO (Aqui a mágica da UX acontece)
+            extraPt = 'pt-4'; // Abre espaço para a tag superior esquerda
+            const estaEntregue = entregasAlunoIds.includes(aval.id);
+            
+            if (estaEntregue) {
+                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; // Fica esverdeado
+                badgeStatus = `<div class="absolute top-0 left-0 bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-check-double mr-1"></i> Entregue</div>`;
+                corPrazo = 'text-emerald-400'; // Se entregou, o prazo fica verde independente de ter vencido
+            } else if (expirou) {
+                bordaCard = 'border-red-500/30';
+                badgeStatus = `<div class="absolute top-0 left-0 bg-red-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-exclamation-triangle mr-1"></i> Pendente / Encerrado</div>`;
+            } else {
+                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; // Chama atenção na borda esquerda
+                badgeStatus = `<div class="absolute top-0 left-0 bg-amber-500 text-amber-950 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-clock mr-1"></i> Pendente</div>`;
+            }
+        } else {
+            // VISÃO PROFESSOR
+            if (expirou) {
+                badgeStatus = `<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>`;
+            }
+        }
+
+        // BOTÕES PROFESSOR
         let btnStaffHtml = '';
         if (isStaff) {
             const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
             btnStaffHtml = `
-                <div class="flex gap-2 ml-auto">
+                <div class="flex gap-2 ml-auto z-20 relative">
                     <button onclick="window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit"></i></button>
                     <button onclick="window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc}"></i></button>
                     <button onclick="window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -277,11 +316,10 @@ function renderGridAvaliacoes(avaliacoes) {
         }
 
         return `
-            <div class="bg-slate-800 border border-slate-700 p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-colors relative overflow-hidden group ${opacidade}">
-                ${badgeOculta}
-                ${expirou && !aval.oculta ? '<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>' : ''}
+            <div class="bg-slate-800 border ${bordaCard} p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-all relative overflow-hidden group ${opacidade}">
+                ${badgeStatus}
                 
-                <div class="flex justify-between items-start mb-3 pt-2">
+                <div class="flex justify-between items-start mb-3 ${extraPt}">
                     <h4 class="text-lg font-bold text-blue-400 font-cinzel leading-tight">${escapeHTML(aval.titulo)}</h4>
                     ${btnStaffHtml}
                 </div>
@@ -370,29 +408,51 @@ window.avaliacoesAPI = {
         document.getElementById('modal-painel-aval').classList.remove('hidden');
 
         try {
-            // Busca todas as entregas referentes a esta avaliação
             const qEntregas = query(collection(db, "avaliacoes_entregas"), where("avaliacaoId", "==", id));
             const snap = await getDocs(qEntregas);
             const entregas = snap.docs.map(d => ({id: d.id, ...d.data()}));
 
             if(isStaff) {
-                // VISÃO DO PROFESSOR
+                // VISÃO DO PROFESSOR (Com correção)
                 let htmlProf = `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl mb-6"><h4 class="text-white font-bold mb-2">Instruções Originais:</h4><p class="text-slate-400 text-sm whitespace-pre-wrap">${escapeHTML(aval.descricao)}</p></div>`;
                 htmlProf += `<h3 class="text-lg font-bold text-blue-400 border-b border-slate-700 pb-2 mb-4">Entregas dos Alunos (${entregas.length})</h3>`;
                 
                 if(entregas.length === 0) {
                     htmlProf += '<p class="text-slate-500 italic text-sm">Nenhum aluno enviou arquivo ainda.</p>';
                 } else {
-                    htmlProf += '<div class="space-y-3">';
+                    htmlProf += '<div class="space-y-4">';
                     entregas.forEach(e => {
                         const dEnvio = e.dataEnvio ? e.dataEnvio.toDate().toLocaleString('pt-BR') : '';
+                        const valorNota = e.notaAtribuida !== undefined ? e.notaAtribuida : '';
+                        const valorFeed = e.feedbackProfessor || '';
+                        const corStatus = e.status === 'avaliado' ? 'text-blue-400' : 'text-emerald-400';
+                        const txtStatus = e.status === 'avaliado' ? 'Avaliado' : 'Entregue';
+
                         htmlProf += `
-                            <div class="flex flex-col md:flex-row justify-between md:items-center bg-slate-900 border border-slate-800 p-4 rounded-xl gap-4">
-                                <div>
-                                    <h5 class="text-white font-bold text-sm">${escapeHTML(e.alunoNome)} <span class="text-slate-500 text-[10px] ml-2 uppercase tracking-widest">${escapeHTML(e.turmaAluno)}</span></h5>
-                                    <p class="text-emerald-400 text-xs mt-1"><i class="fas fa-check-circle"></i> Entregue em: ${dEnvio}</p>
+                            <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl flex flex-col gap-3 shadow-md">
+                                <div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
+                                    <div>
+                                        <h5 class="text-white font-bold text-sm">${escapeHTML(e.alunoNome)} <span class="text-slate-500 text-[10px] ml-2 uppercase tracking-widest">${escapeHTML(e.turmaAluno)}</span></h5>
+                                        <p class="${corStatus} text-xs mt-1"><i class="fas fa-check-circle"></i> ${txtStatus} em: ${dEnvio}</p>
+                                    </div>
+                                    <a href="${e.arquivoURL}" target="_blank" download class="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-lg text-xs font-bold transition-colors whitespace-nowrap text-center"><i class="fas fa-download mr-1"></i> Baixar Arquivo</a>
                                 </div>
-                                <a href="${e.arquivoURL}" target="_blank" download class="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-lg text-xs font-bold transition-colors whitespace-nowrap text-center"><i class="fas fa-download mr-1"></i> Baixar Arquivo</a>
+                                
+                                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <div class="md:col-span-1">
+                                            <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Nota (Máx: ${aval.notaMaxima})</label>
+                                            <input type="number" id="nota-${e.id}" step="0.1" max="${aval.notaMaxima}" value="${valorNota}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500">
+                                        </div>
+                                        <div class="md:col-span-3">
+                                            <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Feedback ao Aluno</label>
+                                            <div class="flex gap-2">
+                                                <input type="text" id="feed-${e.id}" value="${valorFeed}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500" placeholder="Comentário opcional...">
+                                                <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         `;
                     });
@@ -407,14 +467,30 @@ window.avaliacoesAPI = {
 
                 if(minhaEntrega) {
                     const dEnvio = minhaEntrega.dataEnvio ? minhaEntrega.dataEnvio.toDate().toLocaleString('pt-BR') : '';
-                    htmlAluno += `
-                        <div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-6 text-center">
-                            <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div>
-                            <h3 class="text-xl font-bold text-emerald-400 mb-2">Atividade Entregue!</h3>
-                            <p class="text-slate-300 text-sm mb-4">Você enviou o arquivo com sucesso em ${dEnvio}.</p>
-                            <a href="${minhaEntrega.arquivoURL}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-bold underline"><i class="fas fa-file-alt mr-1"></i> Ver meu arquivo (${escapeHTML(minhaEntrega.arquivoNome)})</a>
-                        </div>
+                    
+                    // Renderiza o Box de Sucesso
+                    let conteudoStatus = `
+                        <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div>
+                        <h3 class="text-xl font-bold text-emerald-400 mb-2">Atividade Entregue!</h3>
+                        <p class="text-slate-300 text-sm mb-4">Você enviou o arquivo com sucesso em ${dEnvio}.</p>
+                        <a href="${minhaEntrega.arquivoURL}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-bold underline"><i class="fas fa-file-alt mr-1"></i> Ver meu arquivo (${escapeHTML(minhaEntrega.arquivoNome)})</a>
                     `;
+
+                    // Se foi corrigido, injeta a Nota e Feedback
+                    if(minhaEntrega.notaAtribuida !== undefined && minhaEntrega.notaAtribuida !== null) {
+                        conteudoStatus += `
+                            <div class="mt-6 bg-slate-900/80 border border-slate-700 rounded-xl p-5 text-left shadow-inner">
+                                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                                    <h4 class="text-white font-bold"><i class="fas fa-clipboard-check text-emerald-500 mr-2"></i> Correção do Professor</h4>
+                                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm font-bold">Nota: ${minhaEntrega.notaAtribuida} / ${aval.notaMaxima}</span>
+                                </div>
+                                <p class="text-slate-300 text-sm italic">"${escapeHTML(minhaEntrega.feedbackProfessor || 'Nenhum comentário adicional.')}"</p>
+                            </div>
+                        `;
+                    }
+
+                    htmlAluno += `<div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-6 text-center">${conteudoStatus}</div>`;
+
                 } else {
                     htmlAluno += `
                         <div class="bg-slate-900 border border-slate-700 rounded-xl p-6">
@@ -434,6 +510,41 @@ window.avaliacoesAPI = {
         } catch(e) {
             console.error(e);
             body.innerHTML = '<p class="text-red-500 text-center">Erro ao carregar dados do painel.</p>';
+        }
+    },
+
+    salvarCorrecao: async (entregaId, avalId) => {
+        const inputNota = document.getElementById(`nota-${entregaId}`);
+        const inputFeed = document.getElementById(`feed-${entregaId}`);
+        
+        if(!inputNota.value) {
+            alert("Por favor, digite a nota antes de salvar.");
+            return;
+        }
+
+        const notaNum = parseFloat(inputNota.value);
+        if(isNaN(notaNum) || notaNum < 0) {
+            alert("Nota inválida.");
+            return;
+        }
+
+        try {
+            // Atualiza o documento de entrega no Firestore
+            await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
+                notaAtribuida: notaNum,
+                feedbackProfessor: inputFeed.value,
+                status: 'avaliado',
+                dataAvaliacao: serverTimestamp()
+            });
+
+            alert("Correção registrada com sucesso!");
+            
+            // Opcional: Recarregar o painel para refletir o status azul de "Avaliado"
+            window.avaliacoesAPI.abrirPainel(avalId);
+
+        } catch (err) {
+            console.error("Erro ao salvar nota:", err);
+            alert("Falha ao registrar a correção no banco de dados.");
         }
     },
 
@@ -469,7 +580,8 @@ window.avaliacoesAPI = {
             });
 
             alert("Missão Cumprida! Arquivo enviado com sucesso.");
-            window.avaliacoesAPI.abrirPainel(avalId); // Recarrega o painel para mostrar o sucesso
+            window.avaliacoesAPI.abrirPainel(avalId); // Recarrega o painel interno
+            renderGridAvaliacoes(avaliacoesCache); // Força a tela de fundo a desenhar a tag "Concluído" verde
             
         } catch(err) {
             console.error("Erro no upload:", err);
