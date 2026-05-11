@@ -513,7 +513,8 @@ window.showTab = function(tabId) {
     }
     else if (tabId === 'gestao-aura') {       
         if (!isGestaoAuraLoaded) {             
-            gestaoAuraAPI.init();              
+            gestaoAuraAPI.init(); 
+            lojaAuraAPI.init();             
             isGestaoAuraLoaded = true;          
         }                                     
     }
