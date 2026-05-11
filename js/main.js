@@ -45,7 +45,7 @@ const MENU_ARCHITECTURE = [
     
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno }, 
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
-    { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
+    // { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
     
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
