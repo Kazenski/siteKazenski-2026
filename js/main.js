@@ -267,6 +267,12 @@ async function calcularAuraDoUsuario(dadosUser, uid) {
         if (!isNaN(extrasDoc)) auraTotal += (extrasDoc * 100);
     }
 
+    // Subtrai a aura já consumida na loja
+    if (dadosUser.auraGasta) {
+        const gasta = parseInt(dadosUser.auraGasta);
+        if (!isNaN(gasta)) auraTotal -= gasta;
+    }
+
     return auraTotal;
 }
 

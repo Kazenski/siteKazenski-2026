@@ -1,6 +1,7 @@
 import { db, auth } from '../core/firebase.js';
 import { collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 const storage = getStorage();
 
@@ -17,10 +18,10 @@ export const lojaAuraAPI = {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
                     const data = userDoc.data();
-                    const canManage = (data.Admin === true || data.Admin === "true" || 
-                                       data.Professor === true || data.Professor === "true" || 
-                                       data.Coordenacao === true || data.Coordenacao === "true");
-                    
+                    const canManage = (data.Admin === true || data.Admin === "true" ||
+                        data.Professor === true || data.Professor === "true" ||
+                        data.Coordenacao === true || data.Coordenacao === "true");
+
                     if (canManage) {
                         document.getElementById('admin-loja-container').classList.remove('hidden');
                     }
@@ -54,7 +55,7 @@ export const lojaAuraAPI = {
         const validade = document.getElementById('item-validade').value;
         const file = document.getElementById('item-imagem').files[0];
         const btnSubmit = document.querySelector('#form-loja-item button[type="submit"]');
-        
+
         let duracao = null;
         if (tipo === 'temporario') {
             duracao = {
@@ -115,7 +116,7 @@ export const lojaAuraAPI = {
                 const id = docSnap.id;
                 grid.innerHTML += this.renderItemCard(id, item);
             });
-            
+
             // Re-avalia visibilidade dos botões admin baseando-se no container admin
             const isAdminVisible = !document.getElementById('admin-loja-container').classList.contains('hidden');
             if (isAdminVisible) {
@@ -164,7 +165,7 @@ export const lojaAuraAPI = {
     },
 
     async comprarItem(id, custo, nomeItem) {
-        if (!confirm(`Deseja forjar um pacto e adquirir ${nomeItem} por ${custo} de Aura?`)) return;
+        if (!confirm(`Deseja confirmar a compra de ${nomeItem}?`)) return;
 
         const userUid = auth.currentUser.uid;
         const userRef = doc(db, 'users', userUid);
@@ -172,40 +173,40 @@ export const lojaAuraAPI = {
         try {
             await runTransaction(db, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) throw new Error("Mente não encontrada nos registros.");
+                if (!userDoc.exists()) throw new Error("Usuário não encontrado.");
 
                 const userData = userDoc.data();
                 const auraAtual = userData.aura || 0;
-                
+
                 if (auraAtual < custo) {
-                    throw new Error(`Aura insuficiente. Você possui apenas ${auraAtual} de Aura.`);
+                    throw new Error("Saldo de Aura insuficiente para este item.");
                 }
 
-                // O desconto é feito no modificador manual para que a próxima auditoria mantenha a coerência matemática das notas.
-                const auraManualAtual = parseInt(userData.auraManual || 0);
-                const novoAuraManual = auraManualAtual - custo;
-                
-                // Registra a aquisição no inventário global de transações
+                // Incrementa o que foi gasto
+                const totalGastoAnterior = parseInt(userData.auraGasta || 0);
+                const novoTotalGasto = totalGastoAnterior + custo;
+
+                // Registra a transação na coleção de compras
                 const compraRef = doc(collection(db, "loja_compras"));
                 transaction.set(compraRef, {
                     alunoUid: userUid,
                     itemId: id,
                     nomeItem: nomeItem,
                     custo: custo,
-                    status: "ativo",
                     dataCompra: serverTimestamp()
                 });
 
-                // Atualiza o documento do aluno
+                // Atualiza o documento do usuário com o novo gasto
+                // O campo 'aura' será recalculado na próxima sincronização, 
+                // mas já o atualizamos aqui para feedback imediato na UI.
                 transaction.update(userRef, {
-                    auraManual: novoAuraManual,
-                    aura: auraAtual - custo 
+                    auraGasta: novoTotalGasto,
+                    aura: auraAtual - custo
                 });
             });
 
-            alert(`✨ Aquisição concluída! O artefato [${nomeItem}] foi vinculado ao seu perfil.`);
+            alert(`Sucesso! Você adquiriu ${nomeItem}.`);
         } catch (error) {
-            console.error("Erro na transação de Aura:", error);
             alert(error.message);
         }
     },
@@ -226,14 +227,14 @@ export const lojaAuraAPI = {
             const docSnap = await getDoc(doc(db, "loja_itens", id));
             if (docSnap.exists()) {
                 const item = docSnap.data();
-                
+
                 document.getElementById('item-id').value = id;
                 document.getElementById('item-id').dataset.currentImg = item.imageUrl || '';
                 document.getElementById('item-nome').value = item.nome;
                 document.getElementById('item-custo').value = item.custo;
                 document.getElementById('item-tipo').value = item.tipo;
                 document.getElementById('item-validade').value = item.validade || '';
-                
+
                 const containerDuracao = document.getElementById('container-duracao');
                 if (item.tipo === 'temporario' && item.duracao) {
                     containerDuracao.classList.remove('hidden');
@@ -242,11 +243,11 @@ export const lojaAuraAPI = {
                 } else {
                     containerDuracao.classList.add('hidden');
                 }
-                
+
                 document.getElementById('btn-cancelar-item').classList.remove('hidden');
                 document.querySelector('#form-loja-item button[type="submit"]').innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Alterações';
-                
-                document.getElementById('gestao-aura-content').scrollTo({top: 0, behavior: 'smooth'});
+
+                document.getElementById('gestao-aura-content').scrollTo({ top: 0, behavior: 'smooth' });
             }
         } catch (error) {
             console.error("Erro ao carregar item para edição:", error);
