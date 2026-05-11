@@ -39,7 +39,8 @@ let isAvaliacoesLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
-    { id: 'inicio', label: 'Início', showTo: (r) => true }, 
+    { id: 'inicio', label: 'Início', showTo: (r) => true },
+    { id: 'projetos', label: 'Projetos', showTo: (r) => true }, 
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
     
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno }, 
