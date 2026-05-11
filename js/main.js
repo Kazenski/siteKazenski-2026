@@ -13,6 +13,7 @@ import { renderConteudosTab } from './conteudos/conteudosAula.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
 import './atualizacoes/atualizacoes.js';
 import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
+import { lojaAuraAPI } from './conteudos/lojaAura.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
