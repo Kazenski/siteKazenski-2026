@@ -810,7 +810,8 @@ async function loadBoletimAndMetrics() {
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
     if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
-        els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">O aluno não está matriculado em nenhuma disciplina no momento.</td></tr>';
+        // Ajustado o colspan de 14 para 17 para englobar as novas colunas
+        els.boletimBody.innerHTML = '<tr><td colspan="17" class="p-8 text-center text-slate-500 italic">O aluno não está matriculado em nenhuma disciplina no momento.</td></tr>';
         return;
     }
 
@@ -827,6 +828,27 @@ async function loadBoletimAndMetrics() {
         return isNaN(num) ? null : num;
     };
 
+    // Nova função para calcular matematicamente a média de um trimestre com base em suas notas
+    const calcMediaTri = (trData) => {
+        if (!trData) return null;
+        const notas = [
+            parseNota(trData.nota1),
+            parseNota(trData.nota2),
+            parseNota(trData.nota3),
+            parseNota(trData.nota4)
+        ].filter(n => n !== null);
+        
+        if (notas.length === 0) return null;
+        return notas.reduce((a, b) => a + b, 0) / notas.length; // Calcula a média exata
+    };
+
+    const formatMedia = (m) => m !== null ? m.toFixed(1) : "-";
+    const getBgMedia = (m) => {
+        if (m === null) return "bg-slate-900/30 text-slate-500";
+        // Ajuste o 6.0 para a nota de corte do colégio, se necessário
+        return m >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
+    };
+
     // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
 
@@ -837,36 +859,43 @@ async function loadBoletimAndMetrics() {
         const nome = disciplineMap[discId] || discId;
         els.selEvol.add(new Option(nome, discId));
 
-        // AS VARIÁVEIS DEVEM ESTAR AQUI DENTRO PARA ZERAR A CADA MATÉRIA
-        const m1 = parseNota(tr['1']?.nota4);
-        const m2 = parseNota(tr['2']?.nota4);
-        const m3 = parseNota(tr['3']?.nota4);
+        // AS VARIÁVEIS ESTÃO AQUI DENTRO PARA ZERAR E CALCULAR EXATAMENTE POR MATÉRIA
+        const m1 = calcMediaTri(tr['1']);
+        const m2 = calcMediaTri(tr['2']);
+        const m3 = calcMediaTri(tr['3']);
 
-        let mediaFinal = "---";
-        let bgMedia = "bg-blue-900/10 text-blue-400";
-
-        // Se houver pelo menos uma média de trimestre lançada
-        if (m1 !== null || m2 !== null || m3 !== null) {
-            const pesos = [m1, m2, m3].filter(v => v !== null);
-            // Calcula a média exata das notas válidas
-            const calc = pesos.reduce((a, b) => a + b, 0) / pesos.length;
-            mediaFinal = calc.toFixed(1);
-            
-            // Define a cor de aprovação (Ajuste o 6.0 para 7.0 caso seja a nota de corte do colégio)
-            bgMedia = calc >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
-        }
+        // Média Geral baseada nas médias dos trimestres já calculados
+        const trimesters = [m1, m2, m3].filter(m => m !== null);
+        const mGeral = trimesters.length > 0 ? (trimesters.reduce((a, b) => a + b, 0) / trimesters.length) : null;
 
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
             <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
-            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4 || '-'}</td>
-            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['2']?.nota4 || '-'}</td>
-            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['3']?.nota4 || '-'}</td>
-            <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${bgMedia}">${mediaFinal}</td>
+            
+            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['1']?.nota4 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2 font-bold ${getBgMedia(m1)}">${formatMedia(m1)}</td>
+            
+            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota1 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota2 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota3 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['2']?.nota4 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2 font-bold ${getBgMedia(m2)}">${formatMedia(m2)}</td>
+            
+            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota1 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota2 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota3 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2">${tr['3']?.nota4 || '-'}</td>
+            <td class="border border-slate-700 text-center py-2 font-bold ${getBgMedia(m3)}">${formatMedia(m3)}</td>
+            
+            <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${getBgMedia(mGeral)}">${formatMedia(mGeral)}</td>
         </tr>`;
     }
 
     if (!html) {
-        html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma disciplina ativa encontrada para exibir o boletim.</td></tr>';
+        // Ajustado o colspan de 14 para 17 para englobar as novas colunas
+        html = '<tr><td colspan="17" class="p-8 text-center text-slate-500 italic">Nenhuma disciplina ativa encontrada para exibir o boletim.</td></tr>';
     }
 
     els.boletimBody.innerHTML = html;
