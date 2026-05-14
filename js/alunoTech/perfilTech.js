@@ -820,6 +820,13 @@ async function loadBoletimAndMetrics() {
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
     let html = '';
 
+    // Função auxiliar robusta para converter notas (Ignora traços e vazios, aceita vírgula)
+    const parseNota = (val) => {
+        if (val === undefined || val === null || val === "" || val === "-" || val === "---") return null;
+        const num = parseFloat(String(val).replace(',', '.'));
+        return isNaN(num) ? null : num;
+    };
+
     // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
 
@@ -830,19 +837,23 @@ async function loadBoletimAndMetrics() {
         const nome = disciplineMap[discId] || discId;
         els.selEvol.add(new Option(nome, discId));
 
-        // Pega as notas 4 (médias do trimestre) para calcular a final
-        const m1 = tr['1']?.nota4 ? parseFloat(tr['1'].nota4) : null;
-        const m2 = tr['2']?.nota4 ? parseFloat(tr['2'].nota4) : null;
-        const m3 = tr['3']?.nota4 ? parseFloat(tr['3'].nota4) : null;
+        // AS VARIÁVEIS DEVEM ESTAR AQUI DENTRO PARA ZERAR A CADA MATÉRIA
+        const m1 = parseNota(tr['1']?.nota4);
+        const m2 = parseNota(tr['2']?.nota4);
+        const m3 = parseNota(tr['3']?.nota4);
 
         let mediaFinal = "---";
         let bgMedia = "bg-blue-900/10 text-blue-400";
 
+        // Se houver pelo menos uma média de trimestre lançada
         if (m1 !== null || m2 !== null || m3 !== null) {
             const pesos = [m1, m2, m3].filter(v => v !== null);
-            const calc = (pesos.reduce((a, b) => a + b, 0) / pesos.length).toFixed(1);
-            mediaFinal = calc;
-            bgMedia = calc >= 7.0 ? "bg-green-900/20 text-green-400" : "bg-amber-900/20 text-amber-400";
+            // Calcula a média exata das notas válidas
+            const calc = pesos.reduce((a, b) => a + b, 0) / pesos.length;
+            mediaFinal = calc.toFixed(1);
+            
+            // Define a cor de aprovação (Ajuste o 6.0 para 7.0 caso seja a nota de corte do colégio)
+            bgMedia = calc >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
         }
 
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
