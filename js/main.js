@@ -25,7 +25,7 @@ let userRoles = {
     Coordenacao: false,
     Moderador: false,
     Aluno: false,
-    Visitante: true 
+    Visitante: true
 };
 
 let activeTabId = localStorage.getItem('kazenski_active_tab') || 'inicio';
@@ -41,13 +41,13 @@ let isAvaliacoesLoaded = false;
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true },
-    { id: 'projetos', label: 'Projetos', showTo: (r) => true }, 
+    { id: 'projetos', label: 'Projetos', showTo: (r) => true },
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
-    
-    { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno }, 
+
+    { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     // { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
-    
+
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
     { id: 'aluno-tech', label: 'Aluno Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
@@ -81,7 +81,7 @@ function iniciarMonitoramentoNotificacoes(uid, turma) {
         avaliacoes.forEach(a => {
             if (a.oculta) return;
             if (!a.turmasAlvo || !a.turmasAlvo.includes(turma)) return;
-            
+
             const dAberta = a.dataAbertura ? a.dataAbertura.toDate() : null;
             const dFecha = a.dataFechamento ? a.dataFechamento.toDate() : null;
 
@@ -99,7 +99,7 @@ function iniciarMonitoramentoNotificacoes(uid, turma) {
         // Se o status da bolinha mudar (ex: ele acabou de entregar), atualiza o menu
         if (globalBadges.avaliacoes !== hasPending) {
             globalBadges.avaliacoes = hasPending;
-            buildTopMenu(); 
+            buildTopMenu();
         }
     };
 
@@ -144,8 +144,8 @@ function startSessionManager(user) {
     currentUserUid = user.uid;
     const timerDiv = document.getElementById('session-timer');
     const countdownSpan = document.getElementById('session-countdown');
-    
-    if(timerDiv) {
+
+    if (timerDiv) {
         timerDiv.classList.remove('hidden');
         timerDiv.classList.add('flex');
     }
@@ -156,7 +156,7 @@ function startSessionManager(user) {
     window.addEventListener('click', updateActivity);
 
     // Registra a entrada imediatamente
-    lastActivityUpdate = 0; 
+    lastActivityUpdate = 0;
     updateActivity();
 
     // Sincroniza com o Firebase RTDB
@@ -176,11 +176,11 @@ function startSessionManager(user) {
             } else {
                 const minutes = Math.floor(timeLeft / 60000);
                 const seconds = Math.floor((timeLeft % 60000) / 1000);
-                
-                if(countdownSpan) {
+
+                if (countdownSpan) {
                     countdownSpan.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
                     // Fica vermelho e pisca nos últimos 2 minutos
-                    if (timeLeft < 120000) { 
+                    if (timeLeft < 120000) {
                         countdownSpan.classList.replace('text-amber-500', 'text-red-500');
                         countdownSpan.classList.add('animate-pulse');
                     } else {
@@ -200,9 +200,9 @@ function stopSessionManager() {
     window.removeEventListener('click', updateActivity);
     if (sessionInterval) clearInterval(sessionInterval);
     if (rtdbUnsubscribe) rtdbUnsubscribe();
-    
+
     const timerDiv = document.getElementById('session-timer');
-    if(timerDiv) {
+    if (timerDiv) {
         timerDiv.classList.remove('flex');
         timerDiv.classList.add('hidden');
     }
@@ -214,21 +214,21 @@ function stopSessionManager() {
 
 async function calcularAuraDoUsuario(dadosUser, uid) {
     let auraTotal = 0;
-    
+
     try {
         const notaRef = doc(db, 'notas', uid);
         const notaSnap = await getDoc(notaRef);
-        
+
         if (notaSnap.exists()) {
             const notaData = notaSnap.data();
             const disciplinas = notaData.disciplinasComNotas || {};
-            
+
             for (const disc in disciplinas) {
                 const trimestres = disciplinas[disc];
-                
+
                 for (const tri in trimestres) {
                     const dadosTri = trimestres[tri];
-                    
+
                     // 1. Soma das Notas (nota1, nota2, nota3, nota4)
                     // Cada ponto de nota vale 2500 de Aura
                     ['nota1', 'nota2', 'nota3', 'nota4'].forEach(campo => {
@@ -276,7 +276,7 @@ async function sincronizarAuraGeralSilencioso() {
         for (const documento of snapshot.docs) {
             const d = documento.data();
             const uid = documento.id;
-            
+
             // FILTRO RÍGIDO: Apenas registroAtivo true
             const isAtivo = (d.registroAtivo === true || d.registroAtivo === "true");
 
@@ -284,16 +284,16 @@ async function sincronizarAuraGeralSilencioso() {
                 // Agora recebemos um objeto { total, disponivel }
                 const resultadoAura = await calcularAuraDoUsuario(d, uid);
                 const auraCorreta = resultadoAura.total; // Usamos o TOTAL para o ranking/auditoria
-                
+
                 if (auraCorreta > 0) {
                     console.log(`[Forja] ${d.nome || uid}: ${auraCorreta.toLocaleString('pt-BR')} Aura`);
                 }
 
                 if (d.aura === undefined || d.aura !== auraCorreta) {
                     const refDoc = doc(db, 'users', uid);
-                    await updateDoc(refDoc, { 
+                    await updateDoc(refDoc, {
                         aura: auraCorreta,
-                        sincronizadoEm: new Date().toISOString() 
+                        sincronizadoEm: new Date().toISOString()
                     });
                     atualizados++;
                 }
@@ -326,10 +326,10 @@ onAuthStateChanged(auth, async (user) => {
 
         try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
-            
+
             if (userDoc.exists()) {
                 const data = userDoc.data();
-                
+
                 userRoles.Admin = (data.Admin === true || data.Admin === "true");
                 userRoles.Professor = (data.Professor === true || data.Professor === "true");
                 userRoles.Coordenacao = (data.Coordenacao === true || data.Coordenacao === "true");
@@ -343,22 +343,29 @@ onAuthStateChanged(auth, async (user) => {
                 else if (userRoles.Moderador) displayRoleName = 'Moderador';
                 else if (userRoles.Aluno) displayRoleName = 'Aluno';
 
-                // AURA: CALCULAR E SALVAR NO LOGIN (AGORA ASSÍNCRONO COM AS NOTAS)
+                // AURA: CALCULAR E EXIBIR NO LOGIN
                 if (data.registroAtivo === true || data.registroAtivo === "true") {
+
+                    // 1. O cálculo retorna um objeto { total, disponivel }
                     const resultadoAura = await calcularAuraDoUsuario(data, user.uid);
-                    
-                    // Atualiza Banco de Dados apenas com a aura total (para Ranking)
+
+                    // 2. Atualiza o banco (SÓ O TOTAL, para o ranking não cair)
                     if (data.aura !== resultadoAura.total) {
                         await updateDoc(doc(db, 'users', user.uid), { aura: resultadoAura.total });
                     }
 
-                    // Atualiza Elemento do Topo (ao lado do relógio - IMUTÁVEL)
-                    const auraValEl = document.getElementById('user-aura-value');
-                    if(auraValEl) auraValEl.textContent = resultadoAura.total.toLocaleString('pt-BR');
+                    // 3. Atualiza o Topo do site (Aura de Poder)
+                    const auraValEl = document.getElementById('user-aura-value'); // Verifique se é este ID que você usa no menu principal
+                    if (auraValEl) {
+                        auraValEl.textContent = resultadoAura.total.toLocaleString('pt-BR');
+                    }
 
-                    // Atualiza o Saldo da Loja
+                    // 4. ATUALIZA A TELA DA LOJA (O Saldo Disponível)
+                    // É esta linha que faz o HTML que você enviou ganhar vida!
                     const saldoLojaEl = document.getElementById('shop-user-aura-disponivel');
-                    if(saldoLojaEl) saldoLojaEl.textContent = resultadoAura.disponivel.toLocaleString('pt-BR');
+                    if (saldoLojaEl) {
+                        saldoLojaEl.textContent = resultadoAura.disponivel.toLocaleString('pt-BR');
+                    }
                 }
 
                 // INICIA MONITORAMENTO DE AVALIAÇÕES (Bolhinha Amarela) SE FOR ALUNO
@@ -374,7 +381,7 @@ onAuthStateChanged(auth, async (user) => {
 
         // AURA: SYNC SILENCIOSO SE FOR ADMIN
         if (user.email === "kazenski.developer@gmail.com") {
-            sincronizarAuraGeralSilencioso(); 
+            sincronizarAuraGeralSilencioso();
         }
 
         emailEl.textContent = user.email;
@@ -396,7 +403,7 @@ onAuthStateChanged(auth, async (user) => {
 
     // Reconstrói o menu com as novas permissões
     buildTopMenu();
-    
+
     // Força o carregamento da aba inicial ou da aba que estava aberta
     window.showTab(activeTabId);
 });
@@ -413,23 +420,23 @@ function buildTopMenu() {
     MENU_ARCHITECTURE.forEach(item => {
         if (item.showTo(userRoles)) {
             const btn = document.createElement('button');
-            
+
             // Estilização com Flexbox para alinhar o texto e a bolinha
             const isActive = activeTabId === item.id;
             btn.className = `nav-item-btn flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border-b-2 ${isActive ? 'border-blue-500 text-blue-400 bg-slate-800/50' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
-            
+
             // Texto base do botão
             let innerHTML = `<span>${item.label}</span>`;
-            
+
             // Se for a aba de avaliações e houver pendências, adiciona a bolinha (Ping animation Tailwind)
             if (item.id === 'avaliacoes' && globalBadges.avaliacoes) {
                 innerHTML += `<span class="relative flex h-2.5 w-2.5" title="Você possui atividades pendentes!"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]"></span></span>`;
             }
-            
+
             btn.innerHTML = innerHTML;
             btn.onclick = () => window.showTab(item.id);
             btn.dataset.target = item.id;
-            
+
             navContainer.appendChild(btn);
         }
     });
@@ -439,19 +446,19 @@ function buildTopMenu() {
 // ROTEADOR CENTRAL (Troca de Abas)
 // ============================================================================
 
-window.showTab = function(tabId) {
+window.showTab = function (tabId) {
     // Validação de Segurança
     const routeConfig = MENU_ARCHITECTURE.find(m => m.id === tabId);
     if (routeConfig && !routeConfig.showTo(userRoles)) {
         // Redireciona silenciosamente se perder a permissão ou tentar burlar o cache
-        return window.showTab('inicio'); 
+        return window.showTab('inicio');
     }
 
     activeTabId = tabId;
-    
+
     // GRAVA A ABA ATUAL NO CACHE DO NAVEGADOR
-    localStorage.setItem('kazenski_active_tab', tabId); 
-    
+    localStorage.setItem('kazenski_active_tab', tabId);
+
     // Atualiza visual dos botões do menu
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
         const isTarget = btn.dataset.target === tabId;
@@ -477,17 +484,17 @@ window.showTab = function(tabId) {
     // GATILHOS DE RENDERIZAÇÃO
     if (tabId === 'inicio') {
         renderInicioTab();
-    } 
+    }
     else if (tabId === 'aluno-tech') {
         if (!isAlunoTechLoaded) {
             renderAlunoTechTab();
-            isAlunoTechLoaded = true; 
+            isAlunoTechLoaded = true;
         }
     }
     else if (tabId === 'conteudos') {
         if (!isConteudosLoaded) {
             renderConteudosTab();
-            isConteudosLoaded = true; 
+            isConteudosLoaded = true;
         }
     }
     else if (tabId === 'login') {
@@ -500,7 +507,7 @@ window.showTab = function(tabId) {
         }
     }
     else if (tabId === 'moderador-tech' && !isModeradorLoaded) {
-        isModeradorLoaded = true; 
+        isModeradorLoaded = true;
     }
     // else if (tabId === 'conexao-aluno') {
     //     if (!isConexaoAlunoLoaded) {
@@ -508,24 +515,24 @@ window.showTab = function(tabId) {
     //         isConexaoAlunoLoaded = true;
     //     }
     // }
-    else if (tabId === 'projetos') {       
-        if (!isProjetosLoaded) {             
-            renderProjetosTab();              
-            isProjetosLoaded = true;          
-        }                                     
+    else if (tabId === 'projetos') {
+        if (!isProjetosLoaded) {
+            renderProjetosTab();
+            isProjetosLoaded = true;
+        }
     }
-    else if (tabId === 'avaliacoes') {       
-        if (!isAvaliacoesLoaded) {             
-            renderAvaliacoesTab();              
-            isAvaliacoesLoaded = true;          
-        }                                     
+    else if (tabId === 'avaliacoes') {
+        if (!isAvaliacoesLoaded) {
+            renderAvaliacoesTab();
+            isAvaliacoesLoaded = true;
+        }
     }
-    else if (tabId === 'gestao-aura') {       
-        if (!isGestaoAuraLoaded) {             
-            gestaoAuraAPI.init(); 
-            lojaAuraAPI.init();             
-            isGestaoAuraLoaded = true;          
-        }                                     
+    else if (tabId === 'gestao-aura') {
+        if (!isGestaoAuraLoaded) {
+            gestaoAuraAPI.init();
+            lojaAuraAPI.init();
+            isGestaoAuraLoaded = true;
+        }
     }
 };
 
@@ -610,30 +617,30 @@ function renderLoginTab() {
         try {
             // Tenta autenticar
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-            
+
             // LOG DE LOGIN: Busca os dados básicos e grava na auditoria
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
-            if(userDoc.exists()) {
-                 await addDoc(collection(db, "logs_usuarios"), {
+            if (userDoc.exists()) {
+                await addDoc(collection(db, "logs_usuarios"), {
                     uid: userCredential.user.uid,
                     nome: userDoc.data().nome || "Usuário",
                     turma: userDoc.data().turma || "Sem Turma",
                     acao: "Realizou Login",
                     detalhes: "Acessou o portal com email e senha.",
                     timestamp: serverTimestamp()
-                 });
+                });
             }
-            
+
             window.showTab('inicio');
-            
+
         } catch (error) {
             // Falha. Restaura o botão e mostra o erro
             btnSubmit.innerHTML = '<span>Entrar no Portal</span><i class="fas fa-sign-in-alt"></i>';
             btnSubmit.disabled = false;
             btnSubmit.classList.remove('opacity-70');
-            
+
             errorDiv.classList.remove('hidden');
-            
+
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Credenciais inválidas.';
             } else {
@@ -647,32 +654,32 @@ function renderLoginTab() {
 // LOGOUT
 // ============================================================================
 
-window.logout = async function(isAuto = false) {
+window.logout = async function (isAuto = false) {
     const msg = isAuto ? "Sua sessão expirou por inatividade. Faça login novamente." : "Deseja sair?";
-    
+
     if (isAuto === true || confirm(msg)) {
         try {
             // LOG DE LOGOUT: Grava antes de destruir a sessão
             if (auth.currentUser) {
                 const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-                if(userDoc.exists()) {
-                     await addDoc(collection(db, "logs_usuarios"), {
+                if (userDoc.exists()) {
+                    await addDoc(collection(db, "logs_usuarios"), {
                         uid: auth.currentUser.uid,
                         nome: userDoc.data().nome || "Usuário",
                         turma: userDoc.data().turma || "Sem Turma",
                         acao: isAuto ? "Logout Automático" : "Realizou Logout",
                         detalhes: isAuto ? "Sessão expirada por inatividade." : "Saiu do portal manualmente.",
                         timestamp: serverTimestamp()
-                     });
+                    });
                 }
             }
 
-            localStorage.setItem('kazenski_active_tab', 'inicio'); 
+            localStorage.setItem('kazenski_active_tab', 'inicio');
             await signOut(auth);
-            if(isAuto === true) alert(msg);
+            if (isAuto === true) alert(msg);
             window.showTab('inicio');
         } catch (error) {
-            if(isAuto !== true) alert("Erro: " + error.message);
+            if (isAuto !== true) alert("Erro: " + error.message);
         }
     }
 };
