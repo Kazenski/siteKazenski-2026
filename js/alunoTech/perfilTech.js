@@ -803,7 +803,10 @@ async function loadAvisos() {
 async function loadBoletimAndMetrics() {
     const snap = await getDoc(doc(db, "notas", currentUser.uid));
 
+    // Carrega o histórico de notas (se existir)
     studentGradesData = snap.exists() ? (snap.data().disciplinasComNotas || {}) : {};
+
+    // Busca o map exato chamado "disciplinas" (prioriza o documento do aluno, depois o de notas)
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
     if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
@@ -811,40 +814,39 @@ async function loadBoletimAndMetrics() {
         return;
     }
 
+    // Salva globalmente para os gráficos usarem a exata mesma referência
     window.activeDisciplinesMap = mapDisciplinas;
+
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
     let html = '';
 
+    // Função auxiliar robusta para converter notas (Ignora traços e vazios, aceita vírgula)
     const parseNota = (val) => {
         if (val === undefined || val === null || val === "" || val === "-" || val === "---") return null;
         const num = parseFloat(String(val).replace(',', '.'));
         return isNaN(num) ? null : num;
     };
 
+    // Função que calcula a média de um array de notas
     const calcMediaTri = (arr) => {
         const validas = arr.filter(n => n !== null);
         return validas.length > 0 ? validas.reduce((a, b) => a + b, 0) / validas.length : null;
     };
 
-    // Lógica do seletor de foco (definido no index.html)
+    // Pega o valor do seletor que está dentro da própria TH
     const selFoco = document.getElementById('al-sel-media-foco');
     const trimestreFoco = selFoco ? selFoco.value : '1';
     
+    // Anexa o evento de mudança apenas uma vez para não duplicar listeners
     if(selFoco && !selFoco.hasAttribute('data-listener-attached')) {
         selFoco.addEventListener('change', loadBoletimAndMetrics);
         selFoco.setAttribute('data-listener-attached', 'true');
     }
 
-    // Atualiza o texto do cabeçalho da última coluna de forma dinâmica
-    const table = els.boletimBody.closest('table');
-    if (table) {
-        const thMediaFinal = table.querySelector('thead tr th:last-child');
-        if (thMediaFinal) {
-            thMediaFinal.innerText = trimestreFoco === 'geral' ? 'Média Final' : `Média ${trimestreFoco}º Tri`;
-        }
-    }
-
+    // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
+
+        // Se estiver como false (desmatriculado), pula esta disciplina
         if (isEnrolled === false) continue;
 
         const tr = studentGradesData[discId] || {};
@@ -854,11 +856,12 @@ async function loadBoletimAndMetrics() {
         let mediaExibida = "---";
         let bgMedia = "bg-blue-900/10 text-blue-400";
 
-        // Cálculo matemático independente por trimestre e por disciplina
+        // CÁLCULO INDEPENDENTE: Calculamos as 3 médias trimestrais primeiro
         const m1 = calcMediaTri([parseNota(tr['1']?.nota1), parseNota(tr['1']?.nota2), parseNota(tr['1']?.nota3), parseNota(tr['1']?.nota4)]);
         const m2 = calcMediaTri([parseNota(tr['2']?.nota1), parseNota(tr['2']?.nota2), parseNota(tr['2']?.nota3), parseNota(tr['2']?.nota4)]);
         const m3 = calcMediaTri([parseNota(tr['3']?.nota1), parseNota(tr['3']?.nota2), parseNota(tr['3']?.nota3), parseNota(tr['3']?.nota4)]);
 
+        // Determina o valor final da linha com base no que o usuário selecionou no cabeçalho
         let calcFinal = null;
         if (trimestreFoco === '1') calcFinal = m1;
         else if (trimestreFoco === '2') calcFinal = m2;
@@ -868,6 +871,7 @@ async function loadBoletimAndMetrics() {
             if (trimesters.length > 0) calcFinal = trimesters.reduce((a, b) => a + b, 0) / trimesters.length;
         }
 
+        // Aplica formatação e cores se houver cálculo
         if (calcFinal !== null) {
             mediaExibida = calcFinal.toFixed(1);
             bgMedia = calcFinal >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
@@ -883,6 +887,7 @@ async function loadBoletimAndMetrics() {
     }
 
     els.boletimBody.innerHTML = html;
+
     renderScatterChart();
     renderEvolutionChart();
 }
