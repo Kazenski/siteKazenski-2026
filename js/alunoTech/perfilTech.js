@@ -2134,9 +2134,6 @@ async function loadAvaliacoes360() {
 // ============================================================================
 // MOTOR DE CONTROLE DA MOCHILA PEDAGÓGICA (INVENTÁRIO E COSMÉTICOS)
 // ============================================================================
-import { getDocs, collection, query, orderBy, doc, updateDoc, serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { db } from '../core/firebase.js';
-
 window.mochilaAPI = {
     init() {
         // Verifica se o usuário é da equipe técnica/pedagógica
