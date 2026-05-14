@@ -289,14 +289,14 @@ async function sincronizarAuraGeralSilencioso() {
                     console.log(`[Forja] ${d.nome || uid}: ${auraCorreta.toLocaleString('pt-BR')} Aura`);
                 }
 
-                if (d.aura === undefined || d.aura !== auraCorreta) {
-                    const refDoc = doc(db, 'users', uid);
-                    await updateDoc(refDoc, {
-                        aura: auraCorreta,
-                        sincronizadoEm: new Date().toISOString()
-                    });
-                    atualizados++;
-                }
+                // REMOVIDA A TRAVA DE IGUALDADE (d.aura !== auraCorreta)
+                // Força a gravação de todos os alunos ativos no banco sempre que rodar
+                const refDoc = doc(db, 'users', uid);
+                await updateDoc(refDoc, {
+                    aura: auraCorreta,
+                    sincronizadoEm: new Date().toISOString()
+                });
+                atualizados++;
             }
         }
         console.log(`[Auditoria Aura] Finalizado. ${atualizados} heróis tiveram sua Aura atualizada.`);
