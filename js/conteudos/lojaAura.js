@@ -198,19 +198,28 @@ export const lojaAuraAPI = {
                     dataCompra: serverTimestamp()
                 });
 
-                // Objeto compatível com sua 'window.mochilaAPI' nativa do PerfilTech
-                const itemMochila = {
-                    id: id,
-                    nome: nomeItem,
-                    icone: 'fa-gift',
-                    quantidade: 1,
-                    usosRestantes: 1
-                };
+                // --- LÓGICA CORRIGIDA: SOMA A QUANTIDADE SE O ITEM JÁ EXISTIR ---
+                let mochila = userData.mochilaPedagogica || [];
+                const itemIndex = mochila.findIndex(i => i.id === id);
 
-                // Atualiza o documento APENAS adicionando o gasto e inserindo o item na mochila
+                if (itemIndex > -1) {
+                    // Item existe: Soma +1 na quantidade
+                    mochila[itemIndex].quantidade = (mochila[itemIndex].quantidade || 1) + 1;
+                } else {
+                    // Item novo: Adiciona à mochila com quantidade 1
+                    mochila.push({
+                        id: id,
+                        nome: nomeItem,
+                        icone: 'fa-gift',
+                        quantidade: 1,
+                        usosRestantes: 1
+                    });
+                }
+
+                // Atualiza o banco com o novo gasto e o array modificado
                 transaction.update(userRef, {
                     auraGasta: novoTotalGasto,
-                    mochilaPedagogica: arrayUnion(itemMochila)
+                    mochilaPedagogica: mochila
                 });
             });
 
@@ -223,7 +232,7 @@ export const lojaAuraAPI = {
                 saldoEl.textContent = (saldoAtualNum - custo).toLocaleString('pt-BR');
             }
 
-            // Atualiza a mochila se a API dela já estiver instanciada na memória
+            // Atualiza a mochila se a API dela já estiver instanciada
             if (window.mochilaAPI) {
                 window.mochilaAPI.init();
             }
