@@ -806,7 +806,7 @@ async function loadBoletimAndMetrics() {
     // Carrega o histórico de notas (se existir)
     studentGradesData = snap.exists() ? (snap.data().disciplinasComNotas || {}) : {};
 
-    // Busca o map exato chamado "disciplinas" (prioriza o documento do aluno, depois o de notas)
+    // Busca o map exato chamado "disciplinas"
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
     if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
@@ -814,79 +814,107 @@ async function loadBoletimAndMetrics() {
         return;
     }
 
-    // Salva globalmente para os gráficos usarem a exata mesma referência
+    // Salva globalmente para os gráficos
     window.activeDisciplinesMap = mapDisciplinas;
 
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
     let html = '';
 
-    // Função auxiliar robusta para converter notas (Ignora traços e vazios, aceita vírgula)
     const parseNota = (val) => {
         if (val === undefined || val === null || val === "" || val === "-" || val === "---") return null;
         const num = parseFloat(String(val).replace(',', '.'));
         return isNaN(num) ? null : num;
     };
 
-    // Função que calcula a média de um array de notas
     const calcMediaTri = (arr) => {
         const validas = arr.filter(n => n !== null);
         return validas.length > 0 ? validas.reduce((a, b) => a + b, 0) / validas.length : null;
     };
 
-    // Pega o valor do seletor que está dentro da própria TH
-    const selFoco = document.getElementById('al-sel-media-foco');
+    // Identifica o seletor atual da tabela
+    const selFoco = document.querySelector('th select#al-sel-media-foco') || document.getElementById('al-sel-media-foco');
     const trimestreFoco = selFoco ? selFoco.value : '1';
-    
-    // Anexa o evento de mudança apenas uma vez para não duplicar listeners
-    if(selFoco && !selFoco.hasAttribute('data-listener-attached')) {
-        selFoco.addEventListener('change', loadBoletimAndMetrics);
-        selFoco.setAttribute('data-listener-attached', 'true');
-    }
 
     // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
-
-        // Se estiver como false (desmatriculado), pula esta disciplina
         if (isEnrolled === false) continue;
 
         const tr = studentGradesData[discId] || {};
         const nome = disciplineMap[discId] || discId;
         els.selEvol.add(new Option(nome, discId));
 
-        let mediaExibida = "---";
-        let bgMedia = "bg-blue-900/10 text-blue-400";
-
-        // CÁLCULO INDEPENDENTE: Calculamos as 3 médias trimestrais primeiro
+        // Calcula matematicamente todas as médias
         const m1 = calcMediaTri([parseNota(tr['1']?.nota1), parseNota(tr['1']?.nota2), parseNota(tr['1']?.nota3), parseNota(tr['1']?.nota4)]);
         const m2 = calcMediaTri([parseNota(tr['2']?.nota1), parseNota(tr['2']?.nota2), parseNota(tr['2']?.nota3), parseNota(tr['2']?.nota4)]);
         const m3 = calcMediaTri([parseNota(tr['3']?.nota1), parseNota(tr['3']?.nota2), parseNota(tr['3']?.nota3), parseNota(tr['3']?.nota4)]);
+        
+        const trimesters = [m1, m2, m3].filter(m => m !== null);
+        const mGeral = trimesters.length > 0 ? trimesters.reduce((a, b) => a + b, 0) / trimesters.length : null;
 
-        // Determina o valor final da linha com base no que o usuário selecionou no cabeçalho
-        let calcFinal = null;
-        if (trimestreFoco === '1') calcFinal = m1;
-        else if (trimestreFoco === '2') calcFinal = m2;
-        else if (trimestreFoco === '3') calcFinal = m3;
-        else if (trimestreFoco === 'geral') {
-            const trimesters = [m1, m2, m3].filter(m => m !== null);
-            if (trimesters.length > 0) calcFinal = trimesters.reduce((a, b) => a + b, 0) / trimesters.length;
+        // Formata as médias prontas para exibição (vazio resulta em "---")
+        const fmt1 = m1 !== null ? m1.toFixed(1) : "---";
+        const fmt2 = m2 !== null ? m2.toFixed(1) : "---";
+        const fmt3 = m3 !== null ? m3.toFixed(1) : "---";
+        const fmtGeral = mGeral !== null ? mGeral.toFixed(1) : "---";
+
+        // Define a exibição inicial baseada no que o select está marcando no momento da carga
+        let mediaExibida = "---";
+        if (trimestreFoco === '1') mediaExibida = fmt1;
+        else if (trimestreFoco === '2') mediaExibida = fmt2;
+        else if (trimestreFoco === '3') mediaExibida = fmt3;
+        else if (trimestreFoco === 'geral') mediaExibida = fmtGeral;
+
+        // Configuração visual de cores
+        let bgMedia = "bg-blue-900/10 text-blue-400";
+        if (mediaExibida !== "---") {
+            const num = parseFloat(mediaExibida);
+            bgMedia = num >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
         }
 
-        // Aplica formatação e cores se houver cálculo
-        if (calcFinal !== null) {
-            mediaExibida = calcFinal.toFixed(1);
-            bgMedia = calcFinal >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
-        }
-
+        // Criamos os TDs embutindo todas as notas nos atributos (data-m1, data-m2, etc)
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
             <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
             <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4 || '-'}</td>
             <td class="border border-slate-700 text-center py-2">${tr['2']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['2']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['2']?.nota4 || '-'}</td>
             <td class="border border-slate-700 text-center py-2">${tr['3']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['3']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['3']?.nota4 || '-'}</td>
-            <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${bgMedia}">${mediaExibida}</td>
+            <td class="media-final-col font-bold border border-slate-700 text-center py-2 ${bgMedia} transition-all duration-300"
+                data-m1="${fmt1}" data-m2="${fmt2}" data-m3="${fmt3}" data-geral="${fmtGeral}">
+                ${mediaExibida}
+            </td>
         </tr>`;
     }
 
     els.boletimBody.innerHTML = html;
+
+    // Nova tática: Escutar o select e alterar os valores via atributos, sem precisar buscar do banco de novo
+    if (selFoco && !selFoco.hasAttribute('data-fast-listener')) {
+        
+        // Remove listeners antigos (prevenção de conflitos)
+        const novoSelect = selFoco.cloneNode(true);
+        selFoco.parentNode.replaceChild(novoSelect, selFoco);
+        
+        novoSelect.addEventListener('change', (e) => {
+            const val = e.target.value; // ex: '1', '2', 'geral'
+            const cells = document.querySelectorAll('.media-final-col');
+            
+            cells.forEach(cell => {
+                // Resgata o valor correspondente escondido no HTML
+                const media = cell.getAttribute(val === 'geral' ? 'data-geral' : `data-m${val}`);
+                cell.innerText = media;
+                
+                // Reaplica a estilização (Vazio azul / Aprovado verde / Reprovado vermelho)
+                if (media === "---") {
+                    cell.className = "media-final-col font-bold border border-slate-700 text-center py-2 bg-blue-900/10 text-blue-400 transition-all duration-300";
+                } else {
+                    const num = parseFloat(media);
+                    const cor = num >= 6.0 ? 'bg-green-900/20 text-green-400' : 'bg-red-900/20 text-red-400';
+                    cell.className = `media-final-col font-bold border border-slate-700 text-center py-2 ${cor} transition-all duration-300`;
+                }
+            });
+        });
+        
+        novoSelect.setAttribute('data-fast-listener', 'true');
+    }
 
     renderScatterChart();
     renderEvolutionChart();
