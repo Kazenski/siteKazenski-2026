@@ -255,14 +255,14 @@ async function calcularAuraDoUsuario(dadosUser, uid) {
         console.error(`[Aura] Erro ao processar notas do aluno ${uid}:`, error);
     }
 
-    if (dadosUser.auraManual) auraAcumulada += parseInt(dadosUser.auraManual) || 0;
-    if (dadosUser.atividadesExtras) auraAcumulada += (parseInt(dadosUser.atividadesExtras) * 100) || 0;
+    if (dadosUser.auraManual) auraTotal += parseInt(dadosUser.auraManual) || 0;
+    if (dadosUser.atividadesExtras) auraTotal += (parseInt(dadosUser.atividadesExtras) * 100) || 0;
 
     const gasta = parseInt(dadosUser.auraGasta || 0);
 
     return {
-        total: auraAcumulada, // Intocável para o Ranking/Topo
-        disponivel: auraAcumulada - gasta // Para gastar na loja
+        total: auraTotal, // Intocável para o Ranking/Topo
+        disponivel: auraTotal - gasta // Para gastar na loja
     };
 }
 
