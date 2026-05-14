@@ -1,5 +1,5 @@
 import { db, auth } from '../core/firebase.js';
-import { collection, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { collection, arrayUnion, addDoc, getDocs, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
@@ -165,7 +165,7 @@ export const lojaAuraAPI = {
     },
 
     async comprarItem(id, custo, nomeItem) {
-        if (!confirm(`Deseja confirmar a compra de ${nomeItem}?`)) return;
+        if (!confirm(`Deseja confirmar a compra de ${nomeItem} por ${custo.toLocaleString('pt-BR')} pts?`)) return;
 
         const userUid = auth.currentUser.uid;
         const userRef = doc(db, 'users', userUid);
@@ -176,14 +176,16 @@ export const lojaAuraAPI = {
                 if (!userDoc.exists()) throw new Error("Usuário não encontrado.");
 
                 const userData = userDoc.data();
-                const auraAtual = userData.aura || 0;
+                
+                // Calcula o saldo em tempo real (Total bruta - Gasta)
+                const auraAtualBruta = userData.aura || 0;
+                const totalGastoAnterior = parseInt(userData.auraGasta || 0);
+                const saldoDisponivel = auraAtualBruta - totalGastoAnterior;
 
-                if (auraAtual < custo) {
-                    throw new Error("Saldo de Aura insuficiente para este item.");
+                if (saldoDisponivel < custo) {
+                    throw new Error(`Saldo insuficiente. Você possui ${saldoDisponivel.toLocaleString('pt-BR')} pts disponíveis.`);
                 }
 
-                // Incrementa o que foi gasto
-                const totalGastoAnterior = parseInt(userData.auraGasta || 0);
                 const novoTotalGasto = totalGastoAnterior + custo;
 
                 // Registra a transação na coleção de compras
@@ -196,16 +198,36 @@ export const lojaAuraAPI = {
                     dataCompra: serverTimestamp()
                 });
 
-                // Atualiza o documento do usuário com o novo gasto
-                // O campo 'aura' será recalculado na próxima sincronização, 
-                // mas já o atualizamos aqui para feedback imediato na UI.
+                // Objeto compatível com sua 'window.mochilaAPI' nativa do PerfilTech
+                const itemMochila = {
+                    id: id,
+                    nome: nomeItem,
+                    icone: 'fa-gift',
+                    quantidade: 1,
+                    usosRestantes: 1
+                };
+
+                // Atualiza o documento APENAS adicionando o gasto e inserindo o item na mochila
                 transaction.update(userRef, {
                     auraGasta: novoTotalGasto,
-                    aura: auraAtual - custo
+                    mochilaPedagogica: arrayUnion(itemMochila)
                 });
             });
 
-            alert(`Sucesso! Você adquiriu ${nomeItem}.`);
+            alert(`Sucesso! ${nomeItem} foi enviado para sua Mochila Tech.`);
+            
+            // Subtrai o valor na tela de forma reativa instantaneamente
+            const saldoEl = document.getElementById('shop-user-aura-disponivel');
+            if (saldoEl) {
+                const saldoAtualNum = parseInt(saldoEl.textContent.replace(/\./g, ''));
+                saldoEl.textContent = (saldoAtualNum - custo).toLocaleString('pt-BR');
+            }
+
+            // Atualiza a mochila se a API dela já estiver instanciada na memória
+            if (window.mochilaAPI) {
+                window.mochilaAPI.init();
+            }
+
         } catch (error) {
             alert(error.message);
         }

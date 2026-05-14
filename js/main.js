@@ -255,25 +255,15 @@ async function calcularAuraDoUsuario(dadosUser, uid) {
         console.error(`[Aura] Erro ao processar notas do aluno ${uid}:`, error);
     }
 
-    // 3. Modificadores Manuais vindos do documento do Usuário
-    if (dadosUser.auraManual) {
-        const manual = parseInt(dadosUser.auraManual);
-        if (!isNaN(manual)) auraTotal += manual;
-    }
+    if (dadosUser.auraManual) auraAcumulada += parseInt(dadosUser.auraManual) || 0;
+    if (dadosUser.atividadesExtras) auraAcumulada += (parseInt(dadosUser.atividadesExtras) * 100) || 0;
 
-    // Adicional: Atividades extras que possam estar no doc do usuário
-    if (dadosUser.atividadesExtras) {
-        const extrasDoc = parseInt(dadosUser.atividadesExtras);
-        if (!isNaN(extrasDoc)) auraTotal += (extrasDoc * 100);
-    }
+    const gasta = parseInt(dadosUser.auraGasta || 0);
 
-    // Subtrai a aura já consumida na loja
-    if (dadosUser.auraGasta) {
-        const gasta = parseInt(dadosUser.auraGasta);
-        if (!isNaN(gasta)) auraTotal -= gasta;
-    }
-
-    return auraTotal;
+    return {
+        total: auraAcumulada, // Intocável para o Ranking/Topo
+        disponivel: auraAcumulada - gasta // Para gastar na loja
+    };
 }
 
 async function sincronizarAuraGeralSilencioso() {
@@ -291,7 +281,9 @@ async function sincronizarAuraGeralSilencioso() {
             const isAtivo = (d.registroAtivo === true || d.registroAtivo === "true");
 
             if (isAtivo) {
-                const auraCorreta = await calcularAuraDoUsuario(d, uid);
+                // Agora recebemos um objeto { total, disponivel }
+                const resultadoAura = await calcularAuraDoUsuario(d, uid);
+                const auraCorreta = resultadoAura.total; // Usamos o TOTAL para o ranking/auditoria
                 
                 if (auraCorreta > 0) {
                     console.log(`[Forja] ${d.nome || uid}: ${auraCorreta.toLocaleString('pt-BR')} Aura`);
@@ -353,10 +345,20 @@ onAuthStateChanged(auth, async (user) => {
 
                 // AURA: CALCULAR E SALVAR NO LOGIN (AGORA ASSÍNCRONO COM AS NOTAS)
                 if (data.registroAtivo === true || data.registroAtivo === "true") {
-                    const auraCalculada = await calcularAuraDoUsuario(data, user.uid);
-                    if (data.aura !== auraCalculada) {
-                        await updateDoc(doc(db, 'users', user.uid), { aura: auraCalculada });
+                    const resultadoAura = await calcularAuraDoUsuario(data, user.uid);
+                    
+                    // Atualiza Banco de Dados apenas com a aura total (para Ranking)
+                    if (data.aura !== resultadoAura.total) {
+                        await updateDoc(doc(db, 'users', user.uid), { aura: resultadoAura.total });
                     }
+
+                    // Atualiza Elemento do Topo (ao lado do relógio - IMUTÁVEL)
+                    const auraValEl = document.getElementById('user-aura-value');
+                    if(auraValEl) auraValEl.textContent = resultadoAura.total.toLocaleString('pt-BR');
+
+                    // Atualiza o Saldo da Loja
+                    const saldoLojaEl = document.getElementById('shop-user-aura-disponivel');
+                    if(saldoLojaEl) saldoLojaEl.textContent = resultadoAura.disponivel.toLocaleString('pt-BR');
                 }
 
                 // INICIA MONITORAMENTO DE AVALIAÇÕES (Bolhinha Amarela) SE FOR ALUNO
