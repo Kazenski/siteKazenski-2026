@@ -803,63 +803,76 @@ async function loadAvisos() {
 async function loadBoletimAndMetrics() {
     const snap = await getDoc(doc(db, "notas", currentUser.uid));
 
-    // Carrega o histórico de notas (se existir)
     studentGradesData = snap.exists() ? (snap.data().disciplinasComNotas || {}) : {};
-
-    // Busca o map exato chamado "disciplinas" (prioriza o documento do aluno, depois o de notas)
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
     if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
-        // Retornamos ao colspan original de 14 para não quebrar o layout
         els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">O aluno não está matriculado em nenhuma disciplina no momento.</td></tr>';
         return;
     }
 
-    // Salva globalmente para os gráficos usarem a exata mesma referência
     window.activeDisciplinesMap = mapDisciplinas;
-
     els.selEvol.innerHTML = '<option value="">Geral (Média)</option>';
     let html = '';
 
-    // Função auxiliar robusta para converter notas (Ignora traços e vazios, aceita vírgula)
     const parseNota = (val) => {
         if (val === undefined || val === null || val === "" || val === "-" || val === "---") return null;
         const num = parseFloat(String(val).replace(',', '.'));
         return isNaN(num) ? null : num;
     };
 
-    // Iteramos sobre o map "disciplinas" do aluno
-    for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
+    const calcMediaTri = (arr) => {
+        const validas = arr.filter(n => n !== null);
+        return validas.length > 0 ? validas.reduce((a, b) => a + b, 0) / validas.length : null;
+    };
 
-        // Se estiver como false (desmatriculado), pula esta disciplina
+    // Lógica do seletor de foco (definido no index.html)
+    const selFoco = document.getElementById('al-sel-media-foco');
+    const trimestreFoco = selFoco ? selFoco.value : '1';
+    
+    if(selFoco && !selFoco.hasAttribute('data-listener-attached')) {
+        selFoco.addEventListener('change', loadBoletimAndMetrics);
+        selFoco.setAttribute('data-listener-attached', 'true');
+    }
+
+    // Atualiza o texto do cabeçalho da última coluna de forma dinâmica
+    const table = els.boletimBody.closest('table');
+    if (table) {
+        const thMediaFinal = table.querySelector('thead tr th:last-child');
+        if (thMediaFinal) {
+            thMediaFinal.innerText = trimestreFoco === 'geral' ? 'Média Final' : `Média ${trimestreFoco}º Tri`;
+        }
+    }
+
+    for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
         if (isEnrolled === false) continue;
 
         const tr = studentGradesData[discId] || {};
         const nome = disciplineMap[discId] || discId;
         els.selEvol.add(new Option(nome, discId));
 
-        // VARIAVEIS DECLARADAS DENTRO DO LAÇO PARA ZERAR A CADA DISCIPLINA
         let mediaExibida = "---";
         let bgMedia = "bg-blue-900/10 text-blue-400";
 
-        // Coleta as notas estritamente do Trimestre 1
-        const n1_tri1 = parseNota(tr['1']?.nota1);
-        const n2_tri1 = parseNota(tr['1']?.nota2);
-        const n3_tri1 = parseNota(tr['1']?.nota3);
-        const n4_tri1 = parseNota(tr['1']?.nota4);
+        // Cálculo matemático independente por trimestre e por disciplina
+        const m1 = calcMediaTri([parseNota(tr['1']?.nota1), parseNota(tr['1']?.nota2), parseNota(tr['1']?.nota3), parseNota(tr['1']?.nota4)]);
+        const m2 = calcMediaTri([parseNota(tr['2']?.nota1), parseNota(tr['2']?.nota2), parseNota(tr['2']?.nota3), parseNota(tr['2']?.nota4)]);
+        const m3 = calcMediaTri([parseNota(tr['3']?.nota1), parseNota(tr['3']?.nota2), parseNota(tr['3']?.nota3), parseNota(tr['3']?.nota4)]);
 
-        const notasTri1 = [n1_tri1, n2_tri1, n3_tri1, n4_tri1].filter(n => n !== null);
-
-        // Calcula a média APENAS do Trimestre 1 (Por padrão, conforme solicitado)
-        if (notasTri1.length > 0) {
-            const calc = notasTri1.reduce((a, b) => a + b, 0) / notasTri1.length;
-            mediaExibida = calc.toFixed(1);
-            
-            // Define a cor de aprovação (Ajuste o 6.0 para 7.0 caso seja a nota de corte do colégio)
-            bgMedia = calc >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
+        let calcFinal = null;
+        if (trimestreFoco === '1') calcFinal = m1;
+        else if (trimestreFoco === '2') calcFinal = m2;
+        else if (trimestreFoco === '3') calcFinal = m3;
+        else if (trimestreFoco === 'geral') {
+            const trimesters = [m1, m2, m3].filter(m => m !== null);
+            if (trimesters.length > 0) calcFinal = trimesters.reduce((a, b) => a + b, 0) / trimesters.length;
         }
 
-        // Mantida a estrutura exata de 14 colunas. Apenas a lógica da media final (agora Tri 1) foi alterada.
+        if (calcFinal !== null) {
+            mediaExibida = calcFinal.toFixed(1);
+            bgMedia = calcFinal >= 6.0 ? "bg-green-900/20 text-green-400" : "bg-red-900/20 text-red-400";
+        }
+
         html += `<tr class="bg-slate-900/10 hover:bg-slate-900/50 transition-colors">
             <td class="font-bold text-slate-300 text-xs p-3 border border-slate-700 truncate max-w-[200px]" title="${nome}">${nome}</td>
             <td class="border border-slate-700 text-center py-2">${tr['1']?.nota1 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota2 || '-'}</td><td class="border border-slate-700 text-center py-2">${tr['1']?.nota3 || '-'}</td><td class="border border-slate-700 text-center py-2 bg-slate-900/30 font-bold">${tr['1']?.nota4 || '-'}</td>
@@ -869,12 +882,7 @@ async function loadBoletimAndMetrics() {
         </tr>`;
     }
 
-    if (!html) {
-        html = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">Nenhuma disciplina ativa encontrada para exibir o boletim.</td></tr>';
-    }
-
     els.boletimBody.innerHTML = html;
-
     renderScatterChart();
     renderEvolutionChart();
 }
