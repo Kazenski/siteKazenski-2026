@@ -53,7 +53,9 @@
 
 </head>
 
-<body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col">
+<!-- <body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-screen flex flex-col"> -->
+
+<body class="bg-slate-900 text-slate-200 font-inter overflow-hidden h-[100dvh] flex flex-col">
 
     <header
         class="h-16 bg-slate-900 border-b border-blue-900/50 flex items-center justify-between px-6 shrink-0 z-50 shadow-2xl relative w-full">
@@ -74,8 +76,11 @@
         <div id="mobile-menu-overlay" class="hidden md:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[90]"
             onclick="document.getElementById('btn-mobile-menu').click()"></div>
 
+        <!-- <div id="mobile-menu-container"
+            class="fixed md:static top-0 left-0 h-full md:h-auto min-h-screen md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex md:flex-grow md:justify-center overflow-y-auto md:overflow-visible"> -->
+
         <div id="mobile-menu-container"
-            class="fixed md:static top-0 left-0 h-full md:h-auto min-h-screen md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex md:flex-grow md:justify-center overflow-y-auto md:overflow-visible">
+            class="fixed md:static top-0 left-0 h-full md:h-auto min-h-[100dvh] md:min-h-0 w-64 md:w-auto bg-slate-900 md:bg-transparent z-[100] md:z-auto shadow-2xl md:shadow-none flex-col md:flex-row pt-16 md:pt-0 border-r border-slate-800 md:border-none transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex md:flex-grow md:justify-center overflow-y-auto md:overflow-visible">
 
             <button class="md:hidden absolute top-4 right-4 text-slate-400 hover:text-white text-2xl"
                 onclick="document.getElementById('btn-mobile-menu').click()">
