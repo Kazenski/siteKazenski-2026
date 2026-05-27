@@ -28,6 +28,14 @@ body, html {
     max-width: 100vw; 
     overflow-x: hidden; 
 }
+
+/* ==========================================================================
+   AJUSTE DE ESCALA GLOBAL (ZOOM OUT TAILWIND)
+   ========================================================================== */
+html {
+    font-size: 12px; /* Reduz a escala base do rem. Diminui tudo proporcionalmente. */
+}
+
 main, .tab-content { 
     max-width: 100%; 
     overflow-x: hidden; 
