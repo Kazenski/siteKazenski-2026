@@ -17,14 +17,14 @@ let sortedGroupsCache = [];
 let cadastroSucessos = [];
 let recadastroCache = [];
 let recadastroSelected = new Set();
-let chartInstances = {}; 
+let chartInstances = {};
 let currentStudentAnalysisData = null;
 let avaliacoesCache = [];
 let avaliacoesSort = { column: 'dataAplicacao', order: 'desc' };
 let geralAnalysisCache = {
     students: [],
-    faltasMap: {}, 
-    notasMap: {} 
+    faltasMap: {},
+    notasMap: {}
 };
 
 const QUESITOS_AVALIACAO = {
@@ -56,8 +56,8 @@ const QUESITOS_AVALIACAO = {
 };
 
 let evalState = {
-    selectedStudents: [], 
-    scores: {}, 
+    selectedStudents: [],
+    scores: {},
     currentQuesitoId: null
 };
 
@@ -65,9 +65,17 @@ export async function renderProfessorTab() {
     const container = document.getElementById('professor-content');
     if (!container) return;
 
-    // Remove limitações de largura para ocupar 100% da tela em todos os dispositivos
+    // Remove limitações de largura do container principal para ocupar 100%
     container.classList.remove('max-w-7xl', 'mx-auto');
     container.classList.add('w-full', 'px-2', 'md:px-4', 'flex-1');
+
+    // EXPANSÃO NOVA: Busca a div interna (wrapper) que centraliza e limita o conteúdo
+    // Remove a trava de 7xl e força ela a ocupar w-full para remover as bordas laterais
+    const innerWrapper = container.querySelector('.max-w-7xl');
+    if (innerWrapper) {
+        innerWrapper.classList.remove('max-w-7xl', 'mx-auto');
+        innerWrapper.classList.add('w-full');
+    }
 
     if (!auth.currentUser) {
         container.innerHTML = '<div class="text-center text-slate-500 mt-20">Acesso negado. Faça login.</div>';
@@ -77,7 +85,7 @@ export async function renderProfessorTab() {
     mapearDOM(); // 1º - O sistema "lê" todos os botões da tela
     setupSubTabs();
     await initFilters();
-    
+
     // Proteção: Só define a data se o campo existir na tela atual
     if (els.inputDate) els.inputDate.valueAsDate = new Date();
 
@@ -107,41 +115,13 @@ export async function renderProfessorTab() {
     addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
-    if(els.evalSelectAv) {
+    if (els.evalSelectAv) {
         els.evalSelectAv.addEventListener('change', () => {
-            if(evalState.selectedStudents.length > 0) {
+            if (evalState.selectedStudents.length > 0) {
                 window.profAPI.loadSavedEvalData(evalState.selectedStudents[0].id);
             }
         });
     }
-    
-    // document.querySelector('[data-target="apoia"]').addEventListener('click', () => {
-    //     window.profAPI.loadApoiaRegistros();
-    // });
-
-    // document.querySelector('[data-target="sorteios"]').addEventListener('click', () => {
-    //     window.profAPI.initSorteiosTab();
-    // });
-
-    // document.querySelector('[data-target="analise"]').addEventListener('click', () => {
-    //     window.profAPI.populateAnaliseStudentSelect();
-    // });
-
-    // document.querySelector('[data-target="analise-geral"]').addEventListener('click', () => {
-    //     window.profAPI.loadGeralDashboard();
-    // });
-
-    // document.querySelector('[data-target="avaliacoes"]').addEventListener('click', () => {
-    //     window.profAPI.loadAvaliacoesAdmin();
-    // });
-
-    // document.querySelector('[data-target="horario"]').addEventListener('click', () => {
-    //     window.profAPI.loadGradeHoraria();
-    // });
-
-    // document.querySelector('[data-target="avisos"]').addEventListener('click', () => {
-    //     window.profAPI.loadAvisosPanel();
-    // });
 
     // Botões de Status de Lançamento (Pendente/Lançado)
     els.launchBtns.forEach(btn => {
@@ -484,7 +464,7 @@ async function loadMasterData() {
                 if (trimData) {
                     n1 = trimData.nota1 ?? ""; n2 = trimData.nota2 ?? ""; n3 = trimData.nota3 ?? "";
                     if (trimData.nota4 === undefined) { n4 = ""; missing = true; } else { n4 = trimData.nota4 ?? ""; }
-                    
+
                     // Extrai os pontos extras (false por padrão)
                     e1 = trimData.ext1 || false;
                     e2 = trimData.ext2 || false;
@@ -526,21 +506,21 @@ async function loadMasterData() {
 }
 
 function renderExtrasTable() {
-    if(!els.extrasBody) return;
+    if (!els.extrasBody) return;
     els.extrasBody.innerHTML = '';
-    if(els.extrasMsg) els.extrasMsg.classList.add('hidden');
-    
+    if (els.extrasMsg) els.extrasMsg.classList.add('hidden');
+
     state.cache.students.forEach(st => {
         const cache = state.notasCache[st.id];
         const isActive = st.registroAtivo !== false;
-        
+
         // Calcula a soma (Quantos estão marcados como TRUE)
         const somaExtras = [cache.e1, cache.e2, cache.e3, cache.e4].filter(Boolean).length;
-        
+
         const tr = document.createElement('tr');
         tr.dataset.uid = st.id;
         tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
-        
+
         let html = `
             <td class="p-4 text-center">
                 <input type="checkbox" class="w-4 h-4 accent-amber-500 cursor-pointer row-checkbox-ext" ${!isActive ? 'disabled' : ''}>
@@ -554,7 +534,7 @@ function renderExtrasTable() {
         `;
 
         // Campos de EXT 1 a EXT 4
-        ['e1', 'e2', 'e3', 'e4'].forEach(f => { 
+        ['e1', 'e2', 'e3', 'e4'].forEach(f => {
             const isChecked = cache[f] ? 'checked' : '';
             html += `<td class="p-2 text-center">
                 <input type="checkbox" class="w-5 h-5 accent-blue-500 cursor-pointer ext-input" 
@@ -583,13 +563,13 @@ function renderExtrasTable() {
 function renderChamadaList() {
     els.studentList.innerHTML = '';
     els.obsInput.value = state.chamada.obs;
-    
+
     // Atualiza o botão de Status de Lançamento (Pendente/Lançado)
     const targetBtn = document.querySelector(`.launch-btn[data-val="${state.chamada.lancado}"]`);
-    if(targetBtn) targetBtn.click();
+    if (targetBtn) targetBtn.click();
 
     state.cache.students.forEach(st => {
-        const isActive = st.registroAtivo !== false; 
+        const isActive = st.registroAtivo !== false;
         const status = state.chamada.registros[st.id] || 'presente';
         state.chamada.registros[st.id] = status; // Por padrão, todos ganham 'presente'
 
@@ -604,13 +584,13 @@ function renderChamadaList() {
             
             <div class="flex items-center justify-between w-full md:w-auto gap-4 shrink-0">
                 <select class="hidden md:block bg-slate-950 border border-slate-700 text-xs rounded-lg p-2 font-bold ${isActive ? 'text-blue-400' : 'text-slate-500'} outline-none" onchange="window.profAPI.toggleActive('${st.id}', this)">
-                    <option value="true" ${isActive?'selected':''}>ATIVO</option><option value="false" ${!isActive?'selected':''}>INATIVO</option>
+                    <option value="true" ${isActive ? 'selected' : ''}>ATIVO</option><option value="false" ${!isActive ? 'selected' : ''}>INATIVO</option>
                 </select>
                 
                 <div class="flex w-full md:w-auto justify-between bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
-                    <button class="p-btn flex-1 md:flex-none presente ${status==='presente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'presente', this)" ${!isActive?'disabled':''}>P</button>
-                    <button class="p-btn flex-1 md:flex-none ausente ${status==='ausente'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'ausente', this)" ${!isActive?'disabled':''}>F</button>
-                    <button class="p-btn flex-1 md:flex-none justificado ${status==='justificado'?'selected':''}" onclick="window.profAPI.setStatus('${st.id}', 'justificado', this)" ${!isActive?'disabled':''}>J</button>
+                    <button class="p-btn flex-1 md:flex-none presente ${status === 'presente' ? 'selected' : ''}" onclick="window.profAPI.setStatus('${st.id}', 'presente', this)" ${!isActive ? 'disabled' : ''}>P</button>
+                    <button class="p-btn flex-1 md:flex-none ausente ${status === 'ausente' ? 'selected' : ''}" onclick="window.profAPI.setStatus('${st.id}', 'ausente', this)" ${!isActive ? 'disabled' : ''}>F</button>
+                    <button class="p-btn flex-1 md:flex-none justificado ${status === 'justificado' ? 'selected' : ''}" onclick="window.profAPI.setStatus('${st.id}', 'justificado', this)" ${!isActive ? 'disabled' : ''}>J</button>
                 </div>
             </div>
         `;
@@ -621,40 +601,40 @@ function renderChamadaList() {
 window.profAPI.saveChamada = async () => {
     const date = els.inputDate.value;
     const docId = `${classId}_${disciplineId}_${date}`;
-    
-    const payload = { 
-        turma: classId, 
-        disciplineId: disciplineId, 
-        data_aula_timestamp: Timestamp.fromDate(new Date(date + "T00:00:00")), 
-        registros: state.chamada.registros, 
-        comentarioGeral: els.obsInput.value, 
-        lancadoSistema: state.chamada.lancado, 
-        lastUpdate: serverTimestamp() 
+
+    const payload = {
+        turma: classId,
+        disciplineId: disciplineId,
+        data_aula_timestamp: Timestamp.fromDate(new Date(date + "T00:00:00")),
+        registros: state.chamada.registros,
+        comentarioGeral: els.obsInput.value,
+        lancadoSistema: state.chamada.lancado,
+        lastUpdate: serverTimestamp()
     };
-    
+
     els.btnSaveChamada.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
-    try { 
-        await setDoc(doc(db, "presencas", docId), payload, { merge: true }); 
-        alert("Chamada Salva no Firebase!"); 
-    } catch(e) { 
-        alert("Erro: " + e.message); 
+    try {
+        await setDoc(doc(db, "presencas", docId), payload, { merge: true });
+        alert("Chamada Salva no Firebase!");
+    } catch (e) {
+        alert("Erro: " + e.message);
     }
 }
 
 function renderNotasTable() {
     els.notasBody.innerHTML = '';
     els.notasMsg.classList.add('hidden');
-    
+
     state.cache.students.forEach(st => {
         const cache = state.notasCache[st.id];
         const media = calcMedia(cache.n1, cache.n2, cache.n3, cache.n4);
         const isActive = st.registroAtivo !== false;
-        
+
         const tr = document.createElement('tr');
         tr.dataset.uid = st.id;
         // Se inativo, fica transparente e bloqueia hover
         tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
-        
+
         let html = `
             <td class="p-4 text-center">
                 <input type="checkbox" class="w-4 h-4 accent-amber-500 cursor-pointer row-checkbox" ${!isActive ? 'disabled' : ''}>
@@ -668,7 +648,7 @@ function renderNotasTable() {
         `;
 
         // Campos de N1 a N4
-        ['n1', 'n2', 'n3', 'n4'].forEach(f => { 
+        ['n1', 'n2', 'n3', 'n4'].forEach(f => {
             const val = cache[f];
             html += `<td class="p-2">
                 <input type="number" step="0.1" min="0" max="10" 
@@ -680,7 +660,7 @@ function renderNotasTable() {
         });
 
         html += `
-            <td class="p-4 text-center font-black text-xl ${getNoteColor(media==='-'?'':media)}" id="media-${st.id}">${media}</td>
+            <td class="p-4 text-center font-black text-xl ${getNoteColor(media === '-' ? '' : media)}" id="media-${st.id}">${media}</td>
             <td class="p-4 text-center">
                 <button onclick="window.profAPI.saveSingleNote('${st.id}')" class="btn-save-row text-slate-600 hover:text-amber-400 transition-colors opacity-50" title="Salvar Linha">
                     <i class="fas fa-save text-xl"></i>
@@ -693,16 +673,16 @@ function renderNotasTable() {
 }
 
 // Helpers
-function calcMedia(n1, n2, n3, n4) { 
+function calcMedia(n1, n2, n3, n4) {
     let sum = 0, count = 0;
-    [n1, n2, n3, n4].forEach(v => { const f = parseFloat(v); if(!isNaN(f)){ sum+=f; count++; } });
+    [n1, n2, n3, n4].forEach(v => { const f = parseFloat(v); if (!isNaN(f)) { sum += f; count++; } });
     return count > 0 ? (sum / count).toFixed(1) : "-";
 }
 function getNoteColor(v) {
     const n = parseFloat(v);
-    if(isNaN(n)) return "text-slate-500";
-    if(n > 6) return "text-green-400"; 
-    if(n === 6) return "text-amber-400"; 
+    if (isNaN(n)) return "text-slate-500";
+    if (n > 6) return "text-green-400";
+    if (n === 6) return "text-amber-400";
     return "text-red-400";
 }
 
@@ -714,48 +694,48 @@ async function generateReport() {
     const startStr = els.relStart.value;
     const endStr = els.relEnd.value;
 
-    if(!classId) return alert("Selecione a Turma no topo (menu principal).");
-    if(!startStr || !endStr) return alert("Selecione as datas de início e fim.");
+    if (!classId) return alert("Selecione a Turma no topo (menu principal).");
+    if (!startStr || !endStr) return alert("Selecione as datas de início e fim.");
 
     els.relResults.classList.remove('hidden');
     els.relDetailed.innerHTML = '<tr><td colspan="2" class="text-center py-8 text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Calculando métricas...</td></tr>';
-    els.relSummary.innerHTML = ''; 
+    els.relSummary.innerHTML = '';
     els.relTotal.textContent = '';
 
     try {
         const start = new Date(startStr + "T00:00:00");
         const end = new Date(endStr + "T23:59:59");
-        
+
         // Array de filtros do Firebase
         const constraints = [
             where("turma", "==", classId),
             where("data_aula_timestamp", ">=", Timestamp.fromDate(start)),
             where("data_aula_timestamp", "<=", Timestamp.fromDate(end))
         ];
-        
+
         // Se escolheu disciplina, filtra só ela. Se não, traz todas da turma.
-        if(disciplineId) constraints.push(where("disciplinaId", "==", disciplineId));
+        if (disciplineId) constraints.push(where("disciplinaId", "==", disciplineId));
 
         const q = query(collection(db, "presencas"), ...constraints);
         const snap = await getDocs(q);
 
-        const stats = {}; 
-        const discStats = {}; 
+        const stats = {};
+        const discStats = {};
         let grandTotal = 0;
 
         // Processa os dados
         snap.forEach(doc => {
             const data = doc.data();
             const dId = data.disciplineId || data.disciplinaId;
-            
+
             // Filtro local da disciplina para evitar bugs do banco
-            if(disciplineId && dId !== disciplineId) return;
+            if (disciplineId && dId !== disciplineId) return;
 
             Object.entries(data.registros || {}).forEach(([uid, status]) => {
                 let s = status;
-                if(s === 'falta') s = 'ausente';
-                
-                if(s === 'ausente') {
+                if (s === 'falta') s = 'ausente';
+
+                if (s === 'ausente') {
                     stats[uid] = (stats[uid] || 0) + 1;
                     discStats[dId] = (discStats[dId] || 0) + 1;
                     grandTotal++;
@@ -765,7 +745,7 @@ async function generateReport() {
 
         // 1. Renderiza Tabela de Resumo
         let summaryHtml = '';
-        for(const [dId, count] of Object.entries(discStats)) {
+        for (const [dId, count] of Object.entries(discStats)) {
             const dName = state.cache.disciplinesMap.get(dId) || dId;
             summaryHtml += `
                 <tr class="hover:bg-slate-800/80 transition-colors">
@@ -778,16 +758,16 @@ async function generateReport() {
 
         // 2. Renderiza Tabela Detalhada por Aluno
         els.relDetailed.innerHTML = '';
-        for(const [uid, count] of Object.entries(stats)) {
+        for (const [uid, count] of Object.entries(stats)) {
             let name = "Aluno Desconhecido";
             const cached = state.cache.students.find(s => s.id === uid);
             if (cached) {
                 name = cached.nome;
             } else {
                 const docSnap = await getDoc(doc(db, "users", uid));
-                if(docSnap.exists()) name = docSnap.data().nome;
+                if (docSnap.exists()) name = docSnap.data().nome;
             }
-            
+
             els.relDetailed.insertAdjacentHTML('beforeend', `
                 <tr class="hover:bg-slate-800/80 transition-colors">
                     <td class="p-4 font-bold text-slate-200">${escapeHTML(name)}</td>
@@ -795,12 +775,12 @@ async function generateReport() {
                 </tr>
             `);
         }
-        if(Object.keys(stats).length === 0) {
+        if (Object.keys(stats).length === 0) {
             els.relDetailed.innerHTML = '<tr><td colspan="2" class="text-center p-6 text-slate-500 italic">Turma com 100% de presença neste período!</td></tr>';
         }
-        
-    } catch(e) { 
-        alert("Erro ao gerar relatório: " + e.message); 
+
+    } catch (e) {
+        alert("Erro ao gerar relatório: " + e.message);
         els.relDetailed.innerHTML = `<tr><td colspan="2" class="text-center p-6 text-red-500 font-bold">Falha na consulta.</td></tr>`;
     }
 }
@@ -810,8 +790,8 @@ async function generatePdf() {
     const startStr = els.pdfStart.value;
     const endStr = els.pdfEnd.value;
 
-    if(!classId || !disciplineId) return alert("Selecione Turma e Disciplina no menu superior.");
-    if(!startStr || !endStr) return alert("Selecione as datas de início e fim.");
+    if (!classId || !disciplineId) return alert("Selecione Turma e Disciplina no menu superior.");
+    if (!startStr || !endStr) return alert("Selecione as datas de início e fim.");
 
     els.pdfMsg.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Gerando PDF...';
     els.pdfMsg.className = "text-center text-sm mt-4 font-bold text-blue-400 block";
@@ -819,7 +799,7 @@ async function generatePdf() {
 
     try {
         const { jsPDF } = window.jspdf;
-        
+
         // 1. Puxa os alunos (do cache ou do banco se o cache falhar)
         let students = [];
         if (state.cache.students.length > 0 && state.filters.classId === classId) {
@@ -827,7 +807,7 @@ async function generatePdf() {
         } else {
             const qS = query(collection(db, "users"), where("turma", "==", classId), where("Aluno", "==", true), orderBy("nome"));
             const snapS = await getDocs(qS);
-            snapS.forEach(d => students.push({id: d.id, nome: d.data().nome}));
+            snapS.forEach(d => students.push({ id: d.id, nome: d.data().nome }));
         }
 
         // 2. Busca todas as presenças do período
@@ -835,39 +815,39 @@ async function generatePdf() {
         const end = new Date(endStr + "T23:59:59");
         // Remove o filtro estrito de disciplina da query e filtra via JS
         const qP = query(
-            collection(db, "presencas"), 
-            where("turma", "==", classId), 
-            where("data_aula_timestamp", ">=", Timestamp.fromDate(start)), 
-            where("data_aula_timestamp", "<=", Timestamp.fromDate(end)), 
+            collection(db, "presencas"),
+            where("turma", "==", classId),
+            where("data_aula_timestamp", ">=", Timestamp.fromDate(start)),
+            where("data_aula_timestamp", "<=", Timestamp.fromDate(end)),
             orderBy("data_aula_timestamp", "asc")
         );
-        
+
         const snapP = await getDocs(qP);
-        
+
         // Filtra as aulas da disciplina correta e monta as colunas (cobre ambos os nomes de variável)
         const cols = [];
         snapP.forEach(doc => {
             const d = doc.data();
             if (d.disciplineId === disciplineId || d.disciplinaId === disciplineId) {
                 const dateObj = d.data_aula_timestamp.toDate();
-                const label = `${String(dateObj.getDate()).padStart(2,'0')}/${String(dateObj.getMonth()+1).padStart(2,'0')}`;
+                const label = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
                 cols.push({ label, regs: d.registros || {} });
             }
         });
 
-        if(cols.length === 0) throw new Error("Sem aulas registradas neste período para exportar.");
+        if (cols.length === 0) throw new Error("Sem aulas registradas neste período para exportar.");
 
         // 4. Monta as Linhas (Alunos e as Faltas)
         const body = students.map(s => {
-            const row = [s.nome]; 
+            const row = [s.nome];
             let totalFaltas = 0;
-            
+
             cols.forEach(col => {
-                const stat = col.regs[s.id]; 
+                const stat = col.regs[s.id];
                 let mark = '-';
-                if(stat === 'presente') mark = 'P'; 
-                else if(stat === 'ausente') { mark = 'F'; totalFaltas++; } 
-                else if(stat === 'justificado') mark = 'J';
+                if (stat === 'presente') mark = 'P';
+                else if (stat === 'ausente') { mark = 'F'; totalFaltas++; }
+                else if (stat === 'justificado') mark = 'J';
                 row.push(mark);
             });
             row.push(String(totalFaltas));
@@ -877,33 +857,33 @@ async function generatePdf() {
         // 5. Instancia o PDF e Desenha a Tabela
         const pdf = new jsPDF('landscape');
         const dName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
-        
-        pdf.setFontSize(14); 
+
+        pdf.setFontSize(14);
         pdf.text("Diario Oficial - Matriz de Frequência", 14, 15);
-        pdf.setFontSize(10); 
+        pdf.setFontSize(10);
         pdf.text(`Escola: ${school} | Turma: ${classId} | Disciplina: ${dName}`, 14, 22);
-        
-        pdf.autoTable({ 
-            startY: 30, 
-            head: [['Aluno', ...cols.map(c => c.label), 'Total Faltas']], 
-            body: body, 
-            styles: { fontSize: 8, halign: 'center' }, 
-            columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } }, 
+
+        pdf.autoTable({
+            startY: 30,
+            head: [['Aluno', ...cols.map(c => c.label), 'Total Faltas']],
+            body: body,
+            styles: { fontSize: 8, halign: 'center' },
+            columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
             theme: 'grid',
             headStyles: { fillColor: [59, 130, 246] } // Azul padrão para combinar com o layout
         });
-        
+
         pdf.save(`Matriz_Frequencia_${classId}_${dName.substring(0, 10)}.pdf`);
-        
-        els.pdfMsg.innerHTML = '<i class="fas fa-check-circle mr-2"></i> PDF Baixado com Sucesso!'; 
+
+        els.pdfMsg.innerHTML = '<i class="fas fa-check-circle mr-2"></i> PDF Baixado com Sucesso!';
         els.pdfMsg.classList.replace('text-blue-400', 'text-green-400');
-        
-    } catch(e) { 
+
+    } catch (e) {
         console.error(e);
-        els.pdfMsg.textContent = "Erro: " + e.message; 
-        els.pdfMsg.classList.replace('text-blue-400', 'text-red-400'); 
-    } finally { 
-        els.btnPdf.disabled = false; 
+        els.pdfMsg.textContent = "Erro: " + e.message;
+        els.pdfMsg.classList.replace('text-blue-400', 'text-red-400');
+    } finally {
+        els.btnPdf.disabled = false;
     }
 }
 
@@ -911,7 +891,7 @@ async function generatePdf() {
 // EXPORT API GLOBAL
 // ==========================================
 window.profAPI = {
-    
+
     setStatus: (uid, status, btn) => {
         state.chamada.registros[uid] = status;
         btn.parentElement.querySelectorAll('.p-btn').forEach(b => b.classList.remove('selected'));
@@ -1003,20 +983,20 @@ window.profAPI = {
     // MÓDULO: PONTOS EXTRAS
     // ==========================================
     updateLocalExtra: (uid, input) => {
-        const field = input.dataset.field; 
+        const field = input.dataset.field;
         const isChecked = input.checked;
-        
+
         if (state.notasCache[uid]) {
-            state.notasCache[uid][field] = isChecked; 
+            state.notasCache[uid][field] = isChecked;
             state.notasCache[uid].extModified = true;
-            
+
             // Recalcula a soma e atualiza a interface
-            const c = state.notasCache[uid]; 
+            const c = state.notasCache[uid];
             const soma = [c.e1, c.e2, c.e3, c.e4].filter(Boolean).length;
-            
+
             const sEl = document.getElementById(`soma-ext-${uid}`);
             if (sEl) sEl.textContent = soma;
-            
+
             const btn = input.closest('tr').querySelector('.btn-save-row-ext');
             if (btn) { btn.classList.remove('opacity-50', 'text-slate-600'); btn.classList.add('text-blue-500', 'opacity-100'); }
         }
@@ -1025,9 +1005,9 @@ window.profAPI = {
     toggleSelectAllExtras: (source) => { document.querySelectorAll('#extras-table-body .row-checkbox-ext:not(:disabled)').forEach(cb => cb.checked = source.checked); },
     applyMassExtra: () => {
         const fields = [];
-        if (els.massExt1.checked) fields.push('e1'); 
+        if (els.massExt1.checked) fields.push('e1');
         if (els.massExt2.checked) fields.push('e2');
-        if (els.massExt3.checked) fields.push('e3'); 
+        if (els.massExt3.checked) fields.push('e3');
         if (els.massExt4.checked) fields.push('e4');
         if (fields.length === 0) return alert("Selecione qual Coluna Extra (1 a 4) aplicar no painel de massa.");
 
@@ -1036,10 +1016,10 @@ window.profAPI = {
 
         rows.forEach(cb => {
             const tr = cb.closest('tr'); const uid = tr.dataset.uid;
-            fields.forEach(f => { 
-                const i = tr.querySelector(`[data-field="${f}"]`); 
+            fields.forEach(f => {
+                const i = tr.querySelector(`[data-field="${f}"]`);
                 i.checked = true; // Aplica sempre como verdadeiro
-                window.profAPI.updateLocalExtra(uid, i); 
+                window.profAPI.updateLocalExtra(uid, i);
             });
         });
     },
@@ -1062,22 +1042,22 @@ window.profAPI = {
             if (btn) { btn.classList.add('text-slate-600', 'opacity-50'); btn.classList.remove('text-blue-500', 'opacity-100'); }
         } catch (e) { console.error(e); alert("Erro ao salvar extra isolado."); }
     },
-    
+
     saveAllExtras: async () => {
         const mods = Object.keys(state.notasCache).filter(uid => state.notasCache[uid].extModified);
         if (mods.length === 0) return alert("Nenhuma alteração pendente em Pontos Extras para salvar.");
         if (!confirm(`Confirmar registro de pontos extras para ${mods.length} alunos?`)) return;
-        
+
         let err = 0;
-        if(els.extrasMsg) {
+        if (els.extrasMsg) {
             els.extrasMsg.textContent = "Salvando extras no Grimório...";
             els.extrasMsg.classList.remove('hidden');
         }
-        
+
         for (const uid of mods) { try { await window.profAPI.saveSingleExtra(uid); } catch (e) { err++; } }
-        
+
         if (err > 0) alert(`Salvo, porém com ${err} erros.`); else alert("Pontos Extras salvos com Sucesso!");
-        if(els.extrasMsg) els.extrasMsg.classList.add('hidden');
+        if (els.extrasMsg) els.extrasMsg.classList.add('hidden');
     },
 
     // ==========================================
@@ -1085,7 +1065,7 @@ window.profAPI = {
     // ==========================================
     loadAnotacoes: async () => {
         const { school, classId, disciplineId } = state.filters;
-        if(!classId) {
+        if (!classId) {
             els.anotacoesMsg.textContent = "Selecione uma Turma no menu superior (Carregar).";
             els.anotacoesMsg.classList.remove('hidden');
             return;
@@ -1097,8 +1077,8 @@ window.profAPI = {
 
         try {
             const constraints = [where("turma", "==", classId)];
-            if(disciplineId) constraints.push(where("disciplina", "==", disciplineId));
-            if(school) constraints.push(where("escola", "==", school));
+            if (disciplineId) constraints.push(where("disciplina", "==", disciplineId));
+            if (school) constraints.push(where("escola", "==", school));
 
             const q = query(collection(db, "anotacoesAlunos"), ...constraints);
             const snap = await getDocs(q);
@@ -1115,7 +1095,7 @@ window.profAPI = {
 
             window.profAPI.renderAnotacoesTable();
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.anotacoesMsg.textContent = "Erro ao buscar: " + e.message;
         }
@@ -1124,11 +1104,11 @@ window.profAPI = {
     renderAnotacoesTable: () => {
         const termo = els.anotacaoFilter.value.toLowerCase();
         const currentDisc = state.filters.disciplineId;
-        
+
         const filtered = anotacoesCache.filter(a => !termo || (a.alunoNome && a.alunoNome.toLowerCase().includes(termo)));
         els.anotacoesBody.innerHTML = '';
 
-        if(filtered.length === 0) {
+        if (filtered.length === 0) {
             els.anotacoesMsg.textContent = "Nenhuma anotação encontrada.";
             els.anotacoesMsg.classList.remove('hidden');
             return;
@@ -1138,16 +1118,16 @@ window.profAPI = {
         filtered.forEach(note => {
             const isSameDisc = note.disciplina === currentDisc;
             let dateStr = '-';
-            if(note.atualizadoEm?.toDate) dateStr = note.atualizadoEm.toDate().toLocaleDateString('pt-BR');
+            if (note.atualizadoEm?.toDate) dateStr = note.atualizadoEm.toDate().toLocaleDateString('pt-BR');
             else if (note.criadoEm?.toDate) dateStr = note.criadoEm.toDate().toLocaleDateString('pt-BR');
-            
+
             const discName = state.cache.disciplinesMap.get(note.disciplina) || note.disciplina;
             const noteSafe = JSON.stringify(note).replace(/"/g, '&quot;').replace(/'/g, "&#39;");
 
             const tr = document.createElement('tr');
             // Destaque visual forte se for pra Gestão
             tr.className = `border-b border-slate-700/50 transition-colors ${note.atendimento ? 'bg-red-900/20 hover:bg-red-900/30' : 'hover:bg-slate-800/50'} ${!isSameDisc ? 'opacity-60' : ''}`;
-            if(note.atendimento) tr.style.borderLeft = "4px solid #ef4444";
+            if (note.atendimento) tr.style.borderLeft = "4px solid #ef4444";
 
             tr.innerHTML = `
                 <td class="p-4 font-bold text-slate-200">${escapeHTML(note.alunoNome || 'Sem nome')}</td>
@@ -1173,7 +1153,7 @@ window.profAPI = {
 
     openAnotacaoModal: async (noteData = null) => {
         const { school, classId, disciplineId } = state.filters;
-        if(!classId || !disciplineId) return alert("Carregue Turma e Disciplina no menu superior primeiro.");
+        if (!classId || !disciplineId) return alert("Carregue Turma e Disciplina no menu superior primeiro.");
 
         // Preenche info visual
         els.anotacaoSchool.value = school;
@@ -1185,13 +1165,13 @@ window.profAPI = {
         els.anotacaoAlunoSel.innerHTML = '<option value="">Selecione o Aluno...</option>';
         state.cache.students.forEach(al => els.anotacaoAlunoSel.add(new Option(al.nome, al.id)));
 
-        if(noteData) {
+        if (noteData) {
             els.anotacaoTitle.textContent = "Editar Anotação";
             els.anotacaoId.value = noteData.id;
-            els.anotacaoAlunoSel.value = noteData.alunoId || ""; 
-            if(!els.anotacaoAlunoSel.value && noteData.alunoNome) {
-                for(let i=0; i<els.anotacaoAlunoSel.options.length; i++) {
-                    if(els.anotacaoAlunoSel.options[i].text === noteData.alunoNome) { els.anotacaoAlunoSel.selectedIndex = i; break; }
+            els.anotacaoAlunoSel.value = noteData.alunoId || "";
+            if (!els.anotacaoAlunoSel.value && noteData.alunoNome) {
+                for (let i = 0; i < els.anotacaoAlunoSel.options.length; i++) {
+                    if (els.anotacaoAlunoSel.options[i].text === noteData.alunoNome) { els.anotacaoAlunoSel.selectedIndex = i; break; }
                 }
             }
             els.anotacaoTexto.value = noteData.conteudo;
@@ -1218,10 +1198,10 @@ window.profAPI = {
         const alunoNome = els.anotacaoAlunoSel.options[els.anotacaoAlunoSel.selectedIndex]?.text;
         const conteudo = els.anotacaoTexto.value.trim();
         const gestao = els.anotacaoGestao.checked;
-        
+
         const { school, classId, disciplineId } = state.filters;
 
-        if(!alunoUid || !conteudo) return alert("Selecione o aluno e digite o conteúdo da anotação.");
+        if (!alunoUid || !conteudo) return alert("Selecione o aluno e digite o conteúdo da anotação.");
 
         els.btnSaveAnotacao.disabled = true;
         els.btnSaveAnotacao.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
@@ -1234,7 +1214,7 @@ window.profAPI = {
                 atualizadoEm: serverTimestamp()
             };
 
-            if(id) {
+            if (id) {
                 await updateDoc(doc(db, "anotacoesAlunos", id), payload);
             } else {
                 payload.criadoEm = serverTimestamp();
@@ -1242,9 +1222,9 @@ window.profAPI = {
             }
 
             window.profAPI.closeAnotacaoModal();
-            window.profAPI.loadAnotacoes(); 
+            window.profAPI.loadAnotacoes();
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             alert("Erro ao salvar: " + e.message);
         } finally {
@@ -1254,11 +1234,11 @@ window.profAPI = {
     },
 
     deleteAnotacao: async (id) => {
-        if(!confirm("Tem certeza que deseja excluir esta anotação permanentemente?")) return;
+        if (!confirm("Tem certeza que deseja excluir esta anotação permanentemente?")) return;
         try {
             await deleteDoc(doc(db, "anotacoesAlunos", id));
             window.profAPI.loadAnotacoes();
-        } catch(e) { alert("Erro ao excluir: " + e.message); }
+        } catch (e) { alert("Erro ao excluir: " + e.message); }
     },
 
     // ==========================================
@@ -1266,7 +1246,7 @@ window.profAPI = {
     // ==========================================
     loadApoiaRegistros: async () => {
         const { classId } = state.filters;
-        if(!classId) {
+        if (!classId) {
             els.apoiaList.innerHTML = '';
             els.apoiaMsg.textContent = "Selecione uma Turma e Disciplina no topo (Carregar).";
             els.apoiaMsg.classList.remove('hidden');
@@ -1284,9 +1264,9 @@ window.profAPI = {
 
             apoiaCache = [];
             snap.forEach(d => apoiaCache.push({ id: d.id, ...d.data() }));
-            
+
             // Ordenação local por data
-            apoiaCache.sort((a,b) => {
+            apoiaCache.sort((a, b) => {
                 const tA = a.criadoEm ? a.criadoEm.seconds : 0;
                 const tB = b.criadoEm ? b.criadoEm.seconds : 0;
                 return tB - tA;
@@ -1294,7 +1274,7 @@ window.profAPI = {
 
             window.profAPI.renderApoiaList();
 
-        } catch(e) {
+        } catch (e) {
             console.error("Erro APOIA:", e);
             els.apoiaMsg.textContent = "Erro ao carregar: " + e.message;
         }
@@ -1302,7 +1282,7 @@ window.profAPI = {
 
     renderApoiaList: () => {
         els.apoiaList.innerHTML = '';
-        if(apoiaCache.length === 0) {
+        if (apoiaCache.length === 0) {
             els.apoiaMsg.textContent = "Nenhum documento APOIA gerado para esta turma.";
             els.apoiaMsg.classList.remove('hidden');
             return;
@@ -1312,7 +1292,7 @@ window.profAPI = {
         apoiaCache.forEach(reg => {
             const dataStr = reg.criadoEm ? reg.criadoEm.toDate().toLocaleDateString('pt-BR') : '-';
             const isCoord = reg.status === 'enviado_coordenacao';
-            
+
             const badgeClass = isCoord ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700 text-slate-300 border-slate-600';
             const badgeLabel = isCoord ? '<i class="fas fa-building mr-1"></i> COORDENAÇÃO' : '<i class="fas fa-chalkboard-teacher mr-1"></i> PROFESSOR';
 
@@ -1341,7 +1321,7 @@ window.profAPI = {
 
     openApoiaForm: (data = null) => {
         const { school, classId, disciplineId, quarter } = state.filters;
-        if(!classId || !disciplineId) return alert("Carregue a Turma e Disciplina no menu superior primeiro.");
+        if (!classId || !disciplineId) return alert("Carregue a Turma e Disciplina no menu superior primeiro.");
 
         // Readonly Fixos
         els.apoiaEscola.value = school;
@@ -1353,20 +1333,20 @@ window.profAPI = {
         state.cache.students.forEach(al => els.apoiaAlunoSel.add(new Option(al.nome, al.id)));
 
         // Mostra área da gestão apenas se for o Admin Principal
-        if(auth.currentUser.email === 'kazenski.developer@gmail.com') {
+        if (auth.currentUser.email === 'kazenski.developer@gmail.com') {
             els.apoiaIntervencoes.classList.remove('hidden');
         } else {
             els.apoiaIntervencoes.classList.add('hidden');
         }
 
-        if(data) {
+        if (data) {
             els.apoiaTitle.innerHTML = '<i class="fas fa-file-signature mr-2"></i> Editar Registro APOIA';
             els.apoiaId.value = data.id;
             els.apoiaAlunoSel.value = data.alunoId;
             els.apoiaTrimestre.value = data.trimestre;
             els.apoiaStatus.value = data.status;
             els.apoiaTexto.value = data.textoExplicativo;
-            
+
             els.intAvisoData.value = data.intervencaoAviso?.data || '';
             els.intAvisoObs.value = data.intervencaoAviso?.anotacoes || '';
             els.intConselhoData.value = data.intervencaoConselho?.data || '';
@@ -1376,8 +1356,8 @@ window.profAPI = {
             els.apoiaId.value = "";
             els.apoiaTexto.value = "";
             els.apoiaStatus.value = "registro_professor";
-            els.apoiaTrimestre.value = quarter || "1"; 
-            
+            els.apoiaTrimestre.value = quarter || "1";
+
             els.intAvisoData.value = ''; els.intAvisoObs.value = '';
             els.intConselhoData.value = ''; els.intConselhoObs.value = '';
         }
@@ -1395,11 +1375,11 @@ window.profAPI = {
         const id = els.apoiaId.value;
         const alunoId = els.apoiaAlunoSel.value;
         const alunoNome = els.apoiaAlunoSel.options[els.apoiaAlunoSel.selectedIndex]?.text;
-        
-        if(!alunoId) return alert("Selecione o aluno envolvido.");
+
+        if (!alunoId) return alert("Selecione o aluno envolvido.");
 
         const { school, classId, disciplineId } = state.filters;
-        
+
         els.btnSaveApoia.disabled = true;
         els.btnSaveApoia.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Registrando...';
 
@@ -1411,27 +1391,27 @@ window.profAPI = {
             trimestre: els.apoiaTrimestre.value,
             status: els.apoiaStatus.value,
             textoExplicativo: els.apoiaTexto.value,
-            criadoPorNome: "Professor(a)", 
+            criadoPorNome: "Professor(a)",
             atualizadoEm: serverTimestamp()
         };
 
         // Salva Intervenções se Admin (área visível)
-        if(!els.apoiaIntervencoes.classList.contains('hidden')) {
+        if (!els.apoiaIntervencoes.classList.contains('hidden')) {
             payload.intervencaoAviso = { data: els.intAvisoData.value, anotacoes: els.intAvisoObs.value };
             payload.intervencaoConselho = { data: els.intConselhoData.value, anotacoes: els.intConselhoObs.value };
         }
 
         try {
-            if(id) { await updateDoc(doc(db, "apoiaRegistros", id), payload); } 
+            if (id) { await updateDoc(doc(db, "apoiaRegistros", id), payload); }
             else {
                 payload.criadoEm = serverTimestamp();
                 await addDoc(collection(db, "apoiaRegistros"), payload);
             }
-            
+
             window.profAPI.closeApoiaForm();
             window.profAPI.loadApoiaRegistros();
             alert("Documento oficializado com sucesso!");
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             alert("Erro ao salvar APOIA: " + e.message);
         } finally {
@@ -1441,15 +1421,15 @@ window.profAPI = {
     },
 
     deleteApoia: async (id) => {
-        if(!confirm("Atenção: Você tem certeza que deseja EXCLUIR este documento oficial APOIA?")) return;
+        if (!confirm("Atenção: Você tem certeza que deseja EXCLUIR este documento oficial APOIA?")) return;
         try { await deleteDoc(doc(db, "apoiaRegistros", id)); window.profAPI.loadApoiaRegistros(); }
-        catch(e) { alert("Erro ao excluir: " + e.message); }
+        catch (e) { alert("Erro ao excluir: " + e.message); }
     },
 
     analyzeApoiaFreq: async () => {
         const { classId, disciplineId } = state.filters;
-        if(!classId || !disciplineId) return alert("Selecione Turma e Disciplina no topo.");
-        
+        if (!classId || !disciplineId) return alert("Selecione Turma e Disciplina no topo.");
+
         els.apoiaFreqBody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-red-400"><i class="fas fa-spinner fa-spin mr-2"></i> Varrendo diários...</td></tr>';
         els.apoiaFreqBox.classList.remove('hidden');
 
@@ -1459,7 +1439,7 @@ window.profAPI = {
             const apoiaQ = query(collection(db, "apoiaRegistros"), where("turmaId", "==", classId), where("disciplinaId", "==", disciplineId));
             const apoiaSnap = await getDocs(apoiaQ);
             const lastApoiaPerStudent = {};
-            
+
             apoiaSnap.forEach(doc => {
                 const data = doc.data();
                 const timestamp = data.criadoEm ? data.criadoEm.toMillis() : 0;
@@ -1472,39 +1452,39 @@ window.profAPI = {
             // 2. Busca Presenças
             const q = query(collection(db, "presencas"), where("turma", "==", classId), orderBy("data_aula_timestamp", "asc"));
             const snap = await getDocs(q);
-            
-            const faltasAluno = {}; 
-            
+
+            const faltasAluno = {};
+
             snap.forEach(doc => {
                 const data = doc.data();
                 const dId = data.disciplineId || data.disciplinaId;
-                if(dId !== disciplineId) return; // Garante a disciplina certa
-                
+                if (dId !== disciplineId) return; // Garante a disciplina certa
+
                 const aulaTime = data.data_aula_timestamp ? data.data_aula_timestamp.toMillis() : 0;
                 const regs = data.registros || {};
-                
+
                 // Reseta a contagem de consecutivas se o aluno veio na aula
-                for(const uid in faltasAluno) { 
+                for (const uid in faltasAluno) {
                     let s = regs[uid];
-                    if(s === 'falta') s = 'ausente';
-                    if(s !== 'ausente') faltasAluno[uid].consecutivas = 0; 
+                    if (s === 'falta') s = 'ausente';
+                    if (s !== 'ausente') faltasAluno[uid].consecutivas = 0;
                 }
 
-                for(const [uid, status] of Object.entries(regs)) {
+                for (const [uid, status] of Object.entries(regs)) {
                     let s = status;
-                    if(s === 'falta') s = 'ausente';
+                    if (s === 'falta') s = 'ausente';
 
                     // Se a aula ocorreu ANTES ou NO MESMO DIA do último APOIA, ignora! (Reset)
                     if (lastApoiaPerStudent[uid] && aulaTime <= lastApoiaPerStudent[uid]) {
-                        continue; 
+                        continue;
                     }
 
-                    if(!faltasAluno[uid]) faltasAluno[uid] = { total: 0, consecutivas: 0, maxConsecutivas: 0 };
-                    
-                    if(s === 'ausente') {
+                    if (!faltasAluno[uid]) faltasAluno[uid] = { total: 0, consecutivas: 0, maxConsecutivas: 0 };
+
+                    if (s === 'ausente') {
                         faltasAluno[uid].total++;
                         faltasAluno[uid].consecutivas++;
-                        if(faltasAluno[uid].consecutivas > faltasAluno[uid].maxConsecutivas) {
+                        if (faltasAluno[uid].consecutivas > faltasAluno[uid].maxConsecutivas) {
                             faltasAluno[uid].maxConsecutivas = faltasAluno[uid].consecutivas;
                         }
                     }
@@ -1513,25 +1493,25 @@ window.profAPI = {
 
             els.apoiaFreqBody.innerHTML = '';
             let count = 0;
-            
-            for(const [uid, dados] of Object.entries(faltasAluno)) {
+
+            for (const [uid, dados] of Object.entries(faltasAluno)) {
                 // A Regra de Ouro do APOIA (7 faltas totais ou 5 consecutivas)
-                if(dados.total >= 7 || dados.maxConsecutivas >= 5) {
-                    
+                if (dados.total >= 7 || dados.maxConsecutivas >= 5) {
+
                     let name = "Aluno Desconhecido";
                     const cached = state.cache.students.find(s => s.id === uid);
                     if (cached) name = cached.nome;
                     else {
                         try {
                             const uSnap = await getDoc(doc(db, "users", uid));
-                            if(uSnap.exists()) name = uSnap.data().nome;
-                        } catch(e) {}
+                            if (uSnap.exists()) name = uSnap.data().nome;
+                        } catch (e) { }
                     }
 
                     let sit = [];
-                    if(dados.total >= 7) sit.push("7+ Faltas (Total)");
-                    if(dados.maxConsecutivas >= 5) sit.push("5+ Seguidas (Evasão)");
-                    
+                    if (dados.total >= 7) sit.push("7+ Faltas (Total)");
+                    if (dados.maxConsecutivas >= 5) sit.push("5+ Seguidas (Evasão)");
+
                     els.apoiaFreqBody.insertAdjacentHTML('beforeend', `
                         <tr class="bg-red-950/30 hover:bg-red-900/50 transition-colors">
                             <td class="p-4 font-bold text-slate-200">${escapeHTML(name)}</td>
@@ -1542,9 +1522,9 @@ window.profAPI = {
                     count++;
                 }
             }
-            if(count === 0) els.apoiaFreqBody.innerHTML = '<tr><td colspan="3" class="text-center p-6 text-green-500 font-bold"><i class="fas fa-check-circle mr-2"></i> Nenhum aluno atingiu o limite crítico (7 faltas) nesta disciplina.</td></tr>';
+            if (count === 0) els.apoiaFreqBody.innerHTML = '<tr><td colspan="3" class="text-center p-6 text-green-500 font-bold"><i class="fas fa-check-circle mr-2"></i> Nenhum aluno atingiu o limite crítico (7 faltas) nesta disciplina.</td></tr>';
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.apoiaFreqBody.innerHTML = `<tr><td colspan="3" class="text-center p-6 text-red-500 font-bold">Erro na varredura: ${e.message}</td></tr>`;
         }
@@ -1552,7 +1532,7 @@ window.profAPI = {
 
     generateApoiaPdf: async (data) => {
         const area = els.pdfRenderArea;
-        
+
         // Constrói o layout formal do ofício no elemento invisível
         area.innerHTML = `
             <div style="padding: 30px; font-family: 'Times New Roman', serif; color: #000; background: #fff;">
@@ -1600,7 +1580,7 @@ window.profAPI = {
                 </div>
             </div>
         `;
-        
+
         try {
             // Requer as bibliotecas jsPDF e html2canvas
             const canvas = await html2canvas(area, { scale: 2 });
@@ -1608,11 +1588,11 @@ window.profAPI = {
             const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            
+
             pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             pdf.save(`Documento_APOIA_${data.alunoNome.replace(/\s+/g, '_')}.pdf`);
-            
-        } catch(e) {
+
+        } catch (e) {
             console.error(e);
             alert("Erro ao gerar o Ofício PDF: " + e.message);
         }
@@ -1624,7 +1604,7 @@ window.profAPI = {
     initSorteiosTab: () => {
         const count = state.cache.students.length;
         els.sorteiosCount.textContent = count;
-        
+
         const hasStudents = count > 0;
         els.btnSpinIndiv.disabled = !hasStudents;
         els.btnSpinGrupos.disabled = count < 2;
@@ -1643,13 +1623,13 @@ window.profAPI = {
         if (mode === 'indiv') {
             els.btnToggleIndiv.className = "px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-600 text-white shadow-lg";
             els.btnToggleGrupos.className = "px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-white";
-            
+
             els.viewSorteioGrupos.classList.replace('flex', 'hidden');
             els.viewSorteioIndiv.classList.replace('hidden', 'flex');
         } else {
             els.btnToggleGrupos.className = "px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all bg-amber-600 text-white shadow-lg";
             els.btnToggleIndiv.className = "px-5 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all text-slate-400 hover:text-white";
-            
+
             els.viewSorteioIndiv.classList.replace('flex', 'hidden');
             els.viewSorteioGrupos.classList.replace('hidden', 'flex');
         }
@@ -1661,32 +1641,32 @@ window.profAPI = {
 
         els.btnSpinIndiv.disabled = true;
         els.rouletteDisplay.classList.remove('roulette-winner');
-        
+
         let duration = 3000; // 3 segundos de animação
         let intervalTime = 50;
         let elapsed = 0;
-        
+
         const interval = setInterval(() => {
             // Sorteia um nome rapidamente para a animação
             const randomIdx = Math.floor(Math.random() * students.length);
             els.rouletteDisplay.textContent = students[randomIdx].nome;
-            
+
             elapsed += intervalTime;
-            
+
             // Desaceleração: Se passou de 70% do tempo, vai freando
             if (elapsed > duration * 0.7) intervalTime += 20;
 
             if (elapsed >= duration) {
                 clearInterval(interval);
-                
+
                 // Escolhe o Vencedor Final
                 const winnerIdx = Math.floor(Math.random() * students.length);
                 const winner = students[winnerIdx];
-                
+
                 els.rouletteDisplay.textContent = winner.nome;
                 els.rouletteDisplay.classList.add('roulette-winner');
                 els.btnSpinIndiv.disabled = false;
-                
+
                 // Efeito de Confete!
                 if (window.confetti) {
                     window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#ffffff', '#3b82f6'] });
@@ -1698,7 +1678,7 @@ window.profAPI = {
     spinGrupos: () => {
         const students = [...state.cache.students]; // Copia o array para não estragar o original
         const size = parseInt(els.groupSizeInput.value);
-        
+
         if (students.length === 0) return;
         if (size < 2 || size > students.length) return alert("Tamanho de equipe inválido.");
 
@@ -1710,23 +1690,23 @@ window.profAPI = {
 
         // Fatiar a lista em pedaços do tamanho desejado
         sortedGroupsCache = [];
-        while(students.length > 0) {
+        while (students.length > 0) {
             sortedGroupsCache.push(students.splice(0, size));
         }
 
         window.profAPI.renderGroups();
-        
+
         // Efeito de Confete!
         if (window.confetti) window.confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 }, colors: ['#f59e0b', '#3b82f6'] });
     },
 
     renderGroups: () => {
         els.groupsDisplay.innerHTML = '';
-        
+
         sortedGroupsCache.forEach((group, idx) => {
             const card = document.createElement('div');
             card.className = 'group-card animate-fade-in';
-            
+
             let listHtml = '';
             group.forEach(st => {
                 listHtml += `<li class="py-1.5 border-b border-slate-700/50 text-slate-300 text-sm font-medium flex items-center gap-2 last:border-0"><i class="fas fa-user text-amber-500 text-[10px]"></i> ${escapeHTML(st.nome)}</li>`;
@@ -1744,7 +1724,7 @@ window.profAPI = {
 
     exportGroupsTxt: () => {
         if (sortedGroupsCache.length === 0) return;
-        
+
         const { school, classId } = state.filters;
         let content = `ESCOLA: ${school}\nTURMA: ${classId}\nDATA: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
         content += "=== EQUIPES SORTEADAS ===\n\n";
@@ -1769,7 +1749,7 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: CADASTRO MASSIVO DE ALUNOS
     // ==========================================
-    
+
     // Helper visual para o log
     logCadastro: (msg, type) => {
         const div = document.createElement('div');
@@ -1777,7 +1757,7 @@ window.profAPI = {
         else if (type === 'success') div.className = 'text-green-400';
         else if (type === 'warning') div.className = 'text-amber-400';
         else div.className = 'text-blue-400';
-        
+
         div.innerHTML = `<span class="text-slate-600 mr-2">[${new Date().toLocaleTimeString()}]</span> > ${msg}`;
         els.cadastroLog.appendChild(div);
         els.cadastroLog.scrollTop = els.cadastroLog.scrollHeight;
@@ -1786,9 +1766,9 @@ window.profAPI = {
     // Função interna que chama a API REST do Firebase (Cria conta sem deslogar o admin)
     createUserRest: async (email, password) => {
         // Puxando a chave de forma limpa direto da configuração central do app!
-        const apiKey = app.options.apiKey; 
+        const apiKey = app.options.apiKey;
         const url = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`;
-        
+
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1820,16 +1800,16 @@ window.profAPI = {
         els.logPing.classList.remove('hidden');
         els.logStatusDot.classList.replace('bg-slate-600', 'bg-green-500');
         els.btnPdfCadastro.classList.add('hidden');
-        
+
         cadastroSucessos = [];
         window.profAPI.logCadastro(`Iniciando lote na turma ${classId}...`, 'info');
 
         for (let i = 0; i < linhas.length; i++) {
             const linha = linhas[i].trim();
             const partes = linha.split(',');
-            
+
             if (partes.length < 3) {
-                window.profAPI.logCadastro(`Linha ${i+1}: Formato inválido. Use Nome, Email, Senha`, 'error');
+                window.profAPI.logCadastro(`Linha ${i + 1}: Formato inválido. Use Nome, Email, Senha`, 'error');
                 continue;
             }
 
@@ -1838,7 +1818,7 @@ window.profAPI = {
             const senha = partes[2].trim();
 
             if (senha.length < 6) {
-                window.profAPI.logCadastro(`Linha ${i+1} (${email}): Senha muito curta`, 'error');
+                window.profAPI.logCadastro(`Linha ${i + 1} (${email}): Senha muito curta`, 'error');
                 continue;
             }
 
@@ -1856,7 +1836,7 @@ window.profAPI = {
                         const qUser = query(collection(db, "users"), where("email", "==", email));
                         const snapUser = await getDocs(qUser);
                         if (snapUser.empty) throw new Error("Email existe no Auth mas não no Banco de Dados.");
-                        
+
                         uid = snapUser.docs[0].id;
                         isNewUser = false;
                     } else {
@@ -1899,17 +1879,17 @@ window.profAPI = {
                 cadastroSucessos.push({ email, senha, nome: nomeCompleto, status: isNewUser ? 'NOVO' : 'VINCULADO' });
 
             } catch (e) {
-                window.profAPI.logCadastro(`[ERRO] Linha ${i+1} (${email}): ${e.message}`, 'error');
+                window.profAPI.logCadastro(`[ERRO] Linha ${i + 1} (${email}): ${e.message}`, 'error');
             }
-            
+
             // Pausa minúscula para não travar o navegador e respeitar limite da API
-            await new Promise(r => setTimeout(r, 150)); 
+            await new Promise(r => setTimeout(r, 150));
         }
 
         // FIM DO PROCESSO
         window.profAPI.logCadastro(`--- PROCESSO CONCLUÍDO ---`, 'info');
         window.profAPI.logCadastro(`Sucessos: ${cadastroSucessos.length} de ${linhas.length}`, 'success');
-        
+
         els.btnProcessarCadastro.disabled = false;
         els.btnProcessarCadastro.innerHTML = '<i class="fas fa-cogs mr-2"></i> Processar Cadastros';
         els.logPing.classList.add('hidden');
@@ -1926,7 +1906,7 @@ window.profAPI = {
                     totalProcessados: cadastroSucessos.length,
                     detalhes: cadastroSucessos.map(s => ({ email: s.email, status: s.status }))
                 });
-            } catch(e) { console.error("Erro ao salvar auditoria:", e); }
+            } catch (e) { console.error("Erro ao salvar auditoria:", e); }
         }
     },
 
@@ -1935,14 +1915,14 @@ window.profAPI = {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const { school, classId } = state.filters;
-        
+
         doc.setFontSize(16);
         doc.text("Relatório Oficial: Criação de Contas", 14, 20);
         doc.setFontSize(10);
         doc.text(`Escola: ${school} | Turma: ${classId} | Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
-        
+
         const rows = cadastroSucessos.map(s => [s.nome, s.email, s.senha, s.status]);
-        
+
         doc.autoTable({
             startY: 40,
             head: [['Nome (Provisório)', 'E-mail de Acesso', 'Senha Inicial', 'Ação no Banco']],
@@ -1951,7 +1931,7 @@ window.profAPI = {
             headStyles: { fillColor: [22, 163, 74] }, // Verde sucesso
             styles: { fontSize: 9 }
         });
-        
+
         doc.save(`Contas_Turma_${classId}.pdf`);
     },
 
@@ -1960,12 +1940,12 @@ window.profAPI = {
     // ==========================================
     loadRecadastroData: async () => {
         els.reList.innerHTML = '<div class="text-center p-10"><i class="fas fa-circle-notch fa-spin text-amber-500 text-3xl mb-4 block"></i><span class="text-slate-400 font-bold uppercase tracking-widest text-xs">Lendo Base Global de Alunos...</span></div>';
-        
+
         try {
             // Busca apenas usuários marcados como Aluno na base
             const q = query(collection(db, "users"), where("Aluno", "==", true));
             const snap = await getDocs(q);
-            
+
             recadastroCache = [];
             snap.forEach(d => {
                 const u = d.data();
@@ -1976,22 +1956,22 @@ window.profAPI = {
                     turmaAtual: u.turma || "NENHUMA"
                 });
             });
-            
+
             // Ordena alfabeticamente
             recadastroCache.sort((a, b) => a.nome.localeCompare(b.nome));
             window.profAPI.renderRecadastroList();
-            
-        } catch(e) { 
-            els.reList.innerHTML = `<div class="text-red-500 font-bold p-4 text-center">Erro: ${e.message}</div>`; 
+
+        } catch (e) {
+            els.reList.innerHTML = `<div class="text-red-500 font-bold p-4 text-center">Erro: ${e.message}</div>`;
         }
     },
 
     renderRecadastroList: () => {
         const searchVal = els.reSearch.value.toLowerCase();
         els.reList.innerHTML = '';
-        
+
         const filtered = recadastroCache.filter(u => u.nome.toLowerCase().includes(searchVal) || u.email.toLowerCase().includes(searchVal));
-        
+
         if (filtered.length === 0) {
             els.reList.innerHTML = '<div class="text-center text-slate-500 italic p-10">Nenhum aluno encontrado com este termo.</div>';
             return;
@@ -2000,18 +1980,18 @@ window.profAPI = {
         filtered.forEach(u => {
             const active = recadastroSelected.has(u.id);
             const div = document.createElement('div');
-            
+
             // Estilo altera se selecionado
             div.className = `flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${active ? 'bg-amber-900/20 border-amber-500' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'}`;
-            
+
             div.onclick = () => {
-                if(active) recadastroSelected.delete(u.id); 
+                if (active) recadastroSelected.delete(u.id);
                 else recadastroSelected.add(u.id);
-                
+
                 window.profAPI.renderRecadastroList();
                 els.reCount.textContent = recadastroSelected.size;
             };
-            
+
             div.innerHTML = `
                 <div>
                     <div class="text-sm font-bold ${active ? 'text-amber-400' : 'text-slate-200'}">${escapeHTML(u.nome)}</div>
@@ -2027,60 +2007,60 @@ window.profAPI = {
 
     executarVinculoMassa: async () => {
         const { school, classId, disciplineId } = state.filters;
-        
+
         if (!school || !classId || !disciplineId) return alert("ATENÇÃO: Selecione Escola, Turma e Disciplina no menu superior primeiro!");
         if (recadastroSelected.size === 0) return alert("Selecione pelo menos um aluno na lista.");
-        
+
         if (!confirm(`Confirmar vínculo de ${recadastroSelected.size} alunos à turma ${classId} (${disciplineId})?`)) return;
 
         els.reLog.innerHTML = '<div class="text-blue-400 font-bold mb-2">Iniciando Vínculos...</div>';
-        
+
         let sucessos = 0;
 
         try {
-            for(let uid of recadastroSelected) {
+            for (let uid of recadastroSelected) {
                 const u = recadastroCache.find(x => x.id === uid);
-                
+
                 // 1. Atualiza documento Users (Adiciona Turma, Escola e a nova Disciplina no map)
-                await updateDoc(doc(db, "users", uid), { 
-                    escola: school, 
-                    turma: classId, 
-                    [`disciplinas.${disciplineId}`]: true, 
-                    registroAtivo: true 
+                await updateDoc(doc(db, "users", uid), {
+                    escola: school,
+                    turma: classId,
+                    [`disciplinas.${disciplineId}`]: true,
+                    registroAtivo: true
                 });
-                
+
                 // 2. Garante Pauta de Notas (Cria a estrutura N1 a N4 para o trimestre, sem apagar as outras matérias usando merge)
-                await setDoc(doc(db, "notas", uid), { 
-                    userId: uid, 
-                    nomeAluno: u.nome, 
-                    escola: school, 
-                    disciplinasComNotas: { 
-                        [disciplineId]: { 
-                            "1": { nota1: null, nota2: null, nota3: null, nota4: null }, 
-                            "2": { nota1: null, nota2: null, nota3: null, nota4: null }, 
-                            "3": { nota1: null, nota2: null, nota3: null, nota4: null } 
-                        } 
+                await setDoc(doc(db, "notas", uid), {
+                    userId: uid,
+                    nomeAluno: u.nome,
+                    escola: school,
+                    disciplinasComNotas: {
+                        [disciplineId]: {
+                            "1": { nota1: null, nota2: null, nota3: null, nota4: null },
+                            "2": { nota1: null, nota2: null, nota3: null, nota4: null },
+                            "3": { nota1: null, nota2: null, nota3: null, nota4: null }
+                        }
                     },
                     lastUpdatedAt: serverTimestamp()
                 }, { merge: true });
-                
+
                 els.reLog.insertAdjacentHTML('beforeend', `<div class="text-green-400">> ${u.nome}: VINCULADO COM SUCESSO</div>`);
                 els.reLog.scrollTop = els.reLog.scrollHeight;
                 sucessos++;
             }
-            
+
             els.reLog.insertAdjacentHTML('beforeend', `<div class="text-amber-400 font-bold mt-2">--- FINALIZADO: ${sucessos} VÍNCULOS ---</div>`);
             els.reLog.scrollTop = els.reLog.scrollHeight;
-            
+
             alert(`Processo concluído com sucesso! ${sucessos} alunos vinculados.`);
-            
+
             // Esvaziar seleção ou manter para o professor vincular em outra disciplina
             // recadastroSelected.clear();
             els.reCount.textContent = '0';
             window.profAPI.renderRecadastroList();
-            
-        } catch(e) { 
-            alert("Erro no processo: " + e.message); 
+
+        } catch (e) {
+            alert("Erro no processo: " + e.message);
             els.reLog.insertAdjacentHTML('beforeend', `<div class="text-red-500 font-bold mt-2">> ERRO FATAL: ${e.message}</div>`);
         }
     },
@@ -2091,7 +2071,7 @@ window.profAPI = {
     populateAnaliseStudentSelect: () => {
         const list = state.cache.students;
         els.analiseStudentSel.innerHTML = '<option value="">Selecione um aluno...</option>';
-        
+
         if (list.length > 0) {
             list.forEach(s => els.analiseStudentSel.add(new Option(s.nome, s.id)));
             els.analiseMsg.textContent = "Selecione um aluno acima para visualizar a análise completa.";
@@ -2101,7 +2081,7 @@ window.profAPI = {
     },
 
     loadAnaliseDashboard: async (uid) => {
-        if(!uid) {
+        if (!uid) {
             els.analiseDashboard.classList.add('hidden');
             els.analiseMsg.classList.remove('hidden');
             return;
@@ -2117,34 +2097,34 @@ window.profAPI = {
 
             // 2. Busca Presenças com Sincronização Total (Mesma lógica da Visão Geral)
             const { classId, disciplineId } = state.filters;
-            
+
             // Removemos o orderBy para evitar falhas de Index do Firebase e filtramos no JS
             const presSnap = await getDocs(query(
-                collection(db, "presencas"), 
+                collection(db, "presencas"),
                 where("turma", "==", classId)
             ));
-            
+
             const presencasData = [];
             presSnap.forEach(d => {
                 const data = d.data();
                 // Normalização: Lê tanto 'disciplineId' quanto 'disciplinaId'
                 const dId = data.disciplineId || data.disciplinaId;
-                
+
                 // Se houver disciplina selecionada no filtro master, aplica o filtro rigoroso
                 if (disciplineId && dId !== disciplineId) return;
 
                 const rawStatus = data.registros ? data.registros[uid] : null;
-                
-                if(rawStatus) {
+
+                if (rawStatus) {
                     let status = rawStatus;
-                    if(status === 'falta') status = 'ausente';
-                    if(status === 'justificada' || String(status).startsWith('justi')) status = 'justificado';
+                    if (status === 'falta') status = 'ausente';
+                    if (status === 'justificada' || String(status).startsWith('justi')) status = 'justificado';
 
                     // Conversão de data ultra-segura
                     let dateObj = new Date();
                     if (data.data_aula_timestamp) {
-                        dateObj = typeof data.data_aula_timestamp.toDate === 'function' 
-                            ? data.data_aula_timestamp.toDate() 
+                        dateObj = typeof data.data_aula_timestamp.toDate === 'function'
+                            ? data.data_aula_timestamp.toDate()
                             : new Date(data.data_aula_timestamp);
                     }
 
@@ -2160,9 +2140,9 @@ window.profAPI = {
             presencasData.sort((a, b) => a.date - b.date);
 
             currentStudentAnalysisData = { notas: notasData, presencas: presencasData, uid: uid };
-            
+
             window.profAPI.renderDashboardCharts();
-            
+
             els.analiseMsg.classList.add('hidden');
             els.analiseDashboard.classList.remove('hidden');
             els.analiseDashboard.classList.add('flex');
@@ -2170,9 +2150,9 @@ window.profAPI = {
             // FOCO NA EXPORTAÇÃO:
             // Faz o scroll suave até a área de exportação para facilitar o trabalho do professor
             const btnPdfArea = document.getElementById('btn-gen-pdf');
-            if(btnPdfArea) btnPdfArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (btnPdfArea) btnPdfArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.analiseMsg.textContent = "Erro ao carregar dados: " + e.message;
         }
@@ -2183,12 +2163,12 @@ window.profAPI = {
 
         // --- KPI: Faltas Consecutivas ---
         let maxConsecutive = 0, currentConsecutive = 0;
-        presencas.sort((a,b) => a.date - b.date);
-        
+        presencas.sort((a, b) => a.date - b.date);
+
         presencas.forEach(p => {
-            if(p.status === 'ausente') currentConsecutive++;
-            else currentConsecutive = 0; 
-            if(currentConsecutive > maxConsecutive) maxConsecutive = currentConsecutive;
+            if (p.status === 'ausente') currentConsecutive++;
+            else currentConsecutive = 0;
+            if (currentConsecutive > maxConsecutive) maxConsecutive = currentConsecutive;
         });
         els.kpiConsecutive.textContent = maxConsecutive;
 
@@ -2196,13 +2176,13 @@ window.profAPI = {
         let allGrades = [];
         Object.values(notas).forEach(disc => {
             Object.values(disc).forEach(trim => {
-                if(trim.nota1) allGrades.push(parseFloat(trim.nota1));
-                if(trim.nota2) allGrades.push(parseFloat(trim.nota2));
-                if(trim.nota3) allGrades.push(parseFloat(trim.nota3));
-                if(trim.nota4) allGrades.push(parseFloat(trim.nota4));
+                if (trim.nota1) allGrades.push(parseFloat(trim.nota1));
+                if (trim.nota2) allGrades.push(parseFloat(trim.nota2));
+                if (trim.nota3) allGrades.push(parseFloat(trim.nota3));
+                if (trim.nota4) allGrades.push(parseFloat(trim.nota4));
             });
         });
-        if(allGrades.length > 0) {
+        if (allGrades.length > 0) {
             els.kpiMinGrade.textContent = Math.min(...allGrades).toFixed(1);
             els.kpiMaxGrade.textContent = Math.max(...allGrades).toFixed(1);
         } else {
@@ -2215,34 +2195,34 @@ window.profAPI = {
         Object.entries(notas).forEach(([discId, trimestres]) => {
             let sum = 0, count = 0;
             Object.values(trimestres).forEach(t => {
-                ['nota1','nota2','nota3','nota4'].forEach(k => {
-                    if(t[k] && !isNaN(parseFloat(t[k]))) { sum += parseFloat(t[k]); count++; }
+                ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
+                    if (t[k] && !isNaN(parseFloat(t[k]))) { sum += parseFloat(t[k]); count++; }
                 });
             });
-            if(count > 0) {
+            if (count > 0) {
                 const name = state.cache.disciplinesMap.get(discId) || discId;
-                labelsBar.push(name.substring(0, 15) + (name.length > 15 ? '...' : '')); 
-                dataBar.push((sum/count).toFixed(2));
+                labelsBar.push(name.substring(0, 15) + (name.length > 15 ? '...' : ''));
+                dataBar.push((sum / count).toFixed(2));
             }
         });
         window.profAPI.renderGenericChart('grades', 'bar', labelsBar, dataBar, 'Média Global', '#f59e0b');
 
         // --- GRÁFICO: Presença (Doughnut) ---
-        let p=0, f=0, j=0;
+        let p = 0, f = 0, j = 0;
         presencas.forEach(x => {
-            if(x.status === 'presente') p++;
-            else if(x.status === 'ausente') f++;
-            else if(x.status === 'justificado') j++;
+            if (x.status === 'presente') p++;
+            else if (x.status === 'ausente') f++;
+            else if (x.status === 'justificado') j++;
         });
         window.profAPI.renderGenericChart('presence', 'doughnut', ['Presente', 'Falta', 'Justificado'], [p, f, j], 'Frequência', ['#4ade80', '#ef4444', '#f59e0b']);
 
         // --- GRÁFICO: Evolução (Prepara Select) ---
         els.selEvolutionDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
-        
+
         // Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
         const studentObj = state.cache.students.find(s => s.id === currentStudentAnalysisData.uid);
-        const studentDisciplines = studentObj?.disciplinas || {}; 
-        
+        const studentDisciplines = studentObj?.disciplinas || {};
+
         Object.keys(notas).forEach(discId => {
             const hasData = Object.values(notas[discId] || {}).some(t => t.nota1 || t.nota2 || t.nota3 || t.nota4);
             if (studentDisciplines[discId] || hasData) {
@@ -2251,55 +2231,55 @@ window.profAPI = {
             }
         });
 
-        if(chartInstances['evolution']) chartInstances['evolution'].destroy();
+        if (chartInstances['evolution']) chartInstances['evolution'].destroy();
         els.msgEvolution.classList.remove('hidden');
 
         // --- ANÁLISE PREDITIVA (Avisos de IA) ---
         window.profAPI.runPredictiveAnalysis();
 
         const oldHist = document.getElementById('hist-faltas-dinamico');
-        if(oldHist) oldHist.remove();
+        if (oldHist) oldHist.remove();
     },
 
     updateEvolutionChart: (discId) => {
-        if(!discId) {
-            if(chartInstances['evolution']) chartInstances['evolution'].destroy();
+        if (!discId) {
+            if (chartInstances['evolution']) chartInstances['evolution'].destroy();
             els.msgEvolution.classList.remove('hidden');
             return;
         }
-        
+
         const trimestres = currentStudentAnalysisData.notas[discId] || {};
         const labels = [], data = [];
-        
-        ['1','2','3'].forEach(trim => {
+
+        ['1', '2', '3'].forEach(trim => {
             const tData = trimestres[trim] || {};
-            if(tData.nota1) { labels.push(`T${trim}-N1`); data.push(parseFloat(tData.nota1)); }
-            if(tData.nota2) { labels.push(`T${trim}-N2`); data.push(parseFloat(tData.nota2)); }
-            if(tData.nota3) { labels.push(`T${trim}-N3`); data.push(parseFloat(tData.nota3)); }
-            if(tData.nota4) { labels.push(`T${trim}-N4`); data.push(parseFloat(tData.nota4)); }
+            if (tData.nota1) { labels.push(`T${trim}-N1`); data.push(parseFloat(tData.nota1)); }
+            if (tData.nota2) { labels.push(`T${trim}-N2`); data.push(parseFloat(tData.nota2)); }
+            if (tData.nota3) { labels.push(`T${trim}-N3`); data.push(parseFloat(tData.nota3)); }
+            if (tData.nota4) { labels.push(`T${trim}-N4`); data.push(parseFloat(tData.nota4)); }
         });
 
-        if(data.length > 0) {
+        if (data.length > 0) {
             els.msgEvolution.classList.add('hidden');
             window.profAPI.renderGenericChart('evolution', 'line', labels, data, 'Evolução das Notas', '#a855f7'); // Roxo
         } else {
             els.msgEvolution.textContent = "Sem notas para esta disciplina.";
             els.msgEvolution.classList.remove('hidden');
-            if(chartInstances['evolution']) chartInstances['evolution'].destroy();
+            if (chartInstances['evolution']) chartInstances['evolution'].destroy();
         }
     },
 
     renderGenericChart: (id, type, labels, data, labelStr, color) => {
-        const ctx = document.getElementById('chart-'+id).getContext('2d');
-        const msgEl = document.getElementById('chart-'+id+'-msg');
-        
-        if(chartInstances[id]) chartInstances[id].destroy();
-        
-        if(data.length === 0 || data.every(v => v === 0)) {
-            if(msgEl) msgEl.classList.remove('hidden');
+        const ctx = document.getElementById('chart-' + id).getContext('2d');
+        const msgEl = document.getElementById('chart-' + id + '-msg');
+
+        if (chartInstances[id]) chartInstances[id].destroy();
+
+        if (data.length === 0 || data.every(v => v === 0)) {
+            if (msgEl) msgEl.classList.remove('hidden');
             return;
         }
-        if(msgEl) msgEl.classList.add('hidden');
+        if (msgEl) msgEl.classList.add('hidden');
 
         // Configuração do Chart.js estilizada para tema Dark
         const config = {
@@ -2312,7 +2292,7 @@ window.profAPI = {
                     backgroundColor: Array.isArray(color) ? color : color + 'CC',
                     borderColor: Array.isArray(color) ? '#1e293b' : color, // Borda escura se for pizza
                     borderWidth: type === 'doughnut' ? 4 : 2,
-                    tension: 0.4, 
+                    tension: 0.4,
                     fill: type === 'line' ? { target: 'origin', above: color + '20' } : false
                 }]
             },
@@ -2320,17 +2300,17 @@ window.profAPI = {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: type === 'doughnut', position: 'right', labels: { color: '#cbd5e1', font: {family: 'Inter', weight: 'bold'} } },
+                    legend: { display: type === 'doughnut', position: 'right', labels: { color: '#cbd5e1', font: { family: 'Inter', weight: 'bold' } } },
                     datalabels: { color: '#ffffff', font: { weight: 'black', size: 10 } }
                 },
                 scales: type !== 'doughnut' ? {
                     y: { beginAtZero: true, max: 10, ticks: { color: '#64748b' }, grid: { color: '#334155', drawBorder: false } },
-                    x: { ticks: { color: '#94a3b8', font: {size: 9} }, grid: { display: false } }
+                    x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } }
                 } : {}
             },
             plugins: [ChartDataLabels]
         };
-        
+
         chartInstances[id] = new Chart(ctx, config);
     },
 
@@ -2344,14 +2324,14 @@ window.profAPI = {
         const lowGrades = [];
         Object.entries(notas).forEach(([disc, trims]) => {
             Object.values(trims).forEach(t => {
-                if( (t.nota1 && t.nota1 < 6) || (t.nota2 && t.nota2 < 6) || (t.nota3 && t.nota3 < 6) || (t.nota4 && t.nota4 < 6) ) {
+                if ((t.nota1 && t.nota1 < 6) || (t.nota2 && t.nota2 < 6) || (t.nota3 && t.nota3 < 6) || (t.nota4 && t.nota4 < 6)) {
                     const name = state.cache.disciplinesMap.get(disc) || disc;
-                    if(!lowGrades.includes(name)) lowGrades.push(name);
+                    if (!lowGrades.includes(name)) lowGrades.push(name);
                 }
             });
         });
-        
-        if(lowGrades.length > 0) {
+
+        if (lowGrades.length > 0) {
             list.insertAdjacentHTML('beforeend', `<li class="bg-red-500/10 text-red-400 border border-red-500/20 p-3 rounded-lg text-xs font-bold leading-relaxed flex gap-3"><i class="fas fa-exclamation-triangle mt-0.5 text-lg"></i> <div>Risco Acadêmico: Detectamos notas abaixo da média nas disciplinas: <span class="text-white">${lowGrades.join(', ')}</span>.</div></li>`);
             hasIssues = true;
         }
@@ -2359,12 +2339,12 @@ window.profAPI = {
         // 2. Taxa de Faltas Evasão
         const totalAulas = presencas.length;
         const faltas = presencas.filter(p => p.status === 'ausente').length;
-        if(totalAulas > 0 && (faltas/totalAulas) > 0.20) { 
-            list.insertAdjacentHTML('beforeend', `<li class="bg-amber-500/10 text-amber-500 border border-amber-500/20 p-3 rounded-lg text-xs font-bold leading-relaxed flex gap-3"><i class="fas fa-walking mt-0.5 text-lg"></i> <div>Alerta de Evasão: Taxa de ausência de <span class="text-white text-sm">${((faltas/totalAulas)*100).toFixed(0)}%</span>. Risco severo de reprovação por faltas.</div></li>`);
+        if (totalAulas > 0 && (faltas / totalAulas) > 0.20) {
+            list.insertAdjacentHTML('beforeend', `<li class="bg-amber-500/10 text-amber-500 border border-amber-500/20 p-3 rounded-lg text-xs font-bold leading-relaxed flex gap-3"><i class="fas fa-walking mt-0.5 text-lg"></i> <div>Alerta de Evasão: Taxa de ausência de <span class="text-white text-sm">${((faltas / totalAulas) * 100).toFixed(0)}%</span>. Risco severo de reprovação por faltas.</div></li>`);
             hasIssues = true;
         }
 
-        if(!hasIssues) {
+        if (!hasIssues) {
             list.insertAdjacentHTML('beforeend', `<li class="bg-green-500/10 text-green-400 border border-green-500/20 p-3 rounded-lg text-xs font-bold leading-relaxed flex items-center gap-3"><i class="fas fa-check-circle text-lg"></i> Desempenho estável. Não há alertas de notas baixas ou excesso de faltas no momento.</li>`);
         }
     },
@@ -2374,8 +2354,8 @@ window.profAPI = {
     // ==========================================
     loadGeralDashboard: async () => {
         const { classId, disciplineId } = state.filters;
-        
-        if(!classId || !disciplineId) {
+
+        if (!classId || !disciplineId) {
             els.geralDashboard.classList.add('hidden');
             els.geralMsg.textContent = "Selecione Turma e Disciplina no topo e clique em Carregar.";
             els.geralMsg.classList.remove('hidden');
@@ -2389,11 +2369,11 @@ window.profAPI = {
         try {
             // 1. Garante os Alunos (Usa o cache se já tiver carregado na chamada)
             let students = state.cache.students;
-            if(students.length === 0) {
+            if (students.length === 0) {
                 const qS = query(collection(db, "users"), where("turma", "==", classId), where("Aluno", "==", true), orderBy("nome"));
                 const snapS = await getDocs(qS);
                 students = [];
-                snapS.forEach(d => students.push({id: d.id, ...d.data()}));
+                snapS.forEach(d => students.push({ id: d.id, ...d.data() }));
                 state.cache.students = students;
             }
             geralAnalysisCache.students = students;
@@ -2401,7 +2381,7 @@ window.profAPI = {
             // Popula Dropdown de Frequência Individual e Atrela o Evento (Correção do Gráfico que não mudava)
             els.geralFreqStudentSel.innerHTML = '<option value="">Selecione Aluno...</option>';
             students.forEach(s => els.geralFreqStudentSel.add(new Option(s.nome, s.id)));
-            
+
             els.geralFreqStudentSel.onchange = (e) => {
                 window.profAPI.renderIndividualFreqChartGeral(e.target.value);
             };
@@ -2409,65 +2389,65 @@ window.profAPI = {
             // 2. Busca Notas da Turma toda
             const notasPromises = students.map(s => getDoc(doc(db, "notas", s.id)));
             const notasSnaps = await Promise.all(notasPromises);
-            
+
             // 3. Busca Presenças (Traz tudo da turma e filtra localmente para evitar problemas de nomenclatura no Firebase)
             const presSnap = await getDocs(query(collection(db, "presencas"), where("turma", "==", classId)));
-            
+
             const startStr = els.geralStartDate.value;
             const endStr = els.geralEndDate.value;
             const startLimit = startStr ? new Date(startStr + "T00:00:00").getTime() : 0;
             const endLimit = endStr ? new Date(endStr + "T23:59:59").getTime() : Infinity;
-            
+
             // --- PROCESSAMENTO DOS DADOS ---
-            const dataFaltas = {}; 
+            const dataFaltas = {};
             let totalFaltasTurma = 0;
             const uniqueAulas = new Set();
-            
+
             // Inicializa a contagem de faltas para todos os alunos da turma
             students.forEach(s => dataFaltas[s.id] = { ausente: 0, presente: 0, justificado: 0 });
 
             presSnap.forEach(doc => {
                 const p = doc.data();
                 const dId = p.disciplineId || p.disciplinaId;
-                
+
                 // Tratamento seguro da data (Evita falhas se o Firebase entregar timestamp ou string)
                 let pTime = 0;
                 if (p.data_aula_timestamp) {
-                    pTime = typeof p.data_aula_timestamp.toMillis === 'function' 
-                        ? p.data_aula_timestamp.toMillis() 
+                    pTime = typeof p.data_aula_timestamp.toMillis === 'function'
+                        ? p.data_aula_timestamp.toMillis()
                         : new Date(p.data_aula_timestamp).getTime();
                 }
-                
+
                 // Filtra EXATAMENTE pela disciplina atual e pelos limites de data
-                if(dId === disciplineId && pTime >= startLimit && pTime <= endLimit) {
+                if (dId === disciplineId && pTime >= startLimit && pTime <= endLimit) {
                     uniqueAulas.add(doc.id);
-                    if(p.registros) {
+                    if (p.registros) {
                         Object.entries(p.registros).forEach(([uid, status]) => {
-                            if(dataFaltas[uid]) {
+                            if (dataFaltas[uid]) {
                                 // Normalização contra erros de digitação no banco
                                 let s = status;
-                                if(s === 'justificada' || String(s).startsWith('justi')) s = 'justificado';
-                                if(s === 'falta') s = 'ausente';
-                                
+                                if (s === 'justificada' || String(s).startsWith('justi')) s = 'justificado';
+                                if (s === 'falta') s = 'ausente';
+
                                 dataFaltas[uid][s] = (dataFaltas[uid][s] || 0) + 1;
-                                if(s === 'ausente') totalFaltasTurma++;
+                                if (s === 'ausente') totalFaltasTurma++;
                             }
                         });
                     }
                 }
             });
-            
+
             const totalAulas = uniqueAulas.size;
             geralAnalysisCache.faltasMap = dataFaltas;
 
             // Processa Notas (Estrutura: disciplinasComNotas > discId > trimestres > nota1..4)
-            const scatterData = []; 
-            const panoramaData = []; 
+            const scatterData = [];
+            const panoramaData = [];
             let somaMedias = 0;
             let countAlunosComNota = 0;
-            
+
             notasSnaps.forEach((snap, idx) => {
-                if(!snap.exists()) return;
+                if (!snap.exists()) return;
                 const d = snap.data().disciplinasComNotas || {};
                 const sName = students[idx].nome;
                 const sId = students[idx].id;
@@ -2478,12 +2458,12 @@ window.profAPI = {
 
                 ['1', '2', '3'].forEach(trim => {
                     const tData = discData[trim] || {};
-                    ['nota1', 'nota2', 'nota3', 'nota4'].forEach((nKey, nIdx) => { 
+                    ['nota1', 'nota2', 'nota3', 'nota4'].forEach((nKey, nIdx) => {
                         const val = parseFloat(tData[nKey]);
-                        if(!isNaN(val)) {
+                        if (!isNaN(val)) {
                             somaAluno += val;
                             countAluno++;
-                            const labelNota = `N${nIdx+1}`;
+                            const labelNota = `N${nIdx + 1}`;
                             const labelTrim = `${trim}º Tri`;
                             panoramaData.push({ x: `${labelNota} - ${labelTrim}`, y: val });
                         }
@@ -2491,11 +2471,11 @@ window.profAPI = {
                 });
 
                 // Só considera o aluno para a média da turma se ele tiver ao menos uma nota lançada
-                if(countAluno > 0) {
+                if (countAluno > 0) {
                     const mediaFinal = somaAluno / countAluno;
                     somaMedias += mediaFinal;
                     countAlunosComNota++;
-                    
+
                     const faltasAluno = dataFaltas[sId]?.ausente || 0;
                     scatterData.push({ x: faltasAluno, y: parseFloat(mediaFinal.toFixed(1)), student: sName });
                 }
@@ -2504,24 +2484,24 @@ window.profAPI = {
             // --- CÁLCULO UNIFICADO: ALUNOS EM RISCO E TOOLTIP ---
             let alunosRisco = 0;
             let alunosRiscoNomes = [];
-            
+
             students.forEach(s => {
                 const f = dataFaltas[s.id]?.ausente || 0;
                 // Critério de risco: mais de 20% de falta das aulas DADAS nesta disciplina
-                if(totalAulas > 0 && (f / totalAulas) > 0.20) {
+                if (totalAulas > 0 && (f / totalAulas) > 0.20) {
                     alunosRisco++; // Conta apenas UMA vez
                     alunosRiscoNomes.push(s.nome);
                 }
             });
 
             // Preenche KPIs Visuais
-            const mediaTurma = countAlunosComNota > 0 ? (somaMedias/countAlunosComNota).toFixed(2) : "-";
+            const mediaTurma = countAlunosComNota > 0 ? (somaMedias / countAlunosComNota).toFixed(2) : "-";
             els.kpiGeralMedia.textContent = mediaTurma;
             els.kpiGeralMedia.className = `text-4xl font-black ${mediaTurma >= 7 ? 'text-green-400' : (mediaTurma >= 6 ? 'text-amber-400' : 'text-red-500')}`;
-            
+
             els.kpiGeralFaltas.textContent = totalFaltasTurma;
             els.kpiGeralRisco.textContent = alunosRisco;
-            
+
             // Tooltip com os nomes no Card de Risco
             const cardRisco = els.kpiGeralRisco.parentElement;
             if (alunosRiscoNomes.length > 0) {
@@ -2535,9 +2515,9 @@ window.profAPI = {
             // Renderiza Gráficos (Mesmo sem notas, os gráficos carregam em branco e exibem o KPI de Faltas)
             window.profAPI.renderGeralScatter(scatterData);
             window.profAPI.renderGeralPanorama(panoramaData);
-            
+
             // Reseta gráfico individual de frequência
-            if(chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
+            if (chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
             els.msgGeralFaltas.classList.remove('hidden');
             els.geralFreqStudentSel.value = "";
 
@@ -2545,7 +2525,7 @@ window.profAPI = {
             els.geralDashboard.classList.remove('hidden');
             els.geralDashboard.classList.add('flex');
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.geralMsg.textContent = "Erro ao processar visão geral: " + e.message;
         }
@@ -2553,9 +2533,9 @@ window.profAPI = {
 
     renderGeralScatter: (data) => {
         const ctx = els.canvasGeralScatter.getContext('2d');
-        if(chartInstances['geral-scatter']) chartInstances['geral-scatter'].destroy();
+        if (chartInstances['geral-scatter']) chartInstances['geral-scatter'].destroy();
 
-        if(data.length === 0) {
+        if (data.length === 0) {
             els.msgGeralNotas.classList.remove('hidden');
             return;
         }
@@ -2585,13 +2565,13 @@ window.profAPI = {
                     }
                 },
                 scales: {
-                    x: { 
+                    x: {
                         title: { display: true, text: 'Total de Faltas', color: '#94a3b8', font: { weight: 'bold' } },
                         ticks: { color: '#94a3b8', stepSize: 1 },
                         grid: { color: '#334155', drawBorder: false },
                         min: 0
                     },
-                    y: { 
+                    y: {
                         title: { display: true, text: 'Média Global', color: '#94a3b8', font: { weight: 'bold' } },
                         ticks: { color: '#94a3b8' },
                         grid: { color: '#334155', drawBorder: false },
@@ -2603,17 +2583,17 @@ window.profAPI = {
     },
 
     renderIndividualFreqChartGeral: (uid) => {
-        if(!uid) {
-            if(chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
+        if (!uid) {
+            if (chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
             els.msgGeralFaltas.classList.remove('hidden');
             return;
         }
-        
+
         const dados = geralAnalysisCache.faltasMap[uid];
-        if(!dados) return;
+        if (!dados) return;
 
         const ctx = els.canvasGeralFaltas.getContext('2d');
-        if(chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
+        if (chartInstances['geral-freq-ind']) chartInstances['geral-freq-ind'].destroy();
         els.msgGeralFaltas.classList.add('hidden');
 
         chartInstances['geral-freq-ind'] = new Chart(ctx, {
@@ -2629,13 +2609,13 @@ window.profAPI = {
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { 
+                plugins: {
                     legend: { display: false },
                     datalabels: { color: '#ffffff', font: { weight: 'black', size: 14 } }
                 },
                 scales: {
                     y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: '#334155', drawBorder: false } },
-                    x: { ticks: { color: '#cbd5e1', font: {weight: 'bold'} }, grid: { display: false } }
+                    x: { ticks: { color: '#cbd5e1', font: { weight: 'bold' } }, grid: { display: false } }
                 }
             },
             plugins: [ChartDataLabels]
@@ -2644,9 +2624,9 @@ window.profAPI = {
 
     renderGeralPanorama: (data) => {
         const ctx = els.canvasGeralAll.getContext('2d');
-        if(chartInstances['geral-panorama']) chartInstances['geral-panorama'].destroy();
+        if (chartInstances['geral-panorama']) chartInstances['geral-panorama'].destroy();
 
-        if(data.length === 0) {
+        if (data.length === 0) {
             els.msgGeralAll.textContent = "Nenhuma nota lançada na disciplina.";
             els.msgGeralAll.classList.remove('hidden');
             return;
@@ -2668,8 +2648,8 @@ window.profAPI = {
                     data: data,
                     backgroundColor: (ctx) => {
                         const val = ctx.raw?.y;
-                        if(val >= 7) return 'rgba(74, 222, 128, 0.7)'; // Verde
-                        if(val >= 6) return 'rgba(245, 158, 11, 0.7)'; // Amarelo
+                        if (val >= 7) return 'rgba(74, 222, 128, 0.7)'; // Verde
+                        if (val >= 6) return 'rgba(245, 158, 11, 0.7)'; // Amarelo
                         return 'rgba(239, 68, 68, 0.7)'; // Vermelho
                     },
                     borderColor: 'rgba(255,255,255,0.2)',
@@ -2691,15 +2671,15 @@ window.profAPI = {
                     }
                 },
                 scales: {
-                    x: { 
+                    x: {
                         type: 'category',
-                        labels: ordemCategorias, 
-                        ticks: { color: '#94a3b8', font: {size: 9} },
+                        labels: ordemCategorias,
+                        ticks: { color: '#94a3b8', font: { size: 9 } },
                         grid: { color: '#334155', drawBorder: false },
                         offset: true
                     },
-                    y: { 
-                        min: 0, max: 10, 
+                    y: {
+                        min: 0, max: 10,
                         title: { display: true, text: 'Nota', color: '#94a3b8', font: { weight: 'bold' } },
                         ticks: { color: '#94a3b8' },
                         grid: { color: '#334155', drawBorder: false }
@@ -2721,7 +2701,7 @@ window.profAPI = {
             const q = query(collection(db, "avaliacoes"), orderBy("dataAplicacao", "desc"));
             const snap = await getDocs(q);
 
-            if(snap.empty) {
+            if (snap.empty) {
                 avaliacoesCache = [];
                 els.evalListBody.innerHTML = '';
                 els.evalEmptyMsg.classList.remove('hidden');
@@ -2732,7 +2712,7 @@ window.profAPI = {
             const turmasMap = new Map();
             tSnap.forEach(d => turmasMap.set(d.data().identificador, d.data().nomeExibicao));
 
-            if(state.cache.disciplinesMap.size === 0) {
+            if (state.cache.disciplinesMap.size === 0) {
                 const dSnap = await getDocs(query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true)));
                 dSnap.forEach(d => state.cache.disciplinesMap.set(d.data().identificador, d.data().nomeExibicao));
             }
@@ -2742,12 +2722,12 @@ window.profAPI = {
             snap.forEach(doc => {
                 const data = doc.data();
                 const id = doc.id;
-                
+
                 const discName = state.cache.disciplinesMap.get(data.disciplina) || data.disciplina;
                 const turmasNames = (data.turmas_ids || []).map(tid => turmasMap.get(tid) || tid).join(", ");
                 const dateObj = data.dataAplicacao ? data.dataAplicacao.toDate() : null;
-                const dateStr = dateObj ? dateObj.toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'}) : 'N/A';
-                
+                const dateStr = dateObj ? dateObj.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+
                 avaliacoesCache.push({
                     id: id,
                     dataOriginal: data, // Guarda o dado original para o formulário de edição
@@ -2765,7 +2745,7 @@ window.profAPI = {
             // 2. Chama a função que desenha a tabela na tela
             window.profAPI.renderAvaliacoesTable();
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.evalListBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">Erro: ${e.message}</td></tr>`;
         }
@@ -2797,7 +2777,7 @@ window.profAPI = {
         avaliacoesCache.sort((a, b) => {
             let valA = a[column];
             let valB = b[column];
-            
+
             // Tratamento ignorando letras maiúsculas/minúsculas
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
@@ -2809,11 +2789,11 @@ window.profAPI = {
 
         // Loop de Renderização
         avaliacoesCache.forEach(item => {
-            const visibleBadge = item.exibir ? 
-                '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">SIM</span>' : 
+            const visibleBadge = item.exibir ?
+                '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">SIM</span>' :
                 '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">NÃO</span>';
 
-            const dataSafe = JSON.stringify({id: item.id, ...item.dataOriginal, dataIso: item.dataIso}).replace(/"/g, '&quot;');
+            const dataSafe = JSON.stringify({ id: item.id, ...item.dataOriginal, dataIso: item.dataIso }).replace(/"/g, '&quot;');
 
             const tr = document.createElement('tr');
             tr.className = "hover:bg-slate-800/50 transition-colors border-b border-slate-700/50";
@@ -2835,7 +2815,7 @@ window.profAPI = {
 
     openAvaliacaoForm: async (data = null) => {
         // 1. Popula Selects na primeira vez que abre o modal
-        if(els.formEvalDisc.options.length <= 1) {
+        if (els.formEvalDisc.options.length <= 1) {
             els.formEvalDisc.innerHTML = '<option value="">Carregando...</option>';
             const dSnap = await getDocs(query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao")));
             els.formEvalDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
@@ -2848,23 +2828,23 @@ window.profAPI = {
         }
 
         // 2. Preenche os campos
-        if(data) {
+        if (data) {
             els.evalAdminTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Avaliação';
             els.evalAdminId.value = data.id;
             els.formEvalDisc.value = data.disciplina;
-            
+
             // Ajusta fuso horário do ISO para o input datetime-local
-            if(data.dataIso) {
+            if (data.dataIso) {
                 // "2024-03-15T14:30:00.000Z" -> "2024-03-15T14:30"
-                els.formEvalDate.value = data.dataIso.slice(0, 16); 
+                els.formEvalDate.value = data.dataIso.slice(0, 16);
             } else {
                 els.formEvalDate.value = "";
             }
-            
+
             // Multi-select Turmas
             const options = els.formEvalTurmas.options;
             const selectedIds = data.turmas_ids || [];
-            for(let i=0; i<options.length; i++) {
+            for (let i = 0; i < options.length; i++) {
                 options[i].selected = selectedIds.includes(options[i].value);
             }
 
@@ -2877,22 +2857,22 @@ window.profAPI = {
             els.evalAdminId.value = "";
             els.formEvalDisc.value = "";
             els.formEvalDate.value = "";
-            
+
             // Limpa Turmas
-            for(let i=0; i<els.formEvalTurmas.options.length; i++) els.formEvalTurmas.options[i].selected = false;
-            
+            for (let i = 0; i < els.formEvalTurmas.options.length; i++) els.formEvalTurmas.options[i].selected = false;
+
             els.formEvalContent.value = "";
             els.formEvalTips.value = "";
             els.formEvalValue.value = "";
             els.formEvalVisible.checked = true;
-            
+
             // UX: Se tiver filtro global ativo, já seleciona a turma e disciplina no modal
-            if(state.filters.classId) {
-                for(let i=0; i<els.formEvalTurmas.options.length; i++) {
-                    if(els.formEvalTurmas.options[i].value === state.filters.classId) els.formEvalTurmas.options[i].selected = true;
+            if (state.filters.classId) {
+                for (let i = 0; i < els.formEvalTurmas.options.length; i++) {
+                    if (els.formEvalTurmas.options[i].value === state.filters.classId) els.formEvalTurmas.options[i].selected = true;
                 }
             }
-            if(state.filters.disciplineId) els.formEvalDisc.value = state.filters.disciplineId;
+            if (state.filters.disciplineId) els.formEvalDisc.value = state.filters.disciplineId;
         }
 
         els.evalAdminModal.classList.remove('hidden');
@@ -2908,11 +2888,11 @@ window.profAPI = {
         const id = els.evalAdminId.value;
         const disciplina = els.formEvalDisc.value;
         const dataStr = els.formEvalDate.value;
-        
+
         // Pega as turmas selecionadas no multi-select
         const turmas_ids = Array.from(els.formEvalTurmas.selectedOptions).map(opt => opt.value);
-        
-        if(!disciplina || !dataStr || turmas_ids.length === 0) return alert("Por favor, preencha a Disciplina, a Data e selecione ao menos uma Turma.");
+
+        if (!disciplina || !dataStr || turmas_ids.length === 0) return alert("Por favor, preencha a Disciplina, a Data e selecione ao menos uma Turma.");
 
         els.btnSaveAvaliacao.disabled = true;
         els.btnSaveAvaliacao.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
@@ -2929,7 +2909,7 @@ window.profAPI = {
                 ultimaModificacao: serverTimestamp()
             };
 
-            if(id) {
+            if (id) {
                 await updateDoc(doc(db, "avaliacoes", id), payload);
             } else {
                 payload.createdAt = serverTimestamp();
@@ -2940,7 +2920,7 @@ window.profAPI = {
             window.profAPI.loadAvaliacoesAdmin();
             alert("Avaliação registrada com sucesso no calendário!");
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             alert("Erro ao salvar: " + e.message);
         } finally {
@@ -2950,11 +2930,11 @@ window.profAPI = {
     },
 
     deleteAvaliacao: async (id) => {
-        if(!confirm("Atenção: Excluir esta avaliação irá removê-la do calendário de todas as turmas vinculadas. Continuar?")) return;
+        if (!confirm("Atenção: Excluir esta avaliação irá removê-la do calendário de todas as turmas vinculadas. Continuar?")) return;
         try {
             await deleteDoc(doc(db, "avaliacoes", id));
             window.profAPI.loadAvaliacoesAdmin();
-        } catch(e) { alert("Erro ao excluir: " + e.message); }
+        } catch (e) { alert("Erro ao excluir: " + e.message); }
     },
 
     // ==========================================
@@ -2962,10 +2942,10 @@ window.profAPI = {
     // ==========================================
     loadGradeHoraria: async () => {
         const { classId } = state.filters;
-        
-        if(els.horarioDisc.options.length <= 1) window.profAPI.populateHorarioSelects();
 
-        if(!classId) {
+        if (els.horarioDisc.options.length <= 1) window.profAPI.populateHorarioSelects();
+
+        if (!classId) {
             els.horarioMsg.textContent = "Selecione uma Turma no topo (menu principal).";
             els.horarioMsg.classList.remove('hidden');
             window.profAPI.renderEmptyGrade();
@@ -2978,12 +2958,12 @@ window.profAPI = {
         try {
             const q = query(collection(db, "aulas"), where("turmaId", "==", classId));
             const snap = await getDocs(q);
-            
-            const aulasMap = {};           
-            
+
+            const aulasMap = {};
+
             snap.forEach(doc => {
                 const d = doc.data();
-                
+
                 let dia = (d.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
                 if (dia && !dia.includes('-feira')) dia += '-feira';
                 const numOrdem = parseInt(d.ordem);
@@ -2994,7 +2974,7 @@ window.profAPI = {
             window.profAPI.renderGrade(aulasMap);
             els.horarioMsg.classList.add('hidden');
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.horarioMsg.textContent = "Erro ao carregar grade: " + e.message;
         }
@@ -3013,7 +2993,7 @@ window.profAPI = {
         // 2. Popula Professores (Traz todos os professores e filtra na memória para evitar erro de índice composto)
         els.horarioProf.innerHTML = '<option value="">Carregando...</option>';
         const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
-        
+
         els.horarioProf.innerHTML = '<option value="">Selecione o Docente...</option>';
         pSnap.forEach(d => {
             const profData = d.data();
@@ -3039,8 +3019,8 @@ window.profAPI = {
         `;
 
         const dias = ['segunda-feira', 'terca-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira'];
-        
-        for(let i = 1; i <= 7; i++) {
+
+        for (let i = 1; i <= 7; i++) {
             const timeCell = document.createElement('div');
             timeCell.className = 'grade-time border-r border-b border-slate-700/50';
             timeCell.innerHTML = `<span class="bg-slate-800 px-2 py-1 rounded-md border border-slate-700 shadow-inner">${i}ª Aula</span>`;
@@ -3049,16 +3029,16 @@ window.profAPI = {
             dias.forEach(dia => {
                 const cell = document.createElement('div');
                 cell.className = 'grade-cell border-r border-b border-slate-700/50';
-                
+
                 const aula = aulasMap[`${dia}_${i}`];
-                if(aula) {
+                if (aula) {
                     // Aceita tanto o campo novo quanto o campo antigo do BD
                     const discIdReal = aula.disciplinaId || aula.disciplina || "";
                     const discName = state.cache.disciplinesMap.get(discIdReal) || discIdReal || "Desconhecida";
-                    
+
                     // Tratamento rigoroso de aspas para o botão não quebrar a tela
                     const aulaSafe = JSON.stringify(aula).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-                    
+
                     cell.innerHTML = `
                         <div class="aula-card hover:scale-[1.02] transition-transform">
                             <strong>${escapeHTML(discName)}</strong>
@@ -3078,9 +3058,9 @@ window.profAPI = {
 
     toggleHorarioForm: () => {
         const el = els.horarioFormContainer;
-        if(el.classList.contains('hidden')) {
+        if (el.classList.contains('hidden')) {
             el.classList.remove('hidden');
-            if(els.horarioFormTitle.textContent !== 'Nova Aula') window.profAPI.resetHorarioForm();
+            if (els.horarioFormTitle.textContent !== 'Nova Aula') window.profAPI.resetHorarioForm();
         } else {
             el.classList.add('hidden');
             window.profAPI.resetHorarioForm();
@@ -3101,19 +3081,19 @@ window.profAPI = {
     editAula: (data) => {
         els.horarioFormTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Aula';
         els.horarioId.value = data.id;
-        
+
         // FIX: Normaliza o dia para selecionar a opção correta no <select> (que não possui cedilha no value)
         let diaNormalizado = (data.diaSemana || "").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
         if (diaNormalizado && !diaNormalizado.includes('-feira')) diaNormalizado += '-feira';
         els.horarioDia.value = diaNormalizado;
-        
+
         // Extrai apenas o número da ordem para selecionar no <select> corretamente
         els.horarioOrdem.value = parseInt(data.ordem) || "";
-        
+
         els.horarioDisc.value = data.disciplinaId || data.disciplina || "";
         els.horarioProf.value = `${data.professorId}|${data.professorNome}`;
         els.horarioConteudo.value = data.conteudo || "";
-        
+
         els.horarioFormContainer.classList.remove('hidden');
         els.horarioFormContainer.scrollIntoView({ behavior: 'smooth' });
         els.btnSaveHorario.textContent = "Atualizar Aula";
@@ -3121,22 +3101,22 @@ window.profAPI = {
 
     saveHorario: async () => {
         const { school, classId } = state.filters;
-        if(!classId) return alert("Selecione a Turma no topo da página.");
+        if (!classId) return alert("Selecione a Turma no topo da página.");
 
         const id = els.horarioId.value;
         const diaSemana = els.horarioDia.value;
         const ordem = parseInt(els.horarioOrdem.value);
         const disciplina = els.horarioDisc.value;
         const profVal = els.horarioProf.value;
-        
-        if(!diaSemana || !ordem || !disciplina || !profVal) return alert("Preencha todos os campos obrigatórios (*).");
-        
+
+        if (!diaSemana || !ordem || !disciplina || !profVal) return alert("Preencha todos os campos obrigatórios (*).");
+
         const [professorId, professorNome] = profVal.split('|');
         const turmaName = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text;
 
         const payload = {
             escolaId: school, turmaId: classId, turmaNome: turmaName,
-            diaSemana, ordem, disciplinaId: disciplina, disciplina: disciplina, 
+            diaSemana, ordem, disciplinaId: disciplina, disciplina: disciplina,
             professorId, professorNome,
             conteudo: els.horarioConteudo.value
         };
@@ -3145,16 +3125,16 @@ window.profAPI = {
         els.btnSaveHorario.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
         try {
-            if(id) {
+            if (id) {
                 await updateDoc(doc(db, "aulas", id), payload);
             } else {
                 payload.dataCadastro = serverTimestamp();
                 await addDoc(collection(db, "aulas"), payload);
             }
-            
+
             window.profAPI.toggleHorarioForm();
             window.profAPI.loadGradeHoraria();
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             alert("Erro ao salvar: " + e.message);
         } finally {
@@ -3164,11 +3144,11 @@ window.profAPI = {
     },
 
     deleteAula: async (id) => {
-        if(!confirm("Excluir esta aula da grade?")) return;
+        if (!confirm("Excluir esta aula da grade?")) return;
         try {
             await deleteDoc(doc(db, "aulas", id));
             window.profAPI.loadGradeHoraria();
-        } catch(e) { alert("Erro: " + e.message); }
+        } catch (e) { alert("Erro: " + e.message); }
     },
 
     // ==========================================
@@ -3176,7 +3156,7 @@ window.profAPI = {
     // ==========================================
     loadAvisosPanel: async () => {
         // 1. Popula a lista de turmas se ainda estiver vazia
-        if(els.avisoTurmasList.children.length <= 1) {
+        if (els.avisoTurmasList.children.length <= 1) {
             window.profAPI.populateAvisoTurmas();
         }
         // 2. Carrega a lista de avisos
@@ -3188,7 +3168,7 @@ window.profAPI = {
         try {
             const q = query(collection(db, "turmasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao"));
             const snap = await getDocs(q);
-            
+
             let html = `
                 <div class="flex items-center p-3 bg-slate-700/50 rounded-lg mb-2 border border-slate-600">
                     <input type="checkbox" id="check-all-turmas" class="w-4 h-4 accent-amber-500 cursor-pointer" onchange="window.profAPI.toggleAllAvisoTurmas(this)">
@@ -3207,7 +3187,7 @@ window.profAPI = {
             });
             els.avisoTurmasList.innerHTML = html;
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.avisoTurmasList.innerHTML = '<div class="text-red-400 text-center text-xs py-4 font-bold">Erro ao carregar turmas</div>';
         }
@@ -3226,29 +3206,29 @@ window.profAPI = {
             const q = query(collection(db, "avisos_colegio"), orderBy("dataCriacao", "desc"));
             const snap = await getDocs(q);
 
-            if(snap.empty) {
+            if (snap.empty) {
                 els.avisosList.innerHTML = '';
                 els.avisosMsg.classList.remove('hidden');
                 return;
             }
 
             els.avisosList.innerHTML = '';
-            
+
             // Opcional: Se quiser os nomes reais das turmas, poderia buscar no BD. 
             // Como otimização, o aviso já guarda a lista de IDs.
 
             snap.forEach(doc => {
                 const aviso = doc.data();
                 const id = doc.id;
-                
-                const dataStr = aviso.dataCriacao?.toDate().toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'}) || 'N/A';
-                
+
+                const dataStr = aviso.dataCriacao?.toDate().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) || 'N/A';
+
                 const qtdTurmas = aviso.turmasRelacionadas ? aviso.turmasRelacionadas.length : 0;
                 const turmasLabel = qtdTurmas > 3 ? `${qtdTurmas} Turmas Destinatárias` : (aviso.turmasRelacionadas || []).join(", ");
 
                 const div = document.createElement('div');
                 div.className = 'bg-slate-800 border border-slate-700 rounded-xl p-5 shadow-lg relative group transition-colors hover:bg-slate-800/80';
-                
+
                 // Trata quebras de linha na mensagem
                 const mensagemFormatada = escapeHTML(aviso.mensagem).replace(/\n/g, '<br>');
 
@@ -3280,7 +3260,7 @@ window.profAPI = {
                 els.avisosList.appendChild(div);
             });
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             els.avisosList.innerHTML = `<div class="text-center text-red-500 font-bold p-6">Erro: ${e.message}</div>`;
         }
@@ -3288,10 +3268,10 @@ window.profAPI = {
 
     toggleAvisoForm: () => {
         const el = els.avisoFormContainer;
-        if(el.classList.contains('hidden')) {
+        if (el.classList.contains('hidden')) {
             el.classList.remove('hidden');
             window.profAPI.resetAvisoForm();
-            el.scrollIntoView({behavior: 'smooth', block: 'start'});
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else {
             el.classList.add('hidden');
         }
@@ -3302,7 +3282,7 @@ window.profAPI = {
         els.avisoId.value = "";
         els.avisoMsgInput.value = "";
         els.btnSaveAviso.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Publicar Aviso';
-        
+
         const cbs = els.avisoTurmasList.querySelectorAll('input[type="checkbox"]');
         cbs.forEach(cb => cb.checked = false);
     },
@@ -3313,28 +3293,28 @@ window.profAPI = {
         els.avisoId.value = id;
         els.avisoMsgInput.value = data.mensagem || "";
         els.btnSaveAviso.innerHTML = '<i class="fas fa-save mr-2"></i> Atualizar Aviso';
-        
+
         // Marca as turmas que já estavam selecionadas
         const cbs = els.avisoTurmasList.querySelectorAll('.aviso-turma-checkbox');
-        if(data.turmasRelacionadas) {
+        if (data.turmasRelacionadas) {
             cbs.forEach(cb => {
                 cb.checked = data.turmasRelacionadas.includes(cb.value);
             });
         }
-        
-        els.avisoFormContainer.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+        els.avisoFormContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
 
     saveAviso: async () => {
         const id = els.avisoId.value;
         const mensagem = els.avisoMsgInput.value.trim();
-        
+
         const turmasSelecionadas = [];
         const cbs = els.avisoTurmasList.querySelectorAll('.aviso-turma-checkbox:checked');
         cbs.forEach(cb => turmasSelecionadas.push(cb.value));
 
-        if(!mensagem) return alert("Digite a mensagem do comunicado.");
-        if(turmasSelecionadas.length === 0) return alert("Selecione ao menos uma turma destinatária.");
+        if (!mensagem) return alert("Digite a mensagem do comunicado.");
+        if (turmasSelecionadas.length === 0) return alert("Selecione ao menos uma turma destinatária.");
 
         els.btnSaveAviso.disabled = true;
         els.btnSaveAviso.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processando...';
@@ -3348,18 +3328,18 @@ window.profAPI = {
                 atualizadoEm: serverTimestamp()
             };
 
-            if(id) {
+            if (id) {
                 await updateDoc(doc(db, "avisos_colegio", id), payload);
             } else {
                 payload.dataCriacao = serverTimestamp();
                 await addDoc(collection(db, "avisos_colegio"), payload);
             }
-            
+
             els.avisoFormContainer.classList.add('hidden');
             window.profAPI.loadAvisosList();
             alert("Comunicado publicado com sucesso!");
 
-        } catch(e) {
+        } catch (e) {
             console.error(e);
             alert("Erro ao publicar aviso: " + e.message);
         } finally {
@@ -3368,27 +3348,27 @@ window.profAPI = {
     },
 
     deleteAviso: async (id) => {
-        if(!confirm("Tem certeza que deseja APAGAR este comunicado permanentemente?")) return;
+        if (!confirm("Tem certeza que deseja APAGAR este comunicado permanentemente?")) return;
         try {
             await deleteDoc(doc(db, "avisos_colegio", id));
             window.profAPI.loadAvisosList();
-        } catch(e) { alert("Erro ao excluir: " + e.message); }
+        } catch (e) { alert("Erro ao excluir: " + e.message); }
     },
 
     // ==========================================
     // MÓDULO: RESET ANUAL (BACKUP & WIPE)
     // ==========================================
-    
+
     // Logger Visual do Console
     logReset: (msg, type = 'info') => {
         const div = document.createElement('div');
         const time = new Date().toLocaleTimeString();
-        
+
         if (type === 'info') div.className = "text-blue-400";
         if (type === 'success') div.className = "text-green-400 font-bold";
         if (type === 'warning') div.className = "text-amber-400";
         if (type === 'error') div.className = "text-red-500 font-bold bg-red-900/20 p-1 rounded mt-1";
-        
+
         div.innerHTML = `<span class="text-slate-600 mr-2">[${time}]</span> ${msg}`;
         els.resetLog.appendChild(div);
         els.resetLog.scrollTop = els.resetLog.scrollHeight;
@@ -3396,24 +3376,24 @@ window.profAPI = {
 
     // Função para processar grandes volumes em lotes sem estourar o limite do Firebase (500 docs/batch)
     processBatchChunked: async (docs, operationCallback, description) => {
-        const CHUNK_SIZE = 450; 
+        const CHUNK_SIZE = 450;
         const total = docs.length;
         let processed = 0;
 
         for (let i = 0; i < total; i += CHUNK_SIZE) {
             const chunk = docs.slice(i, i + CHUNK_SIZE);
             const batch = writeBatch(db);
-            
+
             chunk.forEach(docSnapshot => {
                 operationCallback(batch, docSnapshot);
             });
 
             await batch.commit();
             processed += chunk.length;
-            
+
             const pct = Math.round((processed / total) * 100);
             els.resetProgress.style.width = `${pct}%`;
-            window.profAPI.logReset(`> ${description}: Lote ${Math.ceil(i/CHUNK_SIZE)+1} finalizado (${processed}/${total})`);
+            window.profAPI.logReset(`> ${description}: Lote ${Math.ceil(i / CHUNK_SIZE) + 1} finalizado (${processed}/${total})`);
         }
     },
 
@@ -3423,8 +3403,8 @@ window.profAPI = {
 
         // 1. Confirmação de Segurança Nível Máximo
         const inputCredential = prompt(`ATENÇÃO: PROTOCOLO DE RESET ANUAL\n\nEssa ação é irreversível e irá mover as notas e presenças de TODOS OS ALUNOS para o arquivo morto.\n\nDigite sua SENHA de administrador ou o Código Mestre para confirmar:`);
-        
-        if (!inputCredential) return; 
+
+        if (!inputCredential) return;
 
         els.btnStartReset.disabled = true;
         els.btnStartReset.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verificando permissões...';
@@ -3462,8 +3442,8 @@ window.profAPI = {
 
             // --- ETAPA 1: LEITURA GLOBAL ---
             window.profAPI.logReset("Buscando dados massivos para arquivamento...", 'info');
-            const snapNotas = await getDocs(query(collection(db, "notas"))); 
-            const snapPres = await getDocs(query(collection(db, "presencas"))); 
+            const snapNotas = await getDocs(query(collection(db, "notas")));
+            const snapPres = await getDocs(query(collection(db, "presencas")));
             const snapUsersReset = await getDocs(query(collection(db, "users"), where("Aluno", "==", true)));
 
             // --- ETAPA 2: BACKUP DE NOTAS ---
@@ -3504,7 +3484,7 @@ window.profAPI = {
                     batch.update(docSnap.ref, {
                         turma: "",            // Limpa turma
                         disciplinas: {},      // Limpa matérias
-                        lastAnnualReset: serverTimestamp() 
+                        lastAnnualReset: serverTimestamp()
                     });
                 }, "Atualização de Perfis");
                 window.profAPI.logReset("Vínculos removidos. Perfis dos alunos preservados.", 'success');
@@ -3513,10 +3493,10 @@ window.profAPI = {
             // --- FIM ---
             window.profAPI.logReset("===========================================", 'success');
             window.profAPI.logReset("PROTOCOLOS DE ENCERRAMENTO CONCLUÍDOS COM SUCESSO!", 'success');
-            
+
             setTimeout(() => {
                 alert("Reset Anual finalizado!\n\n1. Notas e Presenças de todas as turmas foram arquivadas.\n2. Alunos foram desvinculados para o novo ano.\n3. Perfis e títulos foram preservados.\n\nA página será recarregada por segurança.");
-                location.reload(); 
+                location.reload();
             }, 1000);
 
         } catch (e) {
@@ -3532,7 +3512,7 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: AVALIAÇÃO 360 CONTÍNUA
     // ==========================================
-    
+
     // Variável interna para guardar a lista carregada
     cacheAvaliacoes360: [],
 
@@ -3551,14 +3531,14 @@ window.profAPI = {
 
         try {
             const q = query(
-                collection(db, "avaliacoes_360"), 
+                collection(db, "avaliacoes_360"),
                 where("turmaId", "==", classId),
                 where("disciplinaId", "==", disciplineId)
             );
-            
+
             const snap = await getDocs(q);
             window.profAPI.cacheAvaliacoes360 = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            
+
             window.profAPI.renderAvaliacoes360List();
         } catch (e) {
             console.error("Erro ao buscar avaliações 360:", e);
@@ -3646,12 +3626,12 @@ window.profAPI = {
 
     closeModalAval360: () => {
         const modal = document.getElementById('modal-aval360');
-        if(modal) modal.classList.add('hidden');
+        if (modal) modal.classList.add('hidden');
     },
 
     saveAvaliacao360: async () => {
         const { classId, disciplineId } = state.filters;
-        
+
         const id = document.getElementById('aval360-id').value;
         const selAluno = document.getElementById('aval360-aluno');
         const alunoId = selAluno.value;
@@ -3682,9 +3662,9 @@ window.profAPI = {
                 payload.dataCriacao = serverTimestamp();
                 await addDoc(collection(db, "avaliacoes_360"), payload);
             }
-            
+
             window.profAPI.closeModalAval360();
-            window.profAPI.loadAvaliacoes360(); 
+            window.profAPI.loadAvaliacoes360();
         } catch (e) {
             console.error("Erro ao salvar:", e);
             alert("Erro ao salvar avaliação.");
@@ -3710,11 +3690,11 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: LOGS DE USUÁRIO
     // ==========================================
-    
+
     // 1. Função que injeta os alunos no Select antes de buscar
     prepararAbaLogs: () => {
         const selAluno = document.getElementById('log-student-select');
-        if(selAluno && state.cache.students) {
+        if (selAluno && state.cache.students) {
             selAluno.innerHTML = '<option value="">Selecione um aluno da turma...</option>';
             state.cache.students.forEach(st => selAluno.add(new Option(st.nome, st.id)));
         }
@@ -3725,11 +3705,11 @@ window.profAPI = {
     loadLogsAluno: async () => {
         const selAluno = document.getElementById('log-student-select');
         const logsBody = document.getElementById('logs-list-body');
-        
+
         if (!logsBody) return;
 
         const studentId = selAluno ? selAluno.value : null;
-        
+
         if (!studentId) {
             logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Selecione um aluno no seletor acima para carregar os logs.</td></tr>';
             return;
@@ -3744,9 +3724,9 @@ window.profAPI = {
                 orderBy("timestamp", "desc"),
                 limit(50)
             );
-            
+
             const snap = await getDocs(q);
-            
+
             if (snap.empty) {
                 logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 italic">Nenhuma atividade registrada para este aluno.</td></tr>';
                 return;
@@ -3756,13 +3736,13 @@ window.profAPI = {
             snap.forEach(doc => {
                 const data = doc.data();
                 let dataFormatada = 'Sem data';
-                    if (data.timestamp) {
-                        // Tenta usar a função nativa do Firebase (toDate), se falhar, converte via JavaScript normal
-                        dataFormatada = typeof data.timestamp.toDate === 'function' 
-                            ? data.timestamp.toDate().toLocaleString('pt-BR') 
-                            : new Date(data.timestamp).toLocaleString('pt-BR');
-                    }
-                
+                if (data.timestamp) {
+                    // Tenta usar a função nativa do Firebase (toDate), se falhar, converte via JavaScript normal
+                    dataFormatada = typeof data.timestamp.toDate === 'function'
+                        ? data.timestamp.toDate().toLocaleString('pt-BR')
+                        : new Date(data.timestamp).toLocaleString('pt-BR');
+                }
+
                 html += `
                     <tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50">
                         <td class="px-6 py-4 font-mono text-xs text-emerald-400 whitespace-nowrap w-48">${dataFormatada}</td>
@@ -3776,8 +3756,8 @@ window.profAPI = {
 
         } catch (error) {
             console.error("Erro ao buscar logs:", error);
-            
-            if(error.message.includes("index")) {
+
+            if (error.message.includes("index")) {
                 logsBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-amber-500 text-xs bg-amber-500/10 rounded-lg">
                     <i class="fas fa-exclamation-triangle text-xl mb-2 block"></i> 
                     O Firebase exige a criação de um "Índice" para cruzar o Usuário com a Data da Ação.<br><br>
