@@ -435,7 +435,10 @@ window.avaliacoesAPI = {
                                         <h5 class="text-white font-bold text-sm">${escapeHTML(e.alunoNome)} <span class="text-slate-500 text-[10px] ml-2 uppercase tracking-widest">${escapeHTML(e.turmaAluno)}</span></h5>
                                         <p class="${corStatus} text-xs mt-1"><i class="fas fa-check-circle"></i> ${txtStatus} em: ${dEnvio}</p>
                                     </div>
-                                    <a href="${e.arquivoURL}" target="_blank" download class="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-lg text-xs font-bold transition-colors whitespace-nowrap text-center"><i class="fas fa-download mr-1"></i> Baixar Arquivo</a>
+                                    <div class="flex gap-2">
+                                        <button onclick="window.avaliacoesAPI.devolverAtividade('${e.id}', '${aval.id}')" class="px-4 py-2 bg-amber-600/20 text-amber-500 hover:bg-amber-600 hover:text-white border border-amber-500/30 rounded-lg text-xs font-bold transition-colors whitespace-nowrap text-center" title="Devolver para o aluno reenviar"><i class="fas fa-undo mr-1"></i> Devolver</button>
+                                        <a href="${e.arquivoURL}" target="_blank" download class="px-4 py-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white border border-blue-500/30 rounded-lg text-xs font-bold transition-colors whitespace-nowrap text-center"><i class="fas fa-download mr-1"></i> Baixar Arquivo</a>
+                                    </div>
                                 </div>
                                 
                                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
@@ -465,7 +468,7 @@ window.avaliacoesAPI = {
                 const minhaEntrega = entregas.find(e => e.alunoUid === currentUser.uid);
                 let htmlAluno = `<div class="bg-slate-900 border border-slate-700 p-5 rounded-xl mb-6 shadow-inner"><h4 class="text-white font-bold mb-2 flex items-center"><i class="fas fa-book-open text-blue-500 mr-2"></i> Pauta da Atividade</h4><p class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">${escapeHTML(aval.descricao)}</p></div>`;
 
-                if(minhaEntrega) {
+                if(minhaEntrega && minhaEntrega.status !== 'devolvido') {
                     const dEnvio = minhaEntrega.dataEnvio ? minhaEntrega.dataEnvio.toDate().toLocaleString('pt-BR') : '';
                     
                     // Renderiza o Box de Sucesso
@@ -492,15 +495,21 @@ window.avaliacoesAPI = {
                     htmlAluno += `<div class="bg-emerald-900/20 border border-emerald-500/30 rounded-xl p-6 text-center">${conteudoStatus}</div>`;
 
                 } else {
+                    const entregaIdParam = minhaEntrega ? minhaEntrega.id : '';
+                    const alertaDevolucao = minhaEntrega && minhaEntrega.status === 'devolvido' 
+                        ? `<div class="mb-5 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-400 text-sm font-bold text-center"><i class="fas fa-exclamation-triangle mr-2"></i>Atividade devolvida. Corrija e reenvie o documento abaixo.</div>` 
+                        : '';
+
                     htmlAluno += `
                         <div class="bg-slate-900 border border-slate-700 rounded-xl p-6">
                             <h3 class="text-lg font-bold text-white mb-4">Enviar Resolução</h3>
+                            ${alertaDevolucao}
                             <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-500 transition-colors bg-slate-950/50">
                                 <i class="fas fa-cloud-upload-alt text-4xl text-blue-500 mb-4"></i>
                                 <p class="text-slate-300 text-sm font-bold mb-2">Selecione seu documento</p>
                                 <p class="text-slate-500 text-xs mb-6">São aceitos PDF, DOCX, ZIP, imagens, etc.</p>
                                 <input type="file" id="aval-file-upload" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-blue-600/20 file:text-blue-400 hover:file:bg-blue-600 hover:file:text-white cursor-pointer mx-auto max-w-xs mb-4">
-                                <button onclick="window.avaliacoesAPI.enviarAtividade(this, '${aval.id}')" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/30">Enviar Atividade</button>
+                                <button onclick="window.avaliacoesAPI.enviarAtividade(this, '${aval.id}', '${entregaIdParam}')" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/30">Enviar Atividade</button>
                             </div>
                         </div>
                     `;
@@ -548,7 +557,24 @@ window.avaliacoesAPI = {
         }
     },
 
-    enviarAtividade: async (btnEl, avalId) => {
+    devolverAtividade: async (entregaId, avalId) => {
+        if (!confirm("Deseja devolver a atividade? O aluno será liberado para enviar um novo documento.")) return;
+
+        try {
+            await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
+                status: "devolvido",
+                dataDevolucao: serverTimestamp()
+            });
+            alert("Atividade devolvida com sucesso!");
+            window.avaliacoesAPI.abrirPainel(avalId); // Recarrega o modal para exibir status atualizado
+            renderGridAvaliacoes(avaliacoesCache); // Atualiza os cards no fundo
+        } catch (err) {
+            console.error("Erro ao devolver atividade:", err);
+            alert("Erro ao processar a devolução.");
+        }
+    },
+
+    enviarAtividade: async (btnEl, avalId, entregaIdExistente = '') => {
         const fileInput = document.getElementById('aval-file-upload');
         const file = fileInput.files[0];
         
@@ -567,17 +593,29 @@ window.avaliacoesAPI = {
             await uploadBytes(fileRef, file);
             const url = await getDownloadURL(fileRef);
 
-            // Registra no Banco de Dados
-            await addDoc(collection(db, "avaliacoes_entregas"), {
-                avaliacaoId: avalId,
-                alunoUid: currentUser.uid,
-                alunoNome: currentUser.nome,
-                turmaAluno: currentUser.turma || "Sem Turma",
-                arquivoNome: file.name,
-                arquivoURL: url,
-                dataEnvio: serverTimestamp(),
-                status: 'entregue'
-            });
+            if (entregaIdExistente) {
+                // Aluno está reenviando uma atividade devolvida (Faz Update invés de Add)
+                await updateDoc(doc(db, "avaliacoes_entregas", entregaIdExistente), {
+                    arquivoNome: file.name,
+                    arquivoURL: url,
+                    dataEnvio: serverTimestamp(),
+                    status: 'entregue',
+                    notaAtribuida: null, // Limpa nota anterior
+                    feedbackProfessor: '' // Limpa feedback anterior
+                });
+            } else {
+                // É o primeiro envio do aluno
+                await addDoc(collection(db, "avaliacoes_entregas"), {
+                    avaliacaoId: avalId,
+                    alunoUid: currentUser.uid,
+                    alunoNome: currentUser.nome,
+                    turmaAluno: currentUser.turma || "Sem Turma",
+                    arquivoNome: file.name,
+                    arquivoURL: url,
+                    dataEnvio: serverTimestamp(),
+                    status: 'entregue'
+                });
+            }
 
             alert("Missão Cumprida! Arquivo enviado com sucesso.");
             window.avaliacoesAPI.abrirPainel(avalId); // Recarrega o painel interno
