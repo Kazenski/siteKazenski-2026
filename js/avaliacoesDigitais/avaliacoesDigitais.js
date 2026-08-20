@@ -45,52 +45,72 @@ function construirEstruturaInterface(container) {
             ${btnNovaAvaliacao}
         </div>
 
-        <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0">
-            <h3 class="text-lg font-cinzel font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">Registrar Nova Avaliação</h3>
+        <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0 max-w-3xl mx-auto w-full mt-4">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h3 class="text-lg font-cinzel font-bold text-amber-500"><i class="fas fa-calendar-plus mr-2"></i> NOVA AVALIAÇÃO</h3>
+                <button id="btn-fechar-form-top" type="button" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+            </div>
             <form id="form-nova-aval" class="space-y-4">
                 <input type="hidden" id="aval-id">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Título da Atividade</label>
-                        <input type="text" id="aval-titulo" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Valor / Nota Máxima</label>
-                        <input type="number" id="aval-nota" step="0.1" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
-                    </div>
-                </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Data de Abertura</label>
-                        <input type="datetime-local" id="aval-abertura" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
+                        <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Trimestre *</label>
+                        <select id="aval-trimestre" required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 focus:border-amber-500 outline-none">
+                            <option value="" disabled selected>Selecione...</option>
+                            <option value="1">1º Trimestre</option>
+                            <option value="2">2º Trimestre</option>
+                            <option value="3">3º Trimestre</option>
+                        </select>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Prazo de Encerramento</label>
-                        <input type="datetime-local" id="aval-fechamento" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
-                    </div>
-                </div>
-
-                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Selecione as Turmas Alvo</label>
-                    <div id="container-check-turmas" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div class="text-slate-600 text-[10px] animate-pulse">Carregando turmas...</div>
+                        <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Data e Hora *</label>
+                        <input type="datetime-local" id="aval-data-hora" required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 focus:border-amber-500 outline-none cursor-pointer">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Instruções / Descrição</label>
-                    <textarea id="aval-descricao" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea>
+                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Notas Alvo *</label>
+                    <div id="containerNotas" class="flex flex-wrap gap-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N1" class="w-4 h-4 accent-amber-500"> N1</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N2" class="w-4 h-4 accent-amber-500"> N2</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N3" class="w-4 h-4 accent-amber-500"> N3</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N4" class="w-4 h-4 accent-amber-500"> N4</label>
+                    </div>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
-                    <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Atividade</button>
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Turmas Alvo (Segure CTRL para múltipla seleção) *</label>
+                    <select id="aval-turmas" multiple required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-amber-500 h-28 custom-scroll">
+                        <option value="">Carregando turmas...</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Disciplinas Vinculadas *</label>
+                    <div id="containerDisciplinas" class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                        <p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma acima primeiro.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Conteúdo da Avaliação</label>
+                    <textarea id="aval-conteudo" required class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 min-h-[100px] focus:border-amber-500 outline-none custom-scroll leading-relaxed" placeholder="O que vai cair na prova? Quais os capítulos?"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Dicas / Observações do Professor</label>
+                    <textarea id="aval-dicas" class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 min-h-[80px] focus:border-amber-500 outline-none custom-scroll leading-relaxed" placeholder="Dicas de estudo, lembretes para trazer material..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-800">
+                    <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                    <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-green-900/50">Salvar Avaliação</button>
                 </div>
             </form>
         </div>
 
-        <div id="grid-avaliacoes" class="flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-y-auto custom-scroll">
+        <div id="grid-avaliacoes" class="flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-y-auto custom-scroll mt-4">
             <div class="flex flex-col items-center justify-center h-full text-slate-500">
                 <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
                 <p class="font-bold uppercase tracking-widest text-xs">Carregando quadro de atividades...</p>
@@ -103,6 +123,7 @@ function setupEventosIniciais() {
     const btnToggle = document.getElementById('btn-toggle-form-aval');
     const containerForm = document.getElementById('container-form-aval');
     const btnCancel = document.getElementById('btn-cancel-aval');
+    const btnFecharTop = document.getElementById('btn-fechar-form-top');
     const form = document.getElementById('form-nova-aval');
 
     if (btnToggle && containerForm) {
@@ -113,28 +134,69 @@ function setupEventosIniciais() {
         });
     }
 
-    if (btnCancel && containerForm) {
-        btnCancel.addEventListener('click', () => {
-            form.reset();
-            containerForm.classList.add('hidden');
-        });
-    }
+    const closeForm = () => {
+        if(form) form.reset();
+        containerForm.classList.add('hidden');
+    };
+
+    if (btnCancel) btnCancel.addEventListener('click', closeForm);
+    if (btnFecharTop) btnFecharTop.addEventListener('click', closeForm);
 
     if (form) {
         form.addEventListener('submit', salvarAvaliacao);
     }
     
+    // Injetar disciplinas ativas quando alguma turma for selecionada no Select Múltiplo
+    const selectTurmas = document.getElementById('aval-turmas');
+    if (selectTurmas) {
+        selectTurmas.addEventListener('change', async (event) => {
+            const containerDisciplinas = document.getElementById('containerDisciplinas');
+            const turmasMarcadas = Array.from(event.target.selectedOptions).map(opt => opt.value);
+            
+            if(turmasMarcadas.length === 0) {
+                 containerDisciplinas.innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
+                 return;
+            }
+
+            containerDisciplinas.innerHTML = '<div class="text-slate-600 text-[10px] animate-pulse col-span-full">Carregando disciplinas...</div>';
+
+            try {
+                // Traz todas as disciplinas cadastradas ativas
+                const q = query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true));
+                const snap = await getDocs(q);
+                
+                containerDisciplinas.innerHTML = '';
+                
+                if(snap.empty) {
+                    containerDisciplinas.innerHTML = '<p class="text-red-500 text-xs col-span-full">Nenhuma disciplina ativa encontrada.</p>';
+                    return;
+                }
+
+                snap.forEach(doc => {
+                    const disc = doc.data();
+                    containerDisciplinas.innerHTML += `
+                        <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-lg cursor-pointer transition-colors group">
+                            <input type="checkbox" name="chkDisciplina" value="${disc.identificador}" class="w-4 h-4 accent-amber-500">
+                            <span class="text-xs text-slate-300 group-hover:text-white truncate" title="${disc.nomeExibicao}">${disc.nomeExibicao}</span>
+                        </label>
+                    `;
+                });
+            } catch (error) {
+                console.error("Erro ao buscar disciplinas:", error);
+                containerDisciplinas.innerHTML = '<p class="text-red-500 text-xs col-span-full">Erro ao carregar disciplinas.</p>';
+            }
+        });
+    }
+
     // Inicia a listagem de avaliações existentes (Snapshot)
     ouvirAvaliacoes();
 }
 
 async function carregarTurmasDisponiveis() {
-    const container = document.getElementById('container-check-turmas');
-    if (!container) return;
+    const selectTurmas = document.getElementById('aval-turmas');
+    if (!selectTurmas) return;
 
     try {
-        // Buscamos os usuários professores/admin para ver quais turmas eles atendem ou uma lista global
-        // Aqui, busco os nomes de turmas únicos na coleção de usuários
         const q = query(collection(db, "users"), where("registroAtivo", "==", true));
         const snap = await getDocs(q);
         
@@ -147,20 +209,17 @@ async function carregarTurmasDisponiveis() {
         const turmasOrdenadas = Array.from(turmasSet).sort();
 
         if (turmasOrdenadas.length === 0) {
-            container.innerHTML = '<p class="text-slate-500 text-xs italic">Nenhuma turma ativa encontrada.</p>';
+            selectTurmas.innerHTML = '<option disabled>Nenhuma turma ativa encontrada.</option>';
             return;
         }
 
-        container.innerHTML = turmasOrdenadas.map(t => `
-            <label class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded-lg cursor-pointer transition-colors group">
-                <input type="checkbox" name="turmas-selecionadas" value="${t}" class="w-4 h-4 accent-blue-500">
-                <span class="text-xs text-slate-300 group-hover:text-white">${t}</span>
-            </label>
+        selectTurmas.innerHTML = turmasOrdenadas.map(t => `
+            <option value="${t}" class="p-2 hover:bg-slate-800 cursor-pointer rounded mb-1">${t}</option>
         `).join('');
 
     } catch (err) {
         console.error("Erro ao carregar turmas:", err);
-        container.innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar turmas.</p>';
+        selectTurmas.innerHTML = '<option disabled>Erro ao carregar turmas.</option>';
     }
 }
 
@@ -169,8 +228,22 @@ async function salvarAvaliacao(e) {
     const btn = document.getElementById('btn-submit-aval');
     const orig = btn.innerHTML;
     
-    const turmas = Array.from(document.querySelectorAll('input[name="turmas-selecionadas"]:checked')).map(cb => cb.value);
-    if (turmas.length === 0) { alert("Selecione pelo menos uma turma."); return; }
+    // Captura os novos campos estruturais
+    const turmas = Array.from(document.getElementById('aval-turmas').selectedOptions).map(opt => opt.value);
+    const trimestreSelecionado = document.getElementById('aval-trimestre').value;
+    const dataHoraSelecionada = document.getElementById('aval-data-hora').value;
+    const notasMarcadas = Array.from(document.querySelectorAll('input[name="chkNota"]:checked')).map(cb => cb.value);
+    const disciplinasMarcadas = Array.from(document.querySelectorAll('input[name="chkDisciplina"]:checked')).map(cb => cb.value);
+
+    if (turmas.length === 0) { 
+        alert("Selecione pelo menos uma turma."); 
+        return; 
+    }
+
+    if (!trimestreSelecionado || !dataHoraSelecionada || notasMarcadas.length === 0 || disciplinasMarcadas.length === 0) {
+        alert("Preencha todos os campos obrigatórios (Trimestre, Data, Notas, Turmas e Disciplinas).");
+        return;
+    }
 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publicando...';
     btn.disabled = true;
@@ -178,12 +251,13 @@ async function salvarAvaliacao(e) {
     try {
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
-            titulo: document.getElementById('aval-titulo').value,
-            notaMaxima: parseFloat(document.getElementById('aval-nota').value),
-            dataAbertura: new Date(document.getElementById('aval-abertura').value),
-            dataFechamento: new Date(document.getElementById('aval-fechamento').value),
+            trimestre: trimestreSelecionado,
+            dataAplicacao: Timestamp.fromDate(new Date(dataHoraSelecionada)),
+            notasAtribuidas: notasMarcadas,
+            disciplinas: disciplinasMarcadas,
             turmasAlvo: turmas,
-            descricao: document.getElementById('aval-descricao').value,
+            conteudo: document.getElementById('aval-conteudo').value,
+            dicasProf: document.getElementById('aval-dicas').value,
             criadoPor: currentUser.nome,
             professorUid: currentUser.uid,
             status: 'ativa'
@@ -202,6 +276,7 @@ async function salvarAvaliacao(e) {
         
         e.target.reset();
         document.getElementById('aval-id').value = '';
+        document.getElementById('containerDisciplinas').innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
         document.getElementById('container-form-aval').classList.add('hidden');
     } catch (err) {
         console.error("Erro ao publicar:", err);
@@ -232,12 +307,11 @@ async function renderGridAvaliacoes(avaliacoes) {
     if (!grid) return;
 
     let visiveis = avaliacoes;
-    let entregasAlunoIds = []; // Vai guardar as IDs das atividades que o aluno já fez
+    let entregasAlunoIds = []; 
     
     // Filtro e Busca para o Aluno
     if (!isStaff && currentUser) {
         try {
-            // Busca rapidinho as entregas apenas deste aluno
             const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid));
             const snapEntregas = await getDocs(qEntregas);
             entregasAlunoIds = snapEntregas.docs.map(d => d.data().avaliacaoId);
@@ -250,7 +324,10 @@ async function renderGridAvaliacoes(avaliacoes) {
         visiveis = avaliacoes.filter(a => {
             if (a.oculta) return false;
             if (!a.turmasAlvo || !a.turmasAlvo.includes(turmaAluno)) return false;
-            if (a.dataAbertura && a.dataAbertura.toDate() > agora) return false;
+            
+            // Retrocompatibilidade (caso haja cards antigos) + dataAplicacao
+            const dataBase = a.dataAplicacao ? a.dataAplicacao.toDate() : (a.dataAbertura ? a.dataAbertura.toDate() : null);
+            if (dataBase && a.dataAbertura && a.dataAbertura.toDate() > agora) return false;
             return true;
         });
     }
@@ -261,53 +338,47 @@ async function renderGridAvaliacoes(avaliacoes) {
     }
 
     grid.innerHTML = visiveis.map(aval => {
-        const dAberta = aval.dataAbertura ? aval.dataAbertura.toDate() : null;
-        const dFecha = aval.dataFechamento ? aval.dataFechamento.toDate() : null;
-        const strAbertura = dAberta ? `${dAberta.toLocaleDateString('pt-BR')} às ${dAberta.getHours().toString().padStart(2,'0')}:${dAberta.getMinutes().toString().padStart(2,'0')}` : 'N/A';
-        const strFechamento = dFecha ? `${dFecha.toLocaleDateString('pt-BR')} às ${dFecha.getHours().toString().padStart(2,'0')}:${dFecha.getMinutes().toString().padStart(2,'0')}` : 'N/A';
+        // Data unificada para o novo formulário
+        const dPrazo = aval.dataAplicacao ? aval.dataAplicacao.toDate() : (aval.dataFechamento ? aval.dataFechamento.toDate() : null);
+        const strPrazo = dPrazo ? `${dPrazo.toLocaleDateString('pt-BR')} às ${dPrazo.getHours().toString().padStart(2,'0')}:${dPrazo.getMinutes().toString().padStart(2,'0')}` : 'N/A';
         
-        const expirou = dFecha && (dFecha < new Date());
+        const expirou = dPrazo && (dPrazo < new Date());
         const opacidade = aval.oculta ? 'opacity-60 grayscale hover:grayscale-0' : '';
         
-        // ESTILOS PADRÃO
         let bordaCard = 'border-slate-700';
         let badgeStatus = '';
         let corPrazo = expirou ? 'text-red-400' : 'text-emerald-400';
-        let extraPt = 'pt-2'; // Padding top dinâmico
+        let extraPt = 'pt-2'; 
 
-        // SISTEMA DE TAGS INTELIGENTES
         if (aval.oculta) {
             badgeStatus = `<div class="absolute top-0 left-0 bg-slate-950 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg border-b border-r border-slate-700"><i class="fas fa-eye-slash"></i> Oculta</div>`;
             extraPt = 'pt-4';
         } else if (!isStaff) {
-            // VISÃO DO ALUNO (Aqui a mágica da UX acontece)
-            extraPt = 'pt-4'; // Abre espaço para a tag superior esquerda
+            extraPt = 'pt-4'; 
             const estaEntregue = entregasAlunoIds.includes(aval.id);
             
             if (estaEntregue) {
-                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; // Fica esverdeado
+                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; 
                 badgeStatus = `<div class="absolute top-0 left-0 bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-check-double mr-1"></i> Entregue</div>`;
-                corPrazo = 'text-emerald-400'; // Se entregou, o prazo fica verde independente de ter vencido
+                corPrazo = 'text-emerald-400'; 
             } else if (expirou) {
                 bordaCard = 'border-red-500/30';
                 badgeStatus = `<div class="absolute top-0 left-0 bg-red-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-exclamation-triangle mr-1"></i> Pendente / Encerrado</div>`;
             } else {
-                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; // Chama atenção na borda esquerda
+                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; 
                 badgeStatus = `<div class="absolute top-0 left-0 bg-amber-500 text-amber-950 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-clock mr-1"></i> Pendente</div>`;
             }
         } else {
-            // VISÃO PROFESSOR
             if (expirou) {
                 badgeStatus = `<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>`;
             }
         }
 
-        // BOTÕES PROFESSOR
         let btnStaffHtml = '';
         if (isStaff) {
             const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
             btnStaffHtml = `
-                <div class="flex gap-2 ml-auto z-20 relative">
+                <div class="flex gap-2 ml-auto z-20 relative shrink-0 pl-4">
                     <button onclick="window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit"></i></button>
                     <button onclick="window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc}"></i></button>
                     <button onclick="window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
@@ -315,26 +386,31 @@ async function renderGridAvaliacoes(avaliacoes) {
             `;
         }
 
+        const disciplinasStr = (aval.disciplinas || []).join(', ');
+        const tituloFinal = aval.titulo || `Avaliação de ${disciplinasStr || 'Geral'} - ${aval.trimestre || '?'}º Tri`;
+        const descricaoFinal = aval.conteudo || aval.descricao || '';
+        const turmasStr = (aval.turmasAlvo || []).join(', ');
+        const notasStr = (aval.notasAtribuidas || []).join(', ');
+
         return `
             <div class="bg-slate-800 border ${bordaCard} p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-all relative overflow-hidden group ${opacidade}">
                 ${badgeStatus}
                 
                 <div class="flex justify-between items-start mb-3 ${extraPt}">
-                    <h4 class="text-lg font-bold text-blue-400 font-cinzel leading-tight">${escapeHTML(aval.titulo)}</h4>
+                    <h4 class="text-lg font-bold text-blue-400 font-cinzel leading-tight pr-4">${escapeHTML(tituloFinal)}</h4>
                     ${btnStaffHtml}
                 </div>
                 
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Valor: ${aval.notaMaxima}</span>
-                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${(aval.turmasAlvo||[]).join(', ')}</span>
+                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>
+                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmasStr}</span>
                 </div>
 
-                <div class="text-xs text-slate-400 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-1.5">
-                    <p><i class="far fa-calendar-alt w-4 text-emerald-400"></i> <span class="font-bold text-white">Abre:</span> ${strAbertura}</p>
-                    <p class="${corPrazo}"><i class="far fa-clock w-4"></i> <span class="font-bold">Fecha:</span> ${strFechamento}</p>
+                <div class="text-xs text-slate-400 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-1.5 flex items-center justify-between">
+                    <p class="${corPrazo}"><i class="far fa-clock w-4"></i> <span class="font-bold">Data e Hora (Prazo):</span> ${strPrazo}</p>
                 </div>
                 
-                <p class="text-sm text-slate-300 line-clamp-2">${escapeHTML(aval.descricao)}</p>
+                <p class="text-sm text-slate-300 line-clamp-2">${escapeHTML(descricaoFinal)}</p>
                 
                 <div class="mt-4 flex justify-end pt-3 border-t border-slate-700/50">
                     <button onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center">
@@ -365,9 +441,9 @@ window.avaliacoesAPI = {
         if(!aval) return;
         
         document.getElementById('aval-id').value = aval.id;
-        document.getElementById('aval-titulo').value = aval.titulo;
-        document.getElementById('aval-nota').value = aval.notaMaxima;
-        document.getElementById('aval-descricao').value = aval.descricao;
+        document.getElementById('aval-trimestre').value = aval.trimestre || '';
+        document.getElementById('aval-conteudo').value = aval.conteudo || aval.descricao || '';
+        document.getElementById('aval-dicas').value = aval.dicasProf || '';
         
         // Converte Firestore Timestamp para o formato do input datetime-local (YYYY-MM-DDTHH:MM)
         const formatData = (dataObj) => {
@@ -377,8 +453,8 @@ window.avaliacoesAPI = {
             return (new Date(d - tzoffset)).toISOString().slice(0, 16);
         };
         
-        document.getElementById('aval-abertura').value = formatData(aval.dataAbertura);
-        document.getElementById('aval-fechamento').value = formatData(aval.dataFechamento);
+        // Cobre tanto registros antigos (dataFechamento) quanto novos (dataAplicacao)
+        document.getElementById('aval-data-hora').value = formatData(aval.dataAplicacao || aval.dataFechamento || aval.dataAbertura);
         
         // Abre e prepara turmas
         const formContainer = document.getElementById('container-form-aval');
@@ -388,9 +464,24 @@ window.avaliacoesAPI = {
         }
         
         setTimeout(() => {
-            const checkboxes = document.querySelectorAll('input[name="turmas-selecionadas"]');
-            checkboxes.forEach(cb => { cb.checked = (aval.turmasAlvo || []).includes(cb.value); });
-        }, 500);
+            const selectTurmas = document.getElementById('aval-turmas');
+            Array.from(selectTurmas.options).forEach(opt => {
+                opt.selected = (aval.turmasAlvo || []).includes(opt.value);
+            });
+
+            // Dispara manualmente o evento change para carregar a lista de disciplinas da tela
+            selectTurmas.dispatchEvent(new Event('change'));
+
+            // Espera a Promise das disciplinas carregar antes de flegar os checkboxes
+            setTimeout(() => {
+                const checkboxesNotas = document.querySelectorAll('input[name="chkNota"]');
+                checkboxesNotas.forEach(cb => { cb.checked = (aval.notasAtribuidas || []).includes(cb.value); });
+
+                const checkboxesDisc = document.querySelectorAll('input[name="chkDisciplina"]');
+                checkboxesDisc.forEach(cb => { cb.checked = (aval.disciplinas || []).includes(cb.value); });
+            }, 800);
+
+        }, 200);
 
         document.getElementById('btn-submit-aval').innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Atualizar Avaliação';
         formContainer.scrollIntoView({ behavior: 'smooth' });
