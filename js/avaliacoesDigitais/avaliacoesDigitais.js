@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../core/firebase.js';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 
@@ -31,7 +31,6 @@ export async function renderAvaliacoesTab() {
 }
 
 function construirEstruturaInterface(container) {
-    // Renderiza o botão "Nova Avaliação" apenas para Staff
     const btnNovaAvaliacao = isStaff 
         ? `<button id="btn-toggle-form-aval" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center shadow-lg"><i class="fas fa-plus mr-2"></i> Nova Avaliação</button>` 
         : '';
@@ -45,72 +44,75 @@ function construirEstruturaInterface(container) {
             ${btnNovaAvaliacao}
         </div>
 
-        <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0 max-w-3xl mx-auto w-full mt-4">
-            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
-                <h3 class="text-lg font-cinzel font-bold text-amber-500"><i class="fas fa-calendar-plus mr-2"></i> NOVA AVALIAÇÃO</h3>
-                <button id="btn-fechar-form-top" type="button" class="text-slate-500 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
-            </div>
+        <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0">
+            <h3 class="text-lg font-cinzel font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">Registrar Nova Avaliação</h3>
             <form id="form-nova-aval" class="space-y-4">
                 <input type="hidden" id="aval-id">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Trimestre *</label>
-                        <select id="aval-trimestre" required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 focus:border-amber-500 outline-none">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Título da Atividade *</label>
+                        <input type="text" id="aval-titulo" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Trimestre *</label>
+                        <select id="aval-trimestre" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             <option value="" disabled selected>Selecione...</option>
                             <option value="1">1º Trimestre</option>
                             <option value="2">2º Trimestre</option>
                             <option value="3">3º Trimestre</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Notas Alvo (Afetará o boletim) *</label>
+                    <div id="containerNotas" class="grid grid-cols-4 gap-3">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input type="checkbox" name="chkNota" value="N1" class="w-4 h-4 accent-blue-500"> N1</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input type="checkbox" name="chkNota" value="N2" class="w-4 h-4 accent-blue-500"> N2</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input type="checkbox" name="chkNota" value="N3" class="w-4 h-4 accent-blue-500"> N3</label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input type="checkbox" name="chkNota" value="N4" class="w-4 h-4 accent-blue-500"> N4</label>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Data e Hora *</label>
-                        <input type="datetime-local" id="aval-data-hora" required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 focus:border-amber-500 outline-none cursor-pointer">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Data de Abertura *</label>
+                        <input type="datetime-local" id="aval-abertura" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Prazo de Encerramento *</label>
+                        <input type="datetime-local" id="aval-fechamento" onclick="this.showPicker()" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none cursor-pointer">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Notas Alvo *</label>
-                    <div id="containerNotas" class="flex flex-wrap gap-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N1" class="w-4 h-4 accent-amber-500"> N1</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N2" class="w-4 h-4 accent-amber-500"> N2</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N3" class="w-4 h-4 accent-amber-500"> N3</label>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-300 hover:text-white transition-colors"><input type="checkbox" name="chkNota" value="N4" class="w-4 h-4 accent-amber-500"> N4</label>
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Turmas Alvo *</label>
+                    <div id="container-check-turmas" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div class="text-slate-600 text-[10px] animate-pulse">Carregando turmas...</div>
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Turmas Alvo (Segure CTRL para múltipla seleção) *</label>
-                    <select id="aval-turmas" multiple required class="w-full bg-slate-900 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-amber-500 h-28 custom-scroll">
-                        <option value="">Carregando turmas...</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Disciplinas Vinculadas *</label>
-                    <div id="containerDisciplinas" class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-900/50 p-3 rounded-lg border border-slate-700">
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Disciplinas Vinculadas *</label>
+                    <div id="containerDisciplinas" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma acima primeiro.</p>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Conteúdo da Avaliação</label>
-                    <textarea id="aval-conteudo" required class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 min-h-[100px] focus:border-amber-500 outline-none custom-scroll leading-relaxed" placeholder="O que vai cair na prova? Quais os capítulos?"></textarea>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Conteúdo da Avaliação</label>
+                    <textarea id="aval-descricao" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea>
                 </div>
 
-                <div>
-                    <label class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">Dicas / Observações do Professor</label>
-                    <textarea id="aval-dicas" class="w-full bg-slate-900 border border-slate-600 text-slate-200 text-sm rounded-xl p-4 min-h-[80px] focus:border-amber-500 outline-none custom-scroll leading-relaxed" placeholder="Dicas de estudo, lembretes para trazer material..."></textarea>
-                </div>
-
-                <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-800">
-                    <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
-                    <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-green-900/50">Salvar Avaliação</button>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                    <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
+                    <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Atividade</button>
                 </div>
             </form>
         </div>
 
-        <div id="grid-avaliacoes" class="flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-y-auto custom-scroll mt-4">
+        <div id="grid-avaliacoes" class="flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-y-auto custom-scroll">
             <div class="flex flex-col items-center justify-center h-full text-slate-500">
                 <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
                 <p class="font-bold uppercase tracking-widest text-xs">Carregando quadro de atividades...</p>
@@ -228,20 +230,19 @@ async function salvarAvaliacao(e) {
     const btn = document.getElementById('btn-submit-aval');
     const orig = btn.innerHTML;
     
-    // Captura os novos campos estruturais
-    const turmas = Array.from(document.getElementById('aval-turmas').selectedOptions).map(opt => opt.value);
+    const turmas = Array.from(document.querySelectorAll('input[name="turmas-selecionadas"]:checked')).map(cb => cb.value);
     const trimestreSelecionado = document.getElementById('aval-trimestre').value;
-    const dataHoraSelecionada = document.getElementById('aval-data-hora').value;
     const notasMarcadas = Array.from(document.querySelectorAll('input[name="chkNota"]:checked')).map(cb => cb.value);
     const disciplinasMarcadas = Array.from(document.querySelectorAll('input[name="chkDisciplina"]:checked')).map(cb => cb.value);
+    const tituloVal = document.getElementById('aval-titulo').value;
 
     if (turmas.length === 0) { 
         alert("Selecione pelo menos uma turma."); 
         return; 
     }
 
-    if (!trimestreSelecionado || !dataHoraSelecionada || notasMarcadas.length === 0 || disciplinasMarcadas.length === 0) {
-        alert("Preencha todos os campos obrigatórios (Trimestre, Data, Notas, Turmas e Disciplinas).");
+    if (!trimestreSelecionado || notasMarcadas.length === 0 || disciplinasMarcadas.length === 0) {
+        alert("Preencha o trimestre e flegue pelo menos uma nota e uma disciplina.");
         return;
     }
 
@@ -251,13 +252,14 @@ async function salvarAvaliacao(e) {
     try {
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
+            titulo: tituloVal,
             trimestre: trimestreSelecionado,
-            dataAplicacao: Timestamp.fromDate(new Date(dataHoraSelecionada)),
             notasAtribuidas: notasMarcadas,
             disciplinas: disciplinasMarcadas,
+            dataAbertura: Timestamp.fromDate(new Date(document.getElementById('aval-abertura').value)),
+            dataFechamento: Timestamp.fromDate(new Date(document.getElementById('aval-fechamento').value)),
             turmasAlvo: turmas,
-            conteudo: document.getElementById('aval-conteudo').value,
-            dicasProf: document.getElementById('aval-dicas').value,
+            descricao: document.getElementById('aval-descricao').value,
             criadoPor: currentUser.nome,
             professorUid: currentUser.uid,
             status: 'ativa'
@@ -269,7 +271,7 @@ async function salvarAvaliacao(e) {
             alert("Avaliação atualizada!");
         } else {
             payload.dataCriacao = serverTimestamp();
-            payload.oculta = false; // Por padrão, nasce visível
+            payload.oculta = false; 
             await addDoc(collection(db, "avaliacoes_digitais"), payload);
             alert("Avaliação publicada com sucesso!");
         }
@@ -280,7 +282,7 @@ async function salvarAvaliacao(e) {
         document.getElementById('container-form-aval').classList.add('hidden');
     } catch (err) {
         console.error("Erro ao publicar:", err);
-        alert("Falha ao salvar no Grimório.");
+        alert("Falha ao salvar no Grimório: " + err.message);
     } finally {
         btn.innerHTML = orig;
         btn.disabled = false;
@@ -542,7 +544,7 @@ window.avaliacoesAPI = {
                                             <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Feedback ao Aluno</label>
                                             <div class="flex gap-2">
                                                 <input type="text" id="feed-${e.id}" value="${valorFeed}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500" placeholder="Comentário opcional...">
-                                                <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
+                                                <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}', '${e.alunoUid}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
                                             </div>
                                         </div>
                                     </div>
@@ -613,7 +615,7 @@ window.avaliacoesAPI = {
         }
     },
 
-    salvarCorrecao: async (entregaId, avalId) => {
+    salvarCorrecao: async (entregaId, avalId, alunoUid) => {
         const inputNota = document.getElementById(`nota-${entregaId}`);
         const inputFeed = document.getElementById(`feed-${entregaId}`);
         
@@ -629,7 +631,7 @@ window.avaliacoesAPI = {
         }
 
         try {
-            // Atualiza o documento de entrega no Firestore
+            // 1. Atualiza o documento de entrega no Firestore
             await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
                 notaAtribuida: notaNum,
                 feedbackProfessor: inputFeed.value,
@@ -637,10 +639,28 @@ window.avaliacoesAPI = {
                 dataAvaliacao: serverTimestamp()
             });
 
-            alert("Correção registrada com sucesso!");
+            // 2. Lança a nota no Boletim do Aluno automaticamente
+            const aval = avaliacoesCache.find(a => a.id === avalId);
             
-            // Opcional: Recarregar o painel para refletir o status azul de "Avaliado"
-            window.avaliacoesAPI.abrirPainel(avalId);
+            if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas) {
+                const notasUpdatePayload = { lastUpdatedAt: serverTimestamp() };
+
+                // Varre as disciplinas vinculadas à prova
+                aval.disciplinas.forEach(discId => {
+                    // Varre as notas alvo (Ex: "N1", "N3")
+                    aval.notasAtribuidas.forEach(notaAlvo => {
+                        // Converte "N1" para "nota1", adequando à estrutura do banco
+                        const campoNota = notaAlvo.toLowerCase().replace('n', 'nota');
+                        notasUpdatePayload[`disciplinasComNotas.${discId}.${aval.trimestre}.${campoNota}`] = notaNum;
+                    });
+                });
+
+                // Lança no banco do aluno (merge: true previne apagar as outras notas)
+                await setDoc(doc(db, "notas", alunoUid), notasUpdatePayload, { merge: true });
+            }
+
+            alert("Correção registrada e nota enviada para o boletim com sucesso!");
+            window.avaliacoesAPI.abrirPainel(avalId); // Atualiza visualmente o painel
 
         } catch (err) {
             console.error("Erro ao salvar nota:", err);
