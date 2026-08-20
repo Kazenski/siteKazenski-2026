@@ -125,7 +125,6 @@ function setupEventosIniciais() {
     const btnToggle = document.getElementById('btn-toggle-form-aval');
     const containerForm = document.getElementById('container-form-aval');
     const btnCancel = document.getElementById('btn-cancel-aval');
-    const btnFecharTop = document.getElementById('btn-fechar-form-top');
     const form = document.getElementById('form-nova-aval');
 
     if (btnToggle && containerForm) {
@@ -136,24 +135,22 @@ function setupEventosIniciais() {
         });
     }
 
-    const closeForm = () => {
-        if(form) form.reset();
-        containerForm.classList.add('hidden');
-    };
-
-    if (btnCancel) btnCancel.addEventListener('click', closeForm);
-    if (btnFecharTop) btnFecharTop.addEventListener('click', closeForm);
+    if (btnCancel && containerForm) {
+        btnCancel.addEventListener('click', () => {
+            form.reset();
+            containerForm.classList.add('hidden');
+        });
+    }
 
     if (form) {
         form.addEventListener('submit', salvarAvaliacao);
     }
     
-    // Injetar disciplinas ativas quando alguma turma for selecionada no Select Múltiplo
-    const selectTurmas = document.getElementById('aval-turmas');
-    if (selectTurmas) {
-        selectTurmas.addEventListener('change', async (event) => {
+    // Injetar disciplinas ativas quando alguma turma for selecionada
+    document.getElementById('container-check-turmas').addEventListener('change', async (event) => {
+        if(event.target.name === 'turmas-selecionadas') {
             const containerDisciplinas = document.getElementById('containerDisciplinas');
-            const turmasMarcadas = Array.from(event.target.selectedOptions).map(opt => opt.value);
+            const turmasMarcadas = Array.from(document.querySelectorAll('input[name="turmas-selecionadas"]:checked')).map(cb => cb.value);
             
             if(turmasMarcadas.length === 0) {
                  containerDisciplinas.innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
@@ -163,8 +160,8 @@ function setupEventosIniciais() {
             containerDisciplinas.innerHTML = '<div class="text-slate-600 text-[10px] animate-pulse col-span-full">Carregando disciplinas...</div>';
 
             try {
-                // Traz todas as disciplinas cadastradas ativas
-                const q = query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true));
+                // Alteração: Traz todas as disciplinas cadastradas ativas e ordenadas
+                const q = query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao"));
                 const snap = await getDocs(q);
                 
                 containerDisciplinas.innerHTML = '';
@@ -177,8 +174,8 @@ function setupEventosIniciais() {
                 snap.forEach(doc => {
                     const disc = doc.data();
                     containerDisciplinas.innerHTML += `
-                        <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-lg cursor-pointer transition-colors group">
-                            <input type="checkbox" name="chkDisciplina" value="${disc.identificador}" class="w-4 h-4 accent-amber-500">
+                        <label class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded-lg cursor-pointer transition-colors group">
+                            <input type="checkbox" name="chkDisciplina" value="${disc.identificador}" class="w-4 h-4 accent-blue-500">
                             <span class="text-xs text-slate-300 group-hover:text-white truncate" title="${disc.nomeExibicao}">${disc.nomeExibicao}</span>
                         </label>
                     `;
@@ -187,41 +184,43 @@ function setupEventosIniciais() {
                 console.error("Erro ao buscar disciplinas:", error);
                 containerDisciplinas.innerHTML = '<p class="text-red-500 text-xs col-span-full">Erro ao carregar disciplinas.</p>';
             }
-        });
-    }
+        }
+    });
 
     // Inicia a listagem de avaliações existentes (Snapshot)
     ouvirAvaliacoes();
 }
 
 async function carregarTurmasDisponiveis() {
-    const selectTurmas = document.getElementById('aval-turmas');
-    if (!selectTurmas) return;
+    const container = document.getElementById('container-check-turmas');
+    if (!container) return;
 
     try {
-        const q = query(collection(db, "users"), where("registroAtivo", "==", true));
+        // Alteração: Buscando diretamente da coleção oficial de turmas cadastradas
+        const q = query(collection(db, "turmasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao"));
         const snap = await getDocs(q);
-        
-        const turmasSet = new Set();
-        snap.forEach(doc => {
-            const t = doc.data().turma;
-            if (t && t !== "Sem Turma") turmasSet.add(t);
-        });
 
-        const turmasOrdenadas = Array.from(turmasSet).sort();
-
-        if (turmasOrdenadas.length === 0) {
-            selectTurmas.innerHTML = '<option disabled>Nenhuma turma ativa encontrada.</option>';
+        if (snap.empty) {
+            container.innerHTML = '<p class="text-slate-500 text-xs italic">Nenhuma turma ativa encontrada.</p>';
             return;
         }
 
-        selectTurmas.innerHTML = turmasOrdenadas.map(t => `
-            <option value="${t}" class="p-2 hover:bg-slate-800 cursor-pointer rounded mb-1">${t}</option>
-        `).join('');
+        let html = '';
+        snap.forEach(doc => {
+            const t = doc.data();
+            html += `
+                <label class="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 p-2 rounded-lg cursor-pointer transition-colors group">
+                    <input type="checkbox" name="turmas-selecionadas" value="${t.identificador}" class="w-4 h-4 accent-blue-500">
+                    <span class="text-xs text-slate-300 group-hover:text-white">${t.nomeExibicao}</span>
+                </label>
+            `;
+        });
+
+        container.innerHTML = html;
 
     } catch (err) {
         console.error("Erro ao carregar turmas:", err);
-        selectTurmas.innerHTML = '<option disabled>Erro ao carregar turmas.</option>';
+        container.innerHTML = '<p class="text-red-500 text-xs">Erro ao carregar turmas.</p>';
     }
 }
 
