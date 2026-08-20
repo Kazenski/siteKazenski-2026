@@ -3035,8 +3035,8 @@
                                         Data e Hora <i class="fas fa-sort ml-1 opacity-50"></i>
                                     </th>
                                     <th class="p-4 text-center text-amber-500 cursor-pointer hover:text-amber-300 transition-colors"
-                                        onclick="window.profAPI.sortAvaliacoes('valorPontos')">
-                                        Valor <i class="fas fa-sort ml-1 opacity-50"></i>
+                                        onclick="window.profAPI.sortAvaliacoes('trimestre')">
+                                        Alvo (Tri/Notas) <i class="fas fa-sort ml-1 opacity-50"></i>
                                     </th>
                                     <th class="p-4 text-center">Visível</th>
                                     <th class="p-4 text-right">Ações</th>
@@ -3069,19 +3069,46 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label
-                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Disciplina
+                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Trimestre
                                         *</label>
-                                    <select id="form-eval-disc"
+                                    <select id="form-eval-trimestre" required
                                         class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
-                                        <option value="">Carregando...</option>
+                                        <option value="" disabled selected>Selecione...</option>
+                                        <option value="1">1º Trimestre</option>
+                                        <option value="2">2º Trimestre</option>
+                                        <option value="3">3º Trimestre</option>
                                     </select>
                                 </div>
                                 <div>
                                     <label
                                         class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Data
                                         e Hora *</label>
-                                    <input type="datetime-local" id="form-eval-date"
+                                    <input type="datetime-local" id="form-eval-date" required
                                         class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500">
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+                                <label
+                                    class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-3 pl-1">Notas
+                                    Alvo *</label>
+                                <div class="grid grid-cols-4 gap-3">
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input
+                                            type="checkbox" name="chkNotaModal" value="N1"
+                                            class="w-4 h-4 accent-amber-500"> N1</label>
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input
+                                            type="checkbox" name="chkNotaModal" value="N2"
+                                            class="w-4 h-4 accent-amber-500"> N2</label>
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input
+                                            type="checkbox" name="chkNotaModal" value="N3"
+                                            class="w-4 h-4 accent-amber-500"> N3</label>
+                                    <label
+                                        class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input
+                                            type="checkbox" name="chkNotaModal" value="N4"
+                                            class="w-4 h-4 accent-amber-500"> N4</label>
                                 </div>
                             </div>
 
@@ -3089,10 +3116,20 @@
                                 <label
                                     class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Turmas
                                     (Segure Ctrl para múltipla seleção) *</label>
-                                <select id="form-eval-turmas" multiple
+                                <select id="form-eval-turmas" multiple required
                                     class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-amber-500 h-28 custom-scroll">
                                     <option value="">Carregando...</option>
                                 </select>
+                            </div>
+
+                            <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4">
+                                <label
+                                    class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-3 pl-1">Disciplinas
+                                    Vinculadas *</label>
+                                <div id="form-eval-container-disciplinas" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.
+                                    </p>
+                                </div>
                             </div>
 
                             <div>
@@ -3114,15 +3151,7 @@
                             </div>
 
                             <div class="flex items-center gap-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
-                                <div>
-                                    <label
-                                        class="block text-[10px] font-bold text-amber-500 mb-1 uppercase tracking-widest">Valor
-                                        (Nota)</label>
-                                    <input type="number" id="form-eval-value"
-                                        class="w-24 bg-slate-900 border border-slate-600 text-white text-lg font-black rounded-lg p-2 text-center outline-none focus:border-amber-500"
-                                        placeholder="10.0" step="0.1">
-                                </div>
-                                <label class="flex items-center gap-3 cursor-pointer group mt-4">
+                                <label class="flex items-center gap-3 cursor-pointer group">
                                     <input type="checkbox" id="form-eval-visible"
                                         class="w-5 h-5 accent-amber-500 cursor-pointer" checked>
                                     <span
