@@ -123,6 +123,38 @@ export async function renderProfessorTab() {
         });
     }
 
+    // Lógica para carregar disciplinas baseadas na turma selecionada
+    if (els.formEvalTurmas) {
+        els.formEvalTurmas.addEventListener('change', async () => {
+            const turmasMarcadas = Array.from(els.formEvalTurmas.selectedOptions).map(opt => opt.value);
+            if(turmasMarcadas.length === 0) {
+                els.formEvalContainerDisciplinas.innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
+                return;
+            }
+            els.formEvalContainerDisciplinas.innerHTML = '<div class="text-slate-500 text-xs animate-pulse col-span-full">Carregando disciplinas...</div>';
+            try {
+                const q = query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true));
+                const snap = await getDocs(q);
+                els.formEvalContainerDisciplinas.innerHTML = '';
+                if(snap.empty) {
+                    els.formEvalContainerDisciplinas.innerHTML = '<p class="text-red-500 text-xs col-span-full">Nenhuma disciplina ativa encontrada.</p>';
+                    return;
+                }
+                snap.forEach(doc => {
+                    const disc = doc.data();
+                    els.formEvalContainerDisciplinas.innerHTML += `
+                        <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 p-2 rounded-lg cursor-pointer transition-colors group">
+                            <input type="checkbox" name="chkDisciplinaModal" value="${disc.identificador}" class="w-4 h-4 accent-amber-500">
+                            <span class="text-xs text-slate-300 group-hover:text-white truncate" title="${disc.nomeExibicao}">${disc.nomeExibicao}</span>
+                        </label>
+                    `;
+                });
+            } catch (error) {
+                els.formEvalContainerDisciplinas.innerHTML = '<p class="text-red-500 text-xs col-span-full">Erro ao carregar disciplinas.</p>';
+            }
+        });
+    }
+
     // Botões de Status de Lançamento (Pendente/Lançado)
     els.launchBtns.forEach(btn => {
         btn.onclick = () => {
@@ -293,12 +325,12 @@ function mapearDOM() {
         evalAdminModal: document.getElementById('avaliacao-modal'),
         evalAdminTitle: document.getElementById('avaliacao-modal-title'),
         evalAdminId: document.getElementById('avaliacao-id'),
-        formEvalDisc: document.getElementById('form-eval-disc'),
+        formEvalTrimestre: document.getElementById('form-eval-trimestre'),
+        formEvalContainerDisciplinas: document.getElementById('form-eval-container-disciplinas'),
         formEvalDate: document.getElementById('form-eval-date'),
         formEvalTurmas: document.getElementById('form-eval-turmas'),
         formEvalContent: document.getElementById('form-eval-content'),
         formEvalTips: document.getElementById('form-eval-tips'),
-        formEvalValue: document.getElementById('form-eval-value'),
         formEvalVisible: document.getElementById('form-eval-visible'),
         btnSaveAvaliacao: document.getElementById('btn-save-avaliacao'),
 
@@ -2697,7 +2729,6 @@ window.profAPI = {
         els.evalEmptyMsg.classList.add('hidden');
 
         try {
-            // Busca as avaliações globais
             const q = query(collection(db, "avaliacoes"), orderBy("dataAplicacao", "desc"));
             const snap = await getDocs(q);
 
@@ -2717,34 +2748,36 @@ window.profAPI = {
                 dSnap.forEach(d => state.cache.disciplinesMap.set(d.data().identificador, d.data().nomeExibicao));
             }
 
-            // 1. Armazena os dados processados no Cache para permitir a Ordenação
             avaliacoesCache = [];
             snap.forEach(doc => {
                 const data = doc.data();
                 const id = doc.id;
 
-                const discName = state.cache.disciplinesMap.get(data.disciplina) || data.disciplina;
+                // Suporte inteligente: arrays novos ou fallback pra versão antiga
+                const disciplinasArray = data.disciplinas || (data.disciplina ? [data.disciplina] : []);
+                const discNames = disciplinasArray.map(dId => state.cache.disciplinesMap.get(dId) || dId).join(", ");
                 const turmasNames = (data.turmas_ids || []).map(tid => turmasMap.get(tid) || tid).join(", ");
+                const notasNames = (data.notasAtribuidas || []).join(", ");
+                
                 const dateObj = data.dataAplicacao ? data.dataAplicacao.toDate() : null;
                 const dateStr = dateObj ? dateObj.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A';
 
                 avaliacoesCache.push({
                     id: id,
-                    dataOriginal: data, // Guarda o dado original para o formulário de edição
-                    disciplinaNome: discName,
+                    dataOriginal: data,
+                    disciplinaNome: discNames || 'Geral',
                     turmasNames: turmasNames,
                     conteudo: data.conteudo || '-',
-                    dataAplicacao: dateObj ? dateObj.getTime() : 0, // Usado para ordenar cronologicamente
+                    dataAplicacao: dateObj ? dateObj.getTime() : 0,
                     dataStr: dateStr,
-                    valorPontos: parseFloat(data.valorPontos) || 0,
+                    trimestre: data.trimestre || '-',
+                    notasAtribuidas: notasNames,
                     exibir: !!data.exibir,
                     dataIso: dateObj?.toISOString()
                 });
             });
 
-            // 2. Chama a função que desenha a tabela na tela
             window.profAPI.renderAvaliacoesTable();
-
         } catch (e) {
             console.error(e);
             els.evalListBody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500 font-bold">Erro: ${e.message}</td></tr>`;
@@ -2753,14 +2786,13 @@ window.profAPI = {
 
     // Disparada ao clicar no cabeçalho da tabela ---
     sortAvaliacoes: (column) => {
-        // Se clicar na mesma coluna, inverte a ordem (ASC / DESC). Se for nova, define como ASC.
         if (avaliacoesSort.column === column) {
             avaliacoesSort.order = avaliacoesSort.order === 'asc' ? 'desc' : 'asc';
         } else {
             avaliacoesSort.column = column;
             avaliacoesSort.order = 'asc';
         }
-        window.profAPI.renderAvaliacoesTable(); // Redesenha a tabela
+        window.profAPI.renderAvaliacoesTable();
     },
 
     // Renderiza e Ordena os dados ---
@@ -2772,13 +2804,11 @@ window.profAPI = {
         }
         els.evalEmptyMsg.classList.add('hidden');
 
-        // Lógica de Ordenação do Array
         const { column, order } = avaliacoesSort;
         avaliacoesCache.sort((a, b) => {
             let valA = a[column];
             let valB = b[column];
 
-            // Tratamento ignorando letras maiúsculas/minúsculas
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
 
@@ -2787,7 +2817,6 @@ window.profAPI = {
             return 0;
         });
 
-        // Loop de Renderização
         avaliacoesCache.forEach(item => {
             const visibleBadge = item.exibir ?
                 '<span class="bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">SIM</span>' :
@@ -2802,7 +2831,7 @@ window.profAPI = {
                 <td class="p-4 text-xs text-slate-300 max-w-[150px] truncate" title="${escapeHTML(item.turmasNames)}">${escapeHTML(item.turmasNames)}</td>
                 <td class="p-4 text-xs text-slate-400 italic line-clamp-2 max-w-[200px]" title="${escapeHTML(item.conteudo)}">${escapeHTML(item.conteudo)}</td>
                 <td class="p-4 text-center text-xs font-mono text-slate-200">${item.dataStr}</td>
-                <td class="p-4 text-center font-black text-lg text-amber-500">${item.valorPontos || '-'}</td>
+                <td class="p-4 text-center font-bold text-sm text-amber-500">${item.trimestre}º Tri<br><span class="text-[10px] text-slate-400">${item.notasAtribuidas}</span></td>
                 <td class="p-4 text-center">${visibleBadge}</td>
                 <td class="p-4 text-right">
                     <button onclick='window.profAPI.openAvaliacaoForm(${dataSafe})' class="text-blue-400 hover:text-white mr-3 transition-colors p-2" title="Editar"><i class="fas fa-edit"></i></button>
@@ -2814,34 +2843,24 @@ window.profAPI = {
     },
 
     openAvaliacaoForm: async (data = null) => {
-        // 1. Popula Selects na primeira vez que abre o modal
-        if (els.formEvalDisc.options.length <= 1) {
-            els.formEvalDisc.innerHTML = '<option value="">Carregando...</option>';
-            const dSnap = await getDocs(query(collection(db, "disciplinasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao")));
-            els.formEvalDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
-            dSnap.forEach(d => els.formEvalDisc.add(new Option(d.data().nomeExibicao, d.data().identificador)));
-
+        if (els.formEvalTurmas.options.length <= 1) {
             els.formEvalTurmas.innerHTML = '<option>Carregando...</option>';
             const tSnap = await getDocs(query(collection(db, "turmasCadastradas"), where("ativo", "==", true), orderBy("nomeExibicao")));
             els.formEvalTurmas.innerHTML = '';
             tSnap.forEach(t => els.formEvalTurmas.add(new Option(t.data().nomeExibicao, t.data().identificador)));
         }
 
-        // 2. Preenche os campos
         if (data) {
             els.evalAdminTitle.innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Avaliação';
             els.evalAdminId.value = data.id;
-            els.formEvalDisc.value = data.disciplina;
-
-            // Ajusta fuso horário do ISO para o input datetime-local
+            els.formEvalTrimestre.value = data.trimestre || "";
+            
             if (data.dataIso) {
-                // "2024-03-15T14:30:00.000Z" -> "2024-03-15T14:30"
                 els.formEvalDate.value = data.dataIso.slice(0, 16);
             } else {
                 els.formEvalDate.value = "";
             }
 
-            // Multi-select Turmas
             const options = els.formEvalTurmas.options;
             const selectedIds = data.turmas_ids || [];
             for (let i = 0; i < options.length; i++) {
@@ -2850,29 +2869,39 @@ window.profAPI = {
 
             els.formEvalContent.value = data.conteudo || '';
             els.formEvalTips.value = data.dicasProf || '';
-            els.formEvalValue.value = data.valorPontos || '';
             els.formEvalVisible.checked = !!data.exibir;
         } else {
             els.evalAdminTitle.innerHTML = '<i class="fas fa-calendar-plus mr-2"></i> Nova Avaliação';
             els.evalAdminId.value = "";
-            els.formEvalDisc.value = "";
+            els.formEvalTrimestre.value = "";
             els.formEvalDate.value = "";
 
-            // Limpa Turmas
             for (let i = 0; i < els.formEvalTurmas.options.length; i++) els.formEvalTurmas.options[i].selected = false;
+            els.formEvalContainerDisciplinas.innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
+            document.querySelectorAll('input[name="chkNotaModal"]').forEach(cb => cb.checked = false);
 
             els.formEvalContent.value = "";
             els.formEvalTips.value = "";
-            els.formEvalValue.value = "";
             els.formEvalVisible.checked = true;
 
-            // UX: Se tiver filtro global ativo, já seleciona a turma e disciplina no modal
             if (state.filters.classId) {
                 for (let i = 0; i < els.formEvalTurmas.options.length; i++) {
                     if (els.formEvalTurmas.options[i].value === state.filters.classId) els.formEvalTurmas.options[i].selected = true;
                 }
             }
-            if (state.filters.disciplineId) els.formEvalDisc.value = state.filters.disciplineId;
+        }
+
+        // Simula o clique para disparar o gatilho de carregar disciplinas da turma correspondente
+        if (data) {
+            els.formEvalTurmas.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+                const chkDisc = document.querySelectorAll('input[name="chkDisciplinaModal"]');
+                chkDisc.forEach(cb => { cb.checked = (data.disciplinas || []).includes(cb.value); });
+                const chkNota = document.querySelectorAll('input[name="chkNotaModal"]');
+                chkNota.forEach(cb => { cb.checked = (data.notasAtribuidas || []).includes(cb.value); });
+            }, 1000);
+        } else {
+            if (state.filters.classId) els.formEvalTurmas.dispatchEvent(new Event('change'));
         }
 
         els.evalAdminModal.classList.remove('hidden');
@@ -2886,25 +2915,28 @@ window.profAPI = {
 
     saveAvaliacao: async () => {
         const id = els.evalAdminId.value;
-        const disciplina = els.formEvalDisc.value;
         const dataStr = els.formEvalDate.value;
-
-        // Pega as turmas selecionadas no multi-select
         const turmas_ids = Array.from(els.formEvalTurmas.selectedOptions).map(opt => opt.value);
+        const trimestre = els.formEvalTrimestre.value;
+        const notasAtribuidas = Array.from(document.querySelectorAll('input[name="chkNotaModal"]:checked')).map(cb => cb.value);
+        const disciplinas = Array.from(document.querySelectorAll('input[name="chkDisciplinaModal"]:checked')).map(cb => cb.value);
 
-        if (!disciplina || !dataStr || turmas_ids.length === 0) return alert("Por favor, preencha a Disciplina, a Data e selecione ao menos uma Turma.");
+        if (!trimestre || !dataStr || turmas_ids.length === 0 || notasAtribuidas.length === 0 || disciplinas.length === 0) {
+            return alert("Por favor, preencha Trimestre, Data, e selecione ao menos uma Turma, uma Disciplina e uma Nota Alvo.");
+        }
 
         els.btnSaveAvaliacao.disabled = true;
         els.btnSaveAvaliacao.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
 
         try {
             const payload = {
-                disciplina,
+                disciplinas,
+                notasAtribuidas,
+                trimestre,
                 turmas_ids,
                 dataAplicacao: Timestamp.fromDate(new Date(dataStr)),
                 conteudo: els.formEvalContent.value,
                 dicasProf: els.formEvalTips.value,
-                valorPontos: parseFloat(els.formEvalValue.value) || 0,
                 exibir: els.formEvalVisible.checked,
                 ultimaModificacao: serverTimestamp()
             };

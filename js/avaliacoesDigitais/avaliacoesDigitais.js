@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../core/firebase.js';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 
@@ -232,12 +232,10 @@ async function renderGridAvaliacoes(avaliacoes) {
     if (!grid) return;
 
     let visiveis = avaliacoes;
-    let entregasAlunoIds = []; // Vai guardar as IDs das atividades que o aluno já fez
+    let entregasAlunoIds = []; 
     
-    // Filtro e Busca para o Aluno
     if (!isStaff && currentUser) {
         try {
-            // Busca rapidinho as entregas apenas deste aluno
             const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid));
             const snapEntregas = await getDocs(qEntregas);
             entregasAlunoIds = snapEntregas.docs.map(d => d.data().avaliacaoId);
@@ -269,40 +267,35 @@ async function renderGridAvaliacoes(avaliacoes) {
         const expirou = dFecha && (dFecha < new Date());
         const opacidade = aval.oculta ? 'opacity-60 grayscale hover:grayscale-0' : '';
         
-        // ESTILOS PADRÃO
         let bordaCard = 'border-slate-700';
         let badgeStatus = '';
         let corPrazo = expirou ? 'text-red-400' : 'text-emerald-400';
-        let extraPt = 'pt-2'; // Padding top dinâmico
+        let extraPt = 'pt-2'; 
 
-        // SISTEMA DE TAGS INTELIGENTES
         if (aval.oculta) {
             badgeStatus = `<div class="absolute top-0 left-0 bg-slate-950 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg border-b border-r border-slate-700"><i class="fas fa-eye-slash"></i> Oculta</div>`;
             extraPt = 'pt-4';
         } else if (!isStaff) {
-            // VISÃO DO ALUNO (Aqui a mágica da UX acontece)
-            extraPt = 'pt-4'; // Abre espaço para a tag superior esquerda
+            extraPt = 'pt-4'; 
             const estaEntregue = entregasAlunoIds.includes(aval.id);
             
             if (estaEntregue) {
-                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; // Fica esverdeado
+                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; 
                 badgeStatus = `<div class="absolute top-0 left-0 bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-check-double mr-1"></i> Entregue</div>`;
-                corPrazo = 'text-emerald-400'; // Se entregou, o prazo fica verde independente de ter vencido
+                corPrazo = 'text-emerald-400'; 
             } else if (expirou) {
                 bordaCard = 'border-red-500/30';
                 badgeStatus = `<div class="absolute top-0 left-0 bg-red-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-exclamation-triangle mr-1"></i> Pendente / Encerrado</div>`;
             } else {
-                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; // Chama atenção na borda esquerda
+                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; 
                 badgeStatus = `<div class="absolute top-0 left-0 bg-amber-500 text-amber-950 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-clock mr-1"></i> Pendente</div>`;
             }
         } else {
-            // VISÃO PROFESSOR
             if (expirou) {
                 badgeStatus = `<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>`;
             }
         }
 
-        // BOTÕES PROFESSOR
         let btnStaffHtml = '';
         if (isStaff) {
             const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
@@ -325,7 +318,7 @@ async function renderGridAvaliacoes(avaliacoes) {
                 </div>
                 
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Valor: ${aval.notaMaxima}</span>
+                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-bullseye mr-1"></i> Alvo: ${aval.trimestre}º Tri (${(aval.notasAtribuidas || []).join(', ')})</span>
                     <span class="bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${(aval.turmasAlvo||[]).join(', ')}</span>
                 </div>
 
@@ -413,7 +406,6 @@ window.avaliacoesAPI = {
             const entregas = snap.docs.map(d => ({id: d.id, ...d.data()}));
 
             if(isStaff) {
-                // VISÃO DO PROFESSOR (Com correção)
                 let htmlProf = `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl mb-6"><h4 class="text-white font-bold mb-2">Instruções Originais:</h4><p class="text-slate-400 text-sm whitespace-pre-wrap">${escapeHTML(aval.descricao)}</p></div>`;
                 htmlProf += `<h3 class="text-lg font-bold text-blue-400 border-b border-slate-700 pb-2 mb-4">Entregas dos Alunos (${entregas.length})</h3>`;
                 
@@ -444,14 +436,14 @@ window.avaliacoesAPI = {
                                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
                                     <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                         <div class="md:col-span-1">
-                                            <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Nota (Máx: ${aval.notaMaxima})</label>
-                                            <input type="number" id="nota-${e.id}" step="0.1" max="${aval.notaMaxima}" value="${valorNota}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500">
+                                            <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Nota da Atividade</label>
+                                            <input type="number" id="nota-${e.id}" step="0.1" max="10" value="${valorNota}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500">
                                         </div>
                                         <div class="md:col-span-3">
                                             <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Feedback ao Aluno</label>
                                             <div class="flex gap-2">
                                                 <input type="text" id="feed-${e.id}" value="${valorFeed}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500" placeholder="Comentário opcional...">
-                                                <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
+                                                <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}', '${e.alunoUid}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
                                             </div>
                                         </div>
                                     </div>
@@ -464,14 +456,12 @@ window.avaliacoesAPI = {
                 body.innerHTML = htmlProf;
 
             } else {
-                // VISÃO DO ALUNO
                 const minhaEntrega = entregas.find(e => e.alunoUid === currentUser.uid);
                 let htmlAluno = `<div class="bg-slate-900 border border-slate-700 p-5 rounded-xl mb-6 shadow-inner"><h4 class="text-white font-bold mb-2 flex items-center"><i class="fas fa-book-open text-blue-500 mr-2"></i> Pauta da Atividade</h4><p class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">${escapeHTML(aval.descricao)}</p></div>`;
 
                 if(minhaEntrega && minhaEntrega.status !== 'devolvido') {
                     const dEnvio = minhaEntrega.dataEnvio ? minhaEntrega.dataEnvio.toDate().toLocaleString('pt-BR') : '';
                     
-                    // Renderiza o Box de Sucesso
                     let conteudoStatus = `
                         <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div>
                         <h3 class="text-xl font-bold text-emerald-400 mb-2">Atividade Entregue!</h3>
@@ -479,13 +469,12 @@ window.avaliacoesAPI = {
                         <a href="${minhaEntrega.arquivoURL}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-bold underline"><i class="fas fa-file-alt mr-1"></i> Ver meu arquivo (${escapeHTML(minhaEntrega.arquivoNome)})</a>
                     `;
 
-                    // Se foi corrigido, injeta a Nota e Feedback
                     if(minhaEntrega.notaAtribuida !== undefined && minhaEntrega.notaAtribuida !== null) {
                         conteudoStatus += `
                             <div class="mt-6 bg-slate-900/80 border border-slate-700 rounded-xl p-5 text-left shadow-inner">
                                 <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
                                     <h4 class="text-white font-bold"><i class="fas fa-clipboard-check text-emerald-500 mr-2"></i> Correção do Professor</h4>
-                                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm font-bold">Nota: ${minhaEntrega.notaAtribuida} / ${aval.notaMaxima}</span>
+                                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm font-bold">Nota: ${minhaEntrega.notaAtribuida}</span>
                                 </div>
                                 <p class="text-slate-300 text-sm italic">"${escapeHTML(minhaEntrega.feedbackProfessor || 'Nenhum comentário adicional.')}"</p>
                             </div>
@@ -522,7 +511,7 @@ window.avaliacoesAPI = {
         }
     },
 
-    salvarCorrecao: async (entregaId, avalId) => {
+    salvarCorrecao: async (entregaId, avalId, alunoUid) => {
         const inputNota = document.getElementById(`nota-${entregaId}`);
         const inputFeed = document.getElementById(`feed-${entregaId}`);
         
@@ -538,7 +527,7 @@ window.avaliacoesAPI = {
         }
 
         try {
-            // Atualiza o documento de entrega no Firestore
+            // 1. Atualiza o documento de entrega no Firestore
             await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
                 notaAtribuida: notaNum,
                 feedbackProfessor: inputFeed.value,
@@ -546,9 +535,27 @@ window.avaliacoesAPI = {
                 dataAvaliacao: serverTimestamp()
             });
 
-            alert("Correção registrada com sucesso!");
+            // 2. LANÇAMENTO DIRETO NA BASE DE NOTAS OFICIAL
+            const aval = avaliacoesCache.find(a => a.id === avalId);
             
-            // Opcional: Recarregar o painel para refletir o status azul de "Avaliado"
+            if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas) {
+                const updatePayload = {
+                    lastUpdatedAt: serverTimestamp()
+                };
+
+                aval.disciplinas.forEach(discId => {
+                    aval.notasAtribuidas.forEach(n => {
+                        const notaKey = "nota" + n.replace("N", ""); 
+                        updatePayload[`disciplinasComNotas.${discId}.${aval.trimestre}.${notaKey}`] = notaNum;
+                    });
+                });
+
+                await updateDoc(doc(db, "notas", alunoUid), updatePayload).catch(async () => {
+                    await setDoc(doc(db, "notas", alunoUid), updatePayload, { merge: true });
+                });
+            }
+
+            alert("Correção registrada com sucesso e notas refletidas automaticamente no boletim!");
             window.avaliacoesAPI.abrirPainel(avalId);
 
         } catch (err) {
@@ -556,7 +563,7 @@ window.avaliacoesAPI = {
             alert("Falha ao registrar a correção no banco de dados.");
         }
     },
-
+    
     devolverAtividade: async (entregaId, avalId) => {
         if (!confirm("Deseja devolver a atividade? O aluno será liberado para enviar um novo documento.")) return;
 
