@@ -49,19 +49,23 @@ function construirEstruturaInterface(container) {
             <form id="form-nova-aval" class="space-y-4">
                 <input type="hidden" id="aval-id">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Título da Atividade *</label>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Título da Atividade</label>
                         <input type="text" id="aval-titulo" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Trimestre *</label>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Trimestre</label>
                         <select id="aval-trimestre" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                             <option value="" disabled selected>Selecione...</option>
                             <option value="1">1º Trimestre</option>
                             <option value="2">2º Trimestre</option>
                             <option value="3">3º Trimestre</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Valor (Nota Máx)</label>
+                        <input type="number" id="aval-nota" step="0.1" min="0" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
                     </div>
                 </div>
 
@@ -251,12 +255,12 @@ async function salvarAvaliacao(e) {
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
             titulo: document.getElementById('aval-titulo').value,
+            notaMaxima: parseFloat(document.getElementById('aval-nota').value) || 0,
             trimestre: trimestreSelecionado,
             notasAtribuidas: notasMarcadas,
             disciplinas: disciplinasMarcadas,
-            // Convertendo as datas para Timestamp oficial
-            dataAbertura: Timestamp.fromDate(new Date(document.getElementById('aval-abertura').value)),
-            dataFechamento: Timestamp.fromDate(new Date(document.getElementById('aval-fechamento').value)),
+            dataAbertura: new Date(document.getElementById('aval-abertura').value),
+            dataFechamento: new Date(document.getElementById('aval-fechamento').value),
             turmasAlvo: turmas,
             descricao: document.getElementById('aval-descricao').value,
             criadoPor: currentUser.nome,
@@ -618,7 +622,7 @@ window.avaliacoesAPI = {
         }
     },
 
-    salvarCorrecao: async (entregaId, avalId, alunoUid) => {
+    salvarCorrecao: async (entregaId, avalId) => {
         const inputNota = document.getElementById(`nota-${entregaId}`);
         const inputFeed = document.getElementById(`feed-${entregaId}`);
         
@@ -634,46 +638,87 @@ window.avaliacoesAPI = {
         }
 
         try {
-            // 1. Atualiza o documento de entrega da prova
-            await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
+            // 1. Busca os dados da entrega para identificar o aluno (alunoUid)
+            const entregaRef = doc(db, "avaliacoes_entregas", entregaId);
+            const entregaSnap = await getDoc(entregaRef);
+            if (!entregaSnap.exists()) throw new Error("Entrega não encontrada.");
+            const entregaData = entregaSnap.data();
+            const alunoUid = entregaData.alunoUid;
+
+            // 2. Busca os dados da avaliação digital para saber trimestre, disciplinas e notas alvo (N1, N2...)
+            const avalRef = doc(db, "avaliacoes_digitais", avalId);
+            const avalSnap = await getDoc(avalRef);
+            if (!avalSnap.exists()) throw new Error("Avaliação não encontrada.");
+            const avalData = avalSnap.data();
+
+            const trimestre = avalData.trimestre || "1"; // "1", "2" ou "3"
+            const disciplinasAlvo = avalData.disciplinas || []; // Array de IDs de disciplinas
+            const notasAlvo = avalData.notasAtribuidas || []; // Array ex: ["N1", "N2"]
+
+            // Mapeamento das tags de notas do painel para os campos do documento de notas
+            const mapaCampos = {
+                "N1": "nota1",
+                "N2": "nota2",
+                "N3": "nota3",
+                "N4": "nota4"
+            };
+
+            // 3. Atualiza o documento de notas do aluno no Firestore com a lógica de somatória
+            if (alunoUid && disciplinasAlvo.length > 0 && notasAlvo.length > 0) {
+                const notaDocRef = doc(db, "notas", alunoUid);
+                const notaDocSnap = await getDoc(notaDocRef);
+
+                let disciplinasComNotas = {};
+                if (notaDocSnap.exists()) {
+                    disciplinasComNotas = notaDocSnap.data().disciplinasComNotas || {};
+                }
+
+                // Para cada disciplina vinculada a esta atividade avaliativa
+                disciplinasAlvo.forEach(discId => {
+                    if (!disciplinasComNotas[discId]) disciplinasComNotas[discId] = {};
+                    if (!disciplinasComNotas[discId][trimestre]) disciplinasComNotas[discId][trimestre] = {};
+
+                    const trimData = disciplinasComNotas[discId][trimestre];
+
+                    // Para cada nota alvo selecionada (ex: N1), busca o valor atual, soma e acumula
+                    notasAlvo.forEach(nTag => {
+                        const campoDb = mapaCampos[nTag];
+                        if (campoDb) {
+                            const valorAtualNoBoletim = parseFloat(trimData[campoDb]) || 0;
+                            // Realiza a somatória acumulativa arredondando para 2 casas decimais
+                            trimData[campoDb] = parseFloat((valorAtualNoBoletim + notaNum).toFixed(2));
+                        }
+                    });
+
+                    trimData.updatedAt = Date.now();
+                });
+
+                // Salva as alterações de somatória no documento de notas do aluno
+                await setDoc(notaDocRef, {
+                    userId: alunoUid,
+                    nomeAluno: entregaData.alunoNome || "",
+                    escola: currentUser?.escola || "",
+                    disciplinasComNotas,
+                    lastUpdatedAt: serverTimestamp()
+                }, { merge: true });
+            }
+
+            // 4. Atualiza o status da entrega do aluno para "avaliado"
+            await updateDoc(entregaRef, {
                 notaAtribuida: notaNum,
                 feedbackProfessor: inputFeed.value,
                 status: 'avaliado',
                 dataAvaliacao: serverTimestamp()
             });
 
-            // 2. Lança a nota automaticamente no Boletim do Aluno (coleção "notas")
-            const aval = avaliacoesCache.find(a => a.id === avalId);
+            alert("Correção registrada e somada ao boletim com sucesso!");
             
-            // Só salva se tivermos todas as informações estruturais necessárias
-            if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas && alunoUid) {
-                const notasUpdatePayload = { 
-                    lastUpdatedAt: serverTimestamp(),
-                    disciplinasComNotas: {}
-                };
+            // Recarrega o painel para refletir o status atualizado
+            window.avaliacoesAPI.abrirPainel(avalId);
 
-                // Constrói o objeto aninhado para o Firebase realizar o "Deep Merge" corretamente
-                aval.disciplinas.forEach(discId => {
-                    notasUpdatePayload.disciplinasComNotas[discId] = {};
-                    notasUpdatePayload.disciplinasComNotas[discId][aval.trimestre] = {};
-
-                    aval.notasAtribuidas.forEach(notaAlvo => {
-                        const campoNota = notaAlvo.toLowerCase().replace('n', 'nota'); // Converte "N1" para "nota1"
-                        notasUpdatePayload.disciplinasComNotas[discId][aval.trimestre][campoNota] = notaNum;
-                    });
-                });
-
-                // Usa setDoc com merge: true passando o objeto estruturado. 
-                // Isso garante que outras notas do trimestre/disciplina não sejam apagadas.
-                await setDoc(doc(db, "notas", alunoUid), notasUpdatePayload, { merge: true });
-            }
-
-            alert("Correção registrada e nota enviada para o boletim com sucesso!");
-            window.avaliacoesAPI.abrirPainel(avalId); // Atualiza visualmente o painel
-            
         } catch (err) {
             console.error("Erro ao salvar nota:", err);
-            alert("Falha ao registrar a correção no banco de dados.");
+            alert("Falha ao registrar a correção e atualizar o boletim: " + err.message);
         }
     },
 
