@@ -638,72 +638,12 @@ window.avaliacoesAPI = {
         }
 
         try {
-            // 1. Busca os dados da entrega para identificar o aluno (alunoUid)
+            // 1. Atualiza o documento de entrega no Firestore com a nota atribuída
             const entregaRef = doc(db, "avaliacoes_entregas", entregaId);
             const entregaSnap = await getDoc(entregaRef);
             if (!entregaSnap.exists()) throw new Error("Entrega não encontrada.");
             const entregaData = entregaSnap.data();
-            const alunoUid = entregaData.alunoUid;
 
-            // 2. Busca os dados da avaliação digital para saber trimestre, disciplinas e notas alvo (N1, N2...)
-            const avalRef = doc(db, "avaliacoes_digitais", avalId);
-            const avalSnap = await getDoc(avalRef);
-            if (!avalSnap.exists()) throw new Error("Avaliação não encontrada.");
-            const avalData = avalSnap.data();
-
-            const trimestre = avalData.trimestre || "1"; // "1", "2" ou "3"
-            const disciplinasAlvo = avalData.disciplinas || []; // Array de IDs de disciplinas
-            const notasAlvo = avalData.notasAtribuidas || []; // Array ex: ["N1", "N2"]
-
-            // Mapeamento das tags de notas do painel para os campos do documento de notas
-            const mapaCampos = {
-                "N1": "nota1",
-                "N2": "nota2",
-                "N3": "nota3",
-                "N4": "nota4"
-            };
-
-            // 3. Atualiza o documento de notas do aluno no Firestore com a lógica de somatória
-            if (alunoUid && disciplinasAlvo.length > 0 && notasAlvo.length > 0) {
-                const notaDocRef = doc(db, "notas", alunoUid);
-                const notaDocSnap = await getDoc(notaDocRef);
-
-                let disciplinasComNotas = {};
-                if (notaDocSnap.exists()) {
-                    disciplinasComNotas = notaDocSnap.data().disciplinasComNotas || {};
-                }
-
-                // Para cada disciplina vinculada a esta atividade avaliativa
-                disciplinasAlvo.forEach(discId => {
-                    if (!disciplinasComNotas[discId]) disciplinasComNotas[discId] = {};
-                    if (!disciplinasComNotas[discId][trimestre]) disciplinasComNotas[discId][trimestre] = {};
-
-                    const trimData = disciplinasComNotas[discId][trimestre];
-
-                    // Para cada nota alvo selecionada (ex: N1), busca o valor atual, soma e acumula
-                    notasAlvo.forEach(nTag => {
-                        const campoDb = mapaCampos[nTag];
-                        if (campoDb) {
-                            const valorAtualNoBoletim = parseFloat(trimData[campoDb]) || 0;
-                            // Realiza a somatória acumulativa arredondando para 2 casas decimais
-                            trimData[campoDb] = parseFloat((valorAtualNoBoletim + notaNum).toFixed(2));
-                        }
-                    });
-
-                    trimData.updatedAt = Date.now();
-                });
-
-                // Salva as alterações de somatória no documento de notas do aluno
-                await setDoc(notaDocRef, {
-                    userId: alunoUid,
-                    nomeAluno: entregaData.alunoNome || "",
-                    escola: currentUser?.escola || "",
-                    disciplinasComNotas,
-                    lastUpdatedAt: serverTimestamp()
-                }, { merge: true });
-            }
-
-            // 4. Atualiza o status da entrega do aluno para "avaliado"
             await updateDoc(entregaRef, {
                 notaAtribuida: notaNum,
                 feedbackProfessor: inputFeed.value,
@@ -711,14 +651,89 @@ window.avaliacoesAPI = {
                 dataAvaliacao: serverTimestamp()
             });
 
-            alert("Correção registrada e somada ao boletim com sucesso!");
+            // 2. Busca os metadados da avaliação para identificar disciplina, trimestre e quais N1-N4 ela afeta
+            const avalRef = doc(db, "avaliacoes_digitais", avalId);
+            const avalSnap = await getDoc(avalRef);
             
-            // Recarrega o painel para refletir o status atualizado
+            if (avalSnap.exists()) {
+                const avalData = avalSnap.data();
+                const alunoUid = entregaData.alunoUid;
+                const disciplinas = avalData.disciplinas || [];
+                const trimestre = avalData.trimestre;
+
+                if (disciplinas.length > 0 && trimestre) {
+                    for (const discId of disciplinas) {
+                        // Busca todas as avaliações digitais da mesma disciplina e trimestre
+                        const qAvals = query(
+                            collection(db, "avaliacoes_digitais"),
+                            where("disciplinas", "array-contains", discId),
+                            where("trimestre", "==", trimestre)
+                        );
+                        const snapAvals = await getDocs(qAvals);
+                        const avalIdsDaDisc = snapAvals.docs.map(d => d.id);
+
+                        if (avalIdsDaDisc.length > 0) {
+                            // Busca todas as entregas avaliadas deste aluno
+                            const qEntregasAluno = query(
+                                collection(db, "avaliacoes_entregas"),
+                                where("alunoUid", "==", alunoUid),
+                                where("status", "==", "avaliado")
+                            );
+                            const snapEntregasAluno = await getDocs(qEntregasAluno);
+
+                            // Acumuladores para somar avaliações diferentes que apontam para o mesmo slot
+                            const somasNotas = { nota1: 0, nota2: 0, nota3: 0, nota4: 0 };
+                            const temNota = { nota1: false, nota2: false, nota3: false, nota4: false };
+
+                            snapEntregasAluno.forEach(docEnt => {
+                                const ent = docEnt.data();
+                                if (avalIdsDaDisc.includes(ent.avaliacaoId) && ent.notaAtribuida !== undefined && ent.notaAtribuida !== null) {
+                                    const avalDoc = snapAvals.docs.find(d => d.id === ent.avaliacaoId);
+                                    if (avalDoc) {
+                                        const aData = avalDoc.data();
+                                        const targetNotas = aData.notasAtribuidas || []; // Ex: ['N1'], ['N2']
+                                        
+                                        targetNotas.forEach(tNota => {
+                                            const keyMap = { 'N1': 'nota1', 'N2': 'nota2', 'N3': 'nota3', 'N4': 'nota4' };
+                                            const field = keyMap[tNota];
+                                            if (field) {
+                                                somasNotas[field] += parseFloat(ent.notaAtribuida) || 0;
+                                                temNota[field] = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            });
+
+                            // Atualiza a coleção oficial de notas do aluno (refletindo no boletim e na Aura)
+                            const notaDocRef = doc(db, "notas", alunoUid);
+                            const payloadNotas = {
+                                disciplinasComNotas: {
+                                    [discId]: {
+                                        [trimestre]: {}
+                                    }
+                                },
+                                lastUpdatedAt: serverTimestamp()
+                            };
+
+                            ['nota1', 'nota2', 'nota3', 'nota4'].forEach(f => {
+                                if (temNota[f]) {
+                                    payloadNotas.disciplinasComNotas[discId][trimestre][f] = Number(somasNotas[f].toFixed(2));
+                                }
+                            });
+
+                            await setDoc(notaDocRef, payloadNotas, { merge: true });
+                        }
+                    }
+                }
+            }
+
+            alert("Correção registrada e boletim atualizado com sucesso!");
             window.avaliacoesAPI.abrirPainel(avalId);
 
         } catch (err) {
             console.error("Erro ao salvar nota:", err);
-            alert("Falha ao registrar a correção e atualizar o boletim: " + err.message);
+            alert("Falha ao registrar a correção no banco de dados.");
         }
     },
 
