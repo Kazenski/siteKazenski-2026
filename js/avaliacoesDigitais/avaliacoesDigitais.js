@@ -233,7 +233,6 @@ async function salvarAvaliacao(e) {
     const trimestreSelecionado = document.getElementById('aval-trimestre').value;
     const notasMarcadas = Array.from(document.querySelectorAll('input[name="chkNota"]:checked')).map(cb => cb.value);
     const disciplinasMarcadas = Array.from(document.querySelectorAll('input[name="chkDisciplina"]:checked')).map(cb => cb.value);
-    const tituloVal = document.getElementById('aval-titulo').value;
 
     if (turmas.length === 0) { 
         alert("Selecione pelo menos uma turma."); 
@@ -251,10 +250,11 @@ async function salvarAvaliacao(e) {
     try {
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
-            titulo: tituloVal,
+            titulo: document.getElementById('aval-titulo').value,
             trimestre: trimestreSelecionado,
             notasAtribuidas: notasMarcadas,
             disciplinas: disciplinasMarcadas,
+            // Convertendo as datas para Timestamp oficial
             dataAbertura: Timestamp.fromDate(new Date(document.getElementById('aval-abertura').value)),
             dataFechamento: Timestamp.fromDate(new Date(document.getElementById('aval-fechamento').value)),
             turmasAlvo: turmas,
@@ -281,7 +281,7 @@ async function salvarAvaliacao(e) {
         document.getElementById('container-form-aval').classList.add('hidden');
     } catch (err) {
         console.error("Erro ao publicar:", err);
-        alert("Falha ao salvar no Grimório: " + err.message);
+        alert("Falha ao salvar no Grimório.");
     } finally {
         btn.innerHTML = orig;
         btn.disabled = false;
@@ -442,47 +442,49 @@ window.avaliacoesAPI = {
         if(!aval) return;
         
         document.getElementById('aval-id').value = aval.id;
-        document.getElementById('aval-trimestre').value = aval.trimestre || '';
-        document.getElementById('aval-conteudo').value = aval.conteudo || aval.descricao || '';
-        document.getElementById('aval-dicas').value = aval.dicasProf || '';
+        document.getElementById('aval-titulo').value = aval.titulo;
+        document.getElementById('aval-descricao').value = aval.descricao;
         
-        // Converte Firestore Timestamp para o formato do input datetime-local (YYYY-MM-DDTHH:MM)
+        if (aval.trimestre) document.getElementById('aval-trimestre').value = aval.trimestre;
+        
+        const checkNotas = document.querySelectorAll('input[name="chkNota"]');
+        checkNotas.forEach(cb => {
+            cb.checked = (aval.notasAtribuidas || []).includes(cb.value);
+        });
+        
         const formatData = (dataObj) => {
             if(!dataObj) return '';
-            const d = dataObj.toDate();
+            const d = dataObj.toDate ? dataObj.toDate() : new Date(dataObj);
             const tzoffset = (new Date()).getTimezoneOffset() * 60000; 
             return (new Date(d - tzoffset)).toISOString().slice(0, 16);
         };
         
-        // Cobre tanto registros antigos (dataFechamento) quanto novos (dataAplicacao)
-        document.getElementById('aval-data-hora').value = formatData(aval.dataAplicacao || aval.dataFechamento || aval.dataAbertura);
+        document.getElementById('aval-abertura').value = formatData(aval.dataAbertura);
+        document.getElementById('aval-fechamento').value = formatData(aval.dataFechamento);
         
-        // Abre e prepara turmas
         const formContainer = document.getElementById('container-form-aval');
         if(formContainer.classList.contains('hidden')) {
             await carregarTurmasDisponiveis();
             formContainer.classList.remove('hidden');
         }
         
+        // Timeout para dar tempo de renderizar o HTML antes de checar as caixas
         setTimeout(() => {
-            const selectTurmas = document.getElementById('aval-turmas');
-            Array.from(selectTurmas.options).forEach(opt => {
-                opt.selected = (aval.turmasAlvo || []).includes(opt.value);
-            });
-
-            // Dispara manualmente o evento change para carregar a lista de disciplinas da tela
-            selectTurmas.dispatchEvent(new Event('change'));
-
-            // Espera a Promise das disciplinas carregar antes de flegar os checkboxes
-            setTimeout(() => {
-                const checkboxesNotas = document.querySelectorAll('input[name="chkNota"]');
-                checkboxesNotas.forEach(cb => { cb.checked = (aval.notasAtribuidas || []).includes(cb.value); });
-
-                const checkboxesDisc = document.querySelectorAll('input[name="chkDisciplina"]');
-                checkboxesDisc.forEach(cb => { cb.checked = (aval.disciplinas || []).includes(cb.value); });
-            }, 800);
-
-        }, 200);
+            const checkboxesTurmas = document.querySelectorAll('input[name="turmas-selecionadas"]');
+            checkboxesTurmas.forEach(cb => { cb.checked = (aval.turmasAlvo || []).includes(cb.value); });
+            
+            // Simula a seleção de uma turma para puxar as disciplinas
+            const firstChecked = document.querySelector('input[name="turmas-selecionadas"]:checked');
+            if(firstChecked) {
+                firstChecked.dispatchEvent(new Event('change', { bubbles: true }));
+                
+                // Aguarda as disciplinas carregarem para flegá-las
+                setTimeout(() => {
+                    const checkDisc = document.querySelectorAll('input[name="chkDisciplina"]');
+                    checkDisc.forEach(cb => { cb.checked = (aval.disciplinas || []).includes(cb.value); });
+                }, 800);
+            }
+        }, 500);
 
         document.getElementById('btn-submit-aval').innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Atualizar Avaliação';
         formContainer.scrollIntoView({ behavior: 'smooth' });
@@ -630,7 +632,7 @@ window.avaliacoesAPI = {
         }
 
         try {
-            // 1. Atualiza o documento de entrega no Firestore
+            // 1. Atualiza o documento de entrega da prova
             await updateDoc(doc(db, "avaliacoes_entregas", entregaId), {
                 notaAtribuida: notaNum,
                 feedbackProfessor: inputFeed.value,
@@ -638,29 +640,27 @@ window.avaliacoesAPI = {
                 dataAvaliacao: serverTimestamp()
             });
 
-            // 2. Lança a nota no Boletim do Aluno automaticamente
+            // 2. Lança a nota automaticamente no Boletim do Aluno
             const aval = avaliacoesCache.find(a => a.id === avalId);
             
             if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas) {
                 const notasUpdatePayload = { lastUpdatedAt: serverTimestamp() };
 
-                // Varre as disciplinas vinculadas à prova
+                // Itera pelas disciplinas e insere a nota no N1, N2, N3 ou N4 selecionados
                 aval.disciplinas.forEach(discId => {
-                    // Varre as notas alvo (Ex: "N1", "N3")
                     aval.notasAtribuidas.forEach(notaAlvo => {
-                        // Converte "N1" para "nota1", adequando à estrutura do banco
-                        const campoNota = notaAlvo.toLowerCase().replace('n', 'nota');
+                        const campoNota = notaAlvo.toLowerCase().replace('n', 'nota'); // Converte "N1" para "nota1"
                         notasUpdatePayload[`disciplinasComNotas.${discId}.${aval.trimestre}.${campoNota}`] = notaNum;
                     });
                 });
 
-                // Lança no banco do aluno (merge: true previne apagar as outras notas)
+                // Usa o merge: true para atualizar o boletim sem apagar as outras notas
                 await setDoc(doc(db, "notas", alunoUid), notasUpdatePayload, { merge: true });
             }
 
             alert("Correção registrada e nota enviada para o boletim com sucesso!");
             window.avaliacoesAPI.abrirPainel(avalId); // Atualiza visualmente o painel
-
+            
         } catch (err) {
             console.error("Erro ao salvar nota:", err);
             alert("Falha ao registrar a correção no banco de dados.");
