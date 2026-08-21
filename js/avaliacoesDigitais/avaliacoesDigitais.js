@@ -544,8 +544,10 @@ window.avaliacoesAPI = {
                                         <div class="md:col-span-3">
                                             <label class="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1 block pl-1">Feedback ao Aluno</label>
                                             <div class="flex gap-2">
+                                                <div class="flex gap-2">
                                                 <input type="text" id="feed-${e.id}" value="${valorFeed}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm outline-none focus:border-blue-500" placeholder="Comentário opcional...">
                                                 <button onclick="window.avaliacoesAPI.salvarCorrecao('${e.id}', '${aval.id}', '${e.alunoUid}')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-widest transition-colors shadow-lg" title="Salvar Avaliação"><i class="fas fa-save"></i></button>
+                                            </div>
                                             </div>
                                         </div>
                                     </div>
@@ -640,21 +642,29 @@ window.avaliacoesAPI = {
                 dataAvaliacao: serverTimestamp()
             });
 
-            // 2. Lança a nota automaticamente no Boletim do Aluno
+            // 2. Lança a nota automaticamente no Boletim do Aluno (coleção "notas")
             const aval = avaliacoesCache.find(a => a.id === avalId);
             
-            if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas) {
-                const notasUpdatePayload = { lastUpdatedAt: serverTimestamp() };
+            // Só salva se tivermos todas as informações estruturais necessárias
+            if (aval && aval.trimestre && aval.notasAtribuidas && aval.disciplinas && alunoUid) {
+                const notasUpdatePayload = { 
+                    lastUpdatedAt: serverTimestamp(),
+                    disciplinasComNotas: {}
+                };
 
-                // Itera pelas disciplinas e insere a nota no N1, N2, N3 ou N4 selecionados
+                // Constrói o objeto aninhado para o Firebase realizar o "Deep Merge" corretamente
                 aval.disciplinas.forEach(discId => {
+                    notasUpdatePayload.disciplinasComNotas[discId] = {};
+                    notasUpdatePayload.disciplinasComNotas[discId][aval.trimestre] = {};
+
                     aval.notasAtribuidas.forEach(notaAlvo => {
                         const campoNota = notaAlvo.toLowerCase().replace('n', 'nota'); // Converte "N1" para "nota1"
-                        notasUpdatePayload[`disciplinasComNotas.${discId}.${aval.trimestre}.${campoNota}`] = notaNum;
+                        notasUpdatePayload.disciplinasComNotas[discId][aval.trimestre][campoNota] = notaNum;
                     });
                 });
 
-                // Usa o merge: true para atualizar o boletim sem apagar as outras notas
+                // Usa setDoc com merge: true passando o objeto estruturado. 
+                // Isso garante que outras notas do trimestre/disciplina não sejam apagadas.
                 await setDoc(doc(db, "notas", alunoUid), notasUpdatePayload, { merge: true });
             }
 
