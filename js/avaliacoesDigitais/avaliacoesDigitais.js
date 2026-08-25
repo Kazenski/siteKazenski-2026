@@ -109,6 +109,21 @@ function construirEstruturaInterface(container) {
                     <textarea id="aval-descricao" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 min-h-[100px] focus:border-blue-500 outline-none custom-scroll"></textarea>
                 </div>
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Imagem de Capa (Banner)</label>
+                        <input type="file" id="aval-banner" accept="image/*" class="w-full bg-slate-950 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Materiais Anexos (PDF, Word, etc)</label>
+                        <input type="file" id="aval-anexos" multiple accept=".pdf,.doc,.docx,.zip,.xls,.xlsx" class="w-full bg-slate-950 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Links Úteis (Separe por vírgula ou uma linha para cada)</label>
+                    <textarea id="aval-links" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none custom-scroll min-h-[60px]" placeholder="https://site1.com, https://site2.com"></textarea>
+                </div>
+
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                     <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
                     <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Atividade</button>
@@ -237,6 +252,10 @@ async function salvarAvaliacao(e) {
     const trimestreSelecionado = document.getElementById('aval-trimestre').value;
     const notasMarcadas = Array.from(document.querySelectorAll('input[name="chkNota"]:checked')).map(cb => cb.value);
     const disciplinasMarcadas = Array.from(document.querySelectorAll('input[name="chkDisciplina"]:checked')).map(cb => cb.value);
+    const bannerFile = document.getElementById('aval-banner').files[0];
+    const anexosFiles = document.getElementById('aval-anexos').files;
+    const linksTexto = document.getElementById('aval-links').value;
+    const linksArray = linksTexto.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
 
     if (turmas.length === 0) { 
         alert("Selecione pelo menos uma turma."); 
@@ -252,6 +271,25 @@ async function salvarAvaliacao(e) {
     btn.disabled = true;
 
     try {
+
+        let bannerUrl = null;
+        if (bannerFile) {
+            const bannerRef = ref(storage, `avaliacoes_banners/${Date.now()}_${bannerFile.name}`);
+            await uploadBytes(bannerRef, bannerFile);
+            bannerUrl = await getDownloadURL(bannerRef);
+        }
+
+        let anexosUrls = [];
+        if (anexosFiles.length > 0) {
+            for (let i = 0; i < anexosFiles.length; i++) {
+                const file = anexosFiles[i];
+                const fileRef = ref(storage, `avaliacoes_anexos/${Date.now()}_${file.name}`);
+                await uploadBytes(fileRef, file);
+                const url = await getDownloadURL(fileRef);
+                anexosUrls.push({ nome: file.name, url: url });
+            }
+        }
+
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
             titulo: document.getElementById('aval-titulo').value,
@@ -265,8 +303,12 @@ async function salvarAvaliacao(e) {
             descricao: document.getElementById('aval-descricao').value,
             criadoPor: currentUser.nome,
             professorUid: currentUser.uid,
-            status: 'ativa'
+            status: 'ativa',
+            linksUteis: linksArray
         };
+
+        if (bannerUrl) payload.imagemBanner = bannerUrl;
+        if (anexosUrls.length > 0) payload.materiaisAnexos = anexosUrls;
 
         if (idEdicao) {
             payload.dataAtualizacao = serverTimestamp();
@@ -397,6 +439,11 @@ async function renderGridAvaliacoes(avaliacoes) {
         const turmasStr = (aval.turmasAlvo || []).join(', ');
         const notasStr = (aval.notasAtribuidas || []).join(', ');
 
+        const bannerHtml = aval.imagemBanner 
+            ? `<div class="w-full h-32 mb-4 -mx-5 -mt-5 overflow-hidden border-b border-slate-700 shrink-0"><img src="${aval.imagemBanner}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"></div>` 
+            : '';
+        if (aval.imagemBanner) extraPt = 'pt-0';
+
         return `
             <div class="bg-slate-800 border ${bordaCard} p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-all relative overflow-hidden group ${opacidade}">
                 ${badgeStatus}
@@ -501,6 +548,22 @@ window.avaliacoesAPI = {
         document.getElementById('painel-aval-meta').textContent = `${aval.disciplina || 'Geral'} | Prof. ${aval.criadoPor}`;
         document.getElementById('painel-aval-titulo').textContent = aval.titulo;
         
+        const painelBannerHtml = aval.imagemBanner ? `<div class="w-full h-48 md:h-72 rounded-xl overflow-hidden mb-6 shadow-lg border border-slate-700 shrink-0"><img src="${aval.imagemBanner}" class="w-full h-full object-cover"></div>` : '';
+        
+        let anexosHtml = '';
+        if (aval.materiaisAnexos && aval.materiaisAnexos.length > 0) {
+            anexosHtml = `<div class="mt-6 p-5 bg-slate-900/50 border border-slate-700 rounded-xl shadow-inner"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-paperclip text-indigo-400 mr-2"></i> Materiais Anexos</h5><div class="flex flex-wrap gap-3">` + 
+                aval.materiaisAnexos.map(anexo => `<a href="${anexo.url}" target="_blank" class="px-4 py-2 bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all shadow-md flex items-center"><i class="fas fa-file-download mr-2"></i> ${escapeHTML(anexo.nome)}</a>`).join('') + `</div></div>`;
+        }
+
+        let linksHtml = '';
+        if (aval.linksUteis && aval.linksUteis.length > 0) {
+            linksHtml = `<div class="mt-4 p-5 bg-slate-900/50 border border-slate-700 rounded-xl shadow-inner"><h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3"><i class="fas fa-link text-blue-400 mr-2"></i> Links Recomendados</h5><div class="flex flex-col gap-2">` + 
+                aval.linksUteis.map(link => `<a href="${escapeHTML(link)}" target="_blank" class="text-blue-400 hover:text-blue-300 text-sm font-bold underline truncate block"><i class="fas fa-external-link-alt text-[10px] mr-2"></i> ${escapeHTML(link)}</a>`).join('') + `</div></div>`;
+        }
+        
+        const extrasMuralHtml = anexosHtml + linksHtml;
+
         const body = document.getElementById('painel-aval-body');
         body.innerHTML = '<div class="text-center text-slate-400 py-10"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>';
         document.getElementById('modal-painel-aval').classList.remove('hidden');
@@ -511,8 +574,15 @@ window.avaliacoesAPI = {
             const entregas = snap.docs.map(d => ({id: d.id, ...d.data()}));
 
             if(isStaff) {
-                // VISÃO DO PROFESSOR (Com correção)
-                let htmlProf = `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl mb-6"><h4 class="text-white font-bold mb-2">Instruções Originais:</h4><p class="text-slate-400 text-sm whitespace-pre-wrap">${escapeHTML(aval.descricao)}</p></div>`;
+                // VISÃO DO PROFESSOR
+                let htmlProf = `
+                    ${painelBannerHtml}
+                    <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl mb-6 shadow-inner">
+                        <h4 class="text-white font-bold mb-2">Instruções Originais:</h4>
+                        <p class="text-slate-400 text-sm whitespace-pre-wrap">${escapeHTML(aval.descricao)}</p>
+                        ${extrasMuralHtml}
+                    </div>`;
+                    
                 htmlProf += `<h3 class="text-lg font-bold text-blue-400 border-b border-slate-700 pb-2 mb-4">Entregas dos Alunos (${entregas.length})</h3>`;
                 
                 if(entregas.length === 0) {
@@ -566,7 +636,13 @@ window.avaliacoesAPI = {
             } else {
                 // VISÃO DO ALUNO
                 const minhaEntrega = entregas.find(e => e.alunoUid === currentUser.uid);
-                let htmlAluno = `<div class="bg-slate-900 border border-slate-700 p-5 rounded-xl mb-6 shadow-inner"><h4 class="text-white font-bold mb-2 flex items-center"><i class="fas fa-book-open text-blue-500 mr-2"></i> Pauta da Atividade</h4><p class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">${escapeHTML(aval.descricao)}</p></div>`;
+                let htmlAluno = `
+                    ${painelBannerHtml}
+                    <div class="bg-slate-900 border border-slate-700 p-5 rounded-xl mb-6 shadow-inner">
+                        <h4 class="text-white font-bold mb-2 flex items-center"><i class="fas fa-book-open text-blue-500 mr-2"></i> Pauta da Atividade</h4>
+                        <p class="text-slate-300 text-sm whitespace-pre-wrap leading-relaxed">${escapeHTML(aval.descricao)}</p>
+                        ${extrasMuralHtml}
+                    </div>`;
 
                 if(minhaEntrega && minhaEntrega.status !== 'devolvido') {
                     const dEnvio = minhaEntrega.dataEnvio ? minhaEntrega.dataEnvio.toDate().toLocaleString('pt-BR') : '';
