@@ -3777,9 +3777,10 @@ window.profAPI = {
         const container = document.getElementById('strikes-list-container');
         if (!container) return;
 
+        // Puxa a turma selecionada no Menu Master do professor
         const { classId } = state.filters;
         if (!classId) {
-            container.innerHTML = '<div class="text-center text-slate-500 italic col-span-full py-10">Selecione uma turma no topo e clique em Carregar.</div>';
+            container.innerHTML = '<div class="text-center text-slate-500 italic col-span-full py-10">Selecione uma turma no Menu Master (topo) e clique em Atualizar Turma.</div>';
             return;
         }
 
@@ -3797,27 +3798,34 @@ window.profAPI = {
             let html = '';
             snapS.forEach(docSnap => {
                 const aluno = { id: docSnap.id, ...docSnap.data() };
-                const strikes = aluno.strikesComportamento !== undefined ? aluno.strikesComportamento : 3;
+                // 5 strikes como padrão se não existir no banco
+                const strikes = aluno.strikesComportamento !== undefined ? aluno.strikesComportamento : 5;
                 
                 let iconesHtml = '';
-                for (let i = 1; i <= 3; i++) {
-                    const isAtivo = i <= strikes;
-                    const colorClass = strikes === 0 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : (isAtivo ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-slate-600 opacity-30');
-                    iconesHtml += `<i class="fas fa-shield-alt text-2xl mx-1 cursor-pointer transition-transform hover:scale-110 ${colorClass}" onclick="window.profAPI.updateStrike('${aluno.id}', ${i})"></i>`;
+                for (let i = 1; i <= 5; i++) {
+                    const isVerde = i <= strikes;
+                    
+                    // Lógica visual: Verde vivo (ativo) ou Vermelho transparente (perdido)
+                    const colorClass = isVerde 
+                        ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' 
+                        : 'text-red-500/30 hover:text-emerald-400 opacity-50 hover:opacity-100';
+                    
+                    // Lógica de clique: Se ele clicar no escudo atual que tá verde, ele perde esse escudo (i - 1). 
+                    // Se clicar num vermelho, ele ganha escudos até aquele ponto (i).
+                    const nextVal = (i === strikes) ? i - 1 : i;
+
+                    iconesHtml += `<i class="fas fa-shield-alt text-2xl mx-1 cursor-pointer transition-all hover:scale-125 ${colorClass}" onclick="window.profAPI.updateStrike('${aluno.id}', ${nextVal})"></i>`;
                 }
 
                 html += `
                     <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col items-center justify-between shadow-md hover:border-slate-500 transition-colors">
                         <div class="text-center mb-3">
                             <h4 class="text-white font-bold text-sm">${escapeHTML(aluno.nome)}</h4>
-                            <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Escudos Intactos: ${strikes}</p>
+                            <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Escudos: ${strikes}/5</p>
                         </div>
                         <div class="flex bg-slate-900/50 p-3 rounded-xl border border-slate-800 shadow-inner">
                             ${iconesHtml}
                         </div>
-                        <button onclick="window.profAPI.updateStrike('${aluno.id}', 0)" class="mt-4 text-[10px] text-red-400 hover:text-red-300 uppercase tracking-widest font-bold underline transition-colors">
-                            Zerar Escudos
-                        </button>
                     </div>
                 `;
             });
@@ -3831,10 +3839,9 @@ window.profAPI = {
     },
 
     updateStrike: async (uid, qtd) => {
-        if (!confirm(`Tem certeza que deseja definir a conduta deste aluno para ${qtd} escudos?`)) return;
         try {
             await updateDoc(doc(db, "users", uid), { strikesComportamento: qtd });
-            window.profAPI.loadStrikesTurma(); 
+            window.profAPI.loadStrikesTurma(); // Atualiza a tela imediatamente para refletir a nova cor
         } catch (e) {
             alert("Erro ao atualizar a conduta no Grimório.");
         }

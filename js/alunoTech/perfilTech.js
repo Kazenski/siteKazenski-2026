@@ -1932,22 +1932,23 @@ async function renderBanner() {
     // RENDERIZAÇÃO DOS STRIKES (ESCUDOS)
     // ==========================================
     if (els.strikesIcons) {
-        // Se a variável não existir no banco, assume que ele tem 3 (intacto)
-        const strikes = currentUser.strikesComportamento !== undefined ? currentUser.strikesComportamento : 3;
+        // Se a variável não existir no banco, assume que ele tem 5 (intacto)
+        const strikes = currentUser.strikesComportamento !== undefined ? currentUser.strikesComportamento : 5;
         let strikesHtml = '';
 
         if (strikes === 0) {
-            strikesHtml = `
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
-            `;
+            // Regra: Se perdeu os 5 strikes, todos ficam vermelhos
+            for (let i = 1; i <= 5; i++) {
+                strikesHtml += `<i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-2xl md:text-3xl transition-transform hover:scale-110"></i>`;
+            }
         } else {
-            for (let i = 1; i <= 3; i++) {
+            // Regra normal: Conta de 1 a 5
+            for (let i = 1; i <= 5; i++) {
                 if (i <= strikes) {
-                    strikesHtml += `<i class="fas fa-shield-alt text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] text-xl transition-transform hover:scale-110"></i>`;
+                    strikesHtml += `<i class="fas fa-shield-alt text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] text-2xl md:text-3xl transition-transform hover:scale-110"></i>`;
                 } else {
-                    strikesHtml += `<i class="fas fa-shield-alt text-slate-600 opacity-30 text-xl transition-transform"></i>`;
+                    // Escudo perdido (opaco)
+                    strikesHtml += `<i class="fas fa-shield-alt text-slate-600 opacity-30 text-2xl md:text-3xl transition-transform"></i>`;
                 }
             }
         }

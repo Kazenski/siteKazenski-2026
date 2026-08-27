@@ -771,12 +771,12 @@
 
                                 <!-- STRIKES COMPORTAMENTAIS -->
                                 <div id="al-strikes-container"
-                                    class="flex flex-col items-center px-2 md:border-r border-slate-700"
+                                    class="flex flex-col items-center w-full md:w-auto md:border-r border-slate-700 md:pr-6"
                                     title="Status Comportamental (Strikes)">
                                     <span
-                                        class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mb-1">Conduta</span>
-                                    <div id="al-strikes-icons" class="flex gap-1.5">
-                                        <!-- Injetado via JS -->
+                                        class="text-[10px] text-slate-400 uppercase tracking-widest font-black mb-2">Conduta
+                                        e Comportamento</span>
+                                    <div id="al-strikes-icons" class="flex gap-3 md:gap-4 justify-center w-full">
                                     </div>
                                 </div>
 
@@ -2406,21 +2406,21 @@
                                 <div>
                                     <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1"><i
                                             class="fas fa-shield-alt mr-2"></i> Gestão de Conduta (Strikes)</h2>
-                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Gerencie
-                                        os 3 escudos comportamentais dos alunos da turma.</p>
+                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Acompanhe
+                                        e edite os 5 escudos comportamentais da turma.</p>
                                 </div>
                                 <button onclick="window.profAPI.loadStrikesTurma()"
                                     class="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-all whitespace-nowrap">
-                                    <i class="fas fa-sync-alt mr-2"></i> Atualizar
+                                    <i class="fas fa-sync-alt mr-2"></i> Atualizar Turma
                                 </button>
                             </div>
 
                             <div
                                 class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-4 md:p-6 relative">
                                 <div id="strikes-list-container"
-                                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <div class="text-center text-slate-500 italic col-span-full py-10">Selecione uma
-                                        turma no topo e clique em Atualizar.</div>
+                                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    <div class="text-center text-slate-500 italic col-span-full py-10">Carregue a Turma
+                                        no Menu Master (topo) e clique em Atualizar Turma.</div>
                                 </div>
                             </div>
                         </div>
