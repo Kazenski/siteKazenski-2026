@@ -425,9 +425,11 @@ async function loadMasterData() {
     if (!classId || !disciplineId || !date) return alert("Preencha todos os filtros (Escola, Turma, Disciplina e Data).");
 
     document.querySelector('[data-target="chamada"]').click();
-    els.chamadaEmpty.classList.add('hidden');
-    els.chamadaWrapper.classList.remove('hidden');
-    els.studentList.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-amber-500 text-3xl"></i></div>';
+        els.chamadaEmpty.classList.add('hidden');
+        els.chamadaEmpty.classList.remove('flex');
+        els.chamadaWrapper.classList.remove('hidden');
+        els.chamadaWrapper.classList.add('flex'); // Força a ativação do Flexbox para ocupar 100%
+        els.studentList.innerHTML = '<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-amber-500 text-3xl"></i></div>';
 
     els.notasMsg.textContent = "Carregando pauta de notas...";
     els.notasMsg.classList.remove('hidden');
