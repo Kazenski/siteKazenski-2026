@@ -131,6 +131,7 @@ function mapearDOM() {
         inpCover: document.getElementById('al-file-cover'),
         inpProfile: document.getElementById('al-file-profile'),
         inpColor: document.getElementById('al-input-color'),
+        strikesIcons: document.getElementById('al-strikes-icons'),
         avisosList: document.getElementById('al-avisos-list'),
         boletimBody: document.getElementById('al-boletim-body'),
         freqPerc: document.getElementById('al-freq-perc'),
@@ -1928,27 +1929,25 @@ async function renderBanner() {
     }
 
     // ==========================================
-    // NOVA LÓGICA: RENDERIZAÇÃO DOS STRIKES
+    // RENDERIZAÇÃO DOS STRIKES (ESCUDOS)
     // ==========================================
     if (els.strikesIcons) {
-        // Se o banco não tiver a variável 'strikesComportamento', assumimos que ele tem 3 (intacto)
+        // Se a variável não existir no banco, assume que ele tem 3 (intacto)
         const strikes = currentUser.strikesComportamento !== undefined ? currentUser.strikesComportamento : 3;
         let strikesHtml = '';
 
         if (strikes === 0) {
-            // Regra: Se perdeu os 3 strikes, todos ficam vermelhos
             strikesHtml = `
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
-                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-transform hover:scale-110"></i>
             `;
         } else {
-            // Regra normal: Conta de 1 a 3. Se for <= aos strikes restantes, fica verde. Se não, fica opaco.
             for (let i = 1; i <= 3; i++) {
                 if (i <= strikes) {
-                    strikesHtml += `<i class="fas fa-shield-alt text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] text-xl transition-all hover:scale-110"></i>`;
+                    strikesHtml += `<i class="fas fa-shield-alt text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] text-xl transition-transform hover:scale-110"></i>`;
                 } else {
-                    strikesHtml += `<i class="fas fa-shield-alt text-slate-600 opacity-30 text-xl transition-all"></i>`;
+                    strikesHtml += `<i class="fas fa-shield-alt text-slate-600 opacity-30 text-xl transition-transform"></i>`;
                 }
             }
         }

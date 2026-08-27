@@ -113,6 +113,7 @@ export async function renderProfessorTab() {
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
     addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
+    addSafeListener('strikes', () => window.profAPI.loadStrikesTurma());
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
     if (els.evalSelectAv) {
@@ -3766,6 +3767,76 @@ window.profAPI = {
             } else {
                 logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
             }
+        }
+    },
+
+    // ==========================================
+    // MÓDULO: GESTÃO DE STRIKES COMPORTAMENTAIS
+    // ==========================================
+    loadStrikesTurma: async () => {
+        const container = document.getElementById('strikes-list-container');
+        if (!container) return;
+
+        const { classId } = state.filters;
+        if (!classId) {
+            container.innerHTML = '<div class="text-center text-slate-500 italic col-span-full py-10">Selecione uma turma no topo e clique em Carregar.</div>';
+            return;
+        }
+
+        container.innerHTML = '<div class="text-center text-amber-500 py-10 col-span-full"><i class="fas fa-circle-notch fa-spin text-3xl"></i></div>';
+
+        try {
+            const qS = query(collection(db, "users"), where("turma", "==", classId), where("Aluno", "==", true), orderBy("nome"));
+            const snapS = await getDocs(qS);
+
+            if (snapS.empty) {
+                container.innerHTML = '<div class="text-center text-slate-500 italic col-span-full py-10">Nenhum aluno encontrado na turma.</div>';
+                return;
+            }
+
+            let html = '';
+            snapS.forEach(docSnap => {
+                const aluno = { id: docSnap.id, ...docSnap.data() };
+                const strikes = aluno.strikesComportamento !== undefined ? aluno.strikesComportamento : 3;
+                
+                let iconesHtml = '';
+                for (let i = 1; i <= 3; i++) {
+                    const isAtivo = i <= strikes;
+                    const colorClass = strikes === 0 ? 'text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]' : (isAtivo ? 'text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]' : 'text-slate-600 opacity-30');
+                    iconesHtml += `<i class="fas fa-shield-alt text-2xl mx-1 cursor-pointer transition-transform hover:scale-110 ${colorClass}" onclick="window.profAPI.updateStrike('${aluno.id}', ${i})"></i>`;
+                }
+
+                html += `
+                    <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col items-center justify-between shadow-md hover:border-slate-500 transition-colors">
+                        <div class="text-center mb-3">
+                            <h4 class="text-white font-bold text-sm">${escapeHTML(aluno.nome)}</h4>
+                            <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Escudos Intactos: ${strikes}</p>
+                        </div>
+                        <div class="flex bg-slate-900/50 p-3 rounded-xl border border-slate-800 shadow-inner">
+                            ${iconesHtml}
+                        </div>
+                        <button onclick="window.profAPI.updateStrike('${aluno.id}', 0)" class="mt-4 text-[10px] text-red-400 hover:text-red-300 uppercase tracking-widest font-bold underline transition-colors">
+                            Zerar Escudos
+                        </button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div class="text-red-500 text-center col-span-full py-10 font-bold">Erro: ${e.message}</div>`;
+        }
+    },
+
+    updateStrike: async (uid, qtd) => {
+        if (!confirm(`Tem certeza que deseja definir a conduta deste aluno para ${qtd} escudos?`)) return;
+        try {
+            await updateDoc(doc(db, "users", uid), { strikesComportamento: qtd });
+            window.profAPI.loadStrikesTurma(); 
+        } catch (e) {
+            alert("Erro ao atualizar a conduta no Grimório.");
         }
     }
 
