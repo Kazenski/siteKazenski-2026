@@ -122,6 +122,7 @@ function mapearDOM() {
         loading: document.getElementById('loading-aluno'),
         dashboard: document.getElementById('dashboard-aluno'),
         txtName: document.getElementById('al-txt-name'),
+        strikesIcons: document.getElementById('al-strikes-icons'),
         txtClass: document.getElementById('al-txt-class'),
         imgProfile: document.getElementById('al-img-profile'),
         bgCover: document.getElementById('al-bg-cover'),
@@ -1924,6 +1925,35 @@ async function renderBanner() {
         els.badgeTitle.innerHTML = `${iconeHtml} ${tituloAtivo.nome}`;
     } else {
         els.badgeTitle.innerHTML = `🏆 Aspirante`;
+    }
+
+    // ==========================================
+    // NOVA LÓGICA: RENDERIZAÇÃO DOS STRIKES
+    // ==========================================
+    if (els.strikesIcons) {
+        // Se o banco não tiver a variável 'strikesComportamento', assumimos que ele tem 3 (intacto)
+        const strikes = currentUser.strikesComportamento !== undefined ? currentUser.strikesComportamento : 3;
+        let strikesHtml = '';
+
+        if (strikes === 0) {
+            // Regra: Se perdeu os 3 strikes, todos ficam vermelhos
+            strikesHtml = `
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
+                <i class="fas fa-shield-alt text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] text-xl transition-all hover:scale-110"></i>
+            `;
+        } else {
+            // Regra normal: Conta de 1 a 3. Se for <= aos strikes restantes, fica verde. Se não, fica opaco.
+            for (let i = 1; i <= 3; i++) {
+                if (i <= strikes) {
+                    strikesHtml += `<i class="fas fa-shield-alt text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)] text-xl transition-all hover:scale-110"></i>`;
+                } else {
+                    strikesHtml += `<i class="fas fa-shield-alt text-slate-600 opacity-30 text-xl transition-all"></i>`;
+                }
+            }
+        }
+        
+        els.strikesIcons.innerHTML = strikesHtml;
     }
 }
 
