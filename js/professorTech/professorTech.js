@@ -113,6 +113,8 @@ export async function renderProfessorTab() {
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
     addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
+    addSafeListener('kaz-ia', () => window.profAPI.initKazIA());
+
 
     // Faz o sistema buscar os dados corretos caso o professor mude de N1 para N2
     if (els.evalSelectAv) {
@@ -342,6 +344,9 @@ function mapearDOM() {
 
         // Logs
         logsBody: document.getElementById('logs-list-body'),
+
+        // Kaz IA
+        kazIaMsg: document.getElementById('kaz-ia-msg'),
     };
 }
 
@@ -3767,6 +3772,21 @@ window.profAPI = {
                 logsBody.innerHTML = '<tr><td colspan="3" class="px-6 py-10 text-center text-red-500">Erro ao carregar o histórico. Tente novamente.</td></tr>';
             }
         }
+    },
+
+    // ==========================================
+    // MÓDULO: GERADOR DE PLANO (KAZ IA)
+    // ==========================================
+    initKazIA: () => {
+        const { classId, disciplineId } = state.filters;
+        
+        if (!classId || !disciplineId) {
+            els.kazIaMsg.innerHTML = '<span class="text-red-400">Por favor, selecione a Turma e a Disciplina no menu superior para utilizar a IA.</span>';
+            return;
+        }
+
+        // Prepara a tela inicial da IA
+        els.kazIaMsg.innerHTML = '<span class="text-blue-400 font-bold"><i class="fas fa-check-circle mr-2"></i> Contexto carregado. Kaz IA pronta para iniciar o planejamento.</span>';
     }
 
 };
