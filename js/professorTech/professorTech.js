@@ -3801,24 +3801,36 @@ window.profAPI = {
     initKazIA: async () => {
         const { school, classId, disciplineId, quarter } = state.filters;
         
+        const msgEl = document.getElementById('kaz-ia-msg');
+        const panelEl = document.getElementById('kaz-ia-config-panel');
+        const apiKeyInput = document.getElementById('kaz-ia-apikey');
+        const contextDisplay = document.getElementById('kaz-ia-context-display');
+
         if (!classId || !disciplineId) {
-            els.kazIaMsg.classList.remove('hidden');
-            els.kazIaConfigPanel.classList.add('opacity-50', 'pointer-events-none');
+            msgEl.classList.remove('hidden');
+            panelEl.classList.add('opacity-50', 'pointer-events-none');
             return;
         }
 
-        els.kazIaMsg.classList.add('hidden');
-        els.kazIaConfigPanel.classList.remove('opacity-50', 'pointer-events-none');
+        msgEl.classList.add('hidden');
+        panelEl.classList.remove('opacity-50', 'pointer-events-none');
 
         const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
-        const className = els.selClass.options[els.selClass.selectedIndex]?.text || classId;
-        els.kazIaContextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
+        const className = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
+        contextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
 
-        if (!els.kazIaApiKey.value && auth.currentUser) {
+        // 1. Tenta recuperar do LocalStorage primeiro (Rápido)
+        const localKey = localStorage.getItem('kaz_gemini_key');
+        if (localKey) {
+            apiKeyInput.value = localKey;
+        } 
+        // 2. Se não tiver, busca do Firebase
+        else if (auth.currentUser) {
             try {
                 const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
                 if (userDoc.exists() && userDoc.data().geminiApiKey) {
-                    els.kazIaApiKey.value = userDoc.data().geminiApiKey;
+                    apiKeyInput.value = userDoc.data().geminiApiKey;
+                    localStorage.setItem('kaz_gemini_key', userDoc.data().geminiApiKey); // Salva no cache
                 }
             } catch (e) {
                 console.warn("Erro ao buscar chave API: ", e);
@@ -3827,7 +3839,7 @@ window.profAPI = {
     },
 
     openKazIaResult: (htmlContent, isNew = false) => {
-        els.kazIaRenderBox.innerHTML = htmlContent;
+        document.getElementById('kaz-ia-render-box').innerHTML = htmlContent;
         const modal = document.getElementById('modal-kaz-ia-result');
         const btnSave = document.getElementById('btn-kaz-save-history');
         
@@ -3848,27 +3860,36 @@ window.profAPI = {
         document.getElementById('modal-kaz-ia-result').classList.remove('flex');
     },
 
-    // --- MODAL DE HISTÓRICO ---
+    // --- MODAL DE HISTÓRICO (LÓGICA SEM ÍNDICE DO FIREBASE) ---
     openKazIaHistory: async () => {
-        els.modalKazHistory.classList.remove('hidden');
-        els.modalKazHistory.classList.add('flex');
-        els.kazHistoryList.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
+        const modal = document.getElementById('modal-kaz-ia-history');
+        const listEl = document.getElementById('kaz-ia-history-list');
+        const msgEl = document.getElementById('kaz-ia-history-msg');
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        listEl.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
         
         try {
-            const q = query(collection(db, "planos_aula_ia"), where("professorUid", "==", auth.currentUser.uid));
-            const snap = await getDocs(q);
+            // Busca TODOS os planos e filtra/ordena via JavaScript (Bypassa o erro de Index do Firebase)
+            const snap = await getDocs(collection(db, "planos_aula_ia"));
+            listEl.innerHTML = '';
             
-            els.kazHistoryList.innerHTML = '';
-            
-            if (snap.empty) {
-                document.getElementById('kaz-ia-history-msg').classList.remove('hidden');
+            const planosArr = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.professorUid === auth.currentUser.uid) {
+                    planosArr.push({ id: docSnap.id, ...data });
+                }
+            });
+
+            if (planosArr.length === 0) {
+                msgEl.classList.remove('hidden');
                 return;
             }
-            document.getElementById('kaz-ia-history-msg').classList.add('hidden');
-
-            const planosArr = [];
-            snap.forEach(docSnap => planosArr.push({ id: docSnap.id, ...docSnap.data() }));
+            msgEl.classList.add('hidden');
             
+            // Ordenação local (mais recentes primeiro)
             planosArr.sort((a, b) => {
                 const tA = a.dataCriacao ? a.dataCriacao.seconds : 0;
                 const tB = b.dataCriacao ? b.dataCriacao.seconds : 0;
@@ -3878,7 +3899,7 @@ window.profAPI = {
             planosArr.forEach(p => {
                 const dataFormatada = p.dataCriacao?.toDate().toLocaleDateString('pt-BR') || 'Sem data';
                 
-                els.kazHistoryList.insertAdjacentHTML('beforeend', `
+                listEl.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-amber-500/50 transition-colors">
                         <div class="flex-grow overflow-hidden">
                             <h4 class="text-amber-400 font-bold text-sm truncate" title="${escapeHTML(p.titulo || '')}">${escapeHTML(p.titulo || 'Plano sem título')}</h4>
@@ -3899,13 +3920,13 @@ window.profAPI = {
             });
             
         } catch (e) {
-            els.kazHistoryList.innerHTML = `<div class="text-red-500 font-bold py-4">Erro: ${e.message}</div>`;
+            listEl.innerHTML = `<div class="text-red-500 font-bold py-4">Erro: ${e.message}</div>`;
         }
     },
 
     closeKazIaHistory: () => {
-        els.modalKazHistory.classList.add('hidden');
-        els.modalKazHistory.classList.remove('flex');
+        document.getElementById('modal-kaz-ia-history').classList.add('hidden');
+        document.getElementById('modal-kaz-ia-history').classList.remove('flex');
     },
 
     loadPlanToPreview: (htmlContent) => {
@@ -3923,19 +3944,22 @@ window.profAPI = {
 
     // --- MODAL DE FONTES (RAG) ---
     openKazIaSources: async () => {
-        els.modalKazSources.classList.remove('hidden');
-        els.modalKazSources.classList.add('flex');
+        const modal = document.getElementById('modal-kaz-ia-sources');
+        const listEl = document.getElementById('kaz-ia-sources-list');
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
         window.profAPI.resetKazIaSourceForm();
         
-        els.kazSourcesList.innerHTML = '<div class="text-center text-slate-500 py-4"><i class="fas fa-spinner fa-spin"></i></div>';
+        listEl.innerHTML = '<div class="text-center text-slate-500 py-4"><i class="fas fa-spinner fa-spin"></i></div>';
         
         try {
             const snap = await getDocs(query(collection(db, "base_pedagogica")));
             window.profAPI.cacheSourcesKazIa = [];
-            els.kazSourcesList.innerHTML = '';
+            listEl.innerHTML = '';
             
             if(snap.empty) {
-                els.kazSourcesList.innerHTML = '<div class="text-xs text-slate-500 italic">Nenhuma fonte cadastrada.</div>';
+                listEl.innerHTML = '<div class="text-xs text-slate-500 italic">Nenhuma fonte cadastrada.</div>';
                 return;
             }
 
@@ -3943,7 +3967,7 @@ window.profAPI = {
                 const f = docSnap.data();
                 window.profAPI.cacheSourcesKazIa.push({ id: docSnap.id, ...f });
 
-                els.kazSourcesList.insertAdjacentHTML('beforeend', `
+                listEl.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
                         <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
                         <div class="flex gap-2 shrink-0">
@@ -3954,13 +3978,13 @@ window.profAPI = {
                 `);
             });
         } catch (e) {
-            els.kazSourcesList.innerHTML = `<div class="text-red-500 text-xs">Erro: ${e.message}</div>`;
+            listEl.innerHTML = `<div class="text-red-500 text-xs">Erro: ${e.message}</div>`;
         }
     },
 
     closeKazIaSources: () => {
-        els.modalKazSources.classList.add('hidden');
-        els.modalKazSources.classList.remove('flex');
+        document.getElementById('modal-kaz-ia-sources').classList.add('hidden');
+        document.getElementById('modal-kaz-ia-sources').classList.remove('flex');
     },
 
     resetKazIaSourceForm: () => {
@@ -3988,12 +4012,17 @@ window.profAPI = {
         const source = window.profAPI.cacheSourcesKazIa.find(s => s.id === id);
         if(!source) return;
 
-        document.getElementById('kaz-ia-source-id').value = source.id;
-        document.getElementById('kaz-ia-source-title').value = source.titulo;
-        document.getElementById('kaz-ia-source-content').value = source.conteudo;
+        const idInput = document.getElementById('kaz-ia-source-id');
+        const titleInput = document.getElementById('kaz-ia-source-title');
+        const contentInput = document.getElementById('kaz-ia-source-content');
+
+        idInput.value = source.id;
+        titleInput.value = source.titulo;
+        contentInput.value = source.conteudo;
         
-        // Foca no input para o professor ver que subiu
-        document.getElementById('kaz-ia-source-title').focus();
+        // Foca e rola a tela para o professor ver que o item subiu para edição
+        titleInput.focus();
+        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     },
 
     saveKazIaSource: async () => {
@@ -4034,7 +4063,7 @@ window.profAPI = {
         } catch (e) { alert("Erro ao excluir."); }
     },
 
-    // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
+    // --- GERAÇÃO COM GEMINI 1.5 FLASH E SALVAMENTO ---
     generatePlanWithIA: async () => {
         const apiKey = document.getElementById('kaz-ia-apikey').value.trim();
         const tipo = document.getElementById('kaz-ia-tipo').value;
@@ -4046,11 +4075,12 @@ window.profAPI = {
         if(!promptText) return alert("Preencha o Assunto Central para guiar a IA.");
 
         const btn = document.getElementById('btn-generate-plan');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Gerando Plano Detalhado...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Analisando Contexto e Gerando...';
         btn.disabled = true;
 
         try {
-            // Salva chave limpa no firebase
+            // Salva chave no LocalStorage e Firebase para não pedir mais
+            localStorage.setItem('kaz_gemini_key', apiKey);
             await updateDoc(doc(db, 'users', auth.currentUser.uid), { geminiApiKey: apiKey });
 
             const snapFontes = await getDocs(query(collection(db, "base_pedagogica")));
@@ -4062,35 +4092,29 @@ window.profAPI = {
             const turmaName = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
             const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
 
-            // Prompt otimizado para gerar conteúdo aprofundado e rico
+            // Prompt utilizando o modelo injetado nas fontes
             const promptFinal = `
-Atue como um Especialista Pedagógico Sênior e Designer Instrucional.
-Sua missão é criar um plano de aula ALTAMENTE DETALHADO, prático e bem estruturado.
+Atue como um Especialista Pedagógico Sênior. Sua missão é criar um plano de aula ALTAMENTE DETALHADO.
 
-CONTEXTO DA AULA:
-- Tipo de Planejamento: ${tipo.toUpperCase()}
+CONTEXTO:
+- Tipo: Plano ${tipo.toUpperCase()}
 - Disciplina: ${discName}
 - Turma/Série: ${turmaName}
-- Carga Horária Prevista: ${aulas} aulas
-- Objetivo/Assunto Principal ditado pelo Professor: "${promptText}"
+- Carga Horária: ${aulas} aulas
+- Assunto Central: "${promptText}"
 
-BASES DE CONHECIMENTO (Consulte os documentos abaixo para referenciar BNCC, currículos ou seguir os modelos de estrutura exigidos pela escola):
+BASES DE CONHECIMENTO (Siga ESTRITAMENTE as estruturas, rubricas e modelos presentes nestes documentos):
 ${contextRAG}
 
-INSTRUÇÕES DE FORMATAÇÃO E SAÍDA:
-1. Retorne APENAS CÓDIGO HTML PURO (sem as crases de markdown \`\`\`html no início ou no fim). A sua resposta será injetada diretamente em uma <div> na tela do professor.
-2. Utilize fontes clássicas (font-family: serif; color: #1e293b;) para facilitar a leitura.
-3. Organize as informações em seções claras usando <h1>, <h2>, e <p>.
-4. O plano DEVE ser exaustivo, dividindo o conteúdo aula a aula de forma clara. 
-5. Crie tabelas bem desenhadas (<table style="width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-top: 15px;">) para organizar:
-   - As Habilidades e Competências da BNCC cruzadas com o assunto.
-   - O Caminho Metodológico (O que acontece em cada aula, metodologias ativas).
-   - O Sistema e Critérios de Avaliação (Rubricas, notas).
-6. Garanta que o plano forneça ideias reais e criativas baseadas no assunto solicitado.
+INSTRUÇÕES DE SAÍDA:
+1. Retorne APENAS CÓDIGO HTML PURO. Não use a crase \`\`\`html no início ou no fim. O código será injetado direto via innerHTML.
+2. Use fontes serifadas (font-family: serif; color: #1e293b;).
+3. Maximize a estruturação visual com títulos (<h2>, <h3>) e tabelas (<table> com bordas simples <th style="border: 1px solid #ccc; padding: 8px;">).
+4. O plano DEVE ser exaustivo, combinando o assunto solicitado com as habilidades da BNCC corretas e detalhando o Caminho Metodológico aula a aula.
 `;
 
-            // Rota correta e oficial para o modelo 1.5 Pro
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`, {
+            // Rota oficial e estável (gemini-1.5-flash)
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -4106,7 +4130,6 @@ INSTRUÇÕES DE FORMATAÇÃO E SAÍDA:
             const data = await response.json();
             
             let htmlGerado = data.candidates[0].content.parts[0].text;
-            // Limpa formatação Markdown residual
             htmlGerado = htmlGerado.replace(/^```html\n?/, '').replace(/\n?```$/, '');
 
             window.profAPI.currentGeneratedPlan = {
