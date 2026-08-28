@@ -3794,6 +3794,10 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: GERADOR DE PLANO (KAZ IA)
     // ==========================================
+    
+    // Variável para armazenar temporariamente o último HTML gerado e o contexto
+    currentGeneratedPlan: null,
+
     initKazIA: async () => {
         const { school, classId, disciplineId, quarter } = state.filters;
         
@@ -3825,6 +3829,28 @@ window.profAPI = {
         }
     },
 
+    // --- MODAL DE RESULTADO / PREVIEW ---
+    openKazIaResult: (htmlContent, isNew = false) => {
+        els.kazIaRenderBox.innerHTML = htmlContent;
+        const modal = document.getElementById('modal-kaz-ia-result');
+        const btnSave = document.getElementById('btn-kaz-save-history');
+        
+        // Se for um plano novo, mostra o botão de Salvar. Se for antigo (do histórico), oculta.
+        if(isNew) {
+            btnSave.classList.remove('hidden');
+        } else {
+            btnSave.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    closeKazIaResult: () => {
+        document.getElementById('modal-kaz-ia-result').classList.add('hidden');
+        document.getElementById('modal-kaz-ia-result').classList.remove('flex');
+    },
+
     // --- MODAL DE HISTÓRICO ---
     openKazIaHistory: async () => {
         els.modalKazHistory.classList.remove('hidden');
@@ -3832,8 +3858,10 @@ window.profAPI = {
         els.kazHistoryList.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
         
         try {
-            // Busca os planos salvos do professor logado (Vamos salvar na coleção planos_aula_ia vinculados ao uid)
-            const q = query(collection(db, "planos_aula_ia"), where("professorUid", "==", auth.currentUser.uid), orderBy("dataCriacao", "desc"));
+            // Busca os planos salvos do professor logado 
+            // REMOVIDO: orderBy("dataCriacao", "desc") para evitar o erro de Index Composto do Firebase. 
+            // A ordenação é feita via JavaScript abaixo.
+            const q = query(collection(db, "planos_aula_ia"), where("professorUid", "==", auth.currentUser.uid));
             const snap = await getDocs(q);
             
             els.kazHistoryList.innerHTML = '';
@@ -3844,23 +3872,32 @@ window.profAPI = {
             }
             document.getElementById('kaz-ia-history-msg').classList.add('hidden');
 
-            snap.forEach(docSnap => {
-                const p = docSnap.data();
+            // Ordenação local via JavaScript
+            const planosArr = [];
+            snap.forEach(docSnap => planosArr.push({ id: docSnap.id, ...docSnap.data() }));
+            
+            planosArr.sort((a, b) => {
+                const tA = a.dataCriacao ? a.dataCriacao.seconds : 0;
+                const tB = b.dataCriacao ? b.dataCriacao.seconds : 0;
+                return tB - tA; // Decrescente (Mais novo primeiro)
+            });
+
+            planosArr.forEach(p => {
                 const dataFormatada = p.dataCriacao?.toDate().toLocaleDateString('pt-BR') || 'Sem data';
                 
                 els.kazHistoryList.insertAdjacentHTML('beforeend', `
-                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex justify-between items-center group hover:border-amber-500/50 transition-colors">
-                        <div>
-                            <h4 class="text-amber-400 font-bold text-sm">${escapeHTML(p.titulo || 'Plano sem título')}</h4>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
+                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-amber-500/50 transition-colors">
+                        <div class="flex-grow overflow-hidden">
+                            <h4 class="text-amber-400 font-bold text-sm truncate" title="${escapeHTML(p.titulo || '')}">${escapeHTML(p.titulo || 'Plano sem título')}</h4>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-1 truncate">
                                 ${escapeHTML(p.turmaNome)} | ${escapeHTML(p.disciplinaNome)} | ${p.tipoPlano} | ${dataFormatada}
                             </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick='window.profAPI.loadPlanToPreview(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')})' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Visualizar">
-                                <i class="fas fa-eye"></i>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick='window.profAPI.openKazIaResult(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')}, false)' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors font-bold" title="Visualizar Plano">
+                                <i class="fas fa-eye mr-1"></i> Ver Plano
                             </button>
-                            <button onclick="window.profAPI.deletePlan('${docSnap.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir">
+                            <button onclick="window.profAPI.deletePlan('${p.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir Permanentemente">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -3878,15 +3915,8 @@ window.profAPI = {
         els.modalKazHistory.classList.remove('flex');
     },
 
-    loadPlanToPreview: (htmlContent) => {
-        els.kazIaRenderBox.innerHTML = htmlContent;
-        els.kazIaResultArea.classList.remove('hidden');
-        els.kazIaResultArea.classList.add('flex');
-        window.profAPI.closeKazIaHistory();
-    },
-
     deletePlan: async (id) => {
-        if(!confirm("Excluir plano do histórico?")) return;
+        if(!confirm("Excluir plano do histórico permanentemente?")) return;
         try {
             await deleteDoc(doc(db, "planos_aula_ia", id));
             window.profAPI.openKazIaHistory(); // Recarrega
@@ -3894,16 +3924,20 @@ window.profAPI = {
     },
 
     // --- MODAL DE FONTES (RAG) ---
+    // Variável interna para guardar as fontes na memória e poder editar
+    cacheSourcesKazIa: [],
+
     openKazIaSources: async () => {
         els.modalKazSources.classList.remove('hidden');
         els.modalKazSources.classList.add('flex');
-        els.kazSourceTitle.value = '';
-        els.kazSourceContent.value = '';
+        window.profAPI.resetKazIaSourceForm();
+        
         els.kazSourcesList.innerHTML = '<div class="text-center text-slate-500 py-4"><i class="fas fa-spinner fa-spin"></i></div>';
         
         try {
-            // Coleção base_pedagogica é global
+            // Coleção base_pedagogica é global (para a IA ler e para o Prof ver/editar)
             const snap = await getDocs(query(collection(db, "base_pedagogica")));
+            window.profAPI.cacheSourcesKazIa = [];
             els.kazSourcesList.innerHTML = '';
             
             if(snap.empty) {
@@ -3913,10 +3947,15 @@ window.profAPI = {
 
             snap.forEach(docSnap => {
                 const f = docSnap.data();
+                window.profAPI.cacheSourcesKazIa.push({ id: docSnap.id, ...f });
+
                 els.kazSourcesList.insertAdjacentHTML('beforeend', `
-                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center">
-                        <span class="text-xs font-bold text-slate-300 truncate">${escapeHTML(f.titulo)}</span>
-                        <button onclick="window.profAPI.deleteKazIaSource('${docSnap.id}')" class="text-red-500 hover:text-red-400 p-1"><i class="fas fa-trash"></i></button>
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
+                        <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
+                        <div class="flex gap-2 shrink-0">
+                            <button onclick="window.profAPI.editKazIaSource('${docSnap.id}')" class="text-blue-400 hover:text-white p-1 transition-colors"><i class="fas fa-edit"></i></button>
+                            <button onclick="window.profAPI.deleteKazIaSource('${docSnap.id}')" class="text-red-500 hover:text-white p-1 transition-colors"><i class="fas fa-trash"></i></button>
+                        </div>
                     </div>
                 `);
             });
@@ -3930,21 +3969,45 @@ window.profAPI = {
         els.modalKazSources.classList.remove('flex');
     },
 
+    resetKazIaSourceForm: () => {
+        document.getElementById('kaz-ia-source-id').value = '';
+        els.kazSourceTitle.value = '';
+        els.kazSourceContent.value = '';
+    },
+
+    editKazIaSource: (id) => {
+        const source = window.profAPI.cacheSourcesKazIa.find(s => s.id === id);
+        if(!source) return;
+
+        document.getElementById('kaz-ia-source-id').value = source.id;
+        els.kazSourceTitle.value = source.titulo;
+        els.kazSourceContent.value = source.conteudo;
+    },
+
     saveKazIaSource: async () => {
+        const id = document.getElementById('kaz-ia-source-id').value;
         const titulo = els.kazSourceTitle.value.trim();
         const conteudo = els.kazSourceContent.value.trim();
         
         if(!titulo || !conteudo) return alert("Preencha título e conteúdo da fonte.");
         
         try {
-            await addDoc(collection(db, "base_pedagogica"), {
+            const payload = {
                 titulo, 
                 conteudo,
-                criadoPor: auth.currentUser.uid,
-                dataCriacao: serverTimestamp()
-            });
-            els.kazSourceTitle.value = '';
-            els.kazSourceContent.value = '';
+                atualizadoPor: auth.currentUser.uid,
+                dataAtualizacao: serverTimestamp()
+            };
+
+            if(id) {
+                await updateDoc(doc(db, "base_pedagogica", id), payload);
+            } else {
+                payload.criadoPor = auth.currentUser.uid;
+                payload.dataCriacao = serverTimestamp();
+                await addDoc(collection(db, "base_pedagogica"), payload);
+            }
+            
+            window.profAPI.resetKazIaSourceForm();
             window.profAPI.openKazIaSources(); // Recarrega lista
         } catch (e) {
             alert("Erro ao salvar fonte: " + e.message);
@@ -3961,19 +4024,127 @@ window.profAPI = {
 
     // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
     generatePlanWithIA: async () => {
-        // Logica temporária até você enviar o modelo de formatação
-        // Esta função orquestrará a leitura da base_pedagogica, montagem do prompt e chamada API Fetch
-        alert("Botão de geração acionado! Falta implementar o Prompt e o Fetch com a API Key que o usuário informar.");
+        const apiKey = els.kazIaApiKey.value.trim();
+        const tipo = els.kazIaTipo.value;
+        const aulas = els.kazIaAulas.value;
+        const promptText = els.kazIaPrompt.value.trim();
+        const { classId, disciplineId } = state.filters;
+
+        if(!apiKey) return alert("Insira sua Chave de API do Gemini para prosseguir.");
+        if(!promptText) return alert("Preencha o Assunto Central para guiar a IA.");
+
+        const btn = document.getElementById('btn-generate-plan');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Gerando (Pode levar alguns segundos)...';
+        btn.disabled = true;
+
+        try {
+            // SALVA A CHAVE NO PERFIL DO USUÁRIO LOGO ANTES DE CHAMAR (SE NUNCA FOI SALVA/FOI ATUALIZADA)
+            await updateDoc(doc(db, 'users', auth.currentUser.uid), { geminiApiKey: apiKey });
+
+            // SIMULAÇÃO DO RESULTADO (Até você fornecer o JSON/Markdown do modelo exato do docx)
+            // Aqui entraremos com a chamada real ao modelo "gemini-pro" da Google no próximo passo
+            
+            setTimeout(() => {
+                // String simulada temporária
+                const htmlGerado = `
+                    <div style="font-family: Arial, sans-serif;">
+                        <h1 style="color: #1e293b; text-align: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 10px;">Plano de Aula ${tipo.toUpperCase()}</h1>
+                        <p><strong>Turma:</strong> ${els.selClass.options[els.selClass.selectedIndex]?.text}</p>
+                        <p><strong>Disciplina:</strong> ${state.cache.disciplinesMap.get(disciplineId)}</p>
+                        <p><strong>Quantidade de Aulas:</strong> ${aulas}</p>
+                        <br>
+                        <h2 style="color: #0f172a;">Assunto:</h2>
+                        <p>${promptText}</p>
+                        <br>
+                        <h2 style="color: #0f172a;">Tabela (Modelo Simulado)</h2>
+                        <table style="width: 100%; border-collapse: collapse; border: 1px solid #94a3b8;">
+                            <tr style="background: #e2e8f0;">
+                                <th style="border: 1px solid #94a3b8; padding: 8px;">Objetivo</th>
+                                <th style="border: 1px solid #94a3b8; padding: 8px;">Habilidade BNCC</th>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #94a3b8; padding: 8px;">Desenvolver projeto no laboratório</td>
+                                <td style="border: 1px solid #94a3b8; padding: 8px;">EM13CO01</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+
+                // Guarda o objeto global para salvar
+                window.profAPI.currentGeneratedPlan = {
+                    tipoPlano: tipo,
+                    aulasSemanais: aulas,
+                    assuntoBase: promptText,
+                    conteudoHtml: htmlGerado,
+                    turmaId: classId,
+                    turmaNome: els.selClass.options[els.selClass.selectedIndex]?.text,
+                    disciplinaId: disciplineId,
+                    disciplinaNome: state.cache.disciplinesMap.get(disciplineId)
+                };
+
+                // Abre o Modal com o plano novo
+                window.profAPI.openKazIaResult(htmlGerado, true);
+
+                btn.innerHTML = '<i class="fas fa-magic text-lg"></i> Gerar Plano com Inteligência Artificial';
+                btn.disabled = false;
+            }, 2000);
+
+        } catch (e) {
+            console.error(e);
+            alert("Erro na comunicação com a API: " + e.message);
+            btn.innerHTML = '<i class="fas fa-magic text-lg"></i> Gerar Plano com Inteligência Artificial';
+            btn.disabled = false;
+        }
     },
 
     saveCurrentPlan: async () => {
-        // Função para gravar o conteúdo da tela no firebase (Histórico)
-        alert("Função de salvar histórico acionada!");
+        if(!window.profAPI.currentGeneratedPlan) return alert("Nenhum plano gerado para salvar.");
+        
+        const btnSave = document.getElementById('btn-kaz-save-history');
+        btnSave.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Salvando...';
+        btnSave.disabled = true;
+
+        try {
+            // O título será os primeiros 30 caracteres do assunto central
+            let titulo = window.profAPI.currentGeneratedPlan.assuntoBase.substring(0, 35);
+            if (window.profAPI.currentGeneratedPlan.assuntoBase.length > 35) titulo += "...";
+
+            const payload = {
+                ...window.profAPI.currentGeneratedPlan,
+                titulo: titulo,
+                professorUid: auth.currentUser.uid,
+                dataCriacao: serverTimestamp()
+            };
+
+            await addDoc(collection(db, "planos_aula_ia"), payload);
+            
+            btnSave.innerHTML = '<i class="fas fa-check mr-1"></i> Salvo com Sucesso!';
+            btnSave.classList.replace('bg-green-600', 'bg-blue-600');
+            setTimeout(() => {
+                btnSave.classList.add('hidden'); // Oculta o botão pois já está salvo
+            }, 2000);
+
+        } catch(e) {
+            alert("Erro ao salvar histórico: " + e.message);
+            btnSave.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Plano';
+            btnSave.disabled = false;
+        }
     },
 
     exportPlanPDF: () => {
-        // Função para exportar a DIV kaz-ia-render-box via jsPDF
-        alert("Exportar para PDF acionado!");
-    }
+        // Usa o print nativo direcionado apenas ao conteúdo da box gerada, mantendo as configurações CSS impressas 
+        // (A biblioteca jsPDF costuma quebrar a renderização complexa de HTML na tela)
+        const printContent = els.kazIaRenderBox.innerHTML;
+        const originalContent = document.body.innerHTML;
 
+        document.body.innerHTML = `
+            <div style="padding: 20px; font-family: serif; color: black; background: white;">
+                ${printContent}
+            </div>
+        `;
+        
+        window.print();
+        document.body.innerHTML = originalContent;
+        window.location.reload(); // Recarrega para recuperar os eventos JS perdidos pela troca do innerHTML no DOM inteiro
+    }
 };
