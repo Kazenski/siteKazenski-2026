@@ -3796,7 +3796,7 @@ window.profAPI = {
     // ==========================================
     
     currentGeneratedPlan: null,
-    cacheSourcesKazIa: [], // Armazena as fontes carregadas
+    cacheSourcesKazIa: [], 
 
     initKazIA: async () => {
         const { school, classId, disciplineId, quarter } = state.filters;
@@ -3855,7 +3855,6 @@ window.profAPI = {
         els.kazHistoryList.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
         
         try {
-            // CORREÇÃO: Removido orderBy para evitar erro de índice composto no Firebase
             const q = query(collection(db, "planos_aula_ia"), where("professorUid", "==", auth.currentUser.uid));
             const snap = await getDocs(q);
             
@@ -3870,7 +3869,6 @@ window.profAPI = {
             const planosArr = [];
             snap.forEach(docSnap => planosArr.push({ id: docSnap.id, ...docSnap.data() }));
             
-            // Ordenação local em JS (mais recentes primeiro)
             planosArr.sort((a, b) => {
                 const tA = a.dataCriacao ? a.dataCriacao.seconds : 0;
                 const tB = b.dataCriacao ? b.dataCriacao.seconds : 0;
@@ -3889,10 +3887,10 @@ window.profAPI = {
                             </div>
                         </div>
                         <div class="flex gap-2 shrink-0">
-                            <button onclick='window.profAPI.loadPlanToPreview(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')}, false)' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors font-bold" title="Visualizar Plano">
+                            <button type="button" onclick='window.profAPI.loadPlanToPreview(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')}, false)' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors font-bold" title="Visualizar Plano">
                                 <i class="fas fa-eye mr-1"></i> Ver Plano
                             </button>
-                            <button onclick="window.profAPI.deletePlan('${p.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir Permanentemente">
+                            <button type="button" onclick="window.profAPI.deletePlan('${p.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir Permanentemente">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -3949,7 +3947,6 @@ window.profAPI = {
                     <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
                         <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
                         <div class="flex gap-2 shrink-0">
-                            <!-- CORREÇÃO: Adicionado tipo button para não submeter formulários sem querer -->
                             <button type="button" onclick="window.profAPI.editKazIaSource('${docSnap.id}')" class="text-blue-400 hover:text-white p-1 transition-colors"><i class="fas fa-edit"></i></button>
                             <button type="button" onclick="window.profAPI.deleteKazIaSource('${docSnap.id}')" class="text-red-500 hover:text-white p-1 transition-colors"><i class="fas fa-trash"></i></button>
                         </div>
@@ -3972,14 +3969,31 @@ window.profAPI = {
         document.getElementById('kaz-ia-source-content').value = '';
     },
 
+    handleSourceFileUpload: (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const text = e.target.result;
+            document.getElementById('kaz-ia-source-content').value = text;
+            if (!document.getElementById('kaz-ia-source-title').value) {
+                document.getElementById('kaz-ia-source-title').value = file.name.replace('.txt', '');
+            }
+        };
+        reader.readAsText(file);
+    },
+
     editKazIaSource: (id) => {
-        // CORREÇÃO: Garante o preenchimento correto usando a cache interna
         const source = window.profAPI.cacheSourcesKazIa.find(s => s.id === id);
         if(!source) return;
 
         document.getElementById('kaz-ia-source-id').value = source.id;
         document.getElementById('kaz-ia-source-title').value = source.titulo;
         document.getElementById('kaz-ia-source-content').value = source.conteudo;
+        
+        // Foca no input para o professor ver que subiu
+        document.getElementById('kaz-ia-source-title').focus();
     },
 
     saveKazIaSource: async () => {
@@ -4022,57 +4036,61 @@ window.profAPI = {
 
     // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
     generatePlanWithIA: async () => {
-        const apiKey = els.kazIaApiKey.value.trim();
-        const tipo = els.kazIaTipo.value;
-        const aulas = els.kazIaAulas.value;
-        const promptText = els.kazIaPrompt.value.trim();
+        const apiKey = document.getElementById('kaz-ia-apikey').value.trim();
+        const tipo = document.getElementById('kaz-ia-tipo').value;
+        const aulas = document.getElementById('kaz-ia-aulas').value;
+        const promptText = document.getElementById('kaz-ia-prompt').value.trim();
         const { classId, disciplineId } = state.filters;
 
         if(!apiKey) return alert("Insira sua Chave de API do Gemini para prosseguir.");
         if(!promptText) return alert("Preencha o Assunto Central para guiar a IA.");
 
         const btn = document.getElementById('btn-generate-plan');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Gerando (Pode levar de 15 a 30s)...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Gerando Plano Detalhado...';
         btn.disabled = true;
 
         try {
+            // Salva chave limpa no firebase
             await updateDoc(doc(db, 'users', auth.currentUser.uid), { geminiApiKey: apiKey });
 
-            // 1. Busca todo o conhecimento pedagógico salvo
             const snapFontes = await getDocs(query(collection(db, "base_pedagogica")));
             let contextRAG = "";
             snapFontes.forEach(doc => {
-                contextRAG += `\n--- Título da Base: ${doc.data().titulo} ---\n${doc.data().conteudo}\n`;
+                contextRAG += `\n--- DOCUMENTO BASE: ${doc.data().titulo} ---\n${doc.data().conteudo}\n`;
             });
 
-            const turmaName = els.selClass.options[els.selClass.selectedIndex]?.text || classId;
+            const turmaName = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
             const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
 
-            // 2. Monta o Prompt com System Instruction Forte
+            // Prompt otimizado para gerar conteúdo aprofundado e rico
             const promptFinal = `
-Você é um planejador pedagógico educacional. Sua tarefa é criar um plano de aula completo e muito bem estruturado em formato HTML puro (sem usar a crase \`\`\`html no início ou no fim, apenas o código limpo que pode ser injetado em uma div).
+Atue como um Especialista Pedagógico Sênior e Designer Instrucional.
+Sua missão é criar um plano de aula ALTAMENTE DETALHADO, prático e bem estruturado.
 
-O estilo de formatação do seu HTML deve usar inline CSS básico e estrutural, como font-family: serif, margens e cores sóbrias (preto e cinza). Use tabelas HTML (<table>, <tr>, <th>, <td>) bem estilizadas com bordas cinzas (border: 1px solid #ccc; border-collapse: collapse) para organizar cronogramas e critérios avaliativos.
-
-PARÂMETROS DA SOLICITAÇÃO:
-- Tipo de Plano: ${tipo.toUpperCase()}
+CONTEXTO DA AULA:
+- Tipo de Planejamento: ${tipo.toUpperCase()}
 - Disciplina: ${discName}
 - Turma/Série: ${turmaName}
-- Carga Horária: ${aulas} aulas
-- Assunto Central pedido pelo professor: "${promptText}"
+- Carga Horária Prevista: ${aulas} aulas
+- Objetivo/Assunto Principal ditado pelo Professor: "${promptText}"
 
-BASES DE CONHECIMENTO (Use isso como guia para referenciar Habilidades, BNCC e Metodologias):
+BASES DE CONHECIMENTO (Consulte os documentos abaixo para referenciar BNCC, currículos ou seguir os modelos de estrutura exigidos pela escola):
 ${contextRAG}
 
-O plano DEVE incluir, OBRIGATORIAMENTE, em HTML limpo:
-1. Cabeçalho com as informações básicas da turma.
-2. Tabela de Habilidades e Competências da BNCC ou Currículo (tiradas da Base de Conhecimento).
-3. Caminho Metodológico ou Cronograma aula a aula.
-4. Critérios de Avaliação.
+INSTRUÇÕES DE FORMATAÇÃO E SAÍDA:
+1. Retorne APENAS CÓDIGO HTML PURO (sem as crases de markdown \`\`\`html no início ou no fim). A sua resposta será injetada diretamente em uma <div> na tela do professor.
+2. Utilize fontes clássicas (font-family: serif; color: #1e293b;) para facilitar a leitura.
+3. Organize as informações em seções claras usando <h1>, <h2>, e <p>.
+4. O plano DEVE ser exaustivo, dividindo o conteúdo aula a aula de forma clara. 
+5. Crie tabelas bem desenhadas (<table style="width: 100%; border-collapse: collapse; border: 1px solid #ccc; margin-top: 15px;">) para organizar:
+   - As Habilidades e Competências da BNCC cruzadas com o assunto.
+   - O Caminho Metodológico (O que acontece em cada aula, metodologias ativas).
+   - O Sistema e Critérios de Avaliação (Rubricas, notas).
+6. Garanta que o plano forneça ideias reais e criativas baseadas no assunto solicitado.
 `;
 
-            // 3. Chamada real e formatada corretamente para o Gemini 1.5 Pro
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            // Rota correta e oficial para o modelo 1.5 Pro
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -4088,8 +4106,8 @@ O plano DEVE incluir, OBRIGATORIAMENTE, em HTML limpo:
             const data = await response.json();
             
             let htmlGerado = data.candidates[0].content.parts[0].text;
-            // Limpa formatação Markdown que a IA teima em enviar às vezes
-            htmlGerado = htmlGerado.replace(/^```html\n/, '').replace(/\n```$/, '');
+            // Limpa formatação Markdown residual
+            htmlGerado = htmlGerado.replace(/^```html\n?/, '').replace(/\n?```$/, '');
 
             window.profAPI.currentGeneratedPlan = {
                 tipoPlano: tipo,
@@ -4109,7 +4127,7 @@ O plano DEVE incluir, OBRIGATORIAMENTE, em HTML limpo:
 
         } catch (e) {
             console.error(e);
-            alert("Erro na comunicação com a API: " + e.message);
+            alert("Falha na geração: " + e.message);
             btn.innerHTML = '<i class="fas fa-magic text-lg"></i> Gerar Plano com Inteligência Artificial';
             btn.disabled = false;
         }
@@ -4149,7 +4167,7 @@ O plano DEVE incluir, OBRIGATORIAMENTE, em HTML limpo:
     },
 
     exportPlanPDF: () => {
-        const printContent = els.kazIaRenderBox.innerHTML;
+        const printContent = document.getElementById('kaz-ia-render-box').innerHTML;
         const originalContent = document.body.innerHTML;
 
         document.body.innerHTML = `
@@ -4162,5 +4180,6 @@ O plano DEVE incluir, OBRIGATORIAMENTE, em HTML limpo:
         document.body.innerHTML = originalContent;
         window.location.reload(); 
     }
+
 
 };

@@ -3499,7 +3499,6 @@
                         <div id="kaz-ia-config-panel"
                             class="bg-slate-800/80 p-6 rounded-xl border border-slate-700 shadow-inner flex flex-col gap-5 shrink-0 w-full">
 
-                            <!-- Contexto Passivo -->
                             <div
                                 class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 text-[10px] text-slate-400 uppercase tracking-widest font-bold flex items-center gap-2">
                                 <i class="fas fa-crosshairs text-amber-500 text-sm"></i>
@@ -3544,10 +3543,10 @@
                             <div>
                                 <label
                                     class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1.5 pl-1">Assunto
-                                    Central / Diretrizes *</label>
+                                    Central / Diretrizes Específicas *</label>
                                 <textarea id="kaz-ia-prompt" rows="4"
                                     class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
-                                    placeholder="Descreva sobre o que será a aula ou cole um link de referência. Ex: Estruturas de repetição FOR em Python com foco em criação de NPCs de RPG..."></textarea>
+                                    placeholder="Descreva sobre o que será a aula detalhadamente. Ex: Estruturas de repetição FOR em Python com foco em criação de NPCs de RPG..."></textarea>
                             </div>
 
                             <div class="flex justify-end pt-4 border-t border-slate-700">
@@ -3557,11 +3556,10 @@
                                 </button>
                             </div>
                         </div>
-
                     </div>
                 </div>
 
-                <!-- Modal de Visualização/Resultado (Abre sobre a tela) -->
+                <!-- Modal de Visualização/Resultado -->
                 <div id="modal-kaz-ia-result"
                     class="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
                     <div
@@ -3622,8 +3620,8 @@
                             <div>
                                 <h3 class="text-indigo-400 font-cinzel font-bold text-xl"><i
                                         class="fas fa-database mr-2"></i> Base de Conhecimento (RAG)</h3>
-                                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Fragmentos da BNCC,
-                                    Currículo e Modelos para a IA ler.</p>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Cole os textos da
+                                    BNCC ou modelos de plano aqui.</p>
                             </div>
                             <button onclick="window.profAPI.closeKazIaSources()"
                                 class="text-slate-500 hover:text-white transition-colors"><i
@@ -3632,9 +3630,22 @@
 
                         <div class="flex flex-col gap-4 mb-6 border-b border-slate-700 pb-6 shrink-0">
                             <input type="hidden" id="kaz-ia-source-id">
-                            <input type="text" id="kaz-ia-source-title"
-                                placeholder="Título (Ex: Habilidades BNCC - Banco de Dados)"
-                                class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-lg p-3 outline-none focus:border-indigo-500">
+
+                            <div class="flex justify-between items-end gap-2">
+                                <input type="text" id="kaz-ia-source-title"
+                                    placeholder="Título (Ex: Habilidades BNCC - Banco de Dados)"
+                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-lg p-3 outline-none focus:border-indigo-500">
+
+                                <!-- Botão de upload de texto -->
+                                <label
+                                    class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-lg cursor-pointer transition-colors shadow-lg shrink-0 text-xs font-bold uppercase tracking-widest"
+                                    title="Extrair texto de arquivo .txt">
+                                    <i class="fas fa-upload mr-1"></i> Extrair TXT
+                                    <input type="file" id="kaz-ia-file-upload" accept=".txt" class="hidden"
+                                        onchange="window.profAPI.handleSourceFileUpload(event)">
+                                </label>
+                            </div>
+
                             <textarea id="kaz-ia-source-content" rows="4"
                                 placeholder="Cole o texto ou estrutura padrão aqui..."
                                 class="w-full bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-lg p-3 outline-none focus:border-indigo-500 custom-scroll"></textarea>
