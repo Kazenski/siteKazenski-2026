@@ -3464,26 +3464,180 @@
 
                 </div>
 
-                <div id="ptab-kaz-ia" class="prof-tab-content hidden h-full fade-in flex-col">
+                <div id="ptab-kaz-ia" class="prof-tab-content hidden h-full fade-in flex-col max-w-5xl mx-auto w-full">
+
                     <div
                         class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-lg text-amber-500 font-cinzel font-bold mb-1">
-                                <i class="fas fa-robot mr-2"></i> Gerar Plano com Kaz IA
+                                <i class="fas fa-robot mr-2"></i> Kaz IA - Gerador de Planos
                             </h2>
                             <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                                Assistente inteligente para criação e planejamento pedagógico
+                                Planejamento automatizado com base na BNCC e Diretrizes
                             </p>
+                        </div>
+                        <div class="flex gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
+                            <button onclick="window.profAPI.openKazIaHistory()"
+                                class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg shadow-lg transition-colors whitespace-nowrap">
+                                <i class="fas fa-history mr-2"></i> Meus Planos
+                            </button>
+                            <button onclick="window.profAPI.openKazIaSources()"
+                                class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg shadow-lg transition-colors whitespace-nowrap">
+                                <i class="fas fa-database mr-2"></i> Fontes (BNCC)
+                            </button>
                         </div>
                     </div>
 
                     <div
-                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6 flex flex-col">
-                        <div id="kaz-ia-msg" class="text-center text-sm font-bold text-slate-500 italic my-auto">
-                            Selecione Turma e Disciplina no menu superior e clique em Carregar.
+                        class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl p-6 flex flex-col gap-6 relative">
+
+                        <div id="kaz-ia-msg" class="text-center text-sm font-bold text-slate-500 italic hidden">
+                            Selecione Turma e Disciplina no menu superior.
                         </div>
-                        <div id="kaz-ia-body" class="hidden flex-col gap-6">
-                            <!-- O conteúdo e formulários da IA serão estruturados aqui -->
+
+                        <!-- Painel de Configuração -->
+                        <div id="kaz-ia-config-panel"
+                            class="bg-slate-800/80 p-6 rounded-xl border border-slate-700 shadow-inner flex flex-col gap-5 shrink-0">
+
+                            <!-- Contexto Passivo -->
+                            <div
+                                class="bg-slate-900/50 p-3 rounded-lg border border-slate-700 text-[10px] text-slate-400 uppercase tracking-widest font-bold flex items-center gap-2">
+                                <i class="fas fa-crosshairs text-amber-500 text-sm"></i>
+                                <span id="kaz-ia-context-display">Aguardando seleção de filtros no topo...</span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Chave
+                                        API (Gemini) *</label>
+                                    <div class="relative">
+                                        <i
+                                            class="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                                        <input type="password" id="kaz-ia-apikey" placeholder="Cole sua API Key aqui..."
+                                            class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-xl py-2.5 pl-8 pr-3 outline-none focus:border-amber-500">
+                                    </div>
+                                    <p class="text-[9px] text-slate-500 mt-1 pl-1">Fica salva no seu perfil do Firebase.
+                                    </p>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Tipo
+                                        de Plano *</label>
+                                    <select id="kaz-ia-tipo"
+                                        class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-xl p-2.5 outline-none focus:border-amber-500">
+                                        <option value="diario">Plano Diário</option>
+                                        <option value="mensal">Plano Mensal</option>
+                                        <option value="anual">Plano Anual</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Aulas
+                                        Semanais *</label>
+                                    <input type="number" id="kaz-ia-aulas" value="3" min="1" max="10"
+                                        class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-xl p-2.5 outline-none focus:border-amber-500 text-center">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1.5 pl-1">Assunto
+                                    Central / Objetivos *</label>
+                                <textarea id="kaz-ia-prompt" rows="3"
+                                    class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-xl p-4 outline-none focus:border-amber-500 custom-scroll leading-relaxed"
+                                    placeholder="Descreva sobre o que será a aula. Ex: Estruturas de repetição FOR em Python com foco em criação de NPCs de RPG..."></textarea>
+                            </div>
+
+                            <div class="flex justify-end pt-2 border-t border-slate-700">
+                                <button id="btn-generate-plan" onclick="window.profAPI.generatePlanWithIA()"
+                                    class="bg-amber-600 hover:bg-amber-500 text-white font-black text-xs uppercase tracking-widest px-8 py-3 rounded-xl shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 flex items-center gap-2">
+                                    <i class="fas fa-magic"></i> Gerar Plano com IA
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Área de Resultado (Preview) -->
+                        <div id="kaz-ia-result-area" class="hidden flex-col gap-4 mt-2">
+                            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+                                <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i
+                                        class="fas fa-file-alt mr-2"></i> Pré-visualização do Plano</h3>
+                                <div class="flex gap-2">
+                                    <button onclick="window.profAPI.saveCurrentPlan()"
+                                        class="bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors shadow-lg"><i
+                                            class="fas fa-save mr-1"></i> Salvar no Histórico</button>
+                                    <button onclick="window.profAPI.exportPlanPDF()"
+                                        class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors"><i
+                                            class="fas fa-file-pdf mr-1"></i> PDF</button>
+                                </div>
+                            </div>
+
+                            <div id="kaz-ia-render-box"
+                                class="bg-white text-slate-900 p-8 rounded-xl min-h-[400px] shadow-inner font-serif text-sm leading-relaxed custom-html-content">
+                                <!-- HTML do plano gerado pela IA entra aqui -->
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Modal de Histórico de Planos -->
+                <div id="modal-kaz-ia-history"
+                    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
+                    <div
+                        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
+                            <h3 class="text-amber-500 font-cinzel font-bold text-xl"><i class="fas fa-history mr-2"></i>
+                                Meus Planejamentos</h3>
+                            <button onclick="window.profAPI.closeKazIaHistory()"
+                                class="text-slate-500 hover:text-white transition-colors"><i
+                                    class="fas fa-times text-xl"></i></button>
+                        </div>
+                        <div class="flex-grow overflow-y-auto custom-scroll pr-2 relative">
+                            <div id="kaz-ia-history-list" class="flex flex-col gap-3">
+                                <!-- Lista de cards dos planos -->
+                            </div>
+                            <p id="kaz-ia-history-msg" class="text-center text-slate-500 italic py-10 hidden">Nenhum
+                                plano salvo ainda.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal de Fontes (RAG) -->
+                <div id="modal-kaz-ia-sources"
+                    class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
+                    <div
+                        class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col max-h-[90vh]">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
+                            <div>
+                                <h3 class="text-indigo-400 font-cinzel font-bold text-xl"><i
+                                        class="fas fa-database mr-2"></i> Base de Conhecimento (RAG)</h3>
+                                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Fragmentos da BNCC
+                                    e Currículo para a IA ler.</p>
+                            </div>
+                            <button onclick="window.profAPI.closeKazIaSources()"
+                                class="text-slate-500 hover:text-white transition-colors"><i
+                                    class="fas fa-times text-xl"></i></button>
+                        </div>
+
+                        <div class="flex flex-col gap-4 mb-6 border-b border-slate-700 pb-6 shrink-0">
+                            <input type="text" id="kaz-ia-source-title"
+                                placeholder="Título (Ex: Habilidades BNCC - Banco de Dados)"
+                                class="w-full bg-slate-900 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500">
+                            <textarea id="kaz-ia-source-content" rows="4"
+                                placeholder="Cole o texto das diretrizes aqui..."
+                                class="w-full bg-slate-900 border border-slate-600 text-slate-300 text-sm rounded-lg p-3 outline-none focus:border-indigo-500 custom-scroll"></textarea>
+                            <button onclick="window.profAPI.saveKazIaSource()"
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-lg shadow-lg self-end transition-colors"><i
+                                    class="fas fa-plus mr-2"></i> Adicionar Fonte</button>
+                        </div>
+
+                        <div class="flex-grow overflow-y-auto custom-scroll pr-2">
+                            <h4 class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-3">Fontes
+                                Cadastradas</h4>
+                            <div id="kaz-ia-sources-list" class="flex flex-col gap-2">
+                                <!-- Lista de fontes -->
+                            </div>
                         </div>
                     </div>
                 </div>

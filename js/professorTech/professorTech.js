@@ -347,6 +347,23 @@ function mapearDOM() {
 
         // Kaz IA
         kazIaMsg: document.getElementById('kaz-ia-msg'),
+        kazIaConfigPanel: document.getElementById('kaz-ia-config-panel'),
+        kazIaContextDisplay: document.getElementById('kaz-ia-context-display'),
+        kazIaApiKey: document.getElementById('kaz-ia-apikey'),
+        kazIaTipo: document.getElementById('kaz-ia-tipo'),
+        kazIaAulas: document.getElementById('kaz-ia-aulas'),
+        kazIaPrompt: document.getElementById('kaz-ia-prompt'),
+        btnGeneratePlan: document.getElementById('btn-generate-plan'),
+        kazIaResultArea: document.getElementById('kaz-ia-result-area'),
+        kazIaRenderBox: document.getElementById('kaz-ia-render-box'),
+        
+        // Modais Kaz IA
+        modalKazHistory: document.getElementById('modal-kaz-ia-history'),
+        kazHistoryList: document.getElementById('kaz-ia-history-list'),
+        modalKazSources: document.getElementById('modal-kaz-ia-sources'),
+        kazSourceTitle: document.getElementById('kaz-ia-source-title'),
+        kazSourceContent: document.getElementById('kaz-ia-source-content'),
+        kazSourcesList: document.getElementById('kaz-ia-sources-list'),
     };
 }
 
@@ -3777,16 +3794,186 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: GERADOR DE PLANO (KAZ IA)
     // ==========================================
-    initKazIA: () => {
-        const { classId, disciplineId } = state.filters;
+    initKazIA: async () => {
+        const { school, classId, disciplineId, quarter } = state.filters;
         
+        // Verifica se os filtros necessários estão selecionados
         if (!classId || !disciplineId) {
-            els.kazIaMsg.innerHTML = '<span class="text-red-400">Por favor, selecione a Turma e a Disciplina no menu superior para utilizar a IA.</span>';
+            els.kazIaMsg.classList.remove('hidden');
+            els.kazIaConfigPanel.classList.add('opacity-50', 'pointer-events-none');
             return;
         }
 
-        // Prepara a tela inicial da IA
-        els.kazIaMsg.innerHTML = '<span class="text-blue-400 font-bold"><i class="fas fa-check-circle mr-2"></i> Contexto carregado. Kaz IA pronta para iniciar o planejamento.</span>';
+        els.kazIaMsg.classList.add('hidden');
+        els.kazIaConfigPanel.classList.remove('opacity-50', 'pointer-events-none');
+
+        // Atualiza a exibição de contexto
+        const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
+        const className = els.selClass.options[els.selClass.selectedIndex]?.text || classId;
+        els.kazIaContextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
+
+        // Tenta recuperar a API Key salva no perfil do professor
+        if (!els.kazIaApiKey.value && auth.currentUser) {
+            try {
+                const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                if (userDoc.exists() && userDoc.data().geminiApiKey) {
+                    els.kazIaApiKey.value = userDoc.data().geminiApiKey;
+                }
+            } catch (e) {
+                console.warn("Erro ao buscar chave API: ", e);
+            }
+        }
+    },
+
+    // --- MODAL DE HISTÓRICO ---
+    openKazIaHistory: async () => {
+        els.modalKazHistory.classList.remove('hidden');
+        els.modalKazHistory.classList.add('flex');
+        els.kazHistoryList.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
+        
+        try {
+            // Busca os planos salvos do professor logado (Vamos salvar na coleção planos_aula_ia vinculados ao uid)
+            const q = query(collection(db, "planos_aula_ia"), where("professorUid", "==", auth.currentUser.uid), orderBy("dataCriacao", "desc"));
+            const snap = await getDocs(q);
+            
+            els.kazHistoryList.innerHTML = '';
+            
+            if (snap.empty) {
+                document.getElementById('kaz-ia-history-msg').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('kaz-ia-history-msg').classList.add('hidden');
+
+            snap.forEach(docSnap => {
+                const p = docSnap.data();
+                const dataFormatada = p.dataCriacao?.toDate().toLocaleDateString('pt-BR') || 'Sem data';
+                
+                els.kazHistoryList.insertAdjacentHTML('beforeend', `
+                    <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex justify-between items-center group hover:border-amber-500/50 transition-colors">
+                        <div>
+                            <h4 class="text-amber-400 font-bold text-sm">${escapeHTML(p.titulo || 'Plano sem título')}</h4>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">
+                                ${escapeHTML(p.turmaNome)} | ${escapeHTML(p.disciplinaNome)} | ${p.tipoPlano} | ${dataFormatada}
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick='window.profAPI.loadPlanToPreview(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')})' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Visualizar">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button onclick="window.profAPI.deletePlan('${docSnap.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `);
+            });
+            
+        } catch (e) {
+            els.kazHistoryList.innerHTML = `<div class="text-red-500 font-bold py-4">Erro: ${e.message}</div>`;
+        }
+    },
+
+    closeKazIaHistory: () => {
+        els.modalKazHistory.classList.add('hidden');
+        els.modalKazHistory.classList.remove('flex');
+    },
+
+    loadPlanToPreview: (htmlContent) => {
+        els.kazIaRenderBox.innerHTML = htmlContent;
+        els.kazIaResultArea.classList.remove('hidden');
+        els.kazIaResultArea.classList.add('flex');
+        window.profAPI.closeKazIaHistory();
+    },
+
+    deletePlan: async (id) => {
+        if(!confirm("Excluir plano do histórico?")) return;
+        try {
+            await deleteDoc(doc(db, "planos_aula_ia", id));
+            window.profAPI.openKazIaHistory(); // Recarrega
+        } catch (e) { alert("Erro ao excluir."); }
+    },
+
+    // --- MODAL DE FONTES (RAG) ---
+    openKazIaSources: async () => {
+        els.modalKazSources.classList.remove('hidden');
+        els.modalKazSources.classList.add('flex');
+        els.kazSourceTitle.value = '';
+        els.kazSourceContent.value = '';
+        els.kazSourcesList.innerHTML = '<div class="text-center text-slate-500 py-4"><i class="fas fa-spinner fa-spin"></i></div>';
+        
+        try {
+            // Coleção base_pedagogica é global
+            const snap = await getDocs(query(collection(db, "base_pedagogica")));
+            els.kazSourcesList.innerHTML = '';
+            
+            if(snap.empty) {
+                els.kazSourcesList.innerHTML = '<div class="text-xs text-slate-500 italic">Nenhuma fonte cadastrada.</div>';
+                return;
+            }
+
+            snap.forEach(docSnap => {
+                const f = docSnap.data();
+                els.kazSourcesList.insertAdjacentHTML('beforeend', `
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-300 truncate">${escapeHTML(f.titulo)}</span>
+                        <button onclick="window.profAPI.deleteKazIaSource('${docSnap.id}')" class="text-red-500 hover:text-red-400 p-1"><i class="fas fa-trash"></i></button>
+                    </div>
+                `);
+            });
+        } catch (e) {
+            els.kazSourcesList.innerHTML = `<div class="text-red-500 text-xs">Erro: ${e.message}</div>`;
+        }
+    },
+
+    closeKazIaSources: () => {
+        els.modalKazSources.classList.add('hidden');
+        els.modalKazSources.classList.remove('flex');
+    },
+
+    saveKazIaSource: async () => {
+        const titulo = els.kazSourceTitle.value.trim();
+        const conteudo = els.kazSourceContent.value.trim();
+        
+        if(!titulo || !conteudo) return alert("Preencha título e conteúdo da fonte.");
+        
+        try {
+            await addDoc(collection(db, "base_pedagogica"), {
+                titulo, 
+                conteudo,
+                criadoPor: auth.currentUser.uid,
+                dataCriacao: serverTimestamp()
+            });
+            els.kazSourceTitle.value = '';
+            els.kazSourceContent.value = '';
+            window.profAPI.openKazIaSources(); // Recarrega lista
+        } catch (e) {
+            alert("Erro ao salvar fonte: " + e.message);
+        }
+    },
+
+    deleteKazIaSource: async (id) => {
+        if(!confirm("Remover esta fonte da base de conhecimento da IA?")) return;
+        try {
+            await deleteDoc(doc(db, "base_pedagogica", id));
+            window.profAPI.openKazIaSources(); // Recarrega
+        } catch (e) { alert("Erro ao excluir."); }
+    },
+
+    // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
+    generatePlanWithIA: async () => {
+        // Logica temporária até você enviar o modelo de formatação
+        // Esta função orquestrará a leitura da base_pedagogica, montagem do prompt e chamada API Fetch
+        alert("Botão de geração acionado! Falta implementar o Prompt e o Fetch com a API Key que o usuário informar.");
+    },
+
+    saveCurrentPlan: async () => {
+        // Função para gravar o conteúdo da tela no firebase (Histórico)
+        alert("Função de salvar histórico acionada!");
+    },
+
+    exportPlanPDF: () => {
+        // Função para exportar a DIV kaz-ia-render-box via jsPDF
+        alert("Exportar para PDF acionado!");
     }
 
 };
