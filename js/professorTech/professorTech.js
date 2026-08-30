@@ -4246,6 +4246,7 @@ INSTRUÇÕES DE SAÍDA:
 // MÓDULO TCG (FORJA DE CARTAS - PROFESSOR)
 // ==========================================
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 window.tcgAPI = {
     currentBlob: null,
@@ -4297,7 +4298,6 @@ window.tcgAPI = {
             document.getElementById('btn-save-tcg').innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
             window.tcgAPI.updatePreview();
             
-            // Garante que o dropdown de condições esteja montado se o professor entrar direto aqui
             if(document.getElementById('tcg-cond-alvo').options.length <= 1) {
                 window.tcgAPI.buildConditionOptions();
             }
@@ -4324,7 +4324,6 @@ window.tcgAPI = {
 
         const previewImg = document.getElementById('tcg-preview-img');
         
-        // Comprime a imagem pelo Canvas do navegador para economizar banda do Firebase
         const reader = new FileReader();
         reader.onload = (e) => {
             const img = new Image();
@@ -4344,7 +4343,6 @@ window.tcgAPI = {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                // Exporta para WebP para garantir leveza máxima mantendo fundo transparente
                 canvas.toBlob((blob) => {
                     window.tcgAPI.currentBlob = blob;
                     previewImg.src = URL.createObjectURL(blob);
@@ -4411,7 +4409,6 @@ window.tcgAPI = {
             window.tcgAPI.toggleForm();
             await window.tcgAPI.loadCards();
             
-            // Efeito visual no Sucesso
             if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7'] });
 
         } catch (error) {
@@ -4443,14 +4440,15 @@ window.tcgAPI = {
                 const card = { id: docSnap.id, ...docSnap.data() };
                 window.tcgAPI.cardsCache.push(card);
 
-                // Montagem legível da regra visualmente
-                let regraStr = "Regra Desconhecida";
-                if(card.regra.alvoRaw === 'global_freq') {
-                    regraStr = `Freq. Global ${card.regra.operador} ${card.regra.valorAlvo}%`;
-                } else {
-                    const [dId, tri, nKey] = card.regra.alvoRaw.split('|');
-                    const dName = state.cache.disciplinesMap.get(dId) || "Disc";
-                    regraStr = `${dName.substring(0, 10)}. T${tri} - ${nKey.toUpperCase()} ${card.regra.operador} ${card.regra.valorAlvo}`;
+                let regraStr = "Regra Desconhecida / Antiga";
+                if(card.regra && card.regra.alvoRaw) {
+                    if(card.regra.alvoRaw === 'global_freq') {
+                        regraStr = `Freq. Global ${card.regra.operador} ${card.regra.valorAlvo}%`;
+                    } else {
+                        const [dId, tri, nKey] = card.regra.alvoRaw.split('|');
+                        const dName = state.cache.disciplinesMap.get(dId) || "Disc";
+                        regraStr = `${dName.substring(0, 10)}. T${tri} - ${nKey.toUpperCase()} ${card.regra.operador} ${card.regra.valorAlvo}`;
+                    }
                 }
 
                 grid.insertAdjacentHTML('beforeend', `
@@ -4463,10 +4461,11 @@ window.tcgAPI = {
                             </div>
                         </div>
                         <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex flex-col gap-2 shadow-inner">
-                            <span class="text-[9px] text-amber-500 font-bold uppercase tracking-widest leading-tight text-center truncate" title="${regraStr}"><i class="fas fa-lock mr-1 text-slate-500"></i> ${regraStr}</span>
-                            <div class="flex justify-center gap-2 border-t border-slate-800 pt-2 mt-1">
-                                <button onclick="window.tcgAPI.editCard('${card.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-edit"></i></button>
-                                <button onclick="window.tcgAPI.deleteCard('${card.id}')" class="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-trash"></i></button>
+                            <span class="text-[9px] text-amber-500 font-bold uppercase tracking-widest leading-tight text-center truncate mb-1" title="${regraStr}"><i class="fas fa-lock mr-1 text-slate-500"></i> ${regraStr}</span>
+                            <button onclick="window.tcgAPI.showEligible('${card.id}')" class="bg-indigo-600/20 text-indigo-400 hover:bg-indigo-500 hover:text-white border border-indigo-500/30 px-3 py-2 rounded-lg text-[10px] uppercase font-bold transition-colors w-full mb-1"><i class="fas fa-users mr-1"></i> Ver Alunos</button>
+                            <div class="flex justify-center gap-2 border-t border-slate-800 pt-2">
+                                <button onclick="window.tcgAPI.editCard('${card.id}')" class="bg-slate-800 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-edit"></i></button>
+                                <button onclick="window.tcgAPI.deleteCard('${card.id}')" class="bg-slate-800 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                     </div>
@@ -4482,7 +4481,6 @@ window.tcgAPI = {
         const card = window.tcgAPI.cardsCache.find(c => c.id === id);
         if(!card) return;
 
-        // Se o select não estiver populado, popula antes de setar o valor
         if(document.getElementById('tcg-cond-alvo').options.length <= 1) {
             window.tcgAPI.buildConditionOptions();
         }
@@ -4498,9 +4496,11 @@ window.tcgAPI = {
         document.getElementById('tcg-raridade').value = card.raridade;
         document.getElementById('tcg-descricao').value = card.descricao;
         
-        document.getElementById('tcg-cond-alvo').value = card.regra.alvoRaw;
-        document.getElementById('tcg-cond-op').value = card.regra.operador;
-        document.getElementById('tcg-cond-val').value = card.regra.valorAlvo;
+        if (card.regra && card.regra.alvoRaw) {
+            document.getElementById('tcg-cond-alvo').value = card.regra.alvoRaw;
+            document.getElementById('tcg-cond-op').value = card.regra.operador;
+            document.getElementById('tcg-cond-val').value = card.regra.valorAlvo;
+        }
 
         document.getElementById('tcg-imagem').value = '';
         window.tcgAPI.currentBlob = null;
@@ -4519,5 +4519,174 @@ window.tcgAPI = {
             await deleteDoc(doc(db, "tcg_cartas", id));
             await window.tcgAPI.loadCards();
         } catch (e) { alert("Erro ao excluir o artefato do banco."); }
+    },
+
+    // --- NOVA LÓGICA: GESTÃO E CONCESSÃO DE CARTAS PARA ALUNOS ELEGÍVEIS ---
+    showEligible: async (cardId) => {
+        const card = window.tcgAPI.cardsCache.find(c => c.id === cardId);
+        if (!card) return;
+
+        const classId = state.filters.classId;
+        if (!classId) return alert("Por favor, selecione uma Turma no menu superior primeiro e clique em Carregar.");
+
+        let modal = document.getElementById('dynamic-tcg-modal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'dynamic-tcg-modal';
+            modal.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[3000] hidden flex-col items-center justify-center p-4 fade-in';
+            document.body.appendChild(modal);
+        }
+
+        modal.innerHTML = `
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4 shrink-0">
+                    <h3 class="text-indigo-400 font-cinzel font-bold text-xl"><i class="fas fa-users mr-2"></i> Conceder Carta: <span class="text-white">${escapeHTML(card.nome)}</span></h3>
+                    <button onclick="document.getElementById('dynamic-tcg-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+                </div>
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-4">Analisando alunos da turma: <span class="text-amber-500">${classId}</span></p>
+                <div id="tcg-eligible-list" class="flex-grow overflow-y-auto custom-scroll pr-2 space-y-2">
+                    <div class="text-center py-10 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Avaliando boletins...</div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-slate-700 flex justify-end">
+                    <button id="btn-grant-all-tcg" class="hidden px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                        <i class="fas fa-magic mr-2"></i> Conceder a Todos os Elegíveis
+                    </button>
+                </div>
+            </div>
+        `;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        const listEl = document.getElementById('tcg-eligible-list');
+        const btnGrantAll = document.getElementById('btn-grant-all-tcg');
+
+        try {
+            const students = state.cache.students;
+            if(students.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-10 text-slate-400 italic">Nenhum aluno carregado. Clique no botão "Carregar" no menu superior.</div>';
+                return;
+            }
+
+            const eligibleUids = [];
+            let html = '';
+
+            for (const st of students) {
+                const uDoc = await getDoc(doc(db, "users", st.id));
+                const uData = uDoc.exists() ? uDoc.data() : {};
+                
+                const cacheNota = state.notasCache[st.id] || {};
+                let isEligible = false;
+                
+                if(card.regra && card.regra.alvoRaw) {
+                    const op = card.regra.operador;
+                    const target = card.regra.valorAlvo;
+
+                    if(card.regra.alvoRaw === 'global_freq') {
+                        isEligible = true; 
+                    } else {
+                        const [dId, tri, notaKey] = card.regra.alvoRaw.split('|');
+                        
+                        if(dId === state.filters.disciplineId && tri === state.filters.quarter) {
+                            let val = null;
+                            if (notaKey === 'media') {
+                                let sum = 0, count = 0;
+                                ['n1', 'n2', 'n3', 'n4'].forEach(k => {
+                                    const n = parseFloat(cacheNota[k]);
+                                    if (!isNaN(n)) { sum += n; count++; }
+                                });
+                                if (count > 0) val = sum / count;
+                            } else {
+                                val = parseFloat(cacheNota[notaKey]);
+                            }
+
+                            if (val !== null && !isNaN(val)) {
+                                if (op === '>=') isEligible = val >= target;
+                                else if (op === '>') isEligible = val > target;
+                                else if (op === '<=') isEligible = val <= target;
+                                else if (op === '==') isEligible = val == target;
+                            }
+                        } else {
+                            isEligible = false;
+                        }
+                    }
+                }
+
+                const hasCard = (uData.cartas_tcg || []).some(c => c.id === cardId);
+
+                let statusBadge = '';
+                if(hasCard) {
+                    statusBadge = '<span class="text-[10px] text-green-400 bg-green-500/20 border border-green-500/30 px-2 py-1.5 rounded font-bold uppercase tracking-widest"><i class="fas fa-check mr-1"></i> Já Possui</span>';
+                } else if (isEligible) {
+                    eligibleUids.push(st.id);
+                    statusBadge = `<button onclick="window.tcgAPI.grantCard('${cardId}', '${st.id}')" class="text-[10px] bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded font-black uppercase tracking-widest shadow-md transition-colors"><i class="fas fa-gift mr-1"></i> Conceder Carta</button>`;
+                } else {
+                    statusBadge = '<span class="text-[10px] text-slate-500 bg-slate-900 border border-slate-700 px-2 py-1.5 rounded font-bold uppercase tracking-widest">Não Atingiu a Meta</span>';
+                }
+
+                html += `
+                    <div class="flex items-center justify-between p-4 bg-slate-950 border border-slate-700 rounded-xl hover:border-slate-600 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-user-circle text-slate-600 text-2xl"></i>
+                            <span class="text-sm font-bold text-slate-200">${escapeHTML(st.nome)}</span>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                `;
+            }
+
+            listEl.innerHTML = html;
+
+            if(eligibleUids.length > 0) {
+                btnGrantAll.classList.remove('hidden');
+                btnGrantAll.onclick = () => window.tcgAPI.grantCardBulk(cardId, eligibleUids);
+            }
+
+        } catch (e) {
+            console.error(e);
+            listEl.innerHTML = `<div class="text-red-500 text-center py-4">Erro: ${e.message}</div>`;
+        }
+    },
+
+    grantCard: async (cardId, studentUid) => {
+        try {
+            const novaCarta = {
+                id: cardId,
+                dataResgate: new Date().toISOString()
+            };
+            await updateDoc(doc(db, "users", studentUid), {
+                cartas_tcg: arrayUnion(novaCarta)
+            });
+            alert("Artefato concedido com sucesso!");
+            window.tcgAPI.showEligible(cardId); 
+        } catch(e) {
+            alert("Erro ao conceder carta.");
+        }
+    },
+
+    grantCardBulk: async (cardId, uids) => {
+        if(!confirm(`Conceder este artefato para todos os ${uids.length} alunos elegíveis simultaneamente?`)) return;
+        const btnGrantAll = document.getElementById('btn-grant-all-tcg');
+        btnGrantAll.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processando envio em lote...';
+        btnGrantAll.disabled = true;
+
+        try {
+            const batch = writeBatch(db);
+            const novaCarta = {
+                id: cardId,
+                dataResgate: new Date().toISOString()
+            };
+
+            uids.forEach(uid => {
+                batch.update(doc(db, "users", uid), {
+                    cartas_tcg: arrayUnion(novaCarta)
+                });
+            });
+
+            await batch.commit();
+            alert("Cartas concedidas em massa com sucesso!");
+            window.tcgAPI.showEligible(cardId);
+        } catch(e) {
+            alert("Erro no envio em massa.");
+        }
     }
 };

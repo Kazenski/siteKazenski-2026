@@ -2526,6 +2526,7 @@ window.alunoTcgAPI = {
     globalFreq: 100,
 
     init: async () => {
+        // Pega a frequência global já calculada pela aba Geral
         const freqText = document.getElementById('al-freq-perc')?.textContent || "100%";
         window.alunoTcgAPI.globalFreq = parseInt(freqText.replace('%', ''));
 
@@ -2535,19 +2536,20 @@ window.alunoTcgAPI = {
         grid.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
 
         try {
+            // Busca as cartas da coleção (Exige que a regra do Firebase permita read para request.auth != null)
             const snap = await getDocs(collection(db, "tcg_cartas"));
             window.alunoTcgAPI.allCards = [];
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
 
             window.alunoTcgAPI.renderGrid();
         } catch (e) {
-            console.error(e);
+            console.error("Erro TCG Aluno:", e);
             grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG. Verifique as regras de segurança do Firebase.</div>';
         }
     },
 
     evaluateRule: (regra) => {
-        // Blindagem contra erros nulos e cartas antigas (criadas na primeira sprint)
+        // Blindagem contra erros nulos e cartas forjadas antes da criação da regra de metas
         if (!regra || !regra.alvoRaw) return false;
 
         const op = regra.operador;
@@ -2555,18 +2557,26 @@ window.alunoTcgAPI = {
 
         if (regra.alvoRaw === 'global_freq') {
             const val = window.alunoTcgAPI.globalFreq;
+            console.log(`[TCG LORE] Rastreando Frequência: Aluno(${val}%) ${op} Meta(${target}%)`);
             return window.alunoTcgAPI.compare(val, op, target);
         }
 
         // Se a disciplina ou o boletim não existirem, não resgata a carta
-        if (!studentGradesData) return false;
+        if (!studentGradesData) {
+            console.log(`[TCG LORE] Bloqueado: Boletim do aluno está vazio ou não carregado.`);
+            return false;
+        }
 
         const partes = regra.alvoRaw.split('|');
         if (partes.length < 3) return false;
 
         const [discId, tri, notaKey] = partes;
         const grades = studentGradesData[discId]?.[tri];
-        if (!grades) return false;
+        
+        if (!grades) {
+            console.log(`[TCG LORE] Bloqueado: Sem notas lançadas para a disciplina '${discId}' no ${tri}º Trimestre.`);
+            return false;
+        }
 
         let val = null;
         if (notaKey === 'media') {
@@ -2577,10 +2587,12 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            // CORREÇÃO: Traduz a regra "n1" do dropdown para a coluna "nota1" do banco de dados
+            // CORREÇÃO CRÍTICA: Traduz a regra "n1" do dropdown para a coluna "nota1" do banco de dados
             const chaveBoletim = notaKey.length === 2 ? notaKey.replace('n', 'nota') : notaKey;
             val = parseFloat(grades[chaveBoletim]);
         }
+
+        console.log(`[TCG LORE] Avaliando Carta -> Nota do Aluno: ${val} | Meta: ${op} ${target}`);
 
         if (val === null || isNaN(val)) return false;
         return window.alunoTcgAPI.compare(val, op, target);
