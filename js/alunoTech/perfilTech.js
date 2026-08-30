@@ -2576,7 +2576,8 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            val = parseFloat(grades[notaKey]);
+            const chaveBoletim = notaKey.length === 2 ? notaKey.replace('n', 'nota') : notaKey;
+            val = parseFloat(grades[chaveBoletim]);
         }
 
         if (val === null || isNaN(val)) return false;
