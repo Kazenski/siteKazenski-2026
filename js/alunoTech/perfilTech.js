@@ -2638,7 +2638,11 @@ window.alunoTcgAPI = {
         if (op === '>=') return val >= target;
         if (op === '>') return val > target;
         if (op === '<=') return val <= target;
+        if (op === '<') return val < target;
         if (op === '==') return val == target;
+        if (op === 'entre' && Array.isArray(target) && target.length === 2) {
+            return val >= target[0] && val <= target[1];
+        }
         return false;
     },
 

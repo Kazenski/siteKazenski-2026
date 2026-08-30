@@ -4406,19 +4406,19 @@ window.tcgAPI = {
             } 
             // Se for Criação Nova, gera as 5 variações automáticas por trás dos panos!
             else {
-                // Tabela de gradação automática baseada na sua regra
+                // Tabela de gradação estrita com intervalos reais (Mínimo e Máximo)
                 const atribuicoesRaridade = tipoMeta === 'freq' ? [
-                    { raridade: 'comum', operador: '<', valorAlvo: 30 },
-                    { raridade: 'incomum', operador: '>=', valorAlvo: 40 }, // (Simula o intervalo entre 40 e 50 ou >= 40)
-                    { raridade: 'rara', operador: '>=', valorAlvo: 60 },
-                    { raridade: 'epica', operador: '>=', valorAlvo: 80 },
-                    { raridade: 'lendaria', operador: '==', valorAlvo: 100 }
+                    { raridade: 'comum', min: 0, max: 30, operador: '<', valorAlvo: 30 },
+                    { raridade: 'incomum', min: 40, max: 50, operador: 'entre', valorAlvo: [40, 50] },
+                    { raridade: 'rara', min: 60, max: 70, operador: 'entre', valorAlvo: [60, 70] },
+                    { raridade: 'epica', min: 80, max: 90, operador: 'entre', valorAlvo: [80, 90] },
+                    { raridade: 'lendaria', min: 100, max: 100, operador: '==', valorAlvo: 100 }
                 ] : [
-                    { raridade: 'comum', operador: '<=', valorAlvo: 3 },
-                    { raridade: 'incomum', operador: '>=', valorAlvo: 4 },
-                    { raridade: 'rara', operador: '>=', valorAlvo: 6 },
-                    { raridade: 'epica', operador: '>=', valorAlvo: 8 },
-                    { raridade: 'lendaria', operador: '==', valorAlvo: 10 }
+                    { raridade: 'comum', min: 0, max: 3, operador: '<=', valorAlvo: 3 },
+                    { raridade: 'incomum', min: 4, max: 5, operador: 'entre', valorAlvo: [4, 5] },
+                    { raridade: 'rara', min: 6, max: 7, operador: 'entre', valorAlvo: [6, 7] },
+                    { raridade: 'epica', min: 8, max: 9, operador: 'entre', valorAlvo: [8, 9] },
+                    { raridade: 'lendaria', min: 10, max: 10, operador: '==', valorAlvo: 10 }
                 ];
 
                 const batch = writeBatch(db);
@@ -4432,7 +4432,7 @@ window.tcgAPI = {
                         regra: {
                             alvoRaw: condAlvo,
                             operador: tier.operador,
-                            valorAlvo: tier.valorAlvo
+                            valorAlvo: tier.valorAlvo // Pode ser um número ou um array [min, max]
                         },
                         professorUid: auth.currentUser.uid,
                         imagemUrl: imageUrl,
