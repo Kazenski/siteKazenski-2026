@@ -2603,16 +2603,16 @@ window.alunoTcgAPI = {
 
     renderGrid: () => {
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
+        if (grids.length === 0) return;
+
         const minhasCartas = currentUser.cartas_tcg || []; 
         const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // Se for Professor (Professor === true), ele vê todas as cartas com raridade máxima/liberada imediatamente
-        const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
-
+        // CARREGA TUDO: Exibe absolutamente todas as cartas forjadas no sistema
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
-        if(cartasParaOAluno.length === 0) {
+        if (cartasParaOAluno.length === 0) {
             grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato forjado no sistema ainda.</div>');
             document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
             document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
@@ -2625,12 +2625,14 @@ window.alunoTcgAPI = {
             try {
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
+                const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
+                
+                // Valida se o aluno atinge a regra ou se já possui
                 const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
                 if (isOwned || isProf) conquistadas++;
 
                 let statusHtml = '';
-                // Se for professor, força a raridade para "lendaria" ou mantém a original se preferir
                 const raridadeVisual = isProf ? 'lendaria' : (card.raridade || 'comum');
                 let cardClasses = `tcg-card rarity-${raridadeVisual} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
                 let clickAction = '';
@@ -2661,17 +2663,18 @@ window.alunoTcgAPI = {
                         </div>
                     `;
                 } else {
+                    // Bloqueada: Fica cinza escuro no grimório do aluno
                     cardClasses += ` locked pointer-events-none`;
                     
-                    let regraStr = "Regra Oculta";
-                    if(card.regra && card.regra.alvoRaw) {
-                        if(card.regra.alvoRaw === 'global_freq') {
+                    let regraStr = "Meta Não Atingida";
+                    if (card.regra && card.regra.alvoRaw) {
+                        if (card.regra.alvoRaw === 'global_freq') {
                             regraStr = `Freq. Global >= ${card.regra.valorAlvo || 0}%`;
                         } else {
                             const partes = card.regra.alvoRaw.split('|');
-                            if(partes.length === 3) {
+                            if (partes.length === 3) {
                                 const [dId, tri, nKey] = partes;
-                                const dName = disciplineMap[dId] || "Disc.";
+                                const dName = disciplineMap[dId] || "Disciplina";
                                 const safeKey = nKey ? nKey.toUpperCase() : 'NOTA';
                                 regraStr = `${dName.substring(0, 10)} (T${tri}) ${safeKey} ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}`;
                             }
@@ -2703,7 +2706,7 @@ window.alunoTcgAPI = {
                     </div>
                 `;
             } catch (errLoop) {
-                console.error("Erro ignorado ao montar a carta:", errLoop);
+                console.error("Erro ao renderizar carta no grid:", errLoop);
             }
         });
 
