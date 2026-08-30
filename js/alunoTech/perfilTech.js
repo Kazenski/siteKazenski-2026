@@ -2537,15 +2537,18 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
         }
 
-        // Garante o carregamento direto das notas do aluno caso o boletim não tenha inicializado
-        if (!studentGradesData && currentUser) {
+        // Garante o carregamento das notas do aluno do Firestore se o boletim ainda não tiver populado
+        if (!studentGradesData && auth.currentUser) {
             try {
-                const notasSnap = await getDoc(doc(db, "notas", currentUser.uid));
+                const notasSnap = await getDoc(doc(db, "notas", auth.currentUser.uid));
                 if (notasSnap.exists()) {
                     studentGradesData = notasSnap.data().disciplinasComNotas || {};
+                } else {
+                    studentGradesData = {};
                 }
             } catch (e) {
-                console.error("Erro ao carregar notas para TCG:", e);
+                console.error("Erro ao puxar notas para o TCG do aluno:", e);
+                studentGradesData = {};
             }
         }
 
@@ -2597,7 +2600,6 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            // Converte n1 -> nota1 para buscar corretamente no Firestore
             const numStr = notaKey.replace(/\D/g, '');
             const chaveBanco = numStr ? `nota${numStr}` : notaKey;
             val = parseFloat(grades[chaveBanco]);
@@ -2617,13 +2619,17 @@ window.alunoTcgAPI = {
 
     renderGrid: () => {
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
-        const minhasCartas = currentUser.cartas_tcg || []; 
+        if (grids.length === 0) return;
+
+        const minhasCartas = (currentUser && currentUser.cartas_tcg) ? currentUser.cartas_tcg : []; 
         let conquistadas = 0;
 
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if (cartasParaOAluno.length === 0) {
             grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato forjado no sistema ainda.</div>');
+            document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
+            document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
             return;
         }
 
@@ -2633,7 +2639,7 @@ window.alunoTcgAPI = {
             try {
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
-                const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
+                const isProf = currentUser && (currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true);
                 
                 const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
@@ -2641,7 +2647,7 @@ window.alunoTcgAPI = {
 
                 let statusHtml = '';
                 const raridadeVisual = card.raridade || 'comum';
-                let cardClasses = `tcg-card rarity-${raridadeVisual} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
+                let cardClasses = `tcg-card rarity-${raridadeVisual} w-full h-64 sm:h-80 shadow-lg relative bg-slate-800 rounded-2xl overflow-hidden transition-all duration-300`;
                 let clickAction = '';
                 let dateStr = '';
 
@@ -2712,7 +2718,7 @@ window.alunoTcgAPI = {
                     </div>
                 `;
             } catch (errLoop) {
-                console.error("Erro ao renderizar carta no grid:", errLoop);
+                console.error("Erro ao renderizar carta no grid do aluno:", errLoop);
             }
         });
 
@@ -2748,9 +2754,8 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.renderGrid();
 
         } catch (error) {
-            console.error(error);
+            console.error("Erro ao resgatar carta:", error);
             alert("Falha ao resgatar carta. Tente novamente.");
         }
     }
-
 };
