@@ -4600,12 +4600,8 @@ window.tcgAPI = {
                                     });
                                     if (count > 0) val = sum / count;
                                 } else {
-                                    // Traduz n1 para nota1 para ler corretamente do state.notasCache
-                                    const chaveCache = notaKey.startsWith('n') && !notaKey.startsWith('nota') 
-                                        ? notaKey.replace('n', 'n') // No profCache as chaves já são n1, n2... mas vamos garantir
-                                        : notaKey;
-                                    
-                                    // No professorTech.js state.notasCache usa chaves n1, n2, n3, n4
+                                    const numStr = notaKey.replace(/\D/g, '');
+                                    const chaveCache = numStr ? `n${numStr}` : notaKey; // Correção: cacheNota usa n1, n2, n3, n4
                                     val = parseFloat(cacheNota[chaveCache]);
                                 }
 

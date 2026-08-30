@@ -2537,6 +2537,18 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
         }
 
+        // Garante o carregamento direto das notas do aluno caso o boletim não tenha inicializado
+        if (!studentGradesData && currentUser) {
+            try {
+                const notasSnap = await getDoc(doc(db, "notas", currentUser.uid));
+                if (notasSnap.exists()) {
+                    studentGradesData = notasSnap.data().disciplinasComNotas || {};
+                }
+            } catch (e) {
+                console.error("Erro ao carregar notas para TCG:", e);
+            }
+        }
+
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
         if(grids.length === 0) return;
         
@@ -2545,7 +2557,6 @@ window.alunoTcgAPI = {
         });
 
         try {
-            // Busca TODAS as cartas criadas pelo professor na coleção tcg_cartas
             const snap = await getDocs(collection(db, "tcg_cartas"));
             window.alunoTcgAPI.allCards = [];
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
@@ -2586,9 +2597,9 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            const chaveBanco = notaKey.startsWith('n') && !notaKey.startsWith('nota') 
-                ? notaKey.replace('n', 'nota') 
-                : notaKey;
+            // Converte n1 -> nota1 para buscar corretamente no Firestore
+            const numStr = notaKey.replace(/\D/g, '');
+            const chaveBanco = numStr ? `nota${numStr}` : notaKey;
             val = parseFloat(grades[chaveBanco]);
         }
 
@@ -2609,13 +2620,10 @@ window.alunoTcgAPI = {
         const minhasCartas = currentUser.cartas_tcg || []; 
         let conquistadas = 0;
 
-        // GARANTIA: Exibe absolutamente todas as cartas cadastradas no banco para o aluno montar o álbum
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if (cartasParaOAluno.length === 0) {
             grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato forjado no sistema ainda.</div>');
-            document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
-            document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
             return;
         }
 
@@ -2627,7 +2635,6 @@ window.alunoTcgAPI = {
                 const isOwned = !!posse; 
                 const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
                 
-                // Atende regra ou já possui
                 const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
                 if (isOwned || isProf) conquistadas++;
@@ -2742,7 +2749,8 @@ window.alunoTcgAPI = {
 
         } catch (error) {
             console.error(error);
-            alert("Sua conexão mágica falhou. Tente resgatar novamente.");
+            alert("Falha ao resgatar carta. Tente novamente.");
         }
     }
+
 };
