@@ -2526,17 +2526,21 @@ window.alunoTcgAPI = {
     globalFreq: 100,
 
     init: async () => {
-        // Pega a frequência global já calculada pela aba Geral
-        const freqText = document.getElementById('al-freq-perc')?.textContent || "100%";
-        window.alunoTcgAPI.globalFreq = parseInt(freqText.replace('%', ''));
+        // Pega a frequência global com segurança
+        const freqEls = document.querySelectorAll('#al-freq-perc');
+        if(freqEls.length > 0) {
+            window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
+        }
 
-        const grid = document.getElementById('tcg-collection-grid');
-        if(!grid) return;
+        // SOLUÇÃO CRÍTICA: Usa querySelectorAll para contornar IDs duplicados no HTML
+        const grids = document.querySelectorAll('#tcg-collection-grid');
+        if(grids.length === 0) return;
         
-        grid.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
+        grids.forEach(g => {
+            g.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
+        });
 
         try {
-            // Busca as cartas da coleção (Exige que a regra do Firebase permita read para request.auth != null)
             const snap = await getDocs(collection(db, "tcg_cartas"));
             window.alunoTcgAPI.allCards = [];
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
@@ -2544,39 +2548,33 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.renderGrid();
         } catch (e) {
             console.error("Erro TCG Aluno:", e);
-            grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG. Verifique as regras de segurança do Firebase.</div>';
+            grids.forEach(g => {
+                g.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG. Verifique a conexão.</div>';
+            });
         }
     },
 
     evaluateRule: (regra) => {
-        // Blindagem contra erros nulos e cartas forjadas antes da criação da regra de metas
+        // Blindagem contra cartas antigas
         if (!regra || !regra.alvoRaw) return false;
 
         const op = regra.operador;
         const target = regra.valorAlvo;
 
+        // Regra Especial de Frequência
         if (regra.alvoRaw === 'global_freq') {
-            const val = window.alunoTcgAPI.globalFreq;
-            console.log(`[TCG LORE] Rastreando Frequência: Aluno(${val}%) ${op} Meta(${target}%)`);
-            return window.alunoTcgAPI.compare(val, op, target);
+            return window.alunoTcgAPI.compare(window.alunoTcgAPI.globalFreq, op, target);
         }
 
-        // Se a disciplina ou o boletim não existirem, não resgata a carta
-        if (!studentGradesData) {
-            console.log(`[TCG LORE] Bloqueado: Boletim do aluno está vazio ou não carregado.`);
-            return false;
-        }
+        // Se o aluno não tiver notas lançadas, bloqueia para evitar crash
+        if (!studentGradesData) return false;
 
         const partes = regra.alvoRaw.split('|');
         if (partes.length < 3) return false;
 
         const [discId, tri, notaKey] = partes;
         const grades = studentGradesData[discId]?.[tri];
-        
-        if (!grades) {
-            console.log(`[TCG LORE] Bloqueado: Sem notas lançadas para a disciplina '${discId}' no ${tri}º Trimestre.`);
-            return false;
-        }
+        if (!grades) return false;
 
         let val = null;
         if (notaKey === 'media') {
@@ -2587,12 +2585,10 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            // CORREÇÃO CRÍTICA: Traduz a regra "n1" do dropdown para a coluna "nota1" do banco de dados
+            // Traduz "n1" da regra para "nota1" do banco
             const chaveBoletim = notaKey.length === 2 ? notaKey.replace('n', 'nota') : notaKey;
             val = parseFloat(grades[chaveBoletim]);
         }
-
-        console.log(`[TCG LORE] Avaliando Carta -> Nota do Aluno: ${val} | Meta: ${op} ${target}`);
 
         if (val === null || isNaN(val)) return false;
         return window.alunoTcgAPI.compare(val, op, target);
@@ -2607,90 +2603,107 @@ window.alunoTcgAPI = {
     },
 
     renderGrid: () => {
-        const grid = document.getElementById('tcg-collection-grid');
-        grid.innerHTML = '';
-
+        const grids = document.querySelectorAll('#tcg-collection-grid');
         const minhasCartas = currentUser.cartas_tcg || []; 
         let conquistadas = 0;
 
         if(window.alunoTcgAPI.allCards.length === 0) {
-            grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado pelos mestres ainda.</div>';
+            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado pelos mestres ainda.</div>');
             return;
         }
 
+        let cardsHtml = '';
+
         window.alunoTcgAPI.allCards.forEach(card => {
-            const posse = minhasCartas.find(c => c.id === card.id);
-            const isOwned = !!posse;
-            const canUnlock = !isOwned && window.alunoTcgAPI.evaluateRule(card.regra);
+            try {
+                const posse = minhasCartas.find(c => c.id === card.id);
+                // Se posse existir, a carta é dele. Se não, avalia a nota.
+                const isOwned = !!posse; 
+                const canUnlock = !isOwned && window.alunoTcgAPI.evaluateRule(card.regra);
 
-            if (isOwned) conquistadas++;
+                if (isOwned) conquistadas++;
 
-            let statusHtml = '';
-            let cardClasses = `tcg-card rarity-${card.raridade} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
-            let clickAction = '';
-            let dateStr = '';
+                let statusHtml = '';
+                let cardClasses = `tcg-card rarity-${card.raridade || 'comum'} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
+                let clickAction = '';
+                let dateStr = '';
 
-            if (isOwned) {
-                if (posse.dataResgate) {
-                    dateStr = new Date(posse.dataResgate).toLocaleDateString('pt-BR');
-                }
-                
-                statusHtml = `
-                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
-                    <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
-                        <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">Conquistada: ${dateStr}</span>
-                    </div>
-                `;
-            } else if (canUnlock) {
-                cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
-                clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
-                
-                statusHtml = `
-                    <div class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] z-10 flex items-center justify-center flex-col gap-3 group-hover:bg-indigo-900/20 transition-all">
-                        <div class="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.8)] animate-bounce">
-                            <i class="fas fa-unlock text-white"></i>
-                        </div>
-                        <span class="bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-lg shadow-indigo-900/50 text-center mx-2">Clique para Resgatar</span>
-                    </div>
-                `;
-            } else {
-                cardClasses += ` locked pointer-events-none`;
-                
-                let regraStr = "Regra Desconhecida";
-                if(card.regra && card.regra.alvoRaw) {
-                    if(card.regra.alvoRaw === 'global_freq') {
-                        regraStr = `Freq. Global ${card.regra.operador} ${card.regra.valorAlvo}%`;
-                    } else {
-                        const [dId, tri, nKey] = card.regra.alvoRaw.split('|');
-                        const dName = disciplineMap[dId] || "Disc";
-                        regraStr = `${dName.substring(0, 10)} (T${tri}) ${nKey.toUpperCase().replace('É', 'E')} ${card.regra.operador} ${card.regra.valorAlvo}`;
+                if (isOwned) {
+                    if (posse.dataResgate) {
+                        dateStr = new Date(posse.dataResgate).toLocaleDateString('pt-BR');
                     }
+                    
+                    statusHtml = `
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
+                        <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
+                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">Conquistada: ${dateStr}</span>
+                        </div>
+                    `;
+                } else if (canUnlock) {
+                    cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
+                    clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
+                    
+                    statusHtml = `
+                        <div class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] z-10 flex items-center justify-center flex-col gap-3 group-hover:bg-indigo-900/20 transition-all">
+                            <div class="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.8)] animate-bounce">
+                                <i class="fas fa-unlock text-white"></i>
+                            </div>
+                            <span class="bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-lg shadow-indigo-900/50 text-center mx-2">Clique para Resgatar</span>
+                        </div>
+                    `;
+                } else {
+                    cardClasses += ` locked pointer-events-none`;
+                    
+                    let regraStr = "Regra Oculta/Especial";
+                    if(card.regra && card.regra.alvoRaw) {
+                        if(card.regra.alvoRaw === 'global_freq') {
+                            regraStr = `Freq. Global ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}%`;
+                        } else {
+                            const partes = card.regra.alvoRaw.split('|');
+                            if(partes.length === 3) {
+                                const [dId, tri, nKey] = partes;
+                                const dName = disciplineMap[dId] || "Disc.";
+                                const safeKey = nKey ? nKey.toUpperCase().replace('É', 'E') : 'NOTA';
+                                regraStr = `${dName.substring(0, 10)} (T${tri}) ${safeKey} ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}`;
+                            }
+                        }
+                    }
+
+                    statusHtml = `
+                        <div class="absolute inset-0 bg-slate-950/80 z-10 flex flex-col items-center justify-center p-3 text-center">
+                            <i class="fas fa-lock text-3xl text-slate-500 mb-3 drop-shadow-md"></i>
+                            <span class="text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-tight border border-slate-600 p-1.5 rounded bg-slate-900 shadow-inner w-full">${regraStr}</span>
+                        </div>
+                    `;
                 }
 
-                statusHtml = `
-                    <div class="absolute inset-0 bg-slate-950/80 z-10 flex flex-col items-center justify-center p-3 text-center">
-                        <i class="fas fa-lock text-3xl text-slate-500 mb-3 drop-shadow-md"></i>
-                        <span class="text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-tight border border-slate-600 p-1.5 rounded bg-slate-900 shadow-inner w-full">${regraStr}</span>
+                const imagemSegura = card.imagemUrl ? card.imagemUrl : 'imagens/placeholder.png';
+                const nomeSeguro = escapeHTML(card.nome || 'Artefato Desconhecido');
+                const descSegura = escapeHTML(card.descricao || 'Sem descrição.');
+
+                cardsHtml += `
+                    <div class="flex flex-col gap-2 group">
+                        <div class="${cardClasses}" ${clickAction} title="${isOwned ? descSegura : 'Artefato Indisponível'}">
+                            <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent p-2 z-20">
+                                <h4 class="text-white font-black text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${nomeSeguro}</h4>
+                            </div>
+                            <img src="${imagemSegura}" class="w-full h-full object-cover opacity-90 ${isOwned ? '' : 'mix-blend-luminosity'}">
+                            ${isOwned ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
+                            ${statusHtml}
+                        </div>
                     </div>
                 `;
+            } catch (errLoop) {
+                console.error("Erro ignorado ao montar a carta:", errLoop);
             }
-
-            grid.insertAdjacentHTML('beforeend', `
-                <div class="flex flex-col gap-2 group">
-                    <div class="${cardClasses}" ${clickAction} title="${isOwned ? escapeHTML(card.descricao) : 'Artefato Indisponível'}">
-                        <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent p-2 z-20">
-                            <h4 class="text-white font-black text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${escapeHTML(card.nome)}</h4>
-                        </div>
-                        <img src="${card.imagemUrl}" class="w-full h-full object-cover opacity-90 ${isOwned ? '' : 'mix-blend-luminosity'}">
-                        ${isOwned ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
-                        ${statusHtml}
-                    </div>
-                </div>
-            `);
         });
 
-        document.getElementById('tcg-unlocked-count').textContent = conquistadas;
-        document.getElementById('tcg-total-count').textContent = window.alunoTcgAPI.allCards.length;
+        // Injeta o resultado final em TODOS os grids encontrados para contornar o HTML duplicado
+        grids.forEach(g => g.innerHTML = cardsHtml);
+
+        // Atualiza Placares em todos os contadores da tela
+        document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = conquistadas);
+        document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = window.alunoTcgAPI.allCards.length);
     },
 
     claimCard: async (id) => {
