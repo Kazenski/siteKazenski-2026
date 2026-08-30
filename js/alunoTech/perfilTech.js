@@ -187,7 +187,9 @@ async function initDashboard(user) {
     window.mochilaAPI.init();
 
     // Carrega as cartas assim que o aluno entra no sistema
-    if (window.alunoTcgAPI) window.alunoTcgAPI.init();
+    if (window.alunoTcgAPI) {
+        window.alunoTcgAPI.init();
+    }
 }
 
 // ============================================================================
@@ -2524,6 +2526,7 @@ window.mochilaAPI = {
 // ============================================================================
 // SISTEMA DE CARTAS COLECIONÁVEIS (TCG) - VISÃO DO ALUNO / PROFESSOR
 // ============================================================================
+
 window.alunoTcgAPI = {
     allCards: [],
     globalFreq: 100,
@@ -2538,33 +2541,33 @@ window.alunoTcgAPI = {
         if(grids.length === 0) return;
         
         grids.forEach(g => {
-            g.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
+            g.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Carregando Grimório...</div>';
         });
 
         try {
+            // Busca TODAS as cartas criadas pelo professor na coleção tcg_cartas
             const snap = await getDocs(collection(db, "tcg_cartas"));
             window.alunoTcgAPI.allCards = [];
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
 
             window.alunoTcgAPI.renderGrid();
         } catch (e) {
-            console.error("Erro TCG Aluno:", e);
+            console.error("Erro ao carregar TCG do Aluno:", e);
             grids.forEach(g => {
-                g.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG.</div>';
+                g.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Erro ao carregar o Grimório. Verifique a conexão.</div>';
             });
         }
     },
 
     evaluateRule: (regra) => {
         if (!regra || !regra.alvoRaw) return false;
-        const op = regra.operador;
+        const op = regra.operador || '>=';
         const target = parseFloat(regra.valorAlvo) || 0;
 
         if (regra.alvoRaw === 'global_freq') {
             return window.alunoTcgAPI.compare(window.alunoTcgAPI.globalFreq, op, target);
         }
 
-        // Reutiliza o cache de notas já carregado na página do aluno (studentGradesData)
         if (!studentGradesData) return false;
 
         const partes = regra.alvoRaw.split('|');
@@ -2603,14 +2606,10 @@ window.alunoTcgAPI = {
 
     renderGrid: () => {
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
-        if (grids.length === 0) return;
-
-        // Pega o array exato de cartas do documento do usuário logado (coleção users -> cartas_tcg)
         const minhasCartas = currentUser.cartas_tcg || []; 
-        const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // O aluno carrega todas as cartas existentes no sistema para montar o seu álbum colecionável
+        // GARANTIA: Exibe absolutamente todas as cartas cadastradas no banco para o aluno montar o álbum
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if (cartasParaOAluno.length === 0) {
@@ -2624,14 +2623,12 @@ window.alunoTcgAPI = {
 
         cartasParaOAluno.forEach(card => {
             try {
-                // Procura se este ID de carta está dentro do array cartas_tcg do usuário
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
                 const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
                 
-                // Valida se ele já tem ou se cumpre a regra de nota para poder resgatar
-                const atendeRegra = window.alunoTcgAPI.evaluateRule(card.regra);
-                const canUnlock = !isOwned && atendeRegra;
+                // Atende regra ou já possui
+                const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
                 if (isOwned || isProf) conquistadas++;
 
@@ -2647,15 +2644,13 @@ window.alunoTcgAPI = {
                         if(!isNaN(d)) dateStr = d.toLocaleDateString('pt-BR');
                     }
                     
-                    // ESTADO: Já possui a carta (Colorida com carimbo de data)
                     statusHtml = `
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
                             <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre' : 'Conquistada: ' + (dateStr || 'Grimório')}</span>
                         </div>
                     `;
-                } else if (canUnlock) {
-                    // ESTADO: Atingiu a meta, mas ainda não resgatou (Disponível para clique)
+                } else if (canUnlock && !isOwned) {
                     cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
                     clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
                     
@@ -2668,7 +2663,6 @@ window.alunoTcgAPI = {
                         </div>
                     `;
                 } else {
-                    // ESTADO: Bloqueada (Cinza escuro, exibe a exigência da regra)
                     cardClasses += ` locked pointer-events-none`;
                     
                     let regraStr = "Meta Não Atingida";
@@ -2731,7 +2725,6 @@ window.alunoTcgAPI = {
                 dataResgate: new Date().toISOString()
             };
 
-            // Insere o objeto id e dataResgate diretamente no array cartas_tcg do documento do usuário no Firestore
             await updateDoc(doc(db, "users", currentUser.uid), {
                 cartas_tcg: arrayUnion(novaCarta)
             });
