@@ -2548,7 +2548,6 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
         }
 
-        // Garante o carregamento das notas do aluno do Firestore se o boletim ainda não tiver populado
         if (!studentGradesData && auth.currentUser) {
             try {
                 const notasSnap = await getDoc(doc(db, "notas", auth.currentUser.uid));
@@ -2576,6 +2575,7 @@ window.alunoTcgAPI = {
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
 
             window.alunoTcgAPI.renderGrid();
+            window.alunoTcgAPI.criarModalDetalhes();
         } catch (e) {
             console.error("Erro ao carregar TCG do Aluno:", e);
             grids.forEach(g => {
@@ -2599,9 +2599,6 @@ window.alunoTcgAPI = {
         if (partes.length < 3) return false;
 
         const [discIdReq, triReq, notaKeyReq] = partes;
-
-        // O aluno não tem filtro de disciplina: varremos TODAS as disciplinas e trimestres salvos no boletim dele.
-        // Se em QUALQUER disciplina ou trimestre ele atingir a meta, a carta é liberada!
         let atendeuMeta = false;
 
         Object.entries(studentGradesData).forEach(([dId, trimestresObj]) => {
@@ -2610,8 +2607,6 @@ window.alunoTcgAPI = {
             Object.entries(trimestresObj || {}).forEach(([triKey, grades]) => {
                 if (atendeuMeta) return;
 
-                // Se a carta exige uma disciplina específica e trimestre específico, respeitamos, 
-                // mas se bater em qualquer uma que o aluno possua a nota, liberamos.
                 if (dId === discIdReq && String(triKey) === String(triReq)) {
                     let val = null;
                     if (notaKeyReq === 'media') {
@@ -2653,7 +2648,6 @@ window.alunoTcgAPI = {
 
         const minhasCartas = (currentUser && currentUser.cartas_tcg) ? currentUser.cartas_tcg : []; 
         let conquistadas = 0;
-
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if (cartasParaOAluno.length === 0) {
@@ -2677,20 +2671,29 @@ window.alunoTcgAPI = {
 
                 let statusHtml = '';
                 const raridadeVisual = card.raridade || 'comum';
-                let cardClasses = `tcg-card rarity-${raridadeVisual} w-full h-64 sm:h-80 shadow-lg relative bg-slate-800 rounded-2xl overflow-hidden transition-all duration-300`;
+                
+                // FORMATO POKÉMON RETANGULAR: w-full aspect-[2/3] (Altura maior que largura)
+                let cardClasses = `tcg-card rarity-${raridadeVisual} w-full aspect-[2/3] shadow-xl relative bg-slate-900 rounded-2xl overflow-hidden transition-all duration-300 group`;
+                
                 let clickAction = '';
                 let dateStr = '';
 
+                // Se possui ou é prof, clicar abre o modal de inspeção detalhada
+                const safeCardJson = JSON.stringify(card).replace(/"/g, '&quot;');
+                
                 if (isOwned || isProf) {
                     if (posse?.dataResgate) {
                         const d = new Date(posse.dataResgate);
                         if(!isNaN(d)) dateStr = d.toLocaleDateString('pt-BR');
                     }
                     
+                    clickAction = `onclick='window.alunoTcgAPI.abrirModalDetalhes(${safeCardJson})'`;
+                    cardClasses += ` cursor-pointer hover:-translate-y-2 hover:shadow-[0_0_25px_rgba(99,102,241,0.4)]`;
+
                     statusHtml = `
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
-                        <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
-                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre' : 'Conquistada: ' + (dateStr || 'Grimório')}</span>
+                        <div class="absolute bottom-0 left-0 w-full p-2.5 z-20 text-center">
+                            <span class="bg-indigo-600/90 backdrop-blur-sm text-white text-[7px] sm:text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre' : 'Conquistada: ' + (dateStr || 'Grimório')}</span>
                         </div>
                     `;
                 } else if (canUnlock && !isOwned) {
@@ -2698,11 +2701,11 @@ window.alunoTcgAPI = {
                     clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
                     
                     statusHtml = `
-                        <div class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] z-10 flex items-center justify-center flex-col gap-3 group-hover:bg-indigo-900/20 transition-all">
-                            <div class="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.8)] animate-bounce">
+                        <div class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] z-10 flex items-center justify-center flex-col gap-2 group-hover:bg-indigo-900/20 transition-all">
+                            <div class="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center text-lg shadow-[0_0_20px_rgba(99,102,241,0.8)] animate-bounce">
                                 <i class="fas fa-unlock text-white"></i>
                             </div>
-                            <span class="bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-lg shadow-indigo-900/50 text-center mx-2">Clique para Resgatar</span>
+                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded shadow-lg shadow-indigo-900/50 text-center mx-1">Resgatar</span>
                         </div>
                     `;
                 } else {
@@ -2724,22 +2727,21 @@ window.alunoTcgAPI = {
                     }
 
                     statusHtml = `
-                        <div class="absolute inset-0 bg-slate-950/80 z-10 flex flex-col items-center justify-center p-3 text-center">
-                            <i class="fas fa-lock text-3xl text-slate-500 mb-3 drop-shadow-md"></i>
-                            <span class="text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-tight border border-slate-600 p-1.5 rounded bg-slate-900 shadow-inner w-full">${regraStr}</span>
+                        <div class="absolute inset-0 bg-slate-950/85 z-10 flex flex-col items-center justify-center p-3 text-center">
+                            <i class="fas fa-lock text-2xl text-slate-500 mb-2 drop-shadow-md"></i>
+                            <span class="text-[7px] sm:text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-tight border border-slate-700 p-1.5 rounded bg-slate-900 shadow-inner w-full">${regraStr}</span>
                         </div>
                     `;
                 }
 
                 const imagemSegura = card.imagemUrl ? card.imagemUrl : 'imagens/placeholder.png';
-                const nomeSeguro = escapeHTML(card.nome || 'Artefato Desconhecido');
-                const descSegura = escapeHTML(card.descricao || 'Sem descrição.');
+                const nomeSeguro = escapeHTML(card.nome || 'Artefato');
 
                 cardsHtml += `
                     <div class="flex flex-col gap-2 group">
-                        <div class="${cardClasses}" ${clickAction} title="${isOwned || isProf ? descSegura : 'Artefato Indisponível'}">
-                            <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent p-2 z-20">
-                                <h4 class="text-white font-black text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${nomeSeguro}</h4>
+                        <div class="${cardClasses}" ${clickAction}>
+                            <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/90 to-transparent p-2 z-20">
+                                <h4 class="text-white font-black text-[9px] sm:text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${nomeSeguro}</h4>
                             </div>
                             <img src="${imagemSegura}" class="w-full h-full object-cover opacity-90 ${isOwned || isProf ? '' : 'mix-blend-luminosity'}">
                             ${isOwned || isProf ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
@@ -2748,7 +2750,7 @@ window.alunoTcgAPI = {
                     </div>
                 `;
             } catch (errLoop) {
-                console.error("Erro ao renderizar carta no grid do aluno:", errLoop);
+                console.error("Erro ao renderizar carta retangular:", errLoop);
             }
         });
 
@@ -2756,6 +2758,78 @@ window.alunoTcgAPI = {
 
         document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = conquistadas);
         document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = cartasParaOAluno.length);
+    },
+
+    // --- MODAL DE DETALHES (TAMANHO DOBRADO: ESQUERDA CARTA, DIREITA DESCRIÇÃO) ---
+    criarModalDetalhes: () => {
+        if (document.getElementById('modal-tcg-detalhes')) return;
+
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'modal-tcg-detalhes';
+        modalDiv.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[3500] hidden flex items-center justify-center p-4 fade-in';
+        
+        modalDiv.innerHTML = `
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col relative">
+                <!-- Botão Fechar -->
+                <button onclick="window.alunoTcgAPI.fecharModalDetalhes()" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white flex items-center justify-center transition-all z-30 shadow-lg">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+
+                <div class="p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <!-- Coluna Esquerda: Carta Ampliada em formato Pokémon Retangular -->
+                    <div class="flex justify-center items-center">
+                        <div id="modal-tcg-card-preview" class="w-64 sm:w-72 aspect-[2/3] relative rounded-2xl overflow-hidden shadow-2xl bg-slate-800">
+                            <img id="modal-tcg-img" src="" class="w-full h-full object-cover">
+                            <div class="tcg-foil absolute inset-0 pointer-events-none opacity-20"></div>
+                            <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-12 text-center">
+                                <h3 id="modal-tcg-nome" class="text-white font-black text-base leading-tight drop-shadow-md">Nome</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna Direita: Descrição Textual Cadastrada pelo Professor -->
+                    <div class="flex flex-col justify-center space-y-4">
+                        <div class="flex items-center gap-3">
+                            <span id="modal-tcg-raridade-badge" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">Raridade</span>
+                        </div>
+                        <h2 id="modal-tcg-titulo-principal" class="text-2xl md:text-3xl font-cinzel font-black text-white leading-tight">Artefato</h2>
+                        <div class="w-12 h-1 bg-indigo-500 rounded-full"></div>
+                        <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl shadow-inner max-h-60 overflow-y-auto custom-scroll">
+                            <p id="modal-tcg-descricao" class="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-inter">Descrição detalhada do artefato...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+    },
+
+    abrirModalDetalhes: (card) => {
+        window.alunoTcgAPI.criarModalDetalhes();
+        
+        const modal = document.getElementById('modal-tcg-detalhes');
+        const cardPreview = document.getElementById('modal-tcg-card-preview');
+        
+        cardPreview.className = `w-64 sm:w-72 aspect-[2/3] relative rounded-2xl overflow-hidden shadow-2xl bg-slate-800 rarity-${card.raridade || 'comum'}`;
+        
+        document.getElementById('modal-tcg-img').src = card.imagemUrl || 'imagens/placeholder.png';
+        document.getElementById('modal-tcg-nome').textContent = card.nome || 'Artefato';
+        document.getElementById('modal-tcg-titulo-principal').textContent = card.nome || 'Artefato';
+        document.getElementById('modal-tcg-descricao').textContent = card.descricao || 'Nenhuma lore cadastrada pelo professor para este artefato.';
+        
+        const badge = document.getElementById('modal-tcg-raridade-badge');
+        badge.textContent = `Raridade: ${(card.raridade || 'comum').toUpperCase()}`;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    },
+
+    fecharModalDetalhes: () => {
+        const modal = document.getElementById('modal-tcg-detalhes');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
     },
 
     claimCard: async (id) => {
