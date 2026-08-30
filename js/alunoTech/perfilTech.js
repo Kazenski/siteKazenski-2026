@@ -187,6 +187,9 @@ async function initDashboard(user) {
     loadHorarioEscolar();
     initCalendarSystem();
     window.mochilaAPI.init();
+
+    // Carrega as cartas assim que o aluno entra no sistema
+    if (window.alunoTcgAPI) window.alunoTcgAPI.init();
 }
 
 // ============================================================================
@@ -250,9 +253,11 @@ function setupEventListeners() {
     // Eventos de Filtros (Gráfico de Evolução)
     els.selEvol?.addEventListener('change', (e) => renderEvolutionChart(e.target.value));
 
-    // Gatilho da Coleção TCG
-    document.querySelector('[data-target="tcg"]')?.addEventListener('click', () => {
-        if(window.alunoTcgAPI) window.alunoTcgAPI.init();
+    // Gatilho da Coleção TCG - Garante que todos os botões "Coleção TCG" do Aluno disparem a atualização
+    document.querySelectorAll('.aluno-tab-btn[data-target="tcg"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if(window.alunoTcgAPI) window.alunoTcgAPI.init();
+        });
     });
 }
 
@@ -2526,15 +2531,17 @@ window.alunoTcgAPI = {
     globalFreq: 100,
 
     init: async () => {
-        // Pega a frequência global com segurança
         const freqEls = document.querySelectorAll('#al-freq-perc');
         if(freqEls.length > 0) {
             window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
         }
 
-        // SOLUÇÃO CRÍTICA: Usa querySelectorAll para contornar IDs duplicados no HTML
-        const grids = document.querySelectorAll('#tcg-collection-grid');
-        if(grids.length === 0) return;
+        // Busca por atributo de ID para não falhar caso o HTML tenha grids duplicados ocultos
+        const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
+        if(grids.length === 0) {
+            console.warn("[TCG] Contêiner da coleção não encontrado na tela.");
+            return;
+        }
         
         grids.forEach(g => {
             g.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
@@ -2555,18 +2562,17 @@ window.alunoTcgAPI = {
     },
 
     evaluateRule: (regra) => {
-        // Blindagem contra cartas antigas
         if (!regra || !regra.alvoRaw) return false;
 
-        const op = regra.operador;
-        const target = regra.valorAlvo;
+        const op = regra.operador || '>=';
+        const target = parseFloat(regra.valorAlvo) || 0;
 
-        // Regra Especial de Frequência
+        // Frequência
         if (regra.alvoRaw === 'global_freq') {
             return window.alunoTcgAPI.compare(window.alunoTcgAPI.globalFreq, op, target);
         }
 
-        // Se o aluno não tiver notas lançadas, bloqueia para evitar crash
+        // Se não houver dados no boletim
         if (!studentGradesData) return false;
 
         const partes = regra.alvoRaw.split('|');
@@ -2585,7 +2591,7 @@ window.alunoTcgAPI = {
             });
             if (count > 0) val = sum / count;
         } else {
-            // Traduz "n1" da regra para "nota1" do banco
+            // Traduz a regra "n1" para a coluna real do banco "nota1"
             const chaveBoletim = notaKey.length === 2 ? notaKey.replace('n', 'nota') : notaKey;
             val = parseFloat(grades[chaveBoletim]);
         }
@@ -2603,20 +2609,22 @@ window.alunoTcgAPI = {
     },
 
     renderGrid: () => {
-        const grids = document.querySelectorAll('#tcg-collection-grid');
+        const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
         const minhasCartas = currentUser.cartas_tcg || []; 
+        const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // NOVO FILTRO: Pega apenas as cartas que pertencem às disciplinas que o aluno cursa (ou regras globais)
+        // Identifica as disciplinas em que o aluno está ativamente matriculado
         const myDisciplines = currentUser.disciplinas || {};
         const activeDisciplines = Object.keys(myDisciplines).filter(k => myDisciplines[k] === true);
 
+        // FILTRO MESTRE: O Aluno vê cartas da disciplina dele, globais, OU qualquer carta que o professor já tenha concedido a ele
         const cartasParaOAluno = window.alunoTcgAPI.allCards.filter(card => {
+            if (ownedCardIds.includes(card.id)) return true; // Mostra sempre se já conquistou
+
             if (!card.regra || !card.regra.alvoRaw) return false;
-            // Se for uma carta de frequência global, todos os alunos veem
             if (card.regra.alvoRaw === 'global_freq') return true;
             
-            // Se for uma carta de nota, verifica se a disciplina da carta está na lista de disciplinas do aluno
             const discIdDaCarta = card.regra.alvoRaw.split('|')[0];
             return activeDisciplines.includes(discIdDaCarta);
         });
@@ -2639,14 +2647,14 @@ window.alunoTcgAPI = {
                 if (isOwned) conquistadas++;
 
                 let statusHtml = '';
-                // As cartas bloqueadas recebem a classe "locked" que aplica o cinza escuro via CSS
                 let cardClasses = `tcg-card rarity-${card.raridade || 'comum'} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
                 let clickAction = '';
                 let dateStr = '';
 
                 if (isOwned) {
                     if (posse.dataResgate) {
-                        dateStr = new Date(posse.dataResgate).toLocaleDateString('pt-BR');
+                        const d = new Date(posse.dataResgate);
+                        if(!isNaN(d)) dateStr = d.toLocaleDateString('pt-BR');
                     }
                     
                     statusHtml = `
@@ -2668,10 +2676,9 @@ window.alunoTcgAPI = {
                         </div>
                     `;
                 } else {
-                    // CARTA BLOQUEADA: Aplica o "locked" (Cinza escuro) e trava interações
                     cardClasses += ` locked pointer-events-none`;
                     
-                    let regraStr = "Regra Oculta/Especial";
+                    let regraStr = "Regra Oculta";
                     if(card.regra && card.regra.alvoRaw) {
                         if(card.regra.alvoRaw === 'global_freq') {
                             regraStr = `Freq. Global ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}%`;
@@ -2715,10 +2722,9 @@ window.alunoTcgAPI = {
             }
         });
 
-        // Injeta o resultado final em TODOS os grids encontrados
+        // Injeta o HTML em todos os grids da tela
         grids.forEach(g => g.innerHTML = cardsHtml);
 
-        // Atualiza Placares em todos os contadores da tela com o novo total da disciplina dele
         document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = conquistadas);
         document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = cartasParaOAluno.length);
     },
