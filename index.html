@@ -2403,137 +2403,175 @@
                 </div>
 
 
-                <!-- ABA TCG (PROFESSOR) -->
-                <div id="ptab-tcg" class="prof-tab-content hidden h-full fade-in flex-col max-w-6xl mx-auto w-full">
+                <!-- ABA: FORJA DE CARTAS TCG -->
+                <div id="ptab-tcg" class="prof-tab-content hidden h-full fade-in flex-col w-full">
 
                     <div
-                        class="bg-slate-800 p-6 rounded-2xl border border-indigo-500/50 mb-6 shrink-0 shadow-[0_0_30px_rgba(99,102,241,0.15)] flex justify-between items-center">
+                        class="bg-slate-800 p-6 rounded-2xl border border-indigo-500/50 mb-6 shrink-0 shadow-[0_0_30px_rgba(99,102,241,0.15)] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h2 class="text-xl text-indigo-400 font-cinzel font-bold mb-2 flex items-center"><i
                                     class="fas fa-hammer mr-3"></i> Forja de Cartas (TCG)</h2>
                             <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Crie artefatos
-                                colecionáveis e defina as regras de resgate.</p>
+                                colecionáveis, faça upload de imagens e defina regras de resgate.</p>
                         </div>
-                        <button onclick="document.getElementById('tcg-form-container').classList.toggle('hidden')"
+                        <button onclick="window.tcgAPI.toggleForm()"
                             class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
-                                class="fas fa-plus mr-2"></i> Criar Carta</button>
+                                class="fas fa-plus mr-2"></i> Criar Nova Carta</button>
                     </div>
 
+                    <!-- Formulário de Forja (100% Largura) -->
                     <div id="tcg-form-container"
-                        class="hidden bg-slate-900/80 border border-slate-700 rounded-2xl p-6 mb-6 shadow-xl relative">
-                        <form id="form-tcg-card" class="space-y-4">
+                        class="hidden bg-slate-900/80 border border-slate-700 rounded-2xl p-6 md:p-8 mb-6 shadow-xl relative w-full fade-in">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                            <h3 id="tcg-form-title" class="text-indigo-400 font-cinzel font-bold text-lg"><i
+                                    class="fas fa-magic mr-2"></i> Forjar Artefato</h3>
+                            <button onclick="window.tcgAPI.toggleForm()" class="text-slate-500 hover:text-white"><i
+                                    class="fas fa-times text-xl"></i></button>
+                        </div>
+
+                        <form id="form-tcg-card" class="flex flex-col xl:flex-row gap-8">
                             <input type="hidden" id="tcg-id">
 
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div class="md:col-span-2 space-y-4">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label
-                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome
-                                                da Carta *</label>
-                                            <input type="text" id="tcg-nome" required
-                                                class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
-                                        </div>
-                                        <div>
-                                            <label
-                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Raridade
-                                                *</label>
-                                            <select id="tcg-raridade" required
-                                                class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
-                                                <option value="comum">Comum (Cinza)</option>
-                                                <option value="incomum">Incomum (Verde)</option>
-                                                <option value="rara">Rara (Azul)</option>
-                                                <option value="epica">Épica (Roxa)</option>
-                                                <option value="lendaria">Lendária (Dourada Animada)</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
+                            <!-- Coluna Esquerda: Dados Principais e Lore -->
+                            <div class="flex-1 space-y-6">
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     <div>
                                         <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Imagem
-                                            da Carta (Recomendado: Proporção 2.5:3.5) *</label>
-                                        <input type="file" id="tcg-imagem" accept="image/*"
-                                            class="w-full bg-slate-950 border border-slate-600 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Nome
+                                            da Carta *</label>
+                                        <input type="text" id="tcg-nome" required
+                                            oninput="window.tcgAPI.updatePreview()"
+                                            class="w-full bg-slate-950 border border-slate-600 text-white p-3.5 rounded-xl outline-none focus:border-indigo-500 shadow-inner transition-colors"
+                                            placeholder="Ex: Pergaminho Ancestral do SQL">
                                     </div>
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Raridade
+                                            *</label>
+                                        <select id="tcg-raridade" required onchange="window.tcgAPI.updatePreview()"
+                                            class="w-full bg-slate-950 border border-slate-600 text-white p-3.5 rounded-xl outline-none focus:border-indigo-500 shadow-inner transition-colors cursor-pointer">
+                                            <option value="comum">Comum (Borda Cinza)</option>
+                                            <option value="incomum">Incomum (Borda Verde)</option>
+                                            <option value="rara">Rara (Borda Azul + Foil Brilhante)</option>
+                                            <option value="epica">Épica (Borda Roxa + Foil Brilhante)</option>
+                                            <option value="lendaria">Lendária (Dourada + Foil Animado)</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-600">
-                                        <h4
-                                            class="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">
-                                            <i class="fas fa-lock-open mr-1"></i> Regra de Resgate (Automático)
-                                        </h4>
-                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Imagem
+                                        da Carta (Otimização Automática) *</label>
+                                    <input type="file" id="tcg-imagem" accept="image/png, image/jpeg, image/webp"
+                                        onchange="window.tcgAPI.handleImageUpload(event)"
+                                        class="w-full bg-slate-950 border border-slate-600 text-slate-400 rounded-xl p-2.5 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer shadow-inner">
+                                    <p class="text-[9px] text-amber-500 mt-1.5 pl-1 font-bold"><i
+                                            class="fas fa-compress-arrows-alt mr-1"></i> Suba seu PNG e o sistema o
+                                        reduzirá automaticamente sem perder qualidade, economizando banco de dados.</p>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Lore
+                                        / Descrição da Carta *</label>
+                                    <textarea id="tcg-descricao" rows="4" required
+                                        class="w-full bg-slate-950 border border-slate-600 text-slate-300 p-4 rounded-xl outline-none focus:border-indigo-500 custom-scroll text-sm leading-relaxed shadow-inner"
+                                        placeholder="Conte a história ou o efeito que esta carta representa na sua disciplina..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Coluna Direita: Regras de Resgate e Preview -->
+                            <div class="flex-1 xl:max-w-md flex flex-col gap-6 shrink-0">
+
+                                <div
+                                    class="bg-slate-800 p-5 rounded-2xl border border-slate-600 shadow-xl relative overflow-hidden">
+                                    <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
+                                    <h4
+                                        class="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-4 border-b border-slate-700 pb-3">
+                                        <i class="fas fa-unlock-alt mr-2"></i> Condição para o Aluno Resgatar
+                                    </h4>
+
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label
+                                                class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Alvo
+                                                da Condição *</label>
+                                            <select id="tcg-cond-alvo" required
+                                                class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-lg outline-none focus:border-amber-500 text-xs font-bold shadow-inner cursor-pointer">
+                                                <option value="">Carregando metas...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-4">
                                             <div>
                                                 <label
-                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Condição</label>
-                                                <select id="tcg-regra-tipo" required
-                                                    class="w-full bg-slate-950 border border-slate-600 text-white p-2.5 rounded-lg outline-none focus:border-amber-500 text-xs">
-                                                    <option value="media_tri">Média Trimestral ≥</option>
-                                                    <option value="nota_unica">Nota Específica (N1 a N4) ≥</option>
-                                                    <option value="frequencia">Frequência Global (%) ≥</option>
-                                                    <option value="livre">Resgate Livre (Bônus)</option>
+                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Operador
+                                                    Lógico</label>
+                                                <select id="tcg-cond-op" required
+                                                    class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-lg outline-none focus:border-amber-500 text-xs font-mono font-bold text-center cursor-pointer shadow-inner">
+                                                    <option value=">=">&ge; (Maior/Igual)</option>
+                                                    <option value=">">&gt; (Maior que)</option>
+                                                    <option value="==">== (Exatamente)</option>
+                                                    <option value="<=">&le; (Menor/Igual)</option>
                                                 </select>
                                             </div>
                                             <div>
                                                 <label
-                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Valor
-                                                    Alvo</label>
-                                                <input type="number" id="tcg-regra-valor" step="0.1"
-                                                    class="w-full bg-slate-950 border border-slate-600 text-white p-2.5 rounded-lg outline-none focus:border-amber-500 text-xs"
-                                                    placeholder="Ex: 8.5 ou 100">
+                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Nota/Meta
+                                                    Exigida</label>
+                                                <input type="number" id="tcg-cond-val" required step="0.1"
+                                                    placeholder="Ex: 8.5"
+                                                    class="w-full bg-slate-950 border border-slate-600 text-amber-400 p-3 rounded-lg outline-none focus:border-amber-500 text-sm font-black text-center shadow-inner">
                                             </div>
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <label
-                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição
-                                            / Lore</label>
-                                        <textarea id="tcg-descricao" rows="3"
-                                            class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 custom-scroll text-sm"
-                                            placeholder="A história ou efeito visual desta carta..."></textarea>
-                                    </div>
                                 </div>
 
-                                <!-- Preview Estático da Carta -->
+                                <!-- Preview Dinâmico do Card -->
                                 <div
-                                    class="md:col-span-1 flex flex-col items-center justify-center bg-slate-950 p-4 rounded-xl border border-slate-700">
+                                    class="bg-slate-950/50 p-6 rounded-2xl border border-slate-700 flex flex-col items-center justify-center relative overflow-hidden flex-grow shadow-inner">
                                     <span
-                                        class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">Preview
-                                        da Carta</span>
+                                        class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4 z-10">Preview
+                                        em Tempo Real</span>
+
                                     <div id="tcg-preview-card"
-                                        class="tcg-card rarity-comum w-48 h-64 rounded-xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all">
-                                        <img id="tcg-preview-img" src="" class="w-full h-full object-cover opacity-50">
+                                        class="tcg-card rarity-comum w-48 h-64 sm:w-56 sm:h-80 rounded-2xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all z-10">
+                                        <img id="tcg-preview-img" src=""
+                                            class="w-full h-full object-cover opacity-90 hidden">
                                         <div
                                             class="tcg-foil absolute inset-0 pointer-events-none opacity-0 transition-opacity">
                                         </div>
                                         <div
-                                            class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-8">
+                                            class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-12">
                                             <h4 id="tcg-preview-nome"
-                                                class="text-white font-bold text-sm leading-tight truncate">Nome da
-                                                Carta</h4>
+                                                class="text-white font-black text-sm leading-tight text-center shadow-black drop-shadow-md">
+                                                Nome da Carta</h4>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="flex justify-end gap-3 border-t border-slate-700 pt-4 mt-2">
-                                <button type="button"
-                                    onclick="document.getElementById('tcg-form-container').classList.add('hidden')"
-                                    class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
-                                <button type="button" id="btn-save-tcg"
-                                    class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_15px_rgba(99,102,241,0.4)]">Forjar
-                                    Carta</button>
-                            </div>
                         </form>
+
+                        <div class="flex justify-end gap-3 mt-8 border-t border-slate-700 pt-6">
+                            <button type="button" onclick="window.tcgAPI.toggleForm()"
+                                class="px-8 py-3.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                            <button type="button" id="btn-save-tcg" onclick="window.tcgAPI.saveCard()"
+                                class="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                                <i class="fas fa-hammer mr-2"></i> Forjar Carta
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Grid de Gestão do Professor -->
+                    <!-- Grid de Gestão -->
                     <div
-                        class="flex-grow overflow-y-auto custom-scroll bg-slate-900/50 rounded-2xl border border-slate-700 shadow-xl p-6">
+                        class="flex-grow overflow-y-auto custom-scroll bg-slate-900/50 rounded-2xl border border-slate-700 shadow-xl p-6 relative min-h-[400px]">
                         <div id="tcg-admin-grid"
-                            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                            <!-- Cartas criadas aparecerão aqui -->
+                            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                            <div class="col-span-full text-center py-20 text-slate-500 italic">
+                                <i class="fas fa-spinner fa-spin text-3xl mb-4"></i><br>Carregando artefatos da base de
+                                dados...
+                            </div>
                         </div>
                     </div>
 

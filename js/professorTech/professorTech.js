@@ -113,6 +113,7 @@ export async function renderProfessorTab() {
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
     addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
+    addSafeListener('tcg', () => window.tcgAPI.init());
     addSafeListener('kaz-ia', () => window.profAPI.initKazIA());
 
 
@@ -4232,6 +4233,287 @@ INSTRUÇÕES DE SAÍDA:
         window.print();
         document.body.innerHTML = originalContent;
         window.location.reload(); 
-    }
+    },
 
+
+};
+
+// ==========================================
+// MÓDULO TCG (FORJA DE CARTAS - PROFESSOR)
+// ==========================================
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+
+window.tcgAPI = {
+    currentBlob: null,
+    cardsCache: [],
+
+    init: async () => {
+        window.tcgAPI.buildConditionOptions();
+        await window.tcgAPI.loadCards();
+    },
+
+    buildConditionOptions: () => {
+        const selAlvo = document.getElementById('tcg-cond-alvo');
+        if (!selAlvo) return;
+
+        let html = '<option value="">Selecione a Meta do Aluno...</option>';
+        html += '<optgroup label="Desempenho Geral">';
+        html += '<option value="global_freq">Frequência Global Mínima (%)</option>';
+        html += '</optgroup>';
+
+        if (state.cache.disciplinesMap.size > 0) {
+            html += '<optgroup label="Notas por Disciplina e Trimestre">';
+            state.cache.disciplinesMap.forEach((nomeDisc, idDisc) => {
+                [1, 2, 3].forEach(tri => {
+                    ['N1', 'N2', 'N3', 'N4', 'Média'].forEach(nota => {
+                        const valKey = `${idDisc}|${tri}|${nota.toLowerCase().replace('é', 'e')}`;
+                        const labelStr = `${nomeDisc} TRI ${tri} - ${nota}`;
+                        html += `<option value="${valKey}">${labelStr}</option>`;
+                    });
+                });
+            });
+            html += '</optgroup>';
+        } else {
+            html += '<option value="" disabled>Carregue uma turma e disciplina no Menu Superior para ver as matérias.</option>';
+        }
+
+        selAlvo.innerHTML = html;
+    },
+
+    toggleForm: () => {
+        const formEl = document.getElementById('tcg-form-container');
+        formEl.classList.toggle('hidden');
+        if (!formEl.classList.contains('hidden')) {
+            document.getElementById('form-tcg-card').reset();
+            document.getElementById('tcg-id').value = '';
+            document.getElementById('tcg-preview-img').src = '';
+            document.getElementById('tcg-preview-img').classList.add('hidden');
+            window.tcgAPI.currentBlob = null;
+            document.getElementById('tcg-form-title').innerHTML = '<i class="fas fa-magic mr-2"></i> Forjar Artefato';
+            document.getElementById('btn-save-tcg').innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
+            window.tcgAPI.updatePreview();
+            
+            // Garante que o dropdown de condições esteja montado se o professor entrar direto aqui
+            if(document.getElementById('tcg-cond-alvo').options.length <= 1) {
+                window.tcgAPI.buildConditionOptions();
+            }
+        }
+    },
+
+    updatePreview: () => {
+        const nome = document.getElementById('tcg-nome').value || 'Nome da Carta';
+        const raridade = document.getElementById('tcg-raridade').value;
+        const cardEl = document.getElementById('tcg-preview-card');
+        
+        document.getElementById('tcg-preview-nome').textContent = nome;
+        cardEl.className = `tcg-card rarity-${raridade} w-48 h-64 sm:w-56 sm:h-80 rounded-2xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all z-10`;
+    },
+
+    handleImageUpload: async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert('Por favor, selecione um arquivo de imagem (PNG ou JPEG).');
+            return;
+        }
+
+        const previewImg = document.getElementById('tcg-preview-img');
+        
+        // Comprime a imagem pelo Canvas do navegador para economizar banda do Firebase
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.src = e.target.result;
+            img.onload = () => {
+                const MAX_WIDTH = 500;
+                let scaleSize = 1;
+                
+                if (img.width > MAX_WIDTH) {
+                    scaleSize = MAX_WIDTH / img.width;
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width * scaleSize;
+                canvas.height = img.height * scaleSize;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // Exporta para WebP para garantir leveza máxima mantendo fundo transparente
+                canvas.toBlob((blob) => {
+                    window.tcgAPI.currentBlob = blob;
+                    previewImg.src = URL.createObjectURL(blob);
+                    previewImg.classList.remove('hidden');
+                }, 'image/webp', 0.9);
+            };
+        };
+        reader.readAsDataURL(file);
+    },
+
+    saveCard: async () => {
+        const id = document.getElementById('tcg-id').value;
+        const nome = document.getElementById('tcg-nome').value.trim();
+        const raridade = document.getElementById('tcg-raridade').value;
+        const descricao = document.getElementById('tcg-descricao').value.trim();
+        
+        const condAlvo = document.getElementById('tcg-cond-alvo').value;
+        const condOp = document.getElementById('tcg-cond-op').value;
+        const condVal = document.getElementById('tcg-cond-val').value;
+
+        if (!nome || !descricao || !condAlvo || !condVal) {
+            return alert("Preencha todos os campos obrigatórios (*).");
+        }
+
+        if (!id && !window.tcgAPI.currentBlob) {
+            return alert("É obrigatório fazer upload da imagem (PNG/JPG) para forjar uma nova carta.");
+        }
+
+        const btn = document.getElementById('btn-save-tcg');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando...';
+        btn.disabled = true;
+
+        try {
+            let imageUrl = null;
+
+            if (window.tcgAPI.currentBlob) {
+                const imgRef = ref(storage, `tcg_cards/${auth.currentUser.uid}_${Date.now()}.webp`);
+                const snap = await uploadBytes(imgRef, window.tcgAPI.currentBlob);
+                imageUrl = await getDownloadURL(snap.ref);
+            }
+
+            const payload = {
+                nome,
+                raridade,
+                descricao,
+                regra: {
+                    alvoRaw: condAlvo, 
+                    operador: condOp,
+                    valorAlvo: parseFloat(condVal)
+                },
+                professorUid: auth.currentUser.uid,
+                dataAtualizacao: serverTimestamp()
+            };
+
+            if (imageUrl) payload.imagemUrl = imageUrl;
+
+            if (id) {
+                await updateDoc(doc(db, "tcg_cartas", id), payload);
+            } else {
+                payload.dataCriacao = serverTimestamp();
+                await addDoc(collection(db, "tcg_cartas"), payload);
+            }
+
+            window.tcgAPI.toggleForm();
+            await window.tcgAPI.loadCards();
+            
+            // Efeito visual no Sucesso
+            if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7'] });
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao forjar carta: " + error.message);
+        } finally {
+            btn.innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
+            btn.disabled = false;
+        }
+    },
+
+    loadCards: async () => {
+        const grid = document.getElementById('tcg-admin-grid');
+        if(!grid) return;
+
+        try {
+            const q = query(collection(db, "tcg_cartas"), where("professorUid", "==", auth.currentUser.uid));
+            const snap = await getDocs(q);
+            
+            window.tcgAPI.cardsCache = [];
+            grid.innerHTML = '';
+
+            if (snap.empty) {
+                grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic"><i class="fas fa-box-open text-4xl mb-3 opacity-50 block"></i>Nenhum artefato forjado ainda.</div>';
+                return;
+            }
+
+            snap.forEach(docSnap => {
+                const card = { id: docSnap.id, ...docSnap.data() };
+                window.tcgAPI.cardsCache.push(card);
+
+                // Montagem legível da regra visualmente
+                let regraStr = "Regra Desconhecida";
+                if(card.regra.alvoRaw === 'global_freq') {
+                    regraStr = `Freq. Global ${card.regra.operador} ${card.regra.valorAlvo}%`;
+                } else {
+                    const [dId, tri, nKey] = card.regra.alvoRaw.split('|');
+                    const dName = state.cache.disciplinesMap.get(dId) || "Disc";
+                    regraStr = `${dName.substring(0, 10)}. T${tri} - ${nKey.toUpperCase()} ${card.regra.operador} ${card.regra.valorAlvo}`;
+                }
+
+                grid.insertAdjacentHTML('beforeend', `
+                    <div class="flex flex-col gap-3 group">
+                        <div class="tcg-card rarity-${card.raridade} w-full shadow-lg relative bg-slate-800 transition-transform duration-300 group-hover:-translate-y-2">
+                            <img src="${card.imagemUrl}" class="w-full h-full object-cover opacity-90">
+                            <div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 transition-opacity group-hover:opacity-100"></div>
+                            <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/90 to-transparent p-3 pt-8">
+                                <h4 class="text-white font-black text-[11px] leading-tight text-center truncate shadow-black drop-shadow-md">${escapeHTML(card.nome)}</h4>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 p-3 rounded-xl border border-slate-700 flex flex-col gap-2 shadow-inner">
+                            <span class="text-[9px] text-amber-500 font-bold uppercase tracking-widest leading-tight text-center truncate" title="${regraStr}"><i class="fas fa-lock mr-1 text-slate-500"></i> ${regraStr}</span>
+                            <div class="flex justify-center gap-2 border-t border-slate-800 pt-2 mt-1">
+                                <button onclick="window.tcgAPI.editCard('${card.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-500 hover:text-white border border-blue-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-edit"></i></button>
+                                <button onclick="window.tcgAPI.deleteCard('${card.id}')" class="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors w-full"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+        } catch (error) {
+            console.error(error);
+            grid.innerHTML = '<div class="col-span-full text-center py-10 text-red-500 font-bold">Erro de conexão com o Grimório de Cartas.</div>';
+        }
+    },
+
+    editCard: (id) => {
+        const card = window.tcgAPI.cardsCache.find(c => c.id === id);
+        if(!card) return;
+
+        // Se o select não estiver populado, popula antes de setar o valor
+        if(document.getElementById('tcg-cond-alvo').options.length <= 1) {
+            window.tcgAPI.buildConditionOptions();
+        }
+
+        const formEl = document.getElementById('tcg-form-container');
+        formEl.classList.remove('hidden');
+
+        document.getElementById('tcg-form-title').innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Artefato';
+        document.getElementById('btn-save-tcg').innerHTML = '<i class="fas fa-save mr-2"></i> Atualizar Carta';
+
+        document.getElementById('tcg-id').value = card.id;
+        document.getElementById('tcg-nome').value = card.nome;
+        document.getElementById('tcg-raridade').value = card.raridade;
+        document.getElementById('tcg-descricao').value = card.descricao;
+        
+        document.getElementById('tcg-cond-alvo').value = card.regra.alvoRaw;
+        document.getElementById('tcg-cond-op').value = card.regra.operador;
+        document.getElementById('tcg-cond-val').value = card.regra.valorAlvo;
+
+        document.getElementById('tcg-imagem').value = '';
+        window.tcgAPI.currentBlob = null;
+
+        const previewImg = document.getElementById('tcg-preview-img');
+        previewImg.src = card.imagemUrl;
+        previewImg.classList.remove('hidden');
+
+        window.tcgAPI.updatePreview();
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    },
+
+    deleteCard: async (id) => {
+        if(!confirm("Destruir este artefato permanentemente? Alunos que já o conquistaram não o perderão, mas ninguém mais poderá resgatá-lo.")) return;
+        try {
+            await deleteDoc(doc(db, "tcg_cartas", id));
+            await window.tcgAPI.loadCards();
+        } catch (e) { alert("Erro ao excluir o artefato do banco."); }
+    }
 };
