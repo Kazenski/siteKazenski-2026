@@ -3943,6 +3943,8 @@ window.profAPI = {
     },
 
     // --- MODAL DE FONTES (RAG) ---
+    cacheSourcesKazIa: [],
+
     openKazIaSources: async () => {
         const modal = document.getElementById('modal-kaz-ia-sources');
         const listEl = document.getElementById('kaz-ia-sources-list');
@@ -3969,7 +3971,10 @@ window.profAPI = {
 
                 listEl.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
-                        <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <i class="fas fa-file-pdf text-red-500"></i>
+                            <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
+                        </div>
                         <div class="flex gap-2 shrink-0">
                             <button type="button" onclick="window.profAPI.editKazIaSource('${docSnap.id}')" class="text-blue-400 hover:text-white p-1 transition-colors"><i class="fas fa-edit"></i></button>
                             <button type="button" onclick="window.profAPI.deleteKazIaSource('${docSnap.id}')" class="text-red-500 hover:text-white p-1 transition-colors"><i class="fas fa-trash"></i></button>
@@ -3990,55 +3995,60 @@ window.profAPI = {
     resetKazIaSourceForm: () => {
         document.getElementById('kaz-ia-source-id').value = '';
         document.getElementById('kaz-ia-source-title').value = '';
-        document.getElementById('kaz-ia-source-content').value = '';
-    },
-
-    handleSourceFileUpload: (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target.result;
-            document.getElementById('kaz-ia-source-content').value = text;
-            if (!document.getElementById('kaz-ia-source-title').value) {
-                document.getElementById('kaz-ia-source-title').value = file.name.replace('.txt', '');
-            }
-        };
-        reader.readAsText(file);
+        document.getElementById('kaz-ia-source-pdf').value = '';
     },
 
     editKazIaSource: (id) => {
         const source = window.profAPI.cacheSourcesKazIa.find(s => s.id === id);
         if(!source) return;
 
-        const idInput = document.getElementById('kaz-ia-source-id');
-        const titleInput = document.getElementById('kaz-ia-source-title');
-        const contentInput = document.getElementById('kaz-ia-source-content');
-
-        idInput.value = source.id;
-        titleInput.value = source.titulo;
-        contentInput.value = source.conteudo;
-        
-        // Foca e rola a tela para o professor ver que o item subiu para edição
-        titleInput.focus();
-        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('kaz-ia-source-id').value = source.id;
+        document.getElementById('kaz-ia-source-title').value = source.titulo;
+        document.getElementById('kaz-ia-source-title').focus();
     },
 
     saveKazIaSource: async () => {
         const id = document.getElementById('kaz-ia-source-id').value;
         const titulo = document.getElementById('kaz-ia-source-title').value.trim();
-        const conteudo = document.getElementById('kaz-ia-source-content').value.trim();
+        const fileInput = document.getElementById('kaz-ia-source-pdf');
         
-        if(!titulo || !conteudo) return alert("Preencha título e conteúdo da fonte.");
+        if(!titulo) return alert("Preencha o título da fonte.");
         
+        // Se for um novo documento, o PDF é obrigatório
+        if(!id && (!fileInput.files || fileInput.files.length === 0)) {
+            return alert("Por favor, anexe o arquivo PDF da base.");
+        }
+
+        const btn = document.getElementById('btn-save-rag');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Convertendo e Salvando...';
+        btn.disabled = true;
+
         try {
             const payload = {
                 titulo, 
-                conteudo,
+                tipo: 'pdf',
                 atualizadoPor: auth.currentUser.uid,
                 dataAtualizacao: serverTimestamp()
             };
+
+            // Se o professor selecionou um arquivo, processa o Base64
+            if (fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                
+                // Trava de segurança: Firestore não aceita docs > 1MB
+                if (file.size > 1048576) {
+                    throw new Error("O PDF excedeu o limite de 1MB do banco de dados. Extraia apenas as páginas da sua disciplina e tente novamente.");
+                }
+                
+                const base64Data = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result.split(',')[1]); // Remove "data:application/pdf;base64,"
+                    reader.onerror = () => reject(new Error("Falha ao ler o PDF."));
+                    reader.readAsDataURL(file);
+                });
+                
+                payload.base64 = base64Data;
+            }
 
             if(id) {
                 await updateDoc(doc(db, "base_pedagogica", id), payload);
@@ -4050,22 +4060,27 @@ window.profAPI = {
             
             window.profAPI.resetKazIaSourceForm();
             window.profAPI.openKazIaSources(); 
+            alert("Base Pedagógica salva com sucesso!");
         } catch (e) {
-            alert("Erro ao salvar fonte: " + e.message);
+            alert("Erro: " + e.message);
+        } finally {
+            btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Base em PDF';
+            btn.disabled = false;
         }
     },
 
     deleteKazIaSource: async (id) => {
-        if(!confirm("Remover esta fonte da base de conhecimento da IA?")) return;
+        if(!confirm("Remover esta fonte em PDF da base de conhecimento da IA?")) return;
         try {
             await deleteDoc(doc(db, "base_pedagogica", id));
             window.profAPI.openKazIaSources(); 
         } catch (e) { alert("Erro ao excluir."); }
     },
 
-    // --- GERAÇÃO COM GEMINI 1.5 FLASH E SALVAMENTO ---
+    // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
     generatePlanWithIA: async () => {
         const apiKey = document.getElementById('kaz-ia-apikey').value.trim();
+        const modeloId = document.getElementById('kaz-ia-model').value;
         const tipo = document.getElementById('kaz-ia-tipo').value;
         const aulas = document.getElementById('kaz-ia-aulas').value;
         const promptText = document.getElementById('kaz-ia-prompt').value.trim();
@@ -4075,26 +4090,19 @@ window.profAPI = {
         if(!promptText) return alert("Preencha o Assunto Central para guiar a IA.");
 
         const btn = document.getElementById('btn-generate-plan');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Analisando Contexto e Gerando...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Lendo PDFs e Gerando Plano...';
         btn.disabled = true;
 
         try {
-            // Salva chave no LocalStorage e Firebase para não pedir mais
             localStorage.setItem('kaz_gemini_key', apiKey);
             await updateDoc(doc(db, 'users', auth.currentUser.uid), { geminiApiKey: apiKey });
-
-            const snapFontes = await getDocs(query(collection(db, "base_pedagogica")));
-            let contextRAG = "";
-            snapFontes.forEach(doc => {
-                contextRAG += `\n--- DOCUMENTO BASE: ${doc.data().titulo} ---\n${doc.data().conteudo}\n`;
-            });
 
             const turmaName = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
             const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
 
-            // Prompt utilizando o modelo injetado nas fontes
+            // 1. Monta o Prompt textual
             const promptFinal = `
-Atue como um Especialista Pedagógico Sênior. Sua missão é criar um plano de aula ALTAMENTE DETALHADO.
+Atue como um Especialista Pedagógico Sênior. Você está recebendo documentos PDF em anexo com as Diretrizes Curriculares e Modelos.
 
 CONTEXTO:
 - Tipo: Plano ${tipo.toUpperCase()}
@@ -4103,28 +4111,50 @@ CONTEXTO:
 - Carga Horária: ${aulas} aulas
 - Assunto Central: "${promptText}"
 
-BASES DE CONHECIMENTO (Siga ESTRITAMENTE as estruturas, rubricas e modelos presentes nestes documentos):
-${contextRAG}
-
 INSTRUÇÕES DE SAÍDA:
-1. Retorne APENAS CÓDIGO HTML PURO. Não use a crase \`\`\`html no início ou no fim. O código será injetado direto via innerHTML.
+1. Retorne APENAS CÓDIGO HTML PURO. Não use a crase \`\`\`html no início ou no fim.
 2. Use fontes serifadas (font-family: serif; color: #1e293b;).
 3. Maximize a estruturação visual com títulos (<h2>, <h3>) e tabelas (<table> com bordas simples <th style="border: 1px solid #ccc; padding: 8px;">).
-4. O plano DEVE ser exaustivo, combinando o assunto solicitado com as habilidades da BNCC corretas e detalhando o Caminho Metodológico aula a aula.
+4. O plano DEVE cruzar o assunto com as Habilidades da BNCC contidas nos PDFs em anexo.
+5. Crie cronogramas e metodologias detalhadas, além de rubricas de avaliação estruturadas em tabela.
 `;
 
-            // Rota oficial e estável (gemini-1.5-flash)
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            // 2. Constrói o Array "Parts" para a API do Gemini
+            const partsArray = [{ text: promptFinal }];
+
+            // 3. Lê os PDFs salvos no Firebase e anexa ao payload
+            const snapFontes = await getDocs(query(collection(db, "base_pedagogica")));
+            snapFontes.forEach(docSnap => {
+                const data = docSnap.data();
+                if (data.tipo === 'pdf' && data.base64) {
+                    
+                    // Validação: Gemini 1.0 Pro não suporta arquivos
+                    if (modeloId === 'gemini-pro') {
+                        throw new Error("O modelo 'Gemini 1.0 Pro' não possui suporte para ler os PDFs anexados. Por favor, altere o seletor para o 'Gemini 1.5 Flash' ou '1.5 Pro'.");
+                    }
+
+                    partsArray.push({
+                        inlineData: {
+                            mimeType: "application/pdf",
+                            data: data.base64
+                        }
+                    });
+                    partsArray.push({ text: `O documento PDF anexado acima refere-se a: ${data.titulo}. Baseie-se fortemente nele.` });
+                }
+            });
+
+            // 4. Dispara o fetch para a API oficial do Google
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modeloId}:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: promptFinal }] }]
+                    contents: [{ parts: partsArray }]
                 })
             });
 
             if (!response.ok) {
                 const errData = await response.json();
-                throw new Error(errData.error?.message || "Erro desconhecido na API do Gemini.");
+                throw new Error(errData.error?.message || "Erro na API do Gemini.");
             }
 
             const data = await response.json();
@@ -4203,6 +4233,5 @@ INSTRUÇÕES DE SAÍDA:
         document.body.innerHTML = originalContent;
         window.location.reload(); 
     }
-
 
 };
