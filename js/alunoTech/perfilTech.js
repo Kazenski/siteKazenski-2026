@@ -94,22 +94,20 @@ function setupTabsNavigation() {
 
     tabButtons.forEach(btn => {
         btn.addEventListener('click', () => {
-            // 1. Remove a classe 'active' de todos os botões e oculta os conteúdos
+            // Remove a classe 'active' de todos os botões e oculta os conteúdos
             tabButtons.forEach(b => b.classList.remove('active'));
             tabContents.forEach(c => c.classList.remove('active'));
 
-            // 2. Ativa o botão que foi clicado
-            btn.classList.add('active');
-
-            // 3. Lê o alvo (data-target) e mostra a aba correspondente
+            // Lê o alvo (data-target) do botão clicado
             const targetId = btn.getAttribute('data-target');
-            const targetContent = document.getElementById(`atab-${targetId}`);
 
-            if (targetContent) {
-                targetContent.classList.add('active');
-            }
+            // Ativa TODOS os botões com esse target (para manter sincronia visual)
+            document.querySelectorAll(`.aluno-tab-btn[data-target="${targetId}"]`).forEach(b => b.classList.add('active'));
 
-            // 4. Correção para os Gráficos (Chart.js precisa de resize quando a aba abre)
+            // Ativa TODAS as abas com esse ID, garantindo que a visível abra
+            document.querySelectorAll(`#atab-${targetId}`).forEach(tc => tc.classList.add('active'));
+
+            // Correção para os Gráficos 
             if (targetId === 'metricas' || targetId === 'frequencia') {
                 setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
             }
@@ -254,7 +252,7 @@ function setupEventListeners() {
     els.selEvol?.addEventListener('change', (e) => renderEvolutionChart(e.target.value));
 
     // Gatilho da Coleção TCG - Garante que todos os botões "Coleção TCG" do Aluno disparem a atualização
-    document.querySelectorAll('.aluno-tab-btn[data-target="tcg"]').forEach(btn => {
+    document.querySelectorAll('[data-target="tcg"]').forEach(btn => {
         btn.addEventListener('click', () => {
             if(window.alunoTcgAPI) window.alunoTcgAPI.init();
         });
