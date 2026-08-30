@@ -4294,8 +4294,8 @@ window.tcgAPI = {
             document.getElementById('tcg-preview-img').src = '';
             document.getElementById('tcg-preview-img').classList.add('hidden');
             window.tcgAPI.currentBlob = null;
-            document.getElementById('tcg-form-title').innerHTML = '<i class="fas fa-magic mr-2"></i> Forjar Artefato';
-            document.getElementById('btn-save-tcg').innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
+            document.getElementById('tcg-form-title').innerHTML = '<i class="fas fa-magic mr-2"></i> Forjar Pacote de Artefatos (5 Raridades)';
+            document.getElementById('btn-save-tcg').innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Lote Automático';
             window.tcgAPI.updatePreview();
             
             if(document.getElementById('tcg-cond-alvo').options.length <= 1) {
@@ -4356,14 +4356,12 @@ window.tcgAPI = {
     saveCard: async () => {
         const id = document.getElementById('tcg-id').value;
         const nome = document.getElementById('tcg-nome').value.trim();
-        const baseRaridade = document.getElementById('tcg-raridade').value; // Mantido para edição unitária se precisar
         const descricao = document.getElementById('tcg-descricao').value.trim();
-        
         const condAlvo = document.getElementById('tcg-cond-alvo').value;
-        const tipoMeta = condAlvo === 'global_freq' ? 'freq' : 'nota'; // Identifica se a regra é de frequência ou de nota
+        const tipoMeta = condAlvo === 'global_freq' ? 'freq' : 'nota';
 
         if (!nome || !descricao || !condAlvo) {
-            return alert("Preencha todos os campos obrigatórios (*).");
+            return alert("Preencha o Nome, a Descrição e o Alvo da Condição (*).");
         }
 
         if (!id && !window.tcgAPI.currentBlob) {
@@ -4371,30 +4369,28 @@ window.tcgAPI = {
         }
 
         const btn = document.getElementById('btn-save-tcg');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando Variações...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando Lote (5 Cartas)...';
         btn.disabled = true;
 
         try {
             let imageUrl = null;
 
-            // Faz o upload da imagem apenas uma vez para economizar banda e armazenamento
             if (window.tcgAPI.currentBlob) {
                 const imgRef = ref(storage, `tcg_cards/${auth.currentUser.uid}_${Date.now()}.webp`);
                 const snap = await uploadBytes(imgRef, window.tcgAPI.currentBlob);
                 imageUrl = await getDownloadURL(snap.ref);
             }
 
-            // Se for Edição de uma carta específica, salva normalmente como unidade
+            // Se for edição unitária, mantém o comportamento de atualizar apenas aquela carta
             if (id) {
                 const cardEd = window.tcgAPI.cardsCache.find(c => c.id === id);
                 const payload = {
                     nome,
-                    raridade: baseRaridade,
                     descricao,
                     regra: {
                         alvoRaw: condAlvo, 
-                        operador: document.getElementById('tcg-cond-op').value,
-                        valorAlvo: parseFloat(document.getElementById('tcg-cond-val').value)
+                        operador: '>=', // Valor padrão de fallback
+                        valorAlvo: 6
                     },
                     professorUid: auth.currentUser.uid,
                     dataAtualizacao: serverTimestamp()
@@ -4404,21 +4400,20 @@ window.tcgAPI = {
 
                 await updateDoc(doc(db, "tcg_cartas", id), payload);
             } 
-            // Se for Criação Nova, gera as 5 variações automáticas por trás dos panos!
+            // Se for criação nova, dispara o lote automático com as 5 variações e regras de intervalo exatas
             else {
-                // Tabela de gradação estrita com intervalos reais (Mínimo e Máximo)
                 const atribuicoesRaridade = tipoMeta === 'freq' ? [
-                    { raridade: 'comum', min: 0, max: 30, operador: '<', valorAlvo: 30 },
-                    { raridade: 'incomum', min: 40, max: 50, operador: 'entre', valorAlvo: [40, 50] },
-                    { raridade: 'rara', min: 60, max: 70, operador: 'entre', valorAlvo: [60, 70] },
-                    { raridade: 'epica', min: 80, max: 90, operador: 'entre', valorAlvo: [80, 90] },
-                    { raridade: 'lendaria', min: 100, max: 100, operador: '==', valorAlvo: 100 }
+                    { raridade: 'comum', operador: '<', valorAlvo: 30 },
+                    { raridade: 'incomum', operador: 'entre', valorAlvo: [40, 50] },
+                    { raridade: 'rara', operador: 'entre', valorAlvo: [60, 70] },
+                    { raridade: 'epica', operador: 'entre', valorAlvo: [80, 90] },
+                    { raridade: 'lendaria', operador: '==', valorAlvo: 100 }
                 ] : [
-                    { raridade: 'comum', min: 0, max: 3, operador: '<=', valorAlvo: 3 },
-                    { raridade: 'incomum', min: 4, max: 5, operador: 'entre', valorAlvo: [4, 5] },
-                    { raridade: 'rara', min: 6, max: 7, operador: 'entre', valorAlvo: [6, 7] },
-                    { raridade: 'epica', min: 8, max: 9, operador: 'entre', valorAlvo: [8, 9] },
-                    { raridade: 'lendaria', min: 10, max: 10, operador: '==', valorAlvo: 10 }
+                    { raridade: 'comum', operador: '<=', valorAlvo: 3 },
+                    { raridade: 'incomum', operador: 'entre', valorAlvo: [4, 5] },
+                    { raridade: 'rara', operador: 'entre', valorAlvo: [6, 7] },
+                    { raridade: 'epica', operador: 'entre', valorAlvo: [8, 9] },
+                    { raridade: 'lendaria', operador: '==', valorAlvo: 10 }
                 ];
 
                 const batch = writeBatch(db);
@@ -4432,7 +4427,7 @@ window.tcgAPI = {
                         regra: {
                             alvoRaw: condAlvo,
                             operador: tier.operador,
-                            valorAlvo: tier.valorAlvo // Pode ser um número ou um array [min, max]
+                            valorAlvo: tier.valorAlvo
                         },
                         professorUid: auth.currentUser.uid,
                         imagemUrl: imageUrl,
@@ -4448,13 +4443,13 @@ window.tcgAPI = {
             window.tcgAPI.toggleForm();
             await window.tcgAPI.loadCards();
             
-            if (window.confetti) window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7', '#fbbf24'] });
+            if (window.confetti) window.confetti({ particleCount: 180, spread: 90, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7', '#fbbf24'] });
 
         } catch (error) {
             console.error(error);
-            alert("Erro ao forjar variações: " + error.message);
+            alert("Erro ao forjar lote: " + error.message);
         } finally {
-            btn.innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
+            btn.innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Lote Automático';
             btn.disabled = false;
         }
     },
