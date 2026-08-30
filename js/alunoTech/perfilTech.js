@@ -89,29 +89,40 @@ export async function renderAlunoTechTab() {
 // SISTEMA DE NAVEGAÇÃO DAS ABAS INTERNAS (Sem sujar o HTML global)
 // ============================================================================
 function setupTabsNavigation() {
-    const tabButtons = document.querySelectorAll('.aluno-tab-btn');
-    const tabContents = document.querySelectorAll('.aluno-tab-content');
+    // Usamos delegação de evento no documento ou na nav para garantir que qualquer botão .aluno-tab-btn funcione, inclusive os adicionados dinamicamente
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.aluno-tab-btn');
+        if (!btn) return;
 
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Remove a classe 'active' de todos os botões e oculta os conteúdos
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
+        const tabButtons = document.querySelectorAll('.aluno-tab-btn');
+        const tabContents = document.querySelectorAll('.aluno-tab-content');
 
-            // Lê o alvo (data-target) do botão clicado
-            const targetId = btn.getAttribute('data-target');
-
-            // Ativa TODOS os botões com esse target (para manter sincronia visual)
-            document.querySelectorAll(`.aluno-tab-btn[data-target="${targetId}"]`).forEach(b => b.classList.add('active'));
-
-            // Ativa TODAS as abas com esse ID, garantindo que a visível abra
-            document.querySelectorAll(`#atab-${targetId}`).forEach(tc => tc.classList.add('active'));
-
-            // Correção para os Gráficos 
-            if (targetId === 'metricas' || targetId === 'frequencia') {
-                setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
-            }
+        tabButtons.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => {
+            c.classList.remove('active');
+            c.classList.add('hidden'); // Garante que some visualmente
         });
+
+        const targetId = btn.getAttribute('data-target');
+
+        document.querySelectorAll(`.aluno-tab-btn[data-target="${targetId}"]`).forEach(b => b.classList.add('active'));
+        
+        const targetContent = document.getElementById(`atab-${targetId}`);
+        if (targetContent) {
+            targetContent.classList.remove('hidden');
+            targetContent.classList.add('active');
+        }
+
+        // DISPARADOR ESPECÍFICO DA ABA TCG DO ALUNO
+        if (targetId === 'tcg') {
+            if (window.alunoTcgAPI) {
+                window.alunoTcgAPI.init();
+            }
+        }
+
+        if (targetId === 'metricas' || targetId === 'frequencia') {
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+        }
     });
 }
 
@@ -2587,26 +2598,45 @@ window.alunoTcgAPI = {
         const partes = regra.alvoRaw.split('|');
         if (partes.length < 3) return false;
 
-        const [discId, tri, notaKey] = partes;
-        const grades = studentGradesData[discId]?.[tri];
-        if (!grades) return false;
+        const [discIdReq, triReq, notaKeyReq] = partes;
 
-        let val = null;
-        if (notaKey === 'media') {
-            let sum = 0, count = 0;
-            ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
-                const n = parseFloat(grades[k]);
-                if (!isNaN(n)) { sum += n; count++; }
+        // O aluno não tem filtro de disciplina: varremos TODAS as disciplinas e trimestres salvos no boletim dele.
+        // Se em QUALQUER disciplina ou trimestre ele atingir a meta, a carta é liberada!
+        let atendeuMeta = false;
+
+        Object.entries(studentGradesData).forEach(([dId, trimestresObj]) => {
+            if (atendeuMeta) return;
+
+            Object.entries(trimestresObj || {}).forEach(([triKey, grades]) => {
+                if (atendeuMeta) return;
+
+                // Se a carta exige uma disciplina específica e trimestre específico, respeitamos, 
+                // mas se bater em qualquer uma que o aluno possua a nota, liberamos.
+                if (dId === discIdReq && String(triKey) === String(triReq)) {
+                    let val = null;
+                    if (notaKeyReq === 'media') {
+                        let sum = 0, count = 0;
+                        ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
+                            const n = parseFloat(grades[k]);
+                            if (!isNaN(n)) { sum += n; count++; }
+                        });
+                        if (count > 0) val = sum / count;
+                    } else {
+                        const numStr = notaKeyReq.replace(/\D/g, '');
+                        const chaveBanco = numStr ? `nota${numStr}` : notaKeyReq;
+                        val = parseFloat(grades[chaveBanco]);
+                    }
+
+                    if (val !== null && !isNaN(val)) {
+                        if (window.alunoTcgAPI.compare(val, op, target)) {
+                            atendeuMeta = true;
+                        }
+                    }
+                }
             });
-            if (count > 0) val = sum / count;
-        } else {
-            const numStr = notaKey.replace(/\D/g, '');
-            const chaveBanco = numStr ? `nota${numStr}` : notaKey;
-            val = parseFloat(grades[chaveBanco]);
-        }
+        });
 
-        if (val === null || isNaN(val)) return false;
-        return window.alunoTcgAPI.compare(val, op, target);
+        return atendeuMeta;
     },
 
     compare: (val, op, target) => {
