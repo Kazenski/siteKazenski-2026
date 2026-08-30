@@ -894,3 +894,136 @@ main, .tab-content {
 /* ESTILOS PARA OS TEMAS DE PERFIL */
 .theme-hacker { background-color: #000 !important; color: #10b981 !important; border-color: #10b981 !important; font-family: 'Fira Code', monospace !important; }
 .theme-arcano { background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 100%) !important; border-color: #f59e0b !important; }
+
+
+
+
+
+
+
+/* ============================================================== */
+/* COMPONENTE: TCG (TRADING CARD GAME)                            */
+/* ============================================================== */
+
+.tcg-card {
+    aspect-ratio: 2.5 / 3.5;
+    position: relative;
+    border-radius: 0.75rem; /* 12px */
+    overflow: hidden;
+    background-color: #1e293b;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s, filter 0.3s;
+    cursor: pointer;
+    border: 3px solid transparent;
+}
+
+.tcg-card:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+    z-index: 10;
+}
+
+/* Estado de Carta Bloqueada (Aluno não conquistou) */
+.tcg-card.locked {
+    filter: grayscale(100%) brightness(0.4) contrast(1.2);
+    box-shadow: none;
+    border-color: #334155 !important;
+}
+.tcg-card.locked:hover {
+    transform: none;
+    cursor: not-allowed;
+}
+.tcg-lock-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 3rem;
+    color: rgba(255,255,255,0.3);
+    z-index: 20;
+}
+
+/* Bordas baseadas na Raridade */
+.rarity-comum { border-color: #94a3b8; } /* Slate 400 */
+.rarity-incomum { border-color: #4ade80; } /* Green 400 */
+.rarity-rara { border-color: #3b82f6; } /* Blue 500 */
+.rarity-epica { border-color: #a855f7; } /* Purple 500 */
+.rarity-lendaria { 
+    border-color: #fbbf24; /* Amber 400 */
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+}
+
+/* O Badge com a quantidade de cartas (Design Limitless TCG) */
+.tcg-badge-qty {
+    position: absolute;
+    bottom: -5px;
+    left: 10px;
+    background-color: #dc2626; /* Red da imagem base */
+    color: white;
+    font-weight: 900;
+    font-size: 0.9rem;
+    padding: 2px 10px;
+    border-radius: 4px 4px 0 0;
+    z-index: 30;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.5);
+    border: 1px solid #7f1d1d;
+    border-bottom: none;
+}
+
+/* ============================================================== */
+/* EFEITO FOIL (HOLOGRÁFICO) PARA CARTAS RARAS E LENDÁRIAS        */
+/* ============================================================== */
+.tcg-foil {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    pointer-events: none;
+    mix-blend-mode: color-dodge;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tcg-card:hover .tcg-foil {
+    opacity: 1;
+}
+
+/* Brilho Animado para Lendárias */
+.rarity-lendaria .tcg-foil {
+    opacity: 0.8; /* Sempre um pouco visível */
+    background: linear-gradient(
+        125deg, 
+        rgba(255,0,0,0.3) 0%, 
+        rgba(255,200,0,0.4) 20%, 
+        rgba(0,255,0,0.3) 40%, 
+        rgba(0,255,255,0.4) 60%, 
+        rgba(0,0,255,0.3) 80%, 
+        rgba(255,0,255,0.4) 100%
+    );
+    background-size: 200% 200%;
+    animation: holo-move 4s ease infinite alternate;
+}
+
+@keyframes holo-move {
+    0% { background-position: 0% 0%; filter: hue-rotate(0deg); }
+    100% { background-position: 100% 100%; filter: hue-rotate(90deg); }
+}
+
+/* Reflexo diagonal para cartas Épicas e Raras */
+.rarity-epica .tcg-foil,
+.rarity-rara .tcg-foil {
+    background: linear-gradient(
+        105deg,
+        transparent 20%,
+        rgba(255,255,255,0.4) 25%,
+        rgba(255,255,255,0.6) 50%,
+        transparent 55%
+    );
+    background-size: 300% 300%;
+    background-position: 100% 100%;
+    transition: background-position 0.6s ease-out;
+}
+
+.tcg-card:hover.rarity-epica .tcg-foil,
+.tcg-card:hover.rarity-rara .tcg-foil {
+    background-position: 0% 0%;
+}

@@ -805,6 +805,8 @@
                             data-target="calendario">Calendário</button>
                         <button id="btn-tab-mochila" class="aluno-tab-btn text-center" data-target="mochila">Mochila
                             Tech</button>
+                        <button id="btn-tab-tcg" class="aluno-tab-btn text-center" data-target="tcg">Coleção
+                            TCG</button>
                     </nav>
 
                     <div class="px-6 md:px-14 py-6 pb-32">
@@ -1255,6 +1257,35 @@
                                         class="space-y-3 overflow-y-auto custom-scroll flex-grow pr-1 max-h-[450px]">
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+
+                        <!-- ABA TCG (ALUNO) -->
+                        <div id="atab-tcg" class="aluno-tab-content hidden h-full fade-in w-full">
+                            <div
+                                class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <h2 class="text-lg text-indigo-400 font-cinzel font-bold mb-1"><i
+                                            class="fas fa-layer-group mr-2"></i> Coleção TCG</h2>
+                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Resgate
+                                        cartas com base no seu desempenho escolar.</p>
+                                </div>
+                                <div
+                                    class="bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-inner flex items-center gap-3">
+                                    <span
+                                        class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Progresso:</span>
+                                    <span class="text-indigo-400 font-black text-lg"><span
+                                            id="tcg-unlocked-count">0</span><span
+                                            class="text-slate-500 text-sm">/</span><span id="tcg-total-count"
+                                            class="text-slate-500 text-sm">0</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Grid de Cartas (Estilo Limitless TCG) -->
+                            <div id="tcg-collection-grid"
+                                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 custom-scroll pb-6">
+                                <!-- Cartas serão injetadas aqui pelo JS -->
                             </div>
                         </div>
 
@@ -1884,6 +1915,10 @@
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
                         data-target="kaz-ia"><i class="fas fa-robot mr-1"></i> Gerar Plano com Kaz IA</button>
 
+                    <button
+                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-indigo-400 hover:bg-indigo-900/40 hover:text-indigo-300 rounded-lg transition-colors whitespace-nowrap border border-indigo-900/30"
+                        data-target="tcg"><i class="fas fa-layer-group mr-1"></i> Forja TCG</button>
+
 
                 </div>
 
@@ -2366,6 +2401,144 @@
                         </div>
                     </div>
                 </div>
+
+
+                <!-- ABA TCG (PROFESSOR) -->
+                <div id="ptab-tcg" class="prof-tab-content hidden h-full fade-in flex-col max-w-6xl mx-auto w-full">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-indigo-500/50 mb-6 shrink-0 shadow-[0_0_30px_rgba(99,102,241,0.15)] flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl text-indigo-400 font-cinzel font-bold mb-2 flex items-center"><i
+                                    class="fas fa-hammer mr-3"></i> Forja de Cartas (TCG)</h2>
+                            <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Crie artefatos
+                                colecionáveis e defina as regras de resgate.</p>
+                        </div>
+                        <button onclick="document.getElementById('tcg-form-container').classList.toggle('hidden')"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap"><i
+                                class="fas fa-plus mr-2"></i> Criar Carta</button>
+                    </div>
+
+                    <div id="tcg-form-container"
+                        class="hidden bg-slate-900/80 border border-slate-700 rounded-2xl p-6 mb-6 shadow-xl relative">
+                        <form id="form-tcg-card" class="space-y-4">
+                            <input type="hidden" id="tcg-id">
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="md:col-span-2 space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Nome
+                                                da Carta *</label>
+                                            <input type="text" id="tcg-nome" required
+                                                class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
+                                        </div>
+                                        <div>
+                                            <label
+                                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Raridade
+                                                *</label>
+                                            <select id="tcg-raridade" required
+                                                class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
+                                                <option value="comum">Comum (Cinza)</option>
+                                                <option value="incomum">Incomum (Verde)</option>
+                                                <option value="rara">Rara (Azul)</option>
+                                                <option value="epica">Épica (Roxa)</option>
+                                                <option value="lendaria">Lendária (Dourada Animada)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Imagem
+                                            da Carta (Recomendado: Proporção 2.5:3.5) *</label>
+                                        <input type="file" id="tcg-imagem" accept="image/*"
+                                            class="w-full bg-slate-950 border border-slate-600 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                                    </div>
+
+                                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-600">
+                                        <h4
+                                            class="text-[10px] text-amber-500 font-black uppercase tracking-widest mb-3 border-b border-slate-700 pb-2">
+                                            <i class="fas fa-lock-open mr-1"></i> Regra de Resgate (Automático)
+                                        </h4>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label
+                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Condição</label>
+                                                <select id="tcg-regra-tipo" required
+                                                    class="w-full bg-slate-950 border border-slate-600 text-white p-2.5 rounded-lg outline-none focus:border-amber-500 text-xs">
+                                                    <option value="media_tri">Média Trimestral ≥</option>
+                                                    <option value="nota_unica">Nota Específica (N1 a N4) ≥</option>
+                                                    <option value="frequencia">Frequência Global (%) ≥</option>
+                                                    <option value="livre">Resgate Livre (Bônus)</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label
+                                                    class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Valor
+                                                    Alvo</label>
+                                                <input type="number" id="tcg-regra-valor" step="0.1"
+                                                    class="w-full bg-slate-950 border border-slate-600 text-white p-2.5 rounded-lg outline-none focus:border-amber-500 text-xs"
+                                                    placeholder="Ex: 8.5 ou 100">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição
+                                            / Lore</label>
+                                        <textarea id="tcg-descricao" rows="3"
+                                            class="w-full bg-slate-950 border border-slate-600 text-white p-3 rounded-xl outline-none focus:border-indigo-500 custom-scroll text-sm"
+                                            placeholder="A história ou efeito visual desta carta..."></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Preview Estático da Carta -->
+                                <div
+                                    class="md:col-span-1 flex flex-col items-center justify-center bg-slate-950 p-4 rounded-xl border border-slate-700">
+                                    <span
+                                        class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">Preview
+                                        da Carta</span>
+                                    <div id="tcg-preview-card"
+                                        class="tcg-card rarity-comum w-48 h-64 rounded-xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all">
+                                        <img id="tcg-preview-img" src="" class="w-full h-full object-cover opacity-50">
+                                        <div
+                                            class="tcg-foil absolute inset-0 pointer-events-none opacity-0 transition-opacity">
+                                        </div>
+                                        <div
+                                            class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-3 pt-8">
+                                            <h4 id="tcg-preview-nome"
+                                                class="text-white font-bold text-sm leading-tight truncate">Nome da
+                                                Carta</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3 border-t border-slate-700 pt-4 mt-2">
+                                <button type="button"
+                                    onclick="document.getElementById('tcg-form-container').classList.add('hidden')"
+                                    class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                                <button type="button" id="btn-save-tcg"
+                                    class="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_15px_rgba(99,102,241,0.4)]">Forjar
+                                    Carta</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Grid de Gestão do Professor -->
+                    <div
+                        class="flex-grow overflow-y-auto custom-scroll bg-slate-900/50 rounded-2xl border border-slate-700 shadow-xl p-6">
+                        <div id="tcg-admin-grid"
+                            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            <!-- Cartas criadas aparecerão aqui -->
+                        </div>
+                    </div>
+
+                </div>
+
 
                 <div id="ptab-anotacoes" class="prof-tab-content hidden h-full fade-in flex-col">
 
