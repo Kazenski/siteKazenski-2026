@@ -2769,16 +2769,16 @@ window.alunoTcgAPI = {
         modalDiv.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[3500] hidden flex items-center justify-center p-4 fade-in';
         
         modalDiv.innerHTML = `
-            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-4xl shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col relative">
+            <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-5xl shadow-[0_0_60px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col relative">
                 <!-- Botão Fechar -->
                 <button onclick="window.alunoTcgAPI.fecharModalDetalhes()" class="absolute top-5 right-5 w-10 h-10 rounded-full bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white flex items-center justify-center transition-all z-30 shadow-lg">
                     <i class="fas fa-times text-lg"></i>
                 </button>
 
-                <div class="p-6 md:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                    <!-- Coluna Esquerda: Carta Ampliada em formato Pokémon Retangular -->
+                <div class="p-8 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                    <!-- Coluna Esquerda: Carta Ampliada Maior -->
                     <div class="flex justify-center items-center">
-                        <div id="modal-tcg-card-preview" class="w-64 sm:w-72 aspect-[2/3] relative rounded-2xl overflow-hidden shadow-2xl bg-slate-800">
+                        <div id="modal-tcg-card-preview" class="w-72 sm:w-80 aspect-[2/3] relative rounded-2xl overflow-hidden shadow-2xl bg-slate-800">
                             <img id="modal-tcg-img" src="" class="w-full h-full object-cover">
                             <div class="tcg-foil absolute inset-0 pointer-events-none opacity-20"></div>
                             <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-12 text-center">
@@ -2787,15 +2787,15 @@ window.alunoTcgAPI = {
                         </div>
                     </div>
 
-                    <!-- Coluna Direita: Descrição Textual Cadastrada pelo Professor -->
+                    <!-- Coluna Direita: Descrição Textual Ampla sem Barra de Rolagem -->
                     <div class="flex flex-col justify-center space-y-4">
                         <div class="flex items-center gap-3">
-                            <span id="modal-tcg-raridade-badge" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">Raridade</span>
+                            <span id="modal-tcg-raridade-badge" class="px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-400 border border-indigo-500/40">Raridade</span>
                         </div>
                         <h2 id="modal-tcg-titulo-principal" class="text-2xl md:text-3xl font-cinzel font-black text-white leading-tight">Artefato</h2>
                         <div class="w-12 h-1 bg-indigo-500 rounded-full"></div>
-                        <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl shadow-inner max-h-60 overflow-y-auto custom-scroll">
-                            <p id="modal-tcg-descricao" class="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap font-inter">Descrição detalhada do artefato...</p>
+                        <div class="bg-slate-950/60 border border-slate-800 p-6 rounded-2xl shadow-inner">
+                            <p id="modal-tcg-descricao" class="text-slate-300 text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-inter">Descrição detalhada do artefato...</p>
                         </div>
                     </div>
                 </div>
