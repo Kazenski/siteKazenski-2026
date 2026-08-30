@@ -249,6 +249,11 @@ function setupEventListeners() {
 
     // Eventos de Filtros (Gráfico de Evolução)
     els.selEvol?.addEventListener('change', (e) => renderEvolutionChart(e.target.value));
+
+    // Gatilho da Coleção TCG
+    document.querySelector('[data-target="tcg"]')?.addEventListener('click', () => {
+        if(window.alunoTcgAPI) window.alunoTcgAPI.init();
+    });
 }
 
 // --- LÓGICA DO BANNER ---
@@ -2496,6 +2501,210 @@ window.mochilaAPI = {
         } catch (e) {
             console.error("Erro ao consumir item:", e);
             alert("Falha técnica ao tentar acessar a mochila.");
+        }
+    }
+};
+
+
+// ============================================================================
+// SISTEMA DE CARTAS COLECIONÁVEIS (TCG) - VISÃO DO ALUNO
+// ============================================================================
+window.alunoTcgAPI = {
+    allCards: [],
+    globalFreq: 100,
+
+    init: async () => {
+        // Pega a frequência global já calculada pela função de dashboard
+        const freqText = document.getElementById('al-freq-perc')?.textContent || "100%";
+        window.alunoTcgAPI.globalFreq = parseInt(freqText.replace('%', ''));
+
+        const grid = document.getElementById('tcg-collection-grid');
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
+
+        try {
+            // Busca TODAS as cartas criadas globalmente no Firebase
+            const snap = await getDocs(collection(db, "tcg_cartas"));
+            window.alunoTcgAPI.allCards = [];
+            snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
+
+            window.alunoTcgAPI.renderGrid();
+        } catch (e) {
+            console.error(e);
+            grid.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG.</div>';
+        }
+    },
+
+    // Motor Analítico de Regras
+    evaluateRule: (regra) => {
+        if (!regra) return false;
+
+        const op = regra.operador;
+        const target = regra.valorAlvo;
+
+        // Regra Especial 1: Frequência Global
+        if (regra.alvoRaw === 'global_freq') {
+            const val = window.alunoTcgAPI.globalFreq;
+            return window.alunoTcgAPI.compare(val, op, target);
+        }
+
+        // Regra Padrão: Notas (Requer que o boletim esteja carregado)
+        if (!studentGradesData) return false;
+
+        // O alvoRaw vem no formato "idDaDisciplina|1|nota1"
+        const [discId, tri, notaKey] = regra.alvoRaw.split('|');
+        const grades = studentGradesData[discId]?.[tri];
+        if (!grades) return false;
+
+        let val = null;
+        if (notaKey === 'media') {
+            let sum = 0, count = 0;
+            ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
+                const n = parseFloat(grades[k]);
+                if (!isNaN(n)) { sum += n; count++; }
+            });
+            if (count > 0) val = sum / count;
+        } else {
+            val = parseFloat(grades[notaKey]);
+        }
+
+        if (val === null || isNaN(val)) return false;
+        return window.alunoTcgAPI.compare(val, op, target);
+    },
+
+    compare: (val, op, target) => {
+        if (op === '>=') return val >= target;
+        if (op === '>') return val > target;
+        if (op === '<=') return val <= target;
+        if (op === '==') return val == target;
+        return false;
+    },
+
+    renderGrid: () => {
+        const grid = document.getElementById('tcg-collection-grid');
+        grid.innerHTML = '';
+
+        // Recupera o inventário de cartas do aluno no banco de dados
+        const minhasCartas = currentUser.cartas_tcg || []; // Array de { id, dataResgate }
+        let conquistadas = 0;
+
+        if(window.alunoTcgAPI.allCards.length === 0) {
+            grid.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado pelos mestres ainda.</div>';
+            return;
+        }
+
+        window.alunoTcgAPI.allCards.forEach(card => {
+            const posse = minhasCartas.find(c => c.id === card.id);
+            const isOwned = !!posse;
+            const canUnlock = !isOwned && window.alunoTcgAPI.evaluateRule(card.regra);
+
+            if (isOwned) conquistadas++;
+
+            let statusHtml = '';
+            let cardClasses = `tcg-card rarity-${card.raridade} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
+            let clickAction = '';
+            let dateStr = '';
+
+            if (isOwned) {
+                // STATUS 1: POSSUI A CARTA (Mostra Foil e Data)
+                if (posse.dataResgate) {
+                    dateStr = new Date(posse.dataResgate).toLocaleDateString('pt-BR');
+                }
+                
+                statusHtml = `
+                    <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
+                        <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">Conquistada: ${dateStr}</span>
+                    </div>
+                `;
+            } else if (canUnlock) {
+                // STATUS 2: LIBERADA PARA RESGATE (Brilha e Pede Clique)
+                cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
+                clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
+                
+                statusHtml = `
+                    <div class="absolute inset-0 bg-indigo-900/40 backdrop-blur-[2px] z-10 flex items-center justify-center flex-col gap-3 group-hover:bg-indigo-900/20 transition-all">
+                        <div class="w-12 h-12 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xl shadow-[0_0_20px_rgba(99,102,241,0.8)] animate-bounce">
+                            <i class="fas fa-unlock text-white"></i>
+                        </div>
+                        <span class="bg-indigo-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded shadow-lg shadow-indigo-900/50 text-center mx-2">Clique para Resgatar</span>
+                    </div>
+                `;
+            } else {
+                // STATUS 3: BLOQUEADA PELA REGRA (Escura, Cadeado e Regra Visível)
+                cardClasses += ` locked pointer-events-none`;
+                
+                let regraStr = "Regra Desconhecida";
+                if(card.regra.alvoRaw === 'global_freq') {
+                    regraStr = `Freq. Global ${card.regra.operador} ${card.regra.valorAlvo}%`;
+                } else {
+                    const [dId, tri, nKey] = card.regra.alvoRaw.split('|');
+                    const dName = disciplineMap[dId] || "Disc";
+                    regraStr = `${dName.substring(0, 10)} (T${tri}) ${nKey.toUpperCase().replace('É', 'E')} ${card.regra.operador} ${card.regra.valorAlvo}`;
+                }
+
+                statusHtml = `
+                    <div class="absolute inset-0 bg-slate-950/80 z-10 flex flex-col items-center justify-center p-3 text-center">
+                        <i class="fas fa-lock text-3xl text-slate-500 mb-3 drop-shadow-md"></i>
+                        <span class="text-[8px] text-slate-300 font-bold uppercase tracking-widest leading-tight border border-slate-600 p-1.5 rounded bg-slate-900 shadow-inner w-full">${regraStr}</span>
+                    </div>
+                `;
+            }
+
+            grid.insertAdjacentHTML('beforeend', `
+                <div class="flex flex-col gap-2 group">
+                    <div class="${cardClasses}" ${clickAction} title="${isOwned ? escapeHTML(card.descricao) : 'Artefato Indisponível'}">
+                        <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent p-2 z-20">
+                            <h4 class="text-white font-black text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${escapeHTML(card.nome)}</h4>
+                        </div>
+
+                        <img src="${card.imagemUrl}" class="w-full h-full object-cover opacity-90 ${isOwned ? '' : 'mix-blend-luminosity'}">
+                        
+                        ${isOwned ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
+                        
+                        ${statusHtml}
+                    </div>
+                </div>
+            `);
+        });
+
+        // Atualiza Placares
+        document.getElementById('tcg-unlocked-count').textContent = conquistadas;
+        document.getElementById('tcg-total-count').textContent = window.alunoTcgAPI.allCards.length;
+    },
+
+    claimCard: async (id) => {
+        const card = window.alunoTcgAPI.allCards.find(c => c.id === id);
+        if (!card) return;
+
+        try {
+            const novaCarta = {
+                id: card.id,
+                dataResgate: new Date().toISOString() // String ISO protege contra falhas no arrayUnion do Firebase
+            };
+
+            // 1. Salva no perfil do usuário no Firebase
+            await updateDoc(doc(db, "users", currentUser.uid), {
+                cartas_tcg: arrayUnion(novaCarta)
+            });
+
+            // 2. Adiciona localmente para evitar ter que relogar
+            if(!currentUser.cartas_tcg) currentUser.cartas_tcg = [];
+            currentUser.cartas_tcg.push(novaCarta);
+
+            // 3. Audita no Log
+            window.registrarLogAtividade("Conquistou Artefato TCG", `Desbloqueou a carta: ${card.nome} (${card.raridade})`);
+
+            // 4. Festa visual!
+            if (window.confetti) {
+                window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7', '#fbbf24'] });
+            }
+
+            // Atualiza a tela instantaneamente
+            window.alunoTcgAPI.renderGrid();
+
+        } catch (error) {
+            console.error(error);
+            alert("Sua conexão mágica falhou. Tente resgatar novamente.");
         }
     }
 };

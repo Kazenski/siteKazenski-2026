@@ -1990,13 +1990,18 @@ window.profAPI = {
     },
 
     renderRecadastroList: () => {
-        const searchVal = els.reSearch.value.toLowerCase();
-        els.reList.innerHTML = '';
+        // Busca diretamente do DOM para evitar erros de cache de inicialização
+        const searchInput = document.getElementById('re-search-input');
+        if (!searchInput) return;
+
+        const searchVal = searchInput.value.toLowerCase();
+        const listContainer = document.getElementById('re-list-container');
+        listContainer.innerHTML = '';
 
         const filtered = recadastroCache.filter(u => u.nome.toLowerCase().includes(searchVal) || u.email.toLowerCase().includes(searchVal));
 
         if (filtered.length === 0) {
-            els.reList.innerHTML = '<div class="text-center text-slate-500 italic p-10">Nenhum aluno encontrado com este termo.</div>';
+            listContainer.innerHTML = '<div class="text-center text-slate-500 italic p-10">Nenhum aluno encontrado com este termo.</div>';
             return;
         }
 
@@ -2004,7 +2009,6 @@ window.profAPI = {
             const active = recadastroSelected.has(u.id);
             const div = document.createElement('div');
 
-            // Estilo altera se selecionado
             div.className = `flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${active ? 'bg-amber-900/20 border-amber-500' : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800'}`;
 
             div.onclick = () => {
@@ -2012,7 +2016,7 @@ window.profAPI = {
                 else recadastroSelected.add(u.id);
 
                 window.profAPI.renderRecadastroList();
-                els.reCount.textContent = recadastroSelected.size;
+                document.getElementById('re-count-val').textContent = recadastroSelected.size;
             };
 
             div.innerHTML = `
@@ -2024,7 +2028,7 @@ window.profAPI = {
                     <i class="fas ${active ? 'fa-check-square text-amber-500 text-xl' : 'fa-square text-slate-600 text-xl'}"></i>
                 </div>
             `;
-            els.reList.appendChild(div);
+            listContainer.appendChild(div);
         });
     },
 
