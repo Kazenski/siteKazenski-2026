@@ -814,7 +814,7 @@ async function loadBoletimAndMetrics() {
     // Busca o map exato chamado "disciplinas"
     const mapDisciplinas = currentUser.disciplinas || (snap.exists() ? snap.data().disciplinas : null);
 
-    if (!mapDisciplinas || Object.keys(mapDisciplinas).length === 0) {
+    if (!mapDisciplinas || typeof mapDisciplinas !== 'object' || Object.keys(mapDisciplinas).length === 0) {
         els.boletimBody.innerHTML = '<tr><td colspan="14" class="p-8 text-center text-slate-500 italic">O aluno não está matriculado em nenhuma disciplina no momento.</td></tr>';
         return;
     }
@@ -1678,28 +1678,40 @@ window.toggleShareNote = async (targetUid) => {
 function initKanbanSystem() {
     if (kanbanUnsub) return;
 
-    // Busca o que o aluno criou OU o que compartilharam com ele
-    const q = query(collection(db, "kanban_atividades"),
-        or(
-            where("userIdCriador", "==", currentUser.uid),
-            where("sharedWithUserIds", "array-contains", currentUser.uid)
-        )
-    );
+    // CORREÇÃO 400 BAD REQUEST: Dividimos a query em duas para o Firebase não exigir index composto com OR e Array.
+    const qMeus = query(collection(db, "kanban_atividades"), where("userIdCriador", "==", currentUser.uid));
+    const qCollab = query(collection(db, "kanban_atividades"), where("sharedWithUserIds", "array-contains", currentUser.uid));
 
-    kanbanUnsub = onSnapshot(q, (snap) => {
-        myTasks = [];
-        snap.forEach(doc => myTasks.push({ id: doc.id, ...doc.data() }));
+    let minhasTarefas = [];
+    let tarefasCollab = [];
 
+    const processarTarefas = () => {
+        const combinadas = [...minhasTarefas, ...tarefasCollab];
+        // Remove duplicadas caso o criador também esteja na lista de compartilhamento
+        const unicas = Array.from(new Map(combinadas.map(t => [t.id, t])).values());
+        
+        myTasks = unicas;
         myTasks.sort((a, b) => {
             const timeA = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : Date.now();
             const timeB = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : Date.now();
             return timeB - timeA;
         });
-
         renderKanbanBoard();
-    }, (error) => {
-        console.error("Erro ao carregar o Kanban:", error);
+    };
+
+    const unsubMeus = onSnapshot(qMeus, (snap) => {
+        minhasTarefas = [];
+        snap.forEach(doc => minhasTarefas.push({ id: doc.id, ...doc.data() }));
+        processarTarefas();
     });
+
+    const unsubCollab = onSnapshot(qCollab, (snap) => {
+        tarefasCollab = [];
+        snap.forEach(doc => tarefasCollab.push({ id: doc.id, ...doc.data() }));
+        processarTarefas();
+    });
+
+    kanbanUnsub = () => { unsubMeus(); unsubCollab(); };
 }
 
 async function loadHorarioEscolar() {
@@ -2536,7 +2548,8 @@ window.alunoTcgAPI = {
 
     // Motor Analítico de Regras
     evaluateRule: (regra) => {
-        if (!regra) return false;
+        // Impede que a tela do aluno quebre ao tentar processar cartas forjadas em versões anteriores
+        if (!regra || !regra.alvoRaw) return false;
 
         const op = regra.operador;
         const target = regra.valorAlvo;
@@ -2550,7 +2563,6 @@ window.alunoTcgAPI = {
         // Regra Padrão: Notas (Requer que o boletim esteja carregado)
         if (!studentGradesData) return false;
 
-        // O alvoRaw vem no formato "idDaDisciplina|1|nota1"
         const [discId, tri, notaKey] = regra.alvoRaw.split('|');
         const grades = studentGradesData[discId]?.[tri];
         if (!grades) return false;
