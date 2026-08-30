@@ -2614,23 +2614,23 @@ window.alunoTcgAPI = {
         const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // Identifica as disciplinas em que o aluno está ativamente matriculado
-        const myDisciplines = currentUser.disciplinas || {};
+        // Pega as disciplinas ativas que já usamos no cache do dashboard do aluno
+        const myDisciplines = currentUser.disciplinas || window.activeDisciplinesMap || {};
         const activeDisciplines = Object.keys(myDisciplines).filter(k => myDisciplines[k] === true);
 
-        // FILTRO MESTRE: O Aluno vê cartas da disciplina dele, globais, OU qualquer carta que o professor já tenha concedido a ele
+        // O ALUNO VÊ TUDO: Cartas globais, cartas das disciplinas que ele frequenta, ou cartas que ele já possui
         const cartasParaOAluno = window.alunoTcgAPI.allCards.filter(card => {
-            if (ownedCardIds.includes(card.id)) return true; // Mostra sempre se já conquistou
-
+            if (ownedCardIds.includes(card.id)) return true; // Se já tem, exibe (conquistada)
             if (!card.regra || !card.regra.alvoRaw) return false;
-            if (card.regra.alvoRaw === 'global_freq') return true;
+            if (card.regra.alvoRaw === 'global_freq') return true; // Frequência global é para todos
             
+            // Verifica se a disciplina da carta faz parte do escopo de disciplinas ativas do aluno
             const discIdDaCarta = card.regra.alvoRaw.split('|')[0];
-            return activeDisciplines.includes(discIdDaCarta);
+            return activeDisciplines.length === 0 || activeDisciplines.includes(discIdDaCarta);
         });
 
         if(cartasParaOAluno.length === 0) {
-            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado para as suas disciplinas ainda.</div>');
+            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato disponível para suas disciplinas no momento.</div>');
             document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
             document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
             return;
@@ -2642,7 +2642,7 @@ window.alunoTcgAPI = {
             try {
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
-                const canUnlock = !isOwned && window.alunoTcgAPI.evaluateRule(card.regra);
+                const canUnlock = isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
                 if (isOwned) conquistadas++;
 
@@ -2663,7 +2663,7 @@ window.alunoTcgAPI = {
                             <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">Conquistada: ${dateStr}</span>
                         </div>
                     `;
-                } else if (canUnlock) {
+                } else if (canUnlock && !isOwned) {
                     cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
                     clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
                     
@@ -2722,7 +2722,6 @@ window.alunoTcgAPI = {
             }
         });
 
-        // Injeta o HTML em todos os grids da tela
         grids.forEach(g => g.innerHTML = cardsHtml);
 
         document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = conquistadas);
