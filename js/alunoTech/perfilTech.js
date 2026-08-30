@@ -2607,23 +2607,39 @@ window.alunoTcgAPI = {
         const minhasCartas = currentUser.cartas_tcg || []; 
         let conquistadas = 0;
 
-        if(window.alunoTcgAPI.allCards.length === 0) {
-            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado pelos mestres ainda.</div>');
+        // NOVO FILTRO: Pega apenas as cartas que pertencem às disciplinas que o aluno cursa (ou regras globais)
+        const myDisciplines = currentUser.disciplinas || {};
+        const activeDisciplines = Object.keys(myDisciplines).filter(k => myDisciplines[k] === true);
+
+        const cartasParaOAluno = window.alunoTcgAPI.allCards.filter(card => {
+            if (!card.regra || !card.regra.alvoRaw) return false;
+            // Se for uma carta de frequência global, todos os alunos veem
+            if (card.regra.alvoRaw === 'global_freq') return true;
+            
+            // Se for uma carta de nota, verifica se a disciplina da carta está na lista de disciplinas do aluno
+            const discIdDaCarta = card.regra.alvoRaw.split('|')[0];
+            return activeDisciplines.includes(discIdDaCarta);
+        });
+
+        if(cartasParaOAluno.length === 0) {
+            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato foi forjado para as suas disciplinas ainda.</div>');
+            document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
+            document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
             return;
         }
 
         let cardsHtml = '';
 
-        window.alunoTcgAPI.allCards.forEach(card => {
+        cartasParaOAluno.forEach(card => {
             try {
                 const posse = minhasCartas.find(c => c.id === card.id);
-                // Se posse existir, a carta é dele. Se não, avalia a nota.
                 const isOwned = !!posse; 
                 const canUnlock = !isOwned && window.alunoTcgAPI.evaluateRule(card.regra);
 
                 if (isOwned) conquistadas++;
 
                 let statusHtml = '';
+                // As cartas bloqueadas recebem a classe "locked" que aplica o cinza escuro via CSS
                 let cardClasses = `tcg-card rarity-${card.raridade || 'comum'} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
                 let clickAction = '';
                 let dateStr = '';
@@ -2652,6 +2668,7 @@ window.alunoTcgAPI = {
                         </div>
                     `;
                 } else {
+                    // CARTA BLOQUEADA: Aplica o "locked" (Cinza escuro) e trava interações
                     cardClasses += ` locked pointer-events-none`;
                     
                     let regraStr = "Regra Oculta/Especial";
@@ -2698,12 +2715,12 @@ window.alunoTcgAPI = {
             }
         });
 
-        // Injeta o resultado final em TODOS os grids encontrados para contornar o HTML duplicado
+        // Injeta o resultado final em TODOS os grids encontrados
         grids.forEach(g => g.innerHTML = cardsHtml);
 
-        // Atualiza Placares em todos os contadores da tela
+        // Atualiza Placares em todos os contadores da tela com o novo total da disciplina dele
         document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = conquistadas);
-        document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = window.alunoTcgAPI.allCards.length);
+        document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = cartasParaOAluno.length);
     },
 
     claimCard: async (id) => {
