@@ -4356,64 +4356,103 @@ window.tcgAPI = {
     saveCard: async () => {
         const id = document.getElementById('tcg-id').value;
         const nome = document.getElementById('tcg-nome').value.trim();
-        const raridade = document.getElementById('tcg-raridade').value;
+        const baseRaridade = document.getElementById('tcg-raridade').value; // Mantido para edição unitária se precisar
         const descricao = document.getElementById('tcg-descricao').value.trim();
         
         const condAlvo = document.getElementById('tcg-cond-alvo').value;
-        const condOp = document.getElementById('tcg-cond-op').value;
-        const condVal = document.getElementById('tcg-cond-val').value;
+        const tipoMeta = condAlvo === 'global_freq' ? 'freq' : 'nota'; // Identifica se a regra é de frequência ou de nota
 
-        if (!nome || !descricao || !condAlvo || !condVal) {
+        if (!nome || !descricao || !condAlvo) {
             return alert("Preencha todos os campos obrigatórios (*).");
         }
 
         if (!id && !window.tcgAPI.currentBlob) {
-            return alert("É obrigatório fazer upload da imagem (PNG/JPG) para forjar uma nova carta.");
+            return alert("É obrigatório fazer upload da imagem para forjar o artefato.");
         }
 
         const btn = document.getElementById('btn-save-tcg');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Forjando Variações...';
         btn.disabled = true;
 
         try {
             let imageUrl = null;
 
+            // Faz o upload da imagem apenas uma vez para economizar banda e armazenamento
             if (window.tcgAPI.currentBlob) {
                 const imgRef = ref(storage, `tcg_cards/${auth.currentUser.uid}_${Date.now()}.webp`);
                 const snap = await uploadBytes(imgRef, window.tcgAPI.currentBlob);
                 imageUrl = await getDownloadURL(snap.ref);
             }
 
-            const payload = {
-                nome,
-                raridade,
-                descricao,
-                regra: {
-                    alvoRaw: condAlvo, 
-                    operador: condOp,
-                    valorAlvo: parseFloat(condVal)
-                },
-                professorUid: auth.currentUser.uid,
-                dataAtualizacao: serverTimestamp()
-            };
-
-            if (imageUrl) payload.imagemUrl = imageUrl;
-
+            // Se for Edição de uma carta específica, salva normalmente como unidade
             if (id) {
+                const cardEd = window.tcgAPI.cardsCache.find(c => c.id === id);
+                const payload = {
+                    nome,
+                    raridade: baseRaridade,
+                    descricao,
+                    regra: {
+                        alvoRaw: condAlvo, 
+                        operador: document.getElementById('tcg-cond-op').value,
+                        valorAlvo: parseFloat(document.getElementById('tcg-cond-val').value)
+                    },
+                    professorUid: auth.currentUser.uid,
+                    dataAtualizacao: serverTimestamp()
+                };
+                if (imageUrl) payload.imagemUrl = imageUrl;
+                else payload.imagemUrl = cardEd.imagemUrl;
+
                 await updateDoc(doc(db, "tcg_cartas", id), payload);
-            } else {
-                payload.dataCriacao = serverTimestamp();
-                await addDoc(collection(db, "tcg_cartas"), payload);
+            } 
+            // Se for Criação Nova, gera as 5 variações automáticas por trás dos panos!
+            else {
+                // Tabela de gradação automática baseada na sua regra
+                const atribuicoesRaridade = tipoMeta === 'freq' ? [
+                    { raridade: 'comum', operador: '<', valorAlvo: 30 },
+                    { raridade: 'incomum', operador: '>=', valorAlvo: 40 }, // (Simula o intervalo entre 40 e 50 ou >= 40)
+                    { raridade: 'rara', operador: '>=', valorAlvo: 60 },
+                    { raridade: 'epica', operador: '>=', valorAlvo: 80 },
+                    { raridade: 'lendaria', operador: '==', valorAlvo: 100 }
+                ] : [
+                    { raridade: 'comum', operador: '<=', valorAlvo: 3 },
+                    { raridade: 'incomum', operador: '>=', valorAlvo: 4 },
+                    { raridade: 'rara', operador: '>=', valorAlvo: 6 },
+                    { raridade: 'epica', operador: '>=', valorAlvo: 8 },
+                    { raridade: 'lendaria', operador: '==', valorAlvo: 10 }
+                ];
+
+                const batch = writeBatch(db);
+
+                atribuicoesRaridade.forEach(tier => {
+                    const novaDocRef = doc(collection(db, "tcg_cartas"));
+                    const payloadLote = {
+                        nome,
+                        raridade: tier.raridade,
+                        descricao,
+                        regra: {
+                            alvoRaw: condAlvo,
+                            operador: tier.operador,
+                            valorAlvo: tier.valorAlvo
+                        },
+                        professorUid: auth.currentUser.uid,
+                        imagemUrl: imageUrl,
+                        dataCriacao: serverTimestamp(),
+                        dataAtualizacao: serverTimestamp()
+                    };
+                    batch.set(novaDocRef, payloadLote);
+                });
+
+                await batch.commit();
             }
 
             window.tcgAPI.toggleForm();
             await window.tcgAPI.loadCards();
             
-            if (window.confetti) window.confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7'] });
+            if (window.confetti) window.confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#4f46e5', '#a855f7', '#fbbf24'] });
 
         } catch (error) {
             console.error(error);
-            alert("Erro ao forjar carta: " + error.message);
+            alert("Erro ao forjar variações: " + error.message);
         } finally {
             btn.innerHTML = '<i class="fas fa-hammer mr-2"></i> Forjar Carta';
             btn.disabled = false;
