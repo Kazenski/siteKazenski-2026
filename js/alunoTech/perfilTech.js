@@ -2605,11 +2605,12 @@ window.alunoTcgAPI = {
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
         if (grids.length === 0) return;
 
+        // Pega o array exato de cartas do documento do usuário logado (coleção users -> cartas_tcg)
         const minhasCartas = currentUser.cartas_tcg || []; 
         const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // CARREGA TUDO: Exibe absolutamente todas as cartas forjadas no sistema
+        // O aluno carrega todas as cartas existentes no sistema para montar o seu álbum colecionável
         const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if (cartasParaOAluno.length === 0) {
@@ -2623,17 +2624,19 @@ window.alunoTcgAPI = {
 
         cartasParaOAluno.forEach(card => {
             try {
+                // Procura se este ID de carta está dentro do array cartas_tcg do usuário
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
                 const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
                 
-                // Valida se o aluno atinge a regra ou se já possui
-                const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
+                // Valida se ele já tem ou se cumpre a regra de nota para poder resgatar
+                const atendeRegra = window.alunoTcgAPI.evaluateRule(card.regra);
+                const canUnlock = !isOwned && atendeRegra;
 
                 if (isOwned || isProf) conquistadas++;
 
                 let statusHtml = '';
-                const raridadeVisual = isProf ? 'lendaria' : (card.raridade || 'comum');
+                const raridadeVisual = card.raridade || 'comum';
                 let cardClasses = `tcg-card rarity-${raridadeVisual} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
                 let clickAction = '';
                 let dateStr = '';
@@ -2644,13 +2647,15 @@ window.alunoTcgAPI = {
                         if(!isNaN(d)) dateStr = d.toLocaleDateString('pt-BR');
                     }
                     
+                    // ESTADO: Já possui a carta (Colorida com carimbo de data)
                     statusHtml = `
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
-                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre (Lendário)' : 'Conquistada: ' + dateStr}</span>
+                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre' : 'Conquistada: ' + (dateStr || 'Grimório')}</span>
                         </div>
                     `;
-                } else if (canUnlock && !isOwned) {
+                } else if (canUnlock) {
+                    // ESTADO: Atingiu a meta, mas ainda não resgatou (Disponível para clique)
                     cardClasses += ` ring-4 ring-indigo-500 ring-opacity-50 animate-pulse hover:animate-none cursor-pointer border-indigo-400`;
                     clickAction = `onclick="window.alunoTcgAPI.claimCard('${card.id}')"`;
                     
@@ -2663,7 +2668,7 @@ window.alunoTcgAPI = {
                         </div>
                     `;
                 } else {
-                    // Bloqueada: Fica cinza escuro no grimório do aluno
+                    // ESTADO: Bloqueada (Cinza escuro, exibe a exigência da regra)
                     cardClasses += ` locked pointer-events-none`;
                     
                     let regraStr = "Meta Não Atingida";
@@ -2726,6 +2731,7 @@ window.alunoTcgAPI = {
                 dataResgate: new Date().toISOString()
             };
 
+            // Insere o objeto id e dataResgate diretamente no array cartas_tcg do documento do usuário no Firestore
             await updateDoc(doc(db, "users", currentUser.uid), {
                 cartas_tcg: arrayUnion(novaCarta)
             });
