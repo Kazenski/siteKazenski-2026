@@ -2522,7 +2522,7 @@ window.mochilaAPI = {
 
 
 // ============================================================================
-// SISTEMA DE CARTAS COLECIONÁVEIS (TCG) - VISÃO DO ALUNO
+// SISTEMA DE CARTAS COLECIONÁVEIS (TCG) - VISÃO DO ALUNO / PROFESSOR
 // ============================================================================
 window.alunoTcgAPI = {
     allCards: [],
@@ -2534,12 +2534,8 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.globalFreq = parseInt(freqEls[0].textContent.replace('%', '')) || 100;
         }
 
-        // Busca por atributo de ID para não falhar caso o HTML tenha grids duplicados ocultos
         const grids = document.querySelectorAll('[id="tcg-collection-grid"]');
-        if(grids.length === 0) {
-            console.warn("[TCG] Contêiner da coleção não encontrado na tela.");
-            return;
-        }
+        if(grids.length === 0) return;
         
         grids.forEach(g => {
             g.innerHTML = '<div class="col-span-full text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl mb-4 block"></i>Sincronizando Grimório de Colecionáveis...</div>';
@@ -2554,14 +2550,13 @@ window.alunoTcgAPI = {
         } catch (e) {
             console.error("Erro TCG Aluno:", e);
             grids.forEach(g => {
-                g.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG. Verifique a conexão.</div>';
+                g.innerHTML = '<div class="col-span-full text-center py-20 text-red-500">Falha ao conectar com o servidor TCG.</div>';
             });
         }
     },
 
     evaluateRule: (regra) => {
         if (!regra || !regra.alvoRaw) return false;
-
         const op = regra.operador;
         const target = parseFloat(regra.valorAlvo) || 0;
 
@@ -2569,30 +2564,28 @@ window.alunoTcgAPI = {
             return window.alunoTcgAPI.compare(window.alunoTcgAPI.globalFreq, op, target);
         }
 
+        // Reutiliza o cache de notas já carregado na página do aluno (studentGradesData)
         if (!studentGradesData) return false;
 
         const partes = regra.alvoRaw.split('|');
         if (partes.length < 3) return false;
 
-        const [discId, tri, notaKey] = partes; // Ex: discId, "2", "n1"
+        const [discId, tri, notaKey] = partes;
         const grades = studentGradesData[discId]?.[tri];
         if (!grades) return false;
 
         let val = null;
         if (notaKey === 'media') {
             let sum = 0, count = 0;
-            // O banco salva como nota1, nota2, nota3, nota4
             ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
                 const n = parseFloat(grades[k]);
                 if (!isNaN(n)) { sum += n; count++; }
             });
             if (count > 0) val = sum / count;
         } else {
-            // CORREÇÃO: Transforma "n1" em "nota1" para bater com o banco de dados
             const chaveBanco = notaKey.startsWith('n') && !notaKey.startsWith('nota') 
                 ? notaKey.replace('n', 'nota') 
                 : notaKey;
-            
             val = parseFloat(grades[chaveBanco]);
         }
 
@@ -2614,23 +2607,13 @@ window.alunoTcgAPI = {
         const ownedCardIds = minhasCartas.map(c => c.id);
         let conquistadas = 0;
 
-        // Pega as disciplinas ativas que já usamos no cache do dashboard do aluno
-        const myDisciplines = currentUser.disciplinas || window.activeDisciplinesMap || {};
-        const activeDisciplines = Object.keys(myDisciplines).filter(k => myDisciplines[k] === true);
+        // Se for Professor (Professor === true), ele vê todas as cartas com raridade máxima/liberada imediatamente
+        const isProf = currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true;
 
-        // O ALUNO VÊ TUDO: Cartas globais, cartas das disciplinas que ele frequenta, ou cartas que ele já possui
-        const cartasParaOAluno = window.alunoTcgAPI.allCards.filter(card => {
-            if (ownedCardIds.includes(card.id)) return true; // Se já tem, exibe (conquistada)
-            if (!card.regra || !card.regra.alvoRaw) return false;
-            if (card.regra.alvoRaw === 'global_freq') return true; // Frequência global é para todos
-            
-            // Verifica se a disciplina da carta faz parte do escopo de disciplinas ativas do aluno
-            const discIdDaCarta = card.regra.alvoRaw.split('|')[0];
-            return activeDisciplines.length === 0 || activeDisciplines.includes(discIdDaCarta);
-        });
+        const cartasParaOAluno = window.alunoTcgAPI.allCards;
 
         if(cartasParaOAluno.length === 0) {
-            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato disponível para suas disciplinas no momento.</div>');
+            grids.forEach(g => g.innerHTML = '<div class="col-span-full text-center py-20 text-slate-500 italic">Nenhum artefato forjado no sistema ainda.</div>');
             document.querySelectorAll('#tcg-unlocked-count').forEach(el => el.textContent = 0);
             document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = 0);
             return;
@@ -2642,17 +2625,19 @@ window.alunoTcgAPI = {
             try {
                 const posse = minhasCartas.find(c => c.id === card.id);
                 const isOwned = !!posse; 
-                const canUnlock = isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
+                const canUnlock = isProf || isOwned || window.alunoTcgAPI.evaluateRule(card.regra);
 
-                if (isOwned) conquistadas++;
+                if (isOwned || isProf) conquistadas++;
 
                 let statusHtml = '';
-                let cardClasses = `tcg-card rarity-${card.raridade || 'comum'} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
+                // Se for professor, força a raridade para "lendaria" ou mantém a original se preferir
+                const raridadeVisual = isProf ? 'lendaria' : (card.raridade || 'comum');
+                let cardClasses = `tcg-card rarity-${raridadeVisual} w-full shadow-lg relative bg-slate-800 transition-all duration-300`;
                 let clickAction = '';
                 let dateStr = '';
 
-                if (isOwned) {
-                    if (posse.dataResgate) {
+                if (isOwned || isProf) {
+                    if (posse?.dataResgate) {
                         const d = new Date(posse.dataResgate);
                         if(!isNaN(d)) dateStr = d.toLocaleDateString('pt-BR');
                     }
@@ -2660,7 +2645,7 @@ window.alunoTcgAPI = {
                     statusHtml = `
                         <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10 pointer-events-none"></div>
                         <div class="absolute bottom-0 left-0 w-full p-3 z-20 text-center">
-                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">Conquistada: ${dateStr}</span>
+                            <span class="bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded shadow-lg border border-indigo-400 block w-full truncate">${isProf ? 'Modo Mestre (Lendário)' : 'Conquistada: ' + dateStr}</span>
                         </div>
                     `;
                 } else if (canUnlock && !isOwned) {
@@ -2681,13 +2666,13 @@ window.alunoTcgAPI = {
                     let regraStr = "Regra Oculta";
                     if(card.regra && card.regra.alvoRaw) {
                         if(card.regra.alvoRaw === 'global_freq') {
-                            regraStr = `Freq. Global ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}%`;
+                            regraStr = `Freq. Global >= ${card.regra.valorAlvo || 0}%`;
                         } else {
                             const partes = card.regra.alvoRaw.split('|');
                             if(partes.length === 3) {
                                 const [dId, tri, nKey] = partes;
                                 const dName = disciplineMap[dId] || "Disc.";
-                                const safeKey = nKey ? nKey.toUpperCase().replace('É', 'E') : 'NOTA';
+                                const safeKey = nKey ? nKey.toUpperCase() : 'NOTA';
                                 regraStr = `${dName.substring(0, 10)} (T${tri}) ${safeKey} ${card.regra.operador || '>='} ${card.regra.valorAlvo || 0}`;
                             }
                         }
@@ -2707,12 +2692,12 @@ window.alunoTcgAPI = {
 
                 cardsHtml += `
                     <div class="flex flex-col gap-2 group">
-                        <div class="${cardClasses}" ${clickAction} title="${isOwned ? descSegura : 'Artefato Indisponível'}">
+                        <div class="${cardClasses}" ${clickAction} title="${isOwned || isProf ? descSegura : 'Artefato Indisponível'}">
                             <div class="absolute top-0 left-0 w-full bg-gradient-to-b from-black/80 to-transparent p-2 z-20">
                                 <h4 class="text-white font-black text-[10px] leading-tight truncate shadow-black drop-shadow-md text-center">${nomeSeguro}</h4>
                             </div>
-                            <img src="${imagemSegura}" class="w-full h-full object-cover opacity-90 ${isOwned ? '' : 'mix-blend-luminosity'}">
-                            ${isOwned ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
+                            <img src="${imagemSegura}" class="w-full h-full object-cover opacity-90 ${isOwned || isProf ? '' : 'mix-blend-luminosity'}">
+                            ${isOwned || isProf ? '<div class="tcg-foil absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-20"></div>' : ''}
                             ${statusHtml}
                         </div>
                     </div>
