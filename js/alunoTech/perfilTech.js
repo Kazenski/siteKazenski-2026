@@ -2562,36 +2562,38 @@ window.alunoTcgAPI = {
     evaluateRule: (regra) => {
         if (!regra || !regra.alvoRaw) return false;
 
-        const op = regra.operador || '>=';
+        const op = regra.operador;
         const target = parseFloat(regra.valorAlvo) || 0;
 
-        // Frequência
         if (regra.alvoRaw === 'global_freq') {
             return window.alunoTcgAPI.compare(window.alunoTcgAPI.globalFreq, op, target);
         }
 
-        // Se não houver dados no boletim
         if (!studentGradesData) return false;
 
         const partes = regra.alvoRaw.split('|');
         if (partes.length < 3) return false;
 
-        const [discId, tri, notaKey] = partes;
+        const [discId, tri, notaKey] = partes; // Ex: discId, "2", "n1"
         const grades = studentGradesData[discId]?.[tri];
         if (!grades) return false;
 
         let val = null;
         if (notaKey === 'media') {
             let sum = 0, count = 0;
+            // O banco salva como nota1, nota2, nota3, nota4
             ['nota1', 'nota2', 'nota3', 'nota4'].forEach(k => {
                 const n = parseFloat(grades[k]);
                 if (!isNaN(n)) { sum += n; count++; }
             });
             if (count > 0) val = sum / count;
         } else {
-            // Traduz a regra "n1" para a coluna real do banco "nota1"
-            const chaveBoletim = notaKey.length === 2 ? notaKey.replace('n', 'nota') : notaKey;
-            val = parseFloat(grades[chaveBoletim]);
+            // CORREÇÃO: Transforma "n1" em "nota1" para bater com o banco de dados
+            const chaveBanco = notaKey.startsWith('n') && !notaKey.startsWith('nota') 
+                ? notaKey.replace('n', 'nota') 
+                : notaKey;
+            
+            val = parseFloat(grades[chaveBanco]);
         }
 
         if (val === null || isNaN(val)) return false;

@@ -4579,34 +4579,43 @@ window.tcgAPI = {
                 
                 if(card.regra && card.regra.alvoRaw) {
                     const op = card.regra.operador;
-                    const target = card.regra.valorAlvo;
+                    const target = parseFloat(card.regra.valorAlvo) || 0;
 
                     if(card.regra.alvoRaw === 'global_freq') {
                         isEligible = true; 
                     } else {
-                        const [dId, tri, notaKey] = card.regra.alvoRaw.split('|');
-                        
-                        if(dId === state.filters.disciplineId && tri === state.filters.quarter) {
-                            let val = null;
-                            if (notaKey === 'media') {
-                                let sum = 0, count = 0;
-                                ['n1', 'n2', 'n3', 'n4'].forEach(k => {
-                                    const n = parseFloat(cacheNota[k]);
-                                    if (!isNaN(n)) { sum += n; count++; }
-                                });
-                                if (count > 0) val = sum / count;
-                            } else {
-                                val = parseFloat(cacheNota[notaKey]);
-                            }
+                        const partes = card.regra.alvoRaw.split('|');
+                        if(partes.length === 3) {
+                            const [dId, tri, notaKey] = partes;
+                            
+                            // Compara se a disciplina e o trimestre batem com o filtro atual do professor
+                            if(dId === state.filters.disciplineId && tri === String(state.filters.quarter)) {
+                                let val = null;
+                                
+                                if (notaKey === 'media') {
+                                    let sum = 0, count = 0;
+                                    ['n1', 'n2', 'n3', 'n4'].forEach(k => {
+                                        const n = parseFloat(cacheNota[k]);
+                                        if (!isNaN(n)) { sum += n; count++; }
+                                    });
+                                    if (count > 0) val = sum / count;
+                                } else {
+                                    // Traduz n1 para nota1 para ler corretamente do state.notasCache
+                                    const chaveCache = notaKey.startsWith('n') && !notaKey.startsWith('nota') 
+                                        ? notaKey.replace('n', 'n') // No profCache as chaves já são n1, n2... mas vamos garantir
+                                        : notaKey;
+                                    
+                                    // No professorTech.js state.notasCache usa chaves n1, n2, n3, n4
+                                    val = parseFloat(cacheNota[chaveCache]);
+                                }
 
-                            if (val !== null && !isNaN(val)) {
-                                if (op === '>=') isEligible = val >= target;
-                                else if (op === '>') isEligible = val > target;
-                                else if (op === '<=') isEligible = val <= target;
-                                else if (op === '==') isEligible = val == target;
+                                if (val !== null && !isNaN(val)) {
+                                    if (op === '>=') isEligible = val >= target;
+                                    else if (op === '>') isEligible = val > target;
+                                    else if (op === '<=') isEligible = val <= target;
+                                    else if (op === '==') isEligible = val == target;
+                                }
                             }
-                        } else {
-                            isEligible = false;
                         }
                     }
                 }
