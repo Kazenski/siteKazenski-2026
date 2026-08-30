@@ -2574,8 +2574,8 @@ window.alunoTcgAPI = {
             window.alunoTcgAPI.allCards = [];
             snap.forEach(d => window.alunoTcgAPI.allCards.push({ id: d.id, ...d.data() }));
 
-            window.alunoTcgAPI.renderGrid();
             window.alunoTcgAPI.criarModalDetalhes();
+            window.alunoTcgAPI.renderGrid();
         } catch (e) {
             console.error("Erro ao carregar TCG do Aluno:", e);
             grids.forEach(g => {
@@ -2634,14 +2634,14 @@ window.alunoTcgAPI = {
         return atendeuMeta;
     },
 
-    compare: (val, op, target) => {
+    compare: (val, op, target, rawTargetInfo) => {
         if (op === '>=') return val >= target;
         if (op === '>') return val > target;
         if (op === '<=') return val <= target;
         if (op === '<') return val < target;
         if (op === '==') return val == target;
-        if (op === 'entre' && Array.isArray(target) && target.length === 2) {
-            return val >= target[0] && val <= target[1];
+        if (op === 'entre' && Array.isArray(rawTargetInfo) && rawTargetInfo.length === 2) {
+            return val >= rawTargetInfo[0] && val <= rawTargetInfo[1];
         }
         return false;
     },
@@ -2675,34 +2675,29 @@ window.alunoTcgAPI = {
         Object.entries(conceitosMap).forEach(([nomeConceito, variantes]) => {
             const isProf = currentUser && (currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true);
 
-            // Ordena as variantes da mais rara (ex: lendária) para a mais comum
             variantes.sort((a, b) => (ordemRaridade[b.raridade] || 1) - (ordemRaridade[a.raridade] || 1));
 
             let cartaParaExibir;
             let tipoEstado;
 
-            // Se for Professor, força a carta mais rara e estado conquistado
             if (isProf) {
                 cartaParaExibir = variantes[0]; 
                 tipoEstado = 'owned';
                 conceitosConquistados++;
             } else {
-                // Aluno: busca a melhor raridade que ele JÁ possui
                 cartaParaExibir = variantes.find(v => minhasCartas.some(mc => mc.id === v.id));
-                tipoEstado = 'owned';
-
-                if (!cartaParaExibir) {
-                    // Se não possui, verifica a primeira que pode resgatar
+                
+                if (cartaParaExibir) {
+                    tipoEstado = 'owned';
+                    conceitosConquistados++;
+                } else {
                     cartaParaExibir = variantes.find(v => window.alunoTcgAPI.evaluateRule(v.regra));
                     if (cartaParaExibir) {
                         tipoEstado = 'unlocked';
                     } else {
-                        // Se não tem nem pode resgatar, mostra a mais comum bloqueada
                         cartaParaExibir = variantes[variantes.length - 1]; 
                         tipoEstado = 'locked';
                     }
-                } else {
-                    conceitosConquistados++;
                 }
             }
 
@@ -2712,10 +2707,11 @@ window.alunoTcgAPI = {
             let clickAction = '';
             let statusHtml = '';
 
-            const safeGrupoJson = JSON.stringify({ nome: nomeConceito, variantes }).replace(/"/g, '&quot;');
+            // Agora passamos o nome do conceito protegido contra aspas para buscar no cache
+            const nomeSeguroClick = nomeConceito.replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
             if (isOwned) {
-                clickAction = `onclick='window.alunoTcgAPI.abrirModalDetalhes(${safeGrupoJson})'`;
+                clickAction = `onclick="window.alunoTcgAPI.abrirModalDetalhes('${nomeSeguroClick}')"`;
                 cardClasses += ` cursor-pointer hover:-translate-y-2 hover:shadow-[0_0_25px_rgba(99,102,241,0.4)]`;
                 
                 let dateStr = '';
@@ -2779,7 +2775,6 @@ window.alunoTcgAPI = {
         document.querySelectorAll('#tcg-total-count').forEach(el => el.textContent = totalConceitos);
     },
 
-    // --- MODAL DE DETALHES AMPLIADO (MOSTRA O PROGRESSO DAS 5 RARIDADES) ---
     criarModalDetalhes: () => {
         if (document.getElementById('modal-tcg-detalhes')) return;
 
@@ -2823,31 +2818,34 @@ window.alunoTcgAPI = {
         document.body.appendChild(modalDiv);
     },
 
-    aabrirModalDetalhes: (grupo) => {
+    abrirModalDetalhes: (nomeConceito) => {
         window.alunoTcgAPI.criarModalDetalhes();
         
+        // Puxa as variantes agrupadas no cache global usando o Nome
+        const variantes = window.alunoTcgAPI.allCards.filter(c => c.nome === nomeConceito);
+        if (variantes.length === 0) return;
+
         const modal = document.getElementById('modal-tcg-detalhes');
         const cardPreview = document.getElementById('modal-tcg-card-preview');
-        const minhasCartas = currentUser.cartas_tcg || [];
+        const minhasCartas = (currentUser && currentUser.cartas_tcg) ? currentUser.cartas_tcg : [];
         const isProf = currentUser && (currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Admin === true);
 
         const ordemRaridade = { 'lendaria': 5, 'epica': 4, 'rara': 3, 'incomum': 2, 'comum': 1 };
-        grupo.variantes.sort((a, b) => (ordemRaridade[b.raridade] || 1) - (ordemRaridade[a.raridade] || 1));
+        variantes.sort((a, b) => (ordemRaridade[b.raridade] || 1) - (ordemRaridade[a.raridade] || 1));
         
-        const melhorCarta = grupo.variantes.find(v => isProf || minhasCartas.some(mc => mc.id === v.id)) || grupo.variantes[grupo.variantes.length - 1];
+        const melhorCarta = variantes.find(v => isProf || minhasCartas.some(mc => mc.id === v.id)) || variantes[variantes.length - 1];
 
         cardPreview.className = `w-72 sm:w-80 aspect-[2/3] relative rounded-2xl overflow-hidden shadow-2xl bg-slate-800 rarity-${melhorCarta.raridade || 'comum'}`;
         
         document.getElementById('modal-tcg-img').src = melhorCarta.imagemUrl || 'imagens/placeholder.png';
-        document.getElementById('modal-tcg-nome').textContent = grupo.nome || 'Artefato';
-        document.getElementById('modal-tcg-titulo-principal').textContent = grupo.nome || 'Artefato';
+        document.getElementById('modal-tcg-nome').textContent = nomeConceito || 'Artefato';
+        document.getElementById('modal-tcg-titulo-principal').textContent = nomeConceito || 'Artefato';
         document.getElementById('modal-tcg-descricao').textContent = melhorCarta.descricao || 'Nenhuma lore cadastrada.';
 
         const chipsContainer = document.getElementById('modal-raridades-chips');
-        chipsContainer.innerHTML = grupo.variantes.map(v => {
+        chipsContainer.innerHTML = variantes.map(v => {
             const possui = isProf || minhasCartas.some(mc => mc.id === v.id);
             const corChip = possui ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700';
-            // Corrigido erro de digitação de "possusi" para "possui"
             return `<span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${corChip}">${v.raridade} ${possui ? '✓' : '•'}</span>`;
         }).join('');
 
