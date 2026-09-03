@@ -672,6 +672,13 @@
 
         </div>
 
+
+
+        <div id="blog-tech-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll bg-slate-950">
+            <!-- Renderizado via JS -->
+        </div>
+
         <div id="conexao-aluno-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 
@@ -1473,8 +1480,13 @@
                     </button>
                     <button
                         class="mod-subtab-btn px-3 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors"
-                        data-target="aprovar-posts">
-                        <i class="fas fa-check-double md:mr-1 block md:inline mb-1 md:mb-0"></i> Aprovar Posts
+                        data-target="blog">
+                        <i class="fas fa-newspaper md:mr-1 block md:inline mb-1 md:mb-0"></i> Editoria Blog
+                    </button>
+                    <button
+                        class="mod-subtab-btn px-3 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors"
+                        data-target="metricas-mod">
+                        <i class="fas fa-chart-pie md:mr-1 block md:inline mb-1 md:mb-0"></i> Métricas Mod
                     </button>
                 </div>
 
@@ -1727,22 +1739,153 @@
                     </div>
                 </div>
 
-                <div id="mtab-aprovar-posts" class="mod-tab-content hidden flex-grow flex-col fade-in w-full">
+                <!-- ABA: EDITORIA DE BLOG -->
+                <div id="mtab-blog" class="mod-tab-content hidden flex-grow flex-col fade-in w-full pb-10">
                     <div
-                        class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl mb-6 shrink-0 flex justify-between items-center">
+                        class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl mb-6 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-1"><i
-                                    class="fas fa-clipboard-check mr-2"></i> Fila de Aprovação</h3>
-                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Avalie posts
-                                pendentes e gerencie advertências.</p>
+                                    class="fas fa-newspaper mr-2"></i> Editoria Tech</h3>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Criação, revisão e
+                                publicação de artigos (Requer 2 aprovações).</p>
                         </div>
-                        <button onclick="window.postsModAPI.listenPendingPosts()"
-                            class="bg-indigo-600 hover:bg-indigo-500 text-white w-10 h-10 rounded-lg transition-colors flex items-center justify-center shadow-lg"><i
-                                class="fas fa-sync-alt"></i></button>
+                        <button onclick="window.blogAPI.toggleForm()"
+                            class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-transform hover:scale-105 whitespace-nowrap">
+                            <i class="fas fa-plus mr-2"></i> Redigir Post
+                        </button>
                     </div>
 
-                    <div id="pending-posts-list" class="flex-grow overflow-y-auto custom-scroll space-y-4 pr-2 pb-6">
-                        <div class="text-center text-slate-500 italic p-6">Aguardando conexão com a base de dados...
+                    <!-- Formulário de Criação -->
+                    <div id="blog-form-container"
+                        class="hidden bg-slate-900/90 border border-slate-700 rounded-2xl p-6 md:p-8 mb-6 shadow-2xl relative fade-in">
+                        <button onclick="window.blogAPI.toggleForm()"
+                            class="absolute top-4 right-4 text-slate-500 hover:text-white"><i
+                                class="fas fa-times text-xl"></i></button>
+                        <h3 id="blog-form-title" class="text-indigo-400 font-cinzel font-bold text-lg mb-6"><i
+                                class="fas fa-pen-nib mr-2"></i> Redigir Artigo</h3>
+
+                        <form id="form-blog" class="space-y-6">
+                            <input type="hidden" id="blog-id">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <label
+                                        class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Título
+                                        do Artigo *</label>
+                                    <input type="text" id="blog-titulo" required
+                                        class="w-full bg-slate-950 border border-slate-700 text-white p-3.5 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
+                                </div>
+                                <div class="flex gap-4">
+                                    <div class="flex-grow">
+                                        <label
+                                            class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Categoria
+                                            *</label>
+                                        <select id="blog-categoria" required
+                                            class="w-full bg-slate-950 border border-slate-700 text-white p-3.5 rounded-xl outline-none focus:border-indigo-500 shadow-inner">
+                                            <option value="">Carregando...</option>
+                                        </select>
+                                    </div>
+                                    <div class="shrink-0 pt-6">
+                                        <button type="button" onclick="window.blogAPI.addCategory()"
+                                            class="h-12 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl border border-slate-600 transition-colors"
+                                            title="Nova Categoria"><i class="fas fa-plus"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Capa
+                                    do Artigo (Obrigatório) *</label>
+                                <div
+                                    class="flex flex-col md:flex-row gap-6 items-center bg-slate-950/50 p-4 rounded-xl border border-slate-700">
+                                    <input type="file" id="blog-imagem" accept="image/png, image/jpeg, image/webp"
+                                        class="w-full md:w-auto flex-grow text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer">
+                                    <img id="blog-preview-img" src=""
+                                        class="hidden h-24 rounded-lg object-cover border border-slate-600 shadow-md">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Conteúdo
+                                    / Corpo do Texto *</label>
+                                <textarea id="blog-conteudo" required rows="10"
+                                    class="w-full bg-slate-950 border border-slate-700 text-slate-300 p-4 rounded-xl outline-none focus:border-indigo-500 custom-scroll text-sm leading-relaxed shadow-inner"
+                                    placeholder="Escreva o conteúdo (suporta formatação HTML básica se desejar)..."></textarea>
+                            </div>
+
+                            <div class="flex justify-end gap-3 border-t border-slate-800 pt-6">
+                                <button type="button" onclick="window.blogAPI.toggleForm()"
+                                    class="px-8 py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Cancelar</button>
+                                <button type="submit" id="btn-save-blog"
+                                    class="px-10 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                                    Submeter para Revisão
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Filtros e Grid Admin -->
+                    <div class="flex gap-4 mb-4 bg-slate-900/50 p-4 rounded-xl border border-slate-700 shadow-inner">
+                        <input type="text" id="blog-filter-title" placeholder="Buscar por título..."
+                            class="flex-grow bg-slate-950 border border-slate-700 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500">
+                        <select id="blog-filter-cat"
+                            class="bg-slate-950 border border-slate-700 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500 min-w-[150px]">
+                            <option value="">Todas Categorias</option>
+                        </select>
+                        <select id="blog-filter-status"
+                            class="bg-slate-950 border border-slate-700 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500 min-w-[150px]">
+                            <option value="">Qualquer Status</option>
+                            <option value="Aguardando">Aguardando (0/2)</option>
+                            <option value="Em Revisao">Em Revisão (1/2)</option>
+                            <option value="Publicado">Publicado (2/2)</option>
+                            <option value="Recusado">Recusado</option>
+                        </select>
+                    </div>
+
+                    <div id="blog-admin-grid" class="flex flex-col gap-4">
+                        <div class="text-center py-20 text-indigo-400"><i class="fas fa-spinner fa-spin text-3xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA: MÉTRICAS MODERADOR -->
+                <div id="mtab-metricas-mod" class="mod-tab-content hidden flex-grow flex-col fade-in w-full pb-10">
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl mb-6">
+                        <h3 class="text-amber-400 font-cinzel font-bold text-xl mb-1"><i
+                                class="fas fa-chart-pie mr-2"></i> Desempenho da Moderação</h3>
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Métricas de
+                            engajamento e histórico de curadoria da equipe.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div
+                            class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Meus Posts
+                                Criados</div>
+                            <div class="text-4xl font-black text-blue-400" id="metric-meus-posts">-</div>
+                        </div>
+                        <div
+                            class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Posts
+                                Aprovados (Equipe)</div>
+                            <div class="text-4xl font-black text-green-400" id="metric-aprovados">-</div>
+                        </div>
+                        <div
+                            class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Posts
+                                Recusados</div>
+                            <div class="text-4xl font-black text-red-500" id="metric-recusados">-</div>
+                        </div>
+                        <div
+                            class="bg-slate-900 border border-slate-700 p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-indigo-500"></div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Total de
+                                Leituras (Views)</div>
+                            <div class="text-4xl font-black text-indigo-400" id="metric-views">-</div>
                         </div>
                     </div>
                 </div>
@@ -4113,6 +4256,8 @@
     <script type="module" src="js/main.js"></script>
 
     <script type="module" src="js/moderadorTech/cadastroTitulos.js"></script>
+
+    <script type="module" src="js/moderadorTech/blogTecnico.js"></script>
 
 </body>
 

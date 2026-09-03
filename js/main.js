@@ -43,6 +43,7 @@ const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true },
     { id: 'projetos', label: 'Projetos', showTo: (r) => true },
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
+    { id: 'blog-tech', label: 'Blog', showTo: (r) => true },
 
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
@@ -532,6 +533,15 @@ window.showTab = function (tabId) {
             gestaoAuraAPI.init();
             lojaAuraAPI.init();
             isGestaoAuraLoaded = true;
+        }
+    }
+    else if (tabId === 'blog-tech') {
+        if (window.blogAPI) window.blogAPI.initReader();
+    }
+    else if (tabId === 'moderador-tech') {
+        if (!isModeradorLoaded) {
+            isModeradorLoaded = true;
+            if (window.blogAPI) window.blogAPI.initMod();
         }
     }
 };
