@@ -3471,6 +3471,7 @@ window.profAPI = {
             window.profAPI.logReset("Buscando dados massivos para arquivamento...", 'info');
             const snapNotas = await getDocs(query(collection(db, "notas")));
             const snapPres = await getDocs(query(collection(db, "presencas")));
+            const snapConfigExtras = await getDocs(query(collection(db, "configuracoes_extras"))); // <-- NOVO
             const snapUsersReset = await getDocs(query(collection(db, "users"), where("Aluno", "==", true)));
 
             // --- ETAPA 2: BACKUP DE NOTAS ---
@@ -3491,6 +3492,16 @@ window.profAPI = {
                 }, "Backup Presenças");
             } else { window.profAPI.logReset("Nenhuma chamada encontrada para backup.", 'info'); }
 
+            // --- ETAPA 3.1: BACKUP DAS DESCRIÇÕES EXTRAS ---
+            const configExtrasBackupColl = `configuracoes_extras_backup_${year}`;
+            if (!snapConfigExtras.empty) {
+                window.profAPI.logReset(`Arquivando ${snapConfigExtras.size} configurações de atividades extras...`, 'warning');
+                await window.profAPI.processBatchChunked(snapConfigExtras.docs, (batch, docSnap) => {
+                    const ref = doc(db, configExtrasBackupColl, docSnap.id);
+                    batch.set(ref, docSnap.data());
+                }, "Backup Atividades Extras");
+            }
+
             // --- ETAPA 4: WIPE (LIMPEZA OFICIAL) ---
             window.profAPI.logReset("Aviso: Excluindo bases de dados originais...", 'error');
             if (!snapNotas.empty) {
@@ -3502,6 +3513,12 @@ window.profAPI = {
                 await window.profAPI.processBatchChunked(snapPres.docs, (batch, docSnap) => {
                     batch.delete(docSnap.ref);
                 }, "Limpeza Diários de Classe");
+            }
+
+            if (!snapConfigExtras.empty) { 
+                await window.profAPI.processBatchChunked(snapConfigExtras.docs, (batch, docSnap) => {
+                    batch.delete(docSnap.ref);
+                }, "Limpeza de Descrições Extras");
             }
 
             // --- ETAPA 5: RESET DOS PERFIS DE ALUNOS ---
@@ -4239,8 +4256,72 @@ INSTRUÇÕES DE SAÍDA:
         window.location.reload(); 
     },
 
+    // ==========================================
+    // MÓDULO: DESCRIÇÃO DE PONTOS EXTRAS
+    // ==========================================
+    openExtraDescModal: async (extNum) => {
+        const { classId, disciplineId, quarter } = state.filters;
+        if (!classId || !disciplineId) return alert("Selecione Turma e Disciplina no menu superior para adicionar descrições.");
+        
+        document.getElementById('extra-desc-num').value = extNum;
+        document.getElementById('extra-desc-title').innerHTML = `<i class="fas fa-edit mr-2"></i> Descrição do EXT ${extNum} (${quarter}º Tri)`;
+        document.getElementById('extra-desc-text').value = 'Buscando descrição...';
+        
+        const docId = `${classId}_${disciplineId}_${quarter}`;
+        document.getElementById('extra-desc-doc-id').value = docId;
+        
+        document.getElementById('modal-extra-desc').classList.remove('hidden');
+        document.getElementById('modal-extra-desc').classList.add('flex');
+        
+        try {
+            const snap = await getDoc(doc(db, 'configuracoes_extras', docId));
+            if(snap.exists() && snap.data()[`ext${extNum}`]) {
+                document.getElementById('extra-desc-text').value = snap.data()[`ext${extNum}`];
+            } else {
+                document.getElementById('extra-desc-text').value = '';
+            }
+        } catch(e) {
+            document.getElementById('extra-desc-text').value = '';
+        }
+        document.getElementById('extra-desc-text').focus();
+    },
 
+    closeExtraDescModal: () => {
+        document.getElementById('modal-extra-desc').classList.add('hidden');
+        document.getElementById('modal-extra-desc').classList.remove('flex');
+    },
+
+    saveExtraDesc: async () => {
+        const extNum = document.getElementById('extra-desc-num').value;
+        const docId = document.getElementById('extra-desc-doc-id').value;
+        const texto = document.getElementById('extra-desc-text').value.trim();
+        const btn = document.getElementById('btn-save-extra-desc');
+        
+        const { classId, disciplineId, quarter } = state.filters;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
+        btn.disabled = true;
+        
+        try {
+            await setDoc(doc(db, 'configuracoes_extras', docId), {
+                turmaId: classId,
+                disciplineId: disciplineId,
+                trimestre: quarter,
+                [`ext${extNum}`]: texto,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+            
+            window.profAPI.closeExtraDescModal();
+        } catch(e) {
+            alert("Erro ao salvar descrição: " + e.message);
+        } finally {
+            btn.innerHTML = 'Salvar Descrição';
+            btn.disabled = false;
+        }
+    }
 };
+
+
 
 // ==========================================
 // MÓDULO TCG (FORJA DE CARTAS - PROFESSOR)

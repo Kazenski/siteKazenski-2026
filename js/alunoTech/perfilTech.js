@@ -939,6 +939,35 @@ async function loadBoletimAndMetrics() {
 
     renderScatterChart();
     renderEvolutionChart();
+
+    // --- LÓGICA NOVA: CARGA DAS ATIVIDADES EXTRAS E DESCRIÇÕES ---
+    try {
+        const qExtras = query(collection(db, "configuracoes_extras"), where("turmaId", "==", currentUser.turma));
+        const snapExtras = await getDocs(qExtras);
+        window.studentExtrasConfig = {};
+        snapExtras.forEach(d => {
+            const data = d.data();
+            if(!window.studentExtrasConfig[data.disciplineId]) window.studentExtrasConfig[data.disciplineId] = {};
+            // Agrupa por disciplina e depois por trimestre
+            window.studentExtrasConfig[data.disciplineId][data.trimestre] = data;
+        });
+
+        const selExtras = document.getElementById('al-sel-extras-disc');
+        if (selExtras) {
+            selExtras.innerHTML = ''; // Limpa antes de popular
+            Object.keys(mapDisciplinas).forEach(dId => {
+                if (mapDisciplinas[dId] !== false) {
+                    const nome = disciplineMap[dId] || dId;
+                    selExtras.add(new Option(nome, dId));
+                }
+            });
+            
+            selExtras.addEventListener('change', (e) => window.renderExtrasMatrix(e.target.value));
+            if(selExtras.options.length > 0) window.renderExtrasMatrix(selExtras.options[0].value);
+        }
+    } catch(e) {
+        console.error("Erro ao puxar dados extras:", e);
+    }
 }
 
 async function loadFrequencia() {
@@ -1013,6 +1042,58 @@ function renderEvolutionChart(discId = "") {
         options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 10, grid: { color: '#334155' } }, x: { grid: { color: '#334155' } } } }
     });
 }
+
+window.renderExtrasMatrix = (discId) => {
+    const matrixContainer = document.getElementById('al-extras-matrix');
+    if(!discId || !studentGradesData || !studentGradesData[discId]) {
+        matrixContainer.innerHTML = '<span class="text-slate-500 text-xs italic">Nenhuma atividade lançada ainda.</span>';
+        return;
+    }
+    
+    let html = `
+    <table class="w-full text-center border-collapse">
+        <thead>
+            <tr class="text-[10px] text-slate-400 border-b border-slate-700 font-bold uppercase tracking-widest">
+                <th class="pb-3 text-left pl-2">Tri</th>
+                <th class="pb-3">EXT 1</th>
+                <th class="pb-3">EXT 2</th>
+                <th class="pb-3">EXT 3</th>
+                <th class="pb-3">EXT 4</th>
+            </tr>
+        </thead>
+        <tbody class="text-sm">`;
+    
+    ['1', '2', '3'].forEach(tri => {
+        const notasTri = studentGradesData[discId][tri] || {};
+        const configsTri = (window.studentExtrasConfig && window.studentExtrasConfig[discId] && window.studentExtrasConfig[discId][tri]) 
+                            ? window.studentExtrasConfig[discId][tri] : {};
+        
+        html += `<tr class="border-b border-slate-700/50 last:border-0 hover:bg-slate-900/40 transition-colors">
+                    <td class="py-3 font-bold text-slate-300 text-left pl-2 text-xs">${tri}º Tri</td>`;
+        
+        ['1', '2', '3', '4'].forEach(num => {
+            const hasExt = notasTri[`ext${num}`] === true;
+            const desc = configsTri[`ext${num}`] || 'Sem descrição cadastrada pelo docente.';
+            
+            const iconClass = hasExt 
+                ? 'fas fa-check-circle text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' 
+                : 'fas fa-check-circle text-slate-600 opacity-40';
+            
+            html += `<td class="py-3 group relative cursor-help">
+                <i class="${iconClass} text-lg transition-transform group-hover:scale-110"></i>
+                
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-900 border border-slate-700 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 z-50 whitespace-normal text-left font-medium leading-relaxed">
+                    <strong class="text-amber-500 block mb-1 uppercase tracking-widest border-b border-slate-700 pb-1">${tri}º Tri - EXT ${num}</strong>
+                    ${window.escapeHTML ? window.escapeHTML(desc) : escapeHTML(desc)}
+                </div>
+            </td>`;
+        });
+        html += '</tr>';
+    });
+    
+    html += '</tbody></table>';
+    matrixContainer.innerHTML = html;
+};
 
 // ============================================================================
 // LÓGICA DO CADERNO DIGITAL (LAYOUT 3 COLUNAS)

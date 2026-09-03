@@ -894,8 +894,25 @@
                                     </div>
                                 </div>
 
+                                <!-- NOVO MÓDULO: ATIVIDADES EXTRAS -->
                                 <div
                                     class="col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
+                                    <div
+                                        class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 gap-2">
+                                        <h3 class="text-amber-500 font-cinzel font-bold text-lg whitespace-nowrap"><i
+                                                class="fas fa-star mr-2"></i> Pontos Extras</h3>
+                                        <select id="al-sel-extras-disc"
+                                            class="bg-slate-900 text-slate-200 text-[10px] font-bold p-2 rounded border border-slate-600 outline-none w-full max-w-[140px]"></select>
+                                    </div>
+                                    <div id="al-extras-matrix" class="flex-grow flex items-center justify-center">
+                                        <span class="text-slate-500 text-xs italic">Carregando matriz de
+                                            atividades...</span>
+                                    </div>
+                                </div>
+
+                                <!-- AVALIAÇÃO 360º (DESLOCADO PARA BAIXO) -->
+                                <div
+                                    class="col-span-1 lg:col-span-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
                                     <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i
                                             class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
                                     <div id="al-eval-360-content"
@@ -2104,10 +2121,26 @@
                                         </th>
                                         <th class="p-4">Nome do Estudante</th>
                                         <th class="p-4 text-center w-24">Status</th>
-                                        <th class="p-4 text-center w-20 text-blue-400">EXT 1</th>
-                                        <th class="p-4 text-center w-20 text-blue-400">EXT 2</th>
-                                        <th class="p-4 text-center w-20 text-blue-400">EXT 3</th>
-                                        <th class="p-4 text-center w-20 text-blue-400">EXT 4</th>
+                                        <th class="p-4 text-center w-20 text-blue-400 group cursor-pointer hover:text-blue-300 transition-colors"
+                                            onclick="window.profAPI.openExtraDescModal(1)" title="Editar Descrição">EXT
+                                            1 <i
+                                                class="fas fa-edit text-[10px] ml-1 opacity-50 group-hover:opacity-100"></i>
+                                        </th>
+                                        <th class="p-4 text-center w-20 text-blue-400 group cursor-pointer hover:text-blue-300 transition-colors"
+                                            onclick="window.profAPI.openExtraDescModal(2)" title="Editar Descrição">EXT
+                                            2 <i
+                                                class="fas fa-edit text-[10px] ml-1 opacity-50 group-hover:opacity-100"></i>
+                                        </th>
+                                        <th class="p-4 text-center w-20 text-blue-400 group cursor-pointer hover:text-blue-300 transition-colors"
+                                            onclick="window.profAPI.openExtraDescModal(3)" title="Editar Descrição">EXT
+                                            3 <i
+                                                class="fas fa-edit text-[10px] ml-1 opacity-50 group-hover:opacity-100"></i>
+                                        </th>
+                                        <th class="p-4 text-center w-20 text-blue-400 group cursor-pointer hover:text-blue-300 transition-colors"
+                                            onclick="window.profAPI.openExtraDescModal(4)" title="Editar Descrição">EXT
+                                            4 <i
+                                                class="fas fa-edit text-[10px] ml-1 opacity-50 group-hover:opacity-100"></i>
+                                        </th>
                                         <th class="p-4 text-center w-24 text-amber-500"><i
                                                 class="fas fa-trophy mr-1"></i> TOTAL</th>
                                         <th class="p-4 text-center w-20">Ações</th>
@@ -2131,6 +2164,36 @@
                             class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/50 flex items-center gap-2 hover:-translate-y-0.5">
                             <i class="fas fa-save text-lg"></i> Salvar Pontos Extras no Grimório
                         </button>
+                    </div>
+
+                    <!-- MODAL DE DESCRIÇÃO DE PONTOS EXTRAS -->
+                    <div id="modal-extra-desc"
+                        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[2000] hidden flex-col items-center justify-center p-4">
+                        <div
+                            class="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col">
+                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-3">
+                                <h3 id="extra-desc-title" class="text-amber-500 font-cinzel font-bold text-lg"><i
+                                        class="fas fa-edit mr-2"></i> Descrição da Atividade</h3>
+                                <button onclick="window.profAPI.closeExtraDescModal()"
+                                    class="text-slate-500 hover:text-white"><i
+                                        class="fas fa-times text-xl"></i></button>
+                            </div>
+                            <input type="hidden" id="extra-desc-num">
+                            <input type="hidden" id="extra-desc-doc-id">
+                            <p class="text-xs text-slate-400 mb-4 font-bold tracking-widest uppercase">Descreva o que o
+                                aluno fez para ganhar este ponto extra (ex: Participação na Feira de Ciências, Caderno
+                                Completo).</p>
+                            <textarea id="extra-desc-text" rows="4"
+                                class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 focus:border-amber-500 outline-none custom-scroll mb-4"
+                                placeholder="Digite a explicação da atividade..."></textarea>
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button onclick="window.profAPI.closeExtraDescModal()"
+                                    class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase transition-colors">Cancelar</button>
+                                <button id="btn-save-extra-desc" onclick="window.profAPI.saveExtraDesc()"
+                                    class="px-6 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar
+                                    Descrição</button>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
