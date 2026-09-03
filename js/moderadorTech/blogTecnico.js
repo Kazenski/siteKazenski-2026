@@ -358,13 +358,15 @@ window.blogAPI = {
                     </h1>
                     
                     <!-- Search e Categorias -->
-                    <div class="flex items-center gap-4 mt-6 md:mt-0 w-full md:w-auto overflow-x-auto no-scrollbar pb-2 md:pb-0">
-                        <div class="relative min-w-[200px]">
+                    <div class="flex flex-col sm:flex-row items-center gap-4 mt-6 md:mt-0 w-full md:w-auto">
+                        <div class="relative w-full sm:w-64">
                             <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
                             <input type="text" id="reader-search" placeholder="Pesquisar artigos..." class="w-full bg-slate-900 border border-slate-700 rounded-full py-2.5 pl-10 pr-4 text-sm text-white outline-none focus:border-indigo-500 transition-colors">
                         </div>
-                        <div id="reader-categories" class="flex gap-2 shrink-0">
-                            <!-- Categorias injetadas -->
+                        <div class="w-full sm:w-auto">
+                            <select id="reader-categories" onchange="window.blogAPI.filterReaderCat(this.value)" class="w-full bg-slate-900 border border-slate-700 text-slate-300 rounded-full py-2.5 px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-indigo-500 transition-colors cursor-pointer appearance-none shadow-lg text-center sm:text-left">
+                                <option value="">TODAS AS CATEGORIAS</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -429,14 +431,16 @@ window.blogAPI = {
         const container = document.getElementById('reader-content');
         if (!container) return;
 
-        // Renderiza botões de categoria
+        // Popula as opções do Select
         const catContainer = document.getElementById('reader-categories');
-        if (catContainer && catContainer.children.length === 0) {
-            let catHtml = `<button onclick="window.blogAPI.filterReaderCat('')" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg">Tudo</button>`;
+        if (catContainer && catContainer.options.length <= 1) {
+            let catHtml = `<option value="">TODAS AS CATEGORIAS</option>`;
             window.blogAPI.categoriasCache.forEach(c => {
-                catHtml += `<button onclick="window.blogAPI.filterReaderCat('${c.nome}')" class="bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors border border-slate-700">${c.nome}</button>`;
+                catHtml += `<option value="${c.nome}">${c.nome}</option>`;
             });
             catContainer.innerHTML = catHtml;
+            // Mantém a categoria ativa selecionada se houver
+            catContainer.value = window.blogAPI.readerActiveCat || '';
         }
 
         const termo = (document.getElementById('reader-search')?.value || '').toLowerCase();
@@ -503,15 +507,6 @@ window.blogAPI = {
     readerActiveCat: '',
     filterReaderCat: (cat) => {
         window.blogAPI.readerActiveCat = cat;
-        // Atualiza botões
-        const btns = document.getElementById('reader-categories').querySelectorAll('button');
-        btns.forEach(b => {
-            if (b.textContent === (cat || 'TUDO')) {
-                b.className = 'bg-indigo-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap shadow-lg';
-            } else {
-                b.className = 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-colors border border-slate-700';
-            }
-        });
         window.blogAPI.renderReaderContent();
     },
 
