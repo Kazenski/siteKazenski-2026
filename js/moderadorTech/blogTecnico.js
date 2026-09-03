@@ -350,7 +350,7 @@ window.blogAPI = {
 
         // Estrutura Principal do Leitor (Top Menu de Categorias + Destaque + Grid)
         container.innerHTML = `
-            <div class="max-w-7xl mx-auto w-full flex flex-col min-h-full pb-20 fade-in">
+            <div class="max-w-[1600px] px-6 md:px-12 mx-auto w-full flex flex-col min-h-full pb-20 fade-in">
                 <!-- Header / Logo -->
                 <div class="flex flex-col md:flex-row justify-between items-center py-8 border-b border-slate-800 mb-8 shrink-0">
                     <h1 class="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase" style="font-family: 'Inter', sans-serif;">
@@ -377,7 +377,7 @@ window.blogAPI = {
 
             <!-- Modal de Leitura do Artigo -->
             <div id="modal-read-post" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[3000] hidden overflow-y-auto custom-scroll p-4 md:p-8">
-                <div class="max-w-4xl mx-auto w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl relative flex flex-col fade-in my-10 overflow-hidden">
+                <div class="max-w-5xl mx-auto w-full bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl relative flex flex-col fade-in my-10 overflow-hidden">
                     <button onclick="window.blogAPI.closeReaderModal()" class="absolute top-6 right-6 w-12 h-12 bg-slate-950/50 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all z-20 backdrop-blur-sm"><i class="fas fa-times text-xl"></i></button>
                     
                     <div id="read-header-img" class="w-full h-[400px] bg-cover bg-center relative">
