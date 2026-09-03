@@ -182,7 +182,7 @@ window.blogAPI = {
         const statusFilter = document.getElementById('blog-filter-status')?.value;
 
         const filtered = window.blogAPI.postsCache.filter(p => {
-            const tituloMatch = p.titulo.toLowerCase().includes(termo);
+            const tituloMatch = (p.titulo || '').toLowerCase().includes(termo);
             const catMatch = cat ? p.categoria === cat : true;
             
             let statusStr = "Aguardando";
@@ -254,7 +254,7 @@ window.blogAPI = {
                         <span class="mx-2">|</span> <i class="fas fa-tag text-indigo-400 mr-1"></i> ${p.categoria}
                         <span class="mx-2">|</span> <i class="fas fa-eye text-indigo-400 mr-1"></i> ${p.views || 0} Views
                     </div>
-                    <p class="text-xs text-slate-500 line-clamp-2">${p.conteudo.replace(/<[^>]*>?/gm, '')}</p>
+                    <p class="text-xs text-slate-500 line-clamp-2">${(p.conteudo || '').replace(/<[^>]*>?/gm, '')}</p>
                     ${recusaHtml}
                 </div>
                 <div class="flex md:flex-col gap-2 shrink-0 w-full md:w-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
@@ -443,7 +443,7 @@ window.blogAPI = {
         const catFilter = window.blogAPI.readerActiveCat || '';
 
         const posts = window.blogAPI.postsCache.filter(p => {
-            const matchTitle = p.titulo.toLowerCase().includes(termo);
+            const matchTitle = (p.titulo || '').toLowerCase().includes(termo);
             const matchCat = catFilter ? p.categoria === catFilter : true;
             return matchTitle && matchCat;
         });
@@ -485,7 +485,7 @@ window.blogAPI = {
                     </div>
                     <div class="p-6 flex flex-col flex-grow">
                         <h3 class="text-xl font-bold text-white leading-snug mb-3 group-hover:text-indigo-400 transition-colors">${p.titulo}</h3>
-                        <p class="text-sm text-slate-400 line-clamp-3 leading-relaxed flex-grow">${p.conteudo.replace(/<[^>]*>?/gm, '')}</p>
+                        <p class="text-sm text-slate-400 line-clamp-3 leading-relaxed flex-grow">${(p.conteudo || '').replace(/<[^>]*>?/gm, '')}</p>
                         
                         <div class="mt-4 pt-4 border-t border-slate-800 flex justify-between items-center shrink-0">
                             <span class="text-[9px] text-slate-500 font-bold uppercase tracking-widest"><i class="fas fa-user text-indigo-500 mr-1"></i> ${p.autorNome}</span>
@@ -595,5 +595,19 @@ window.blogAPI = {
             msg.className = "text-xs text-red-500 mt-2 font-bold";
             msg.textContent = "Erro ao registrar avaliação.";
         }
-    }
+    },
+
 };
+
+// ==========================================
+// GATILHO DE INICIALIZAÇÃO SEGURA
+// ==========================================
+auth.onAuthStateChanged(user => {
+    if(user && window.blogAPI) {
+        // Impede que o sistema inicialize duas vezes e duplique os eventos
+        if (!window.blogAPI.modInitialized) {
+            window.blogAPI.modInitialized = true;
+            window.blogAPI.initMod();
+        }
+    }
+});
