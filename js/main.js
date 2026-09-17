@@ -11,6 +11,7 @@ import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
+import { renderPesquisasTechTab } from './pesquisasTech/pesquisasTech.js';
 import './atualizacoes/atualizacoes.js';
 import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
 import { lojaAuraAPI } from './conteudos/lojaAura.js';
@@ -37,14 +38,15 @@ let isConexaoAlunoLoaded = false;
 let isProjetosLoaded = false;
 let isGestaoAuraLoaded = false;
 let isAvaliacoesLoaded = false;
+let isPesquisasTechLoaded = false;
 
 // Definição rigorosa da arquitetura de menus e quem pode ver o quê
 const MENU_ARCHITECTURE = [
     { id: 'inicio', label: 'Início', showTo: (r) => true },
     { id: 'projetos', label: 'Projetos', showTo: (r) => true },
     { id: 'conteudos', label: 'Conteúdos', showTo: (r) => true },
-    { id: 'blog-tech', label: 'Blog', showTo: (r) => true },
-
+    { id: 'blog-tech', label: 'Blog', showTo:(r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno  },
+    { id: 'pesquisas-tech', label: 'Pesquisas Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     // { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
@@ -485,6 +487,12 @@ window.showTab = function (tabId) {
     // GATILHOS DE RENDERIZAÇÃO
     if (tabId === 'inicio') {
         renderInicioTab();
+    }
+    else if (tabId === 'pesquisas-tech') {
+        if (!isPesquisasTechLoaded) {
+            renderPesquisasTechTab();
+            isPesquisasTechLoaded = true;
+        }
     }
     else if (tabId === 'aluno-tech') {
         if (!isAlunoTechLoaded) {
