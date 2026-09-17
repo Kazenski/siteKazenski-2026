@@ -295,45 +295,54 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
     dashContainer.classList.remove('hidden');
 
     dashContainer.innerHTML = `
-        <div class="fade-in space-y-8 w-full mb-12">
-            <h3 class="text-2xl font-cinzel font-bold text-indigo-400 border-l-4 border-indigo-500 pl-4 mb-6">Dashboard Analítico: ${titulo}</h3>
+        <div class="fade-in w-full pb-20">
+            <h3 class="text-2xl font-cinzel font-bold text-indigo-400 border-l-4 border-indigo-500 pl-4 mb-8">Dashboard Analítico: ${titulo}</h3>
             
             <div id="dash-loading" class="text-center py-20 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
 
-            <div id="dash-content" class="hidden w-full flex-col gap-8">
+            <div id="dash-content" class="hidden w-full flex-col">
                 
-                <!-- KPI Total -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+                <!-- KPI Total (Com margem inferior forçada mb-10) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                         <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
-                        <div class="text-4xl font-black text-indigo-400" id="dash-total-interacoes">0</div>
+                        <div class="text-5xl font-black text-indigo-400" id="dash-total-interacoes">0</div>
+                    </div>
+                    
+                    <div class="md:col-span-2 bg-indigo-900/20 border border-indigo-500/30 p-8 rounded-2xl shadow-xl flex flex-col justify-center">
+                        <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle mr-2"></i> Diagnóstico Ativo</h4>
+                        <p class="text-slate-400 text-sm leading-relaxed">Os gráficos abaixo cruzam as variáveis demográficas e de comportamento relatadas pelos alunos, auxiliando a gestão na tomada de decisão focada e campanhas direcionadas.</p>
                     </div>
                 </div>
 
-                <!-- GRÁFICO 1: Número de vítimas por idade -->
-                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
-                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-user-shield mr-2"></i> 1. Número de Vítimas por Idade</h4>
-                    <div class="relative h-72 w-full"><canvas id="chart-vitimas-idade"></canvas></div>
-                </div>
+                <!-- GRID DE GRÁFICOS (2 Colunas em telas grandes, com gap generoso) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                    
+                    <!-- GRÁFICO 1: BARRAS VERTICAIS -->
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full flex flex-col">
+                        <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-user-shield mr-2"></i> 1. Número de Vítimas por Idade</h4>
+                        <div class="relative flex-grow min-h-[320px] w-full"><canvas id="chart-vitimas-idade"></canvas></div>
+                    </div>
 
-                <!-- GRÁFICO 2: Presenciou Cyberbullying cruzado com Idade -->
-                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
-                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-eye mr-2"></i> 2. Já Presenciou Cyberbullying na Escola (Cruzado com Idade)</h4>
-                    <div class="relative h-72 w-full"><canvas id="chart-presenciou-idade"></canvas></div>
-                </div>
+                    <!-- GRÁFICO 2: LINHAS (TENDÊNCIA) -->
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full flex flex-col">
+                        <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-eye mr-2"></i> 2. Presenciou Cyberbullying (Por Idade)</h4>
+                        <div class="relative flex-grow min-h-[320px] w-full"><canvas id="chart-presenciou-idade"></canvas></div>
+                    </div>
 
-                <!-- GRÁFICO 3: Sabe Pedir Ajuda cruzado com Série Escolar -->
-                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
-                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-hands-helping mr-2"></i> 3. Sabe Pedir Ajuda na Escola (Cruzado com Série Escolar)</h4>
-                    <div class="relative h-72 w-full"><canvas id="chart-ajuda-serie"></canvas></div>
-                </div>
+                    <!-- GRÁFICO 3: RADAR -->
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full flex flex-col">
+                        <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-hands-helping mr-2"></i> 3. Sabe Pedir Ajuda (Por Série Escolar)</h4>
+                        <div class="relative flex-grow min-h-[320px] w-full flex justify-center items-center"><canvas id="chart-ajuda-serie"></canvas></div>
+                    </div>
 
-                <!-- GRÁFICO 4: Ambiente que ocorre mais Cyberbullying cruzado com Idade -->
-                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
-                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-map-marked-alt mr-2"></i> 4. Ambiente com Mais Ocorrências (Cruzado com Idade)</h4>
-                    <div class="relative h-72 w-full"><canvas id="chart-ambiente-idade"></canvas></div>
-                </div>
+                    <!-- GRÁFICO 4: BARRAS HORIZONTAIS -->
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full flex flex-col">
+                        <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-map-marked-alt mr-2"></i> 4. Ambiente Mais Propício (Cruzado c/ Idade)</h4>
+                        <div class="relative flex-grow min-h-[320px] w-full"><canvas id="chart-ambiente-idade"></canvas></div>
+                    </div>
 
+                </div>
             </div>
         </div>
     `;
@@ -414,14 +423,13 @@ function renderizarGraficosCruzadosFixos(respostas) {
     Chart.defaults.color = '#94a3b8'; 
     Chart.defaults.font.family = 'Inter, sans-serif';
 
-    // Limpa instâncias anteriores para evitar bugs visuais ao reabrir o dashboard
     if (window.chartInstances) {
         Object.values(window.chartInstances).forEach(chart => chart.destroy());
     }
     window.chartInstances = {};
 
     // ----------------------------------------------------
-    // GRÁFICO 1: Vítimas por Idade (foi_vitima == true)
+    // GRÁFICO 1: Vítimas por Idade [BARRAS VERTICAIS]
     // ----------------------------------------------------
     const vitimasPorIdade = {};
     respostas.filter(r => r.foi_vitima === true || r.foi_vitima === 'true').forEach(r => {
@@ -436,16 +444,22 @@ function renderizarGraficosCruzadosFixos(respostas) {
         data: {
             labels: idadesV.map(i => `${i} Anos`),
             datasets: [{
-                label: 'Nº de Vítimas',
+                label: 'Nº de Vítimas Identificadas',
                 data: idadesV.map(i => vitimasPorIdade[i]),
-                backgroundColor: '#ef4444', borderRadius: 6
+                backgroundColor: '#ef4444', 
+                borderRadius: 6
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } }, // Remove legenda redundante
+            scales: { y: { beginAtZero: true, grid: { color: '#334155' } }, x: { grid: { display: false } } }
+        }
     });
 
     // ----------------------------------------------------
-    // GRÁFICO 2: Presenciou Cyberbullying x Idade (Cruzado)
+    // GRÁFICO 2: Presenciou Cyberbullying x Idade [LINHAS]
     // ----------------------------------------------------
     const presenciouCruzado = {}; 
     respostas.forEach(r => {
@@ -459,53 +473,83 @@ function renderizarGraficosCruzadosFixos(respostas) {
     const respostasUnicasP = [...new Set(respostas.map(r => r.presenciou_bullying).filter(Boolean))];
     
     const datasetsP = respostasUnicasP.map((resp, idx) => {
-        const cores = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#a855f7'];
+        const coresBorder = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7'];
         return {
-            label: `Presenciou: ${resp}`,
+            label: `Resp: ${resp}`,
             data: idadesP.map(idade => presenciouCruzado[idade][resp] || 0),
-            backgroundColor: cores[idx % cores.length],
-            borderRadius: 4
+            borderColor: coresBorder[idx % coresBorder.length],
+            backgroundColor: coresBorder[idx % coresBorder.length],
+            tension: 0.4, // Curva suave
+            borderWidth: 3,
+            pointRadius: 4,
+            fill: false
         };
     });
 
     window.chartInstances['presenciou'] = new Chart(document.getElementById('chart-presenciou-idade').getContext('2d'), {
-        type: 'bar',
+        type: 'line',
         data: { labels: idadesP.map(i => `${i} Anos`), datasets: datasetsP },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, grid: { color: '#334155' } }, x: { grid: { color: '#334155' } } }
+        }
     });
 
     // ----------------------------------------------------
-    // GRÁFICO 3: Sabe Pedir Ajuda x Série Escolar (Cruzado)
+    // GRÁFICO 3: Sabe Pedir Ajuda x Série [RADAR]
     // ----------------------------------------------------
     const ajudaSerie = {}; 
     respostas.forEach(r => {
         if (r.serie && r.sabe_pedir_ajuda !== undefined) {
             if (!ajudaSerie[r.serie]) ajudaSerie[r.serie] = {};
-            const val = (r.sabe_pedir_ajuda === true || r.sabe_pedir_ajuda === 'true') ? 'Sabe Pedir Ajuda' : 'Não Sabe / Tem Dúvida';
+            const val = (r.sabe_pedir_ajuda === true || r.sabe_pedir_ajuda === 'true') ? 'Sabe Pedir Ajuda' : 'Tem Dúvida/Não Sabe';
             ajudaSerie[r.serie][val] = (ajudaSerie[r.serie][val] || 0) + 1;
         }
     });
     const seriesS = Object.keys(ajudaSerie);
-    const statusAjuda = ['Sabe Pedir Ajuda', 'Não Sabe / Tem Dúvida'];
-
-    const datasetsA = statusAjuda.map((st, idx) => {
-        const cores = ['#10b981', '#ef4444'];
-        return {
-            label: st,
-            data: seriesS.map(serie => ajudaSerie[serie][st] || 0),
-            backgroundColor: cores[idx],
-            borderRadius: 4
-        };
-    });
-
+    
     window.chartInstances['ajuda'] = new Chart(document.getElementById('chart-ajuda-serie').getContext('2d'), {
-        type: 'bar',
-        data: { labels: seriesS, datasets: datasetsA },
-        options: { responsive: true, maintainAspectRatio: false }
+        type: 'radar',
+        data: { 
+            labels: seriesS, 
+            datasets: [
+                {
+                    label: 'Sabe Pedir Ajuda',
+                    data: seriesS.map(serie => ajudaSerie[serie]['Sabe Pedir Ajuda'] || 0),
+                    backgroundColor: 'rgba(16, 185, 129, 0.4)', // emerald com transparência
+                    borderColor: '#10b981',
+                    pointBackgroundColor: '#10b981',
+                    borderWidth: 2,
+                    fill: true
+                },
+                {
+                    label: 'Tem Dúvida/Não Sabe',
+                    data: seriesS.map(serie => ajudaSerie[serie]['Tem Dúvida/Não Sabe'] || 0),
+                    backgroundColor: 'rgba(239, 68, 68, 0.4)', // red com transparência
+                    borderColor: '#ef4444',
+                    pointBackgroundColor: '#ef4444',
+                    borderWidth: 2,
+                    fill: true
+                }
+            ] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    angleLines: { color: '#334155' },
+                    grid: { color: '#334155' },
+                    pointLabels: { color: '#cbd5e1', font: { size: 11 } },
+                    ticks: { display: false } // Oculta os números do eixo interno para ficar mais limpo
+                }
+            }
+        }
     });
 
     // ----------------------------------------------------
-    // GRÁFICO 4: Ambiente de Risco x Idade (Cruzado - Empilhado)
+    // GRÁFICO 4: Ambiente x Idade [BARRAS HORIZONTAIS EMPILHADAS]
     // ----------------------------------------------------
     const ambienteIdade = {}; 
     respostas.forEach(r => {
@@ -532,9 +576,13 @@ function renderizarGraficosCruzadosFixos(respostas) {
         type: 'bar',
         data: { labels: ambientesA, datasets: datasetsAmb },
         options: { 
+            indexAxis: 'y', // Isso transforma o gráfico em horizontal
             responsive: true, 
             maintainAspectRatio: false,
-            scales: { x: { stacked: true }, y: { stacked: true } }
+            scales: { 
+                x: { stacked: true, grid: { color: '#334155' } }, 
+                y: { stacked: true, grid: { display: false } } 
+            }
         }
     });
 }
