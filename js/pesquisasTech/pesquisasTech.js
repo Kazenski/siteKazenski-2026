@@ -18,7 +18,7 @@ export async function renderPesquisasTechTab() {
 
     // Alterado de max-w-7xl para w-full para aproveitar 100% da largura da tela
     container.innerHTML = `
-        <div class="h-full flex flex-col w-full mx-auto">
+        <div class="h-full flex flex-col w-full mx-auto pb-20">
             
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
                 <div>
@@ -295,57 +295,43 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
     dashContainer.classList.remove('hidden');
 
     dashContainer.innerHTML = `
-        <div class="fade-in space-y-6 w-full">
+        <div class="fade-in space-y-8 w-full mb-12">
             <h3 class="text-2xl font-cinzel font-bold text-indigo-400 border-l-4 border-indigo-500 pl-4 mb-6">Dashboard Analítico: ${titulo}</h3>
             
-            <div id="dash-loading" class="text-center py-10 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
+            <div id="dash-loading" class="text-center py-20 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
 
-            <div id="dash-content" class="hidden w-full flex-col gap-6">
+            <div id="dash-content" class="hidden w-full flex-col gap-8">
                 
-                <!-- KPIs Topo -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-center text-center">
+                <!-- KPI Total -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                         <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
                         <div class="text-4xl font-black text-indigo-400" id="dash-total-interacoes">0</div>
                     </div>
-                    <div class="lg:col-span-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribuição de Idades</h4>
-                        <div class="relative h-48 w-full"><canvas id="chart-pesquisa-idades"></canvas></div>
-                    </div>
                 </div>
 
-                <!-- Gráficos Estáticos Secundários -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Principais Motivos Relatados</h4>
-                        <div class="relative h-64 w-full flex justify-center"><canvas id="chart-pesquisa-pizza"></canvas></div>
-                    </div>
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribuição por Turno</h4>
-                        <div class="relative h-64 w-full flex justify-center"><canvas id="chart-pesquisa-turno"></canvas></div>
-                    </div>
+                <!-- GRÁFICO 1: Número de vítimas por idade -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
+                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-user-shield mr-2"></i> 1. Número de Vítimas por Idade</h4>
+                    <div class="relative h-72 w-full"><canvas id="chart-vitimas-idade"></canvas></div>
                 </div>
 
-                <!-- Explorador de Dados Dinâmico -->
-                <div class="bg-slate-900/50 p-6 md:p-8 rounded-2xl border border-indigo-500/30 shadow-xl w-full">
-                    <h3 class="text-lg font-cinzel font-bold text-indigo-400 mb-2"><i class="fas fa-search-chart mr-2"></i> Explorador Dinâmico de Dados</h3>
-                    <p class="text-xs text-slate-400 mb-6">Cruze informações gerando gráficos baseados em perguntas específicas da pesquisa.</p>
-                    
-                    <div class="flex flex-col md:flex-row gap-4 mb-6">
-                        <select id="seletor-dinamico" class="w-full flex-grow bg-slate-800 border border-slate-700 text-white rounded-xl py-3 px-4 outline-none focus:border-indigo-500 font-bold">
-                            <option value="">Carregando perguntas disponíveis...</option>
-                        </select>
-                        <button onclick="window.gerarGraficoCruzado()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg whitespace-nowrap">
-                            <i class="fas fa-chart-bar mr-2"></i> Gerar Gráfico
-                        </button>
-                    </div>
+                <!-- GRÁFICO 2: Presenciou Cyberbullying cruzado com Idade -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
+                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-eye mr-2"></i> 2. Já Presenciou Cyberbullying na Escola (Cruzado com Idade)</h4>
+                    <div class="relative h-72 w-full"><canvas id="chart-presenciou-idade"></canvas></div>
+                </div>
 
-                    <div class="relative h-80 w-full bg-slate-800 rounded-xl p-4 border border-slate-700">
-                        <canvas id="chart-pesquisa-dinamico"></canvas>
-                        <div id="msg-dinamico" class="absolute inset-0 flex items-center justify-center bg-slate-800/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold">
-                            Selecione uma pergunta acima para cruzar os dados.
-                        </div>
-                    </div>
+                <!-- GRÁFICO 3: Sabe Pedir Ajuda cruzado com Série Escolar -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
+                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-hands-helping mr-2"></i> 3. Sabe Pedir Ajuda na Escola (Cruzado com Série Escolar)</h4>
+                    <div class="relative h-72 w-full"><canvas id="chart-ajuda-serie"></canvas></div>
+                </div>
+
+                <!-- GRÁFICO 4: Ambiente que ocorre mais Cyberbullying cruzado com Idade -->
+                <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl w-full">
+                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-4"><i class="fas fa-map-marked-alt mr-2"></i> 4. Ambiente com Mais Ocorrências (Cruzado com Idade)</h4>
+                    <div class="relative h-72 w-full"><canvas id="chart-ambiente-idade"></canvas></div>
                 </div>
 
             </div>
@@ -353,46 +339,14 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
     `;
 
     try {
-        // 1. Busca os dados reais da tabela alvo (ex: respostas_pesquisa)
-        const { data: respostas, error: errResp } = await supabase.from(tabelaAlvo).select('*');
-        if (errResp) throw errResp;
+        const { data: respostas, error } = await supabase.from(tabelaAlvo).select('*');
+        if (error) throw error;
 
-        // Armazena globalmente para não precisar baixar novamente ao trocar de gráfico dinâmico
-        window.pesquisaRespostasAtuais = respostas || [];
-
-        // 2. Busca a estrutura de perguntas do formulário para o Explorador Dinâmico
-        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
-        if (errPerg) throw errPerg;
-
-        const selectDinamico = document.getElementById('seletor-dinamico');
-        selectDinamico.innerHTML = '<option value="">-- Selecione uma pergunta para analisar --</option>';
-        if (perguntas) {
-            perguntas.forEach(p => {
-                selectDinamico.innerHTML += `<option value="${p.campo_chave}">${p.label_texto}</option>`;
-            });
-        }
-
-        // 3. Oculta Loading e Popula Dados Iniciais
         document.getElementById('dash-loading').classList.add('hidden');
         document.getElementById('dash-content').classList.remove('hidden');
-        document.getElementById('dash-total-interacoes').innerText = window.pesquisaRespostasAtuais.length;
+        document.getElementById('dash-total-interacoes').innerText = respostas.length;
 
-        // Processa dados para os gráficos estáticos iniciais
-        const contagemIdade = {};
-        const contagemMotivo = {};
-        const contagemTurno = {};
-
-        window.pesquisaRespostasAtuais.forEach(r => {
-            if (r.idade) contagemIdade[r.idade] = (contagemIdade[r.idade] || 0) + 1;
-            
-            const motivo = r.motivo_frequente || 'Não Informado';
-            contagemMotivo[motivo] = (contagemMotivo[motivo] || 0) + 1;
-
-            const turno = r.turno || 'Não Informado';
-            contagemTurno[turno] = (contagemTurno[turno] || 0) + 1;
-        });
-
-        renderizarGraficosEstaticos(contagemIdade, contagemMotivo, contagemTurno);
+        renderizarGraficosCruzadosFixos(respostas || []);
 
     } catch (err) {
         console.error("Erro ao puxar dados da pesquisa:", err);
@@ -456,74 +410,131 @@ function renderizarGraficosEstaticos(dadosIdade, dadosMotivo, dadosTurno) {
     });
 }
 
-// =========================================================
-// LÓGICA DO EXPLORADOR DINÂMICO
-// =========================================================
-window.gerarGraficoCruzado = function() {
-    const select = document.getElementById('seletor-dinamico');
-    const campo = select.value;
-    
-    if (!campo) {
-        alert("Selecione uma pergunta primeiro.");
-        return;
+function renderizarGraficosCruzadosFixos(respostas) {
+    Chart.defaults.color = '#94a3b8'; 
+    Chart.defaults.font.family = 'Inter, sans-serif';
+
+    // Limpa instâncias anteriores para evitar bugs visuais ao reabrir o dashboard
+    if (window.chartInstances) {
+        Object.values(window.chartInstances).forEach(chart => chart.destroy());
     }
+    window.chartInstances = {};
 
-    const textoPergunta = select.options[select.selectedIndex].text;
-    const msgDinamico = document.getElementById('msg-dinamico');
-    msgDinamico.classList.add('hidden'); // Esconde a mensagem "Selecione uma pergunta"
-
-    // 1. Processa os dados já cacheados localmente na variável global
-    const contagemDinamica = {};
-    
-    window.pesquisaRespostasAtuais.forEach(r => {
-        let valor = r[campo];
-        
-        // Formata Booleanos para texto amigável
-        if (valor === true || valor === 'true') valor = 'Sim';
-        else if (valor === false || valor === 'false') valor = 'Não';
-        else if (valor === null || valor === undefined || valor === '') valor = 'Sem Resposta';
-
-        contagemDinamica[valor] = (contagemDinamica[valor] || 0) + 1;
+    // ----------------------------------------------------
+    // GRÁFICO 1: Vítimas por Idade (foi_vitima == true)
+    // ----------------------------------------------------
+    const vitimasPorIdade = {};
+    respostas.filter(r => r.foi_vitima === true || r.foi_vitima === 'true').forEach(r => {
+        if (r.idade) {
+            vitimasPorIdade[r.idade] = (vitimasPorIdade[r.idade] || 0) + 1;
+        }
     });
-
-    const labels = Object.keys(contagemDinamica);
-    const valores = Object.values(contagemDinamica);
-
-    // 2. Destrói o gráfico anterior caso ele exista para não dar sobreposição no Canvas
-    if (window.chartDinamicoInstancia) {
-        window.chartDinamicoInstancia.destroy();
-    }
-
-    // 3. Renderiza o Novo Gráfico
-    const ctx = document.getElementById('chart-pesquisa-dinamico').getContext('2d');
-    window.chartDinamicoInstancia = new Chart(ctx, {
-        type: 'bar', // Barra horizontal é melhor para ler texto
+    const idadesV = Object.keys(vitimasPorIdade).sort((a,b) => a - b);
+    
+    window.chartInstances['vitimas'] = new Chart(document.getElementById('chart-vitimas-idade').getContext('2d'), {
+        type: 'bar',
         data: {
-            labels: labels,
+            labels: idadesV.map(i => `${i} Anos`),
             datasets: [{
-                label: `Quantidade de Respostas`,
-                data: valores,
-                backgroundColor: '#a855f7', // purple-500
-                borderRadius: 4
+                label: 'Nº de Vítimas',
+                data: idadesV.map(i => vitimasPorIdade[i]),
+                backgroundColor: '#ef4444', borderRadius: 6
             }]
         },
-        options: {
-            indexAxis: 'y', // Inverte o eixo X pelo Y (Barras deitadas)
-            responsive: true,
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ----------------------------------------------------
+    // GRÁFICO 2: Presenciou Cyberbullying x Idade (Cruzado)
+    // ----------------------------------------------------
+    const presenciouCruzado = {}; 
+    respostas.forEach(r => {
+        if (r.idade && r.presenciou_bullying) {
+            if (!presenciouCruzado[r.idade]) presenciouCruzado[r.idade] = {};
+            const resp = r.presenciou_bullying;
+            presenciouCruzado[r.idade][resp] = (presenciouCruzado[r.idade][resp] || 0) + 1;
+        }
+    });
+    const idadesP = Object.keys(presenciouCruzado).sort((a,b) => a - b);
+    const respostasUnicasP = [...new Set(respostas.map(r => r.presenciou_bullying).filter(Boolean))];
+    
+    const datasetsP = respostasUnicasP.map((resp, idx) => {
+        const cores = ['#3b82f6', '#10b981', '#f59e0b', '#6366f1', '#a855f7'];
+        return {
+            label: `Presenciou: ${resp}`,
+            data: idadesP.map(idade => presenciouCruzado[idade][resp] || 0),
+            backgroundColor: cores[idx % cores.length],
+            borderRadius: 4
+        };
+    });
+
+    window.chartInstances['presenciou'] = new Chart(document.getElementById('chart-presenciou-idade').getContext('2d'), {
+        type: 'bar',
+        data: { labels: idadesP.map(i => `${i} Anos`), datasets: datasetsP },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ----------------------------------------------------
+    // GRÁFICO 3: Sabe Pedir Ajuda x Série Escolar (Cruzado)
+    // ----------------------------------------------------
+    const ajudaSerie = {}; 
+    respostas.forEach(r => {
+        if (r.serie && r.sabe_pedir_ajuda !== undefined) {
+            if (!ajudaSerie[r.serie]) ajudaSerie[r.serie] = {};
+            const val = (r.sabe_pedir_ajuda === true || r.sabe_pedir_ajuda === 'true') ? 'Sabe Pedir Ajuda' : 'Não Sabe / Tem Dúvida';
+            ajudaSerie[r.serie][val] = (ajudaSerie[r.serie][val] || 0) + 1;
+        }
+    });
+    const seriesS = Object.keys(ajudaSerie);
+    const statusAjuda = ['Sabe Pedir Ajuda', 'Não Sabe / Tem Dúvida'];
+
+    const datasetsA = statusAjuda.map((st, idx) => {
+        const cores = ['#10b981', '#ef4444'];
+        return {
+            label: st,
+            data: seriesS.map(serie => ajudaSerie[serie][st] || 0),
+            backgroundColor: cores[idx],
+            borderRadius: 4
+        };
+    });
+
+    window.chartInstances['ajuda'] = new Chart(document.getElementById('chart-ajuda-serie').getContext('2d'), {
+        type: 'bar',
+        data: { labels: seriesS, datasets: datasetsA },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ----------------------------------------------------
+    // GRÁFICO 4: Ambiente de Risco x Idade (Cruzado - Empilhado)
+    // ----------------------------------------------------
+    const ambienteIdade = {}; 
+    respostas.forEach(r => {
+        if (r.ambiente_risco && r.idade) {
+            const amb = r.ambiente_risco;
+            if (!ambienteIdade[amb]) ambienteIdade[amb] = {};
+            ambienteIdade[amb][r.idade] = (ambienteIdade[amb][r.idade] || 0) + 1;
+        }
+    });
+    const ambientesA = Object.keys(ambienteIdade);
+    const todasIdades = [...new Set(respostas.map(r => r.idade).filter(Boolean))].sort((a,b) => a - b);
+
+    const datasetsAmb = todasIdades.map((idade, idx) => {
+        const cores = ['#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#f59e0b', '#10b981'];
+        return {
+            label: `${idade} Anos`,
+            data: ambientesA.map(amb => ambienteIdade[amb][idade] || 0),
+            backgroundColor: cores[idx % cores.length],
+            borderRadius: 4
+        };
+    });
+
+    window.chartInstances['ambiente'] = new Chart(document.getElementById('chart-ambiente-idade').getContext('2d'), {
+        type: 'bar',
+        data: { labels: ambientesA, datasets: datasetsAmb },
+        options: { 
+            responsive: true, 
             maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: textoPergunta,
-                    color: '#cbd5e1',
-                    font: { size: 14 }
-                },
-                legend: { display: false }
-            },
-            scales: {
-                x: { grid: { color: '#334155' } },
-                y: { grid: { display: false } }
-            }
+            scales: { x: { stacked: true }, y: { stacked: true } }
         }
     });
 }
