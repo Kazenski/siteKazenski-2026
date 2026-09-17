@@ -339,7 +339,8 @@ onAuthStateChanged(auth, async (user) => {
                 userRoles.Moderador = (data.Moderador === true || data.Moderador === "true" || data.moderador === true || data.moderador === "true");
                 userRoles.Aluno = (data.Aluno === true || data.Aluno === "true");
                 userRoles.Visitante = false;
-
+                window.userRoles = userRoles;
+                
                 if (userRoles.Admin) displayRoleName = 'Admin';
                 else if (userRoles.Coordenacao) displayRoleName = 'Coordenação';
                 else if (userRoles.Professor) displayRoleName = 'Professor';
