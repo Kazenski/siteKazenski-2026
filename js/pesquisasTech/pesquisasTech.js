@@ -1,31 +1,31 @@
-// Importa o cliente do Supabase via CDN
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// Credenciais extraídas do projeto TecnicoTancredo
-const SUPABASE_URL = 'https://dmwbvydkogpnhmprezew.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtd2J2eWRrb2dwbmhtcHJlemV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5ODE4NDksImV4cCI6MjEwMjU1Nzg0OX0.bi15oVkl8n8veVCkKjryKtuPSzrPjKblJ9AMERymhFY';
+const SUPABASE_URL = 'SUA_URL_DO_SUPABASE'; 
+const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_DO_SUPABASE';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Variáveis globais para armazenar os dados e instâncias dos gráficos na memória
+window.pesquisaRespostasAtuais = [];
+window.chartDinamicoInstancia = null;
 
 export async function renderPesquisasTechTab() {
     const container = document.getElementById('pesquisas-tech-content');
     if (!container) return;
 
-    // Verifica se é gestor (Admin, Professor, Coordenação ou Moderador)
     const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
-    
-    // Verifica se pode deletar (Moderador puro NÃO pode, a menos que também seja Admin/Professor)
     const canDelete = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
 
+    // Alterado de max-w-7xl para w-full para aproveitar 100% da largura da tela
     container.innerHTML = `
-        <div class="h-full flex flex-col max-w-7xl mx-auto">
+        <div class="h-full flex flex-col w-full mx-auto">
             
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase">
                         <i class="fas fa-chart-pie text-indigo-500 mr-2"></i> Pesquisas Tech
                     </h2>
-                    <p class="text-slate-400 text-sm mt-1">Participe das pesquisas em andamento ou analise os relatórios.</p>
+                    <p class="text-slate-400 text-sm mt-1">Participe das pesquisas em andamento ou analise os relatórios interativos.</p>
                 </div>
                 
                 <div class="flex gap-3">
@@ -45,13 +45,10 @@ export async function renderPesquisasTechTab() {
                     <p class="font-cinzel tracking-widest uppercase text-sm">Conectando ao Supabase...</p>
                 </div>
 
-                <!-- LISTA PÚBLICA -->
-                <div id="lista-pesquisas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden"></div>
+                <div id="lista-pesquisas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
                 
-                <!-- DASHBOARD -->
-                <div id="dashboard-pesquisa" class="hidden flex-col gap-6"></div>
+                <div id="dashboard-pesquisa" class="hidden flex-col gap-6 w-full"></div>
 
-                <!-- PAINEL DE GESTÃO (CRUD) -->
                 ${isGestor ? `
                 <div id="crud-pesquisas" class="hidden flex-col gap-6 fade-in">
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl shrink-0">
@@ -118,16 +115,12 @@ export async function renderPesquisasTechTab() {
     if (isGestor) {
         document.getElementById('btn-toggle-crud').addEventListener('click', toggleCrudMode);
         document.getElementById('form-pesquisa-crud').addEventListener('submit', salvarPesquisaSupabase);
-        // Anexa a variável canDelete no window local para as linhas da tabela lerem
         window.canDeletePesquisa = canDelete; 
     }
 }
 
-
-
-
 // =========================================================
-// RENDERIZAÇÃO DA LISTA DE PESQUISAS (SUPABASE)
+// RENDERIZAÇÃO DA LISTA DE PESQUISAS
 // =========================================================
 async function carregarListaPesquisasDB() {
     const listaContainer = document.getElementById('lista-pesquisas');
@@ -145,7 +138,6 @@ async function carregarListaPesquisasDB() {
             listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
         } else {
             pesquisas.forEach(pesquisa => {
-                // 1. Monta Card Público
                 const isFechada = pesquisa.status === 'Fechada';
                 const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 
@@ -164,14 +156,10 @@ async function carregarListaPesquisasDB() {
                     </div>
                 `;
 
-                // 2. Monta Linha na Tabela Administrativa
                 if (tbodyCrud) {
-                    // Proteção do botão de exclusão
                     const btnExcluir = window.canDeletePesquisa 
                         ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
                         : '';
-
-                    // Escapando aspas para passar no onclick
                     const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
 
                     tbodyCrud.innerHTML += `
@@ -195,8 +183,6 @@ async function carregarListaPesquisasDB() {
     loading.classList.add('hidden');
     listaContainer.classList.remove('hidden');
 }
-
-
 
 // =========================================================
 // FUNÇÕES DE CRUD (ADMIN)
@@ -239,7 +225,6 @@ window.editarPesquisaSupabase = function(pesquisa) {
 
 async function salvarPesquisaSupabase(e) {
     e.preventDefault();
-    
     const id = document.getElementById('crud-id').value;
     const dados = {
         titulo: document.getElementById('crud-titulo').value,
@@ -251,12 +236,10 @@ async function salvarPesquisaSupabase(e) {
 
     try {
         if (id) {
-            // Update
             const { error } = await supabase.from('pesquisas_lista').update(dados).eq('id', id);
             if (error) throw error;
             alert("Pesquisa atualizada com sucesso!");
         } else {
-            // Insert
             const { error } = await supabase.from('pesquisas_lista').insert([dados]);
             if (error) throw error;
             alert("Nova pesquisa criada com sucesso!");
@@ -274,7 +257,6 @@ window.excluirPesquisaSupabase = async function(id) {
         alert("Acesso Negado: Você não tem permissão para excluir.");
         return;
     }
-    
     if (confirm("Atenção: Deseja realmente excluir esta pesquisa do catálogo? (Isso não apagará as respostas da tabela alvo)")) {
         try {
             const { error } = await supabase.from('pesquisas_lista').delete().eq('id', id);
@@ -283,14 +265,12 @@ window.excluirPesquisaSupabase = async function(id) {
             await carregarListaPesquisasDB();
         } catch (error) {
             console.error("Erro ao excluir:", error);
-            alert("Erro ao excluir do Supabase.");
         }
     }
 }
 
-
 // =========================================================
-// CONTROLES E DASHBOARD ANALÍTICO
+// DASHBOARD ANALÍTICO (GRÁFICOS E CRUZAMENTO DE DADOS)
 // =========================================================
 window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
     if (status === 'Aberta') {
@@ -315,60 +295,104 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
     dashContainer.classList.remove('hidden');
 
     dashContainer.innerHTML = `
-        <div class="fade-in space-y-6">
+        <div class="fade-in space-y-6 w-full">
             <h3 class="text-2xl font-cinzel font-bold text-indigo-400 border-l-4 border-indigo-500 pl-4 mb-6">Dashboard Analítico: ${titulo}</h3>
             
             <div id="dash-loading" class="text-center py-10 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
 
-            <div id="dash-content" class="hidden">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Volume de Respostas por Idade</h4>
-                        <div class="relative h-64 w-full"><canvas id="chart-pesquisa-barras"></canvas></div>
-                    </div>
+            <div id="dash-content" class="hidden w-full flex-col gap-6">
+                
+                <!-- KPIs Topo -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-center text-center">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
-                        <div class="text-5xl font-black text-white mb-2" id="dash-total-interacoes">0</div>
+                        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
+                        <div class="text-4xl font-black text-indigo-400" id="dash-total-interacoes">0</div>
+                    </div>
+                    <div class="lg:col-span-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribuição de Idades</h4>
+                        <div class="relative h-48 w-full"><canvas id="chart-pesquisa-idades"></canvas></div>
                     </div>
                 </div>
+
+                <!-- Gráficos Estáticos Secundários -->
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
                         <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Principais Motivos Relatados</h4>
                         <div class="relative h-64 w-full flex justify-center"><canvas id="chart-pesquisa-pizza"></canvas></div>
                     </div>
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center justify-center">
-                        <div class="text-center">
-                            <i class="fas fa-brain text-5xl text-indigo-500 mb-4 opacity-50"></i>
-                            <h4 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Análise de Sentimento</h4>
-                            <p class="text-xs text-slate-500">Integração futura com IA Gemini baseada nos textos.</p>
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribuição por Turno</h4>
+                        <div class="relative h-64 w-full flex justify-center"><canvas id="chart-pesquisa-turno"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Explorador de Dados Dinâmico -->
+                <div class="bg-slate-900/50 p-6 md:p-8 rounded-2xl border border-indigo-500/30 shadow-xl w-full">
+                    <h3 class="text-lg font-cinzel font-bold text-indigo-400 mb-2"><i class="fas fa-search-chart mr-2"></i> Explorador Dinâmico de Dados</h3>
+                    <p class="text-xs text-slate-400 mb-6">Cruze informações gerando gráficos baseados em perguntas específicas da pesquisa.</p>
+                    
+                    <div class="flex flex-col md:flex-row gap-4 mb-6">
+                        <select id="seletor-dinamico" class="w-full flex-grow bg-slate-800 border border-slate-700 text-white rounded-xl py-3 px-4 outline-none focus:border-indigo-500 font-bold">
+                            <option value="">Carregando perguntas disponíveis...</option>
+                        </select>
+                        <button onclick="window.gerarGraficoCruzado()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-8 py-3 rounded-xl transition-all shadow-lg whitespace-nowrap">
+                            <i class="fas fa-chart-bar mr-2"></i> Gerar Gráfico
+                        </button>
+                    </div>
+
+                    <div class="relative h-80 w-full bg-slate-800 rounded-xl p-4 border border-slate-700">
+                        <canvas id="chart-pesquisa-dinamico"></canvas>
+                        <div id="msg-dinamico" class="absolute inset-0 flex items-center justify-center bg-slate-800/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold">
+                            Selecione uma pergunta acima para cruzar os dados.
                         </div>
                     </div>
                 </div>
+
             </div>
         </div>
     `;
 
     try {
-        // Busca os dados reais da tabela alvo (ex: respostas_pesquisa)
-        const { data: respostas, error } = await supabase.from(tabelaAlvo).select('idade, motivo_frequente');
-        
-        if (error) throw error;
+        // 1. Busca os dados reais da tabela alvo (ex: respostas_pesquisa)
+        const { data: respostas, error: errResp } = await supabase.from(tabelaAlvo).select('*');
+        if (errResp) throw errResp;
 
+        // Armazena globalmente para não precisar baixar novamente ao trocar de gráfico dinâmico
+        window.pesquisaRespostasAtuais = respostas || [];
+
+        // 2. Busca a estrutura de perguntas do formulário para o Explorador Dinâmico
+        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
+        if (errPerg) throw errPerg;
+
+        const selectDinamico = document.getElementById('seletor-dinamico');
+        selectDinamico.innerHTML = '<option value="">-- Selecione uma pergunta para analisar --</option>';
+        if (perguntas) {
+            perguntas.forEach(p => {
+                selectDinamico.innerHTML += `<option value="${p.campo_chave}">${p.label_texto}</option>`;
+            });
+        }
+
+        // 3. Oculta Loading e Popula Dados Iniciais
         document.getElementById('dash-loading').classList.add('hidden');
         document.getElementById('dash-content').classList.remove('hidden');
-        document.getElementById('dash-total-interacoes').innerText = respostas.length;
+        document.getElementById('dash-total-interacoes').innerText = window.pesquisaRespostasAtuais.length;
 
-        // Processa dados para os gráficos
+        // Processa dados para os gráficos estáticos iniciais
         const contagemIdade = {};
         const contagemMotivo = {};
+        const contagemTurno = {};
 
-        respostas.forEach(r => {
+        window.pesquisaRespostasAtuais.forEach(r => {
             if (r.idade) contagemIdade[r.idade] = (contagemIdade[r.idade] || 0) + 1;
+            
             const motivo = r.motivo_frequente || 'Não Informado';
             contagemMotivo[motivo] = (contagemMotivo[motivo] || 0) + 1;
+
+            const turno = r.turno || 'Não Informado';
+            contagemTurno[turno] = (contagemTurno[turno] || 0) + 1;
         });
 
-        renderizarGraficos(contagemIdade, contagemMotivo);
+        renderizarGraficosEstaticos(contagemIdade, contagemMotivo, contagemTurno);
 
     } catch (err) {
         console.error("Erro ao puxar dados da pesquisa:", err);
@@ -376,21 +400,20 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
     }
 }
 
-function renderizarGraficos(dadosIdade, dadosMotivo) {
+function renderizarGraficosEstaticos(dadosIdade, dadosMotivo, dadosTurno) {
     Chart.defaults.color = '#94a3b8'; 
     Chart.defaults.font.family = 'Inter, sans-serif';
 
-    // Gráfico de Barras (Idades)
+    // 1. Gráfico de Barras (Idades)
     const idadesLabels = Object.keys(dadosIdade).sort((a, b) => parseInt(a) - parseInt(b));
     const idadesValores = idadesLabels.map(i => dadosIdade[i]);
 
-    const ctxBar = document.getElementById('chart-pesquisa-barras').getContext('2d');
-    new Chart(ctxBar, {
+    new Chart(document.getElementById('chart-pesquisa-idades').getContext('2d'), {
         type: 'bar',
         data: {
             labels: idadesLabels.map(i => `${i} Anos`),
             datasets: [{
-                label: 'Respondentes',
+                label: 'Respondentes por Idade',
                 data: idadesValores,
                 backgroundColor: '#6366f1', borderRadius: 4, barPercentage: 0.6
             }]
@@ -398,12 +421,11 @@ function renderizarGraficos(dadosIdade, dadosMotivo) {
         options: { responsive: true, maintainAspectRatio: false }
     });
 
-    // Gráfico de Pizza (Motivos)
+    // 2. Gráfico de Pizza (Motivos)
     const motivosLabels = Object.keys(dadosMotivo);
     const motivosValores = motivosLabels.map(m => dadosMotivo[m]);
 
-    const ctxPie = document.getElementById('chart-pesquisa-pizza').getContext('2d');
-    new Chart(ctxPie, {
+    new Chart(document.getElementById('chart-pesquisa-pizza').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: motivosLabels,
@@ -413,11 +435,95 @@ function renderizarGraficos(dadosIdade, dadosMotivo) {
                 borderWidth: 2, borderColor: '#1e293b'
             }]
         },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            cutout: '70%',
-            plugins: { legend: { position: 'left' } } 
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'left' } } }
+    });
+
+    // 3. Gráfico de Turno (Rosca)
+    const turnoLabels = Object.keys(dadosTurno);
+    const turnoValores = turnoLabels.map(t => dadosTurno[t]);
+
+    new Chart(document.getElementById('chart-pesquisa-turno').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: turnoLabels,
+            datasets: [{
+                data: turnoValores,
+                backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#94a3b8'],
+                borderWidth: 2, borderColor: '#1e293b'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+// =========================================================
+// LÓGICA DO EXPLORADOR DINÂMICO
+// =========================================================
+window.gerarGraficoCruzado = function() {
+    const select = document.getElementById('seletor-dinamico');
+    const campo = select.value;
+    
+    if (!campo) {
+        alert("Selecione uma pergunta primeiro.");
+        return;
+    }
+
+    const textoPergunta = select.options[select.selectedIndex].text;
+    const msgDinamico = document.getElementById('msg-dinamico');
+    msgDinamico.classList.add('hidden'); // Esconde a mensagem "Selecione uma pergunta"
+
+    // 1. Processa os dados já cacheados localmente na variável global
+    const contagemDinamica = {};
+    
+    window.pesquisaRespostasAtuais.forEach(r => {
+        let valor = r[campo];
+        
+        // Formata Booleanos para texto amigável
+        if (valor === true || valor === 'true') valor = 'Sim';
+        else if (valor === false || valor === 'false') valor = 'Não';
+        else if (valor === null || valor === undefined || valor === '') valor = 'Sem Resposta';
+
+        contagemDinamica[valor] = (contagemDinamica[valor] || 0) + 1;
+    });
+
+    const labels = Object.keys(contagemDinamica);
+    const valores = Object.values(contagemDinamica);
+
+    // 2. Destrói o gráfico anterior caso ele exista para não dar sobreposição no Canvas
+    if (window.chartDinamicoInstancia) {
+        window.chartDinamicoInstancia.destroy();
+    }
+
+    // 3. Renderiza o Novo Gráfico
+    const ctx = document.getElementById('chart-pesquisa-dinamico').getContext('2d');
+    window.chartDinamicoInstancia = new Chart(ctx, {
+        type: 'bar', // Barra horizontal é melhor para ler texto
+        data: {
+            labels: labels,
+            datasets: [{
+                label: `Quantidade de Respostas`,
+                data: valores,
+                backgroundColor: '#a855f7', // purple-500
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y', // Inverte o eixo X pelo Y (Barras deitadas)
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: textoPergunta,
+                    color: '#cbd5e1',
+                    font: { size: 14 }
+                },
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { color: '#334155' } },
+                y: { grid: { display: false } }
+            }
         }
     });
 }
