@@ -752,7 +752,7 @@ window.duplicarPesquisa = async function(pesquisaOriginal) {
 // =========================================================
 // MÓDULO DE RESPOSTA PÚBLICA (FORMULÁRIO)
 // =========================================================
-window.renderizarFormularioPesquisa = async function(tabelaAlvo, titulo, pesquisaId) {
+async function renderizarFormularioPesquisa(tabelaAlvo, titulo, pesquisaId) {
     
     const formContainer = document.getElementById('form-responder-pesquisa');
     
