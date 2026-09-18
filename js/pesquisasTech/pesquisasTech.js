@@ -969,6 +969,7 @@ window.salvarNovaPergunta = async function(e) {
         return;
     }
 
+    // Objeto limpo, enviando apenas colunas que existem no Supabase
     const novaPergunta = {
         label_texto: document.getElementById('perg-enunciado').value,
         campo_chave: document.getElementById('perg-chave').value,
@@ -976,9 +977,8 @@ window.salvarNovaPergunta = async function(e) {
         tamanho_max: parseInt(document.getElementById('perg-tamanho').value),
         opcoes: document.getElementById('perg-opcoes').value,
         ordem: 99, 
-        tipo_dado: document.getElementById('perg-tipo').value === 'INT' ? 'number' : 'select',
         colegio_id: 1,
-        pesquisa_id: parseInt(pesquisaId) // Vincula a pergunta à pesquisa atual
+        pesquisa_id: parseInt(pesquisaId) // Vincula a pergunta à pesquisa editada
     }; 
 
     const { error } = await supabase.from('perguntas_formulario').insert([novaPergunta]);
@@ -988,7 +988,7 @@ window.salvarNovaPergunta = async function(e) {
     } else {
         alert("Nova pergunta adicionada com sucesso!");
         document.getElementById('form-pergunta-crud').reset();
-        window.carregarEditorPerguntas(pesquisaId); // Atualiza a lista segmentada na tela
+        window.carregarEditorPerguntas(pesquisaId); // Atualiza a lista na tela imediatamente
     }
 }
 
