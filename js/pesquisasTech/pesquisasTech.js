@@ -193,68 +193,68 @@ async function carregarListaPesquisasDB() {
             listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
         } else {
             pesquisas.forEach(pesquisa => {
-            const isFechada = pesquisa.status === 'Fechada';
-            const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            
-            // LÓGICA DE BOTÕES: Se for gestor e estiver aberta, mostra 2 botões.
-            const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
-            
-            let botoesAcaoHtml = '';
-            if (isFechada) {
-                botoesAcaoHtml = `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
-                    class="bg-indigo-600 hover:bg-indigo-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-                    <i class="fas fa-chart-bar"></i> Ver Resultados Dashboard
-                </button>`;
-            } else {
-                botoesAcaoHtml = `<button onclick="window.renderizarFormularioPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}', ${pesquisa.id})" 
-                    class="bg-emerald-600 hover:bg-emerald-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mb-2">
-                    <i class="fas fa-edit"></i> Responder Pesquisa
-                </button>`;
+                const isFechada = pesquisa.status === 'Fechada';
+                const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 
-                // Se for gestor, adiciona o botão de ver resultados mesmo aberta
-                if (isGestor) {
-                    botoesAcaoHtml += `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
-                        class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white w-full font-bold text-[10px] uppercase tracking-widest py-2 rounded-xl transition-all flex justify-center items-center gap-2">
-                        <i class="fas fa-chart-line"></i> Acessar Dashboard (Admin)
+                // LÓGICA DE BOTÕES: Se for gestor e estiver aberta, mostra 2 botões.
+                const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
+                
+                let botoesAcaoHtml = '';
+                if (isFechada) {
+                    botoesAcaoHtml = `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
+                        class="bg-indigo-600 hover:bg-indigo-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
+                        <i class="fas fa-chart-bar"></i> Ver Resultados Dashboard
                     </button>`;
+                } else {
+                    botoesAcaoHtml = `<button onclick="window.renderizarFormularioPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}', ${pesquisa.id})" 
+                        class="bg-emerald-600 hover:bg-emerald-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mb-2">
+                        <i class="fas fa-edit"></i> Responder Pesquisa
+                    </button>`;
+                    
+                    // Se for gestor, adiciona o botão de ver resultados mesmo aberta
+                    if (isGestor) {
+                        botoesAcaoHtml += `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
+                            class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white w-full font-bold text-[10px] uppercase tracking-widest py-2 rounded-xl transition-all flex justify-center items-center gap-2">
+                            <i class="fas fa-chart-line"></i> Acessar Dashboard (Admin)
+                        </button>`;
+                    }
                 }
-            }
-            
-            listaContainer.innerHTML += `
-                <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
-                        <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
+                
+                listaContainer.innerHTML += `
+                    <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
+                            <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
+                        </div>
+                        <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
+                        <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
+                        <div class="flex flex-col w-full mt-auto">
+                            ${botoesAcaoHtml}
+                        </div>
                     </div>
-                    <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
-                    <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
-                    <div class="flex flex-col w-full mt-auto">
-                        ${botoesAcaoHtml}
-                    </div>
-                </div>
-            `;
-
-            if (tbodyCrud) {
-                const btnExcluir = window.canDeletePesquisa 
-                    ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
-                    : '';
-                const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
-
-                // NOVO: Adicionado botão de Duplicar
-                tbodyCrud.innerHTML += `
-                    <tr class="hover:bg-slate-800/50 transition-colors">
-                        <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
-                        <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
-                        <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
-                        <td class="p-4 text-right flex justify-end gap-2">
-                            <button onclick='window.duplicarPesquisa(${pData})' title="Duplicar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
-                            <button onclick='editarPesquisaSupabase(${pData})' title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
-                            ${btnExcluir}
-                        </td>
-                    </tr>
                 `;
-            }
-        });
+
+                if (tbodyCrud) {
+                    const btnExcluir = window.canDeletePesquisa 
+                        ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
+                        : '';
+                    const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
+
+                    // NOVO: Adicionado botão de Duplicar
+                    tbodyCrud.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
+                            <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
+                            <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
+                            <td class="p-4 text-right flex justify-end gap-2">
+                                <button onclick='window.duplicarPesquisa(${pData})' title="Duplicar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
+                                <button onclick='editarPesquisaSupabase(${pData})' title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                                ${btnExcluir}
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
         }
     } catch (err) {
         console.error("Erro ao buscar pesquisas:", err);
