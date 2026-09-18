@@ -16,7 +16,6 @@ export async function renderPesquisasTechTab() {
     const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
     const canDelete = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
 
-    // Alterado de max-w-7xl para w-full para aproveitar 100% da largura da tela
     container.innerHTML = `
         <div class="h-full flex flex-col w-full mx-auto pb-20">
             
@@ -25,7 +24,7 @@ export async function renderPesquisasTechTab() {
                     <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase">
                         <i class="fas fa-chart-pie text-indigo-500 mr-2"></i> Pesquisas Tech
                     </h2>
-                    <p class="text-slate-400 text-sm mt-1">Participe das pesquisas em andamento ou analise os relatórios interativos.</p>
+                    <p class="text-slate-400 text-sm mt-1">Participe das pesquisas em andamento ou analise os relatórios analíticos.</p>
                 </div>
                 
                 <div class="flex gap-3">
@@ -47,10 +46,15 @@ export async function renderPesquisasTechTab() {
 
                 <div id="lista-pesquisas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
                 
-                <div id="dashboard-pesquisa" class="hidden flex-col gap-6 w-full"></div>
+                <div id="dashboard-pesquisa" class="hidden flex-col gap-8 w-full"></div>
+                
+                <!-- CONTAINER NOVO: FORMULÁRIO DE RESPOSTA PÚBLICO -->
+                <div id="form-responder-pesquisa" class="hidden flex-col gap-6 w-full max-w-3xl mx-auto fade-in"></div>
 
                 ${isGestor ? `
                 <div id="crud-pesquisas" class="hidden flex-col gap-6 fade-in">
+                    
+                    <!-- CRIAR NOVA PESQUISA (CATÁLOGO) -->
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl shrink-0">
                         <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-6" id="form-crud-title">
                             <i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa
@@ -104,6 +108,48 @@ export async function renderPesquisasTechTab() {
                             <tbody id="crud-table-body" class="divide-y divide-slate-800"></tbody>
                         </table>
                     </div>
+
+                    <!-- CONSTRUTOR DE PERGUNTAS (ENGENHARIA DE DADOS) -->
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-emerald-500 shadow-xl mt-8">
+                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6">
+                            <i class="fas fa-database mr-2"></i> Construtor de Perguntas (Schema SQL)
+                        </h3>
+                        <form id="form-pergunta-crud" class="space-y-4">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Enunciado Completo da Pergunta</label>
+                                <input type="text" id="perg-enunciado" required placeholder="Ex: Qual o aplicativo que você mais utiliza?" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Campo Chave (Coluna SQL)</label>
+                                    <input type="text" id="perg-chave" required placeholder="ex: app_mais_usado" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none font-mono text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Dado</label>
+                                    <select id="perg-tipo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                        <option value="VARCHAR">Lista de Opções (VARCHAR)</option>
+                                        <option value="INT">Número Inteiro (INT)</option>
+                                        <option value="BOOLEAN">Sim/Não (BOOLEAN)</option>
+                                        <option value="TEXT">Texto Livre (TEXT)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tamanho Máximo</label>
+                                    <input type="number" id="perg-tamanho" value="100" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Opções de Resposta (separadas por vírgula)</label>
+                                <textarea id="perg-opcoes" rows="2" placeholder="Ex: WhatsApp, Instagram, TikTok" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none custom-scroll"></textarea>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-emerald-900/50">Adicionar Pergunta</button>
+                            </div>
+                        </form>
+
+                        <div id="lista-perguntas-container" class="mt-6 space-y-3 max-h-80 overflow-y-auto custom-scroll pr-2"></div>
+                    </div>
+
                 </div>` : ''}
             </div>
         </div>
@@ -115,7 +161,13 @@ export async function renderPesquisasTechTab() {
     if (isGestor) {
         document.getElementById('btn-toggle-crud').addEventListener('click', toggleCrudMode);
         document.getElementById('form-pesquisa-crud').addEventListener('submit', salvarPesquisaSupabase);
+        
+        // Listeners do Construtor de Perguntas
+        const formPergunta = document.getElementById('form-pergunta-crud');
+        if(formPergunta) formPergunta.addEventListener('submit', salvarNovaPergunta);
+        
         window.canDeletePesquisa = canDelete; 
+        carregarEditorPerguntas(); // Carrega as perguntas existentes na tela de gestão
     }
 }
 
@@ -274,8 +326,10 @@ window.excluirPesquisaSupabase = async function(id) {
 // =========================================================
 window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
     if (status === 'Aberta') {
-        window.open('https://kazenski.github.io/tecnicoTancredo/index.html', '_blank');
+        // Redireciona para o novo formulário renderizado dentro da própria página
+        renderizarFormularioPesquisa(tabelaAlvo, titulo);
     } else {
+        // Redireciona para o Dashboard Analítico
         abrirDashboardPesquisa(tabelaAlvo, titulo);
     }
 };
@@ -283,6 +337,13 @@ window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
 function voltarParaLista() {
     document.getElementById('dashboard-pesquisa').classList.add('hidden');
     document.getElementById('dashboard-pesquisa').innerHTML = ''; 
+    
+    const formContainer = document.getElementById('form-responder-pesquisa');
+    if(formContainer) {
+        formContainer.classList.add('hidden');
+        formContainer.innerHTML = ''; 
+    }
+
     document.getElementById('btn-voltar-pesquisas').classList.add('hidden');
     document.getElementById('lista-pesquisas').classList.remove('hidden');
 }
@@ -594,4 +655,222 @@ function renderizarGraficosEstaticos(dadosIdade, dadosMotivo, dadosTurno) {
         },
         options: { responsive: true, maintainAspectRatio: false, cutout: '50%', plugins: { legend: { position: 'bottom' } } }
     });
+}
+
+
+
+// =========================================================
+// MÓDULO DE RESPOSTA PÚBLICA (FORMULÁRIO)
+// =========================================================
+async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
+    const formContainer = document.getElementById('form-responder-pesquisa');
+    
+    document.getElementById('lista-pesquisas').classList.add('hidden');
+    document.getElementById('btn-voltar-pesquisas').classList.remove('hidden');
+    formContainer.classList.remove('hidden');
+
+    formContainer.innerHTML = `
+        <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full">
+            <div class="border-b border-slate-700 pb-4 mb-6 text-center md:text-left">
+                <h3 class="text-2xl font-cinzel font-bold text-emerald-400"><i class="fas fa-edit mr-2"></i> ${titulo}</h3>
+                <p class="text-sm text-slate-400 mt-2">Sua participação é confidencial e anônima.</p>
+            </div>
+
+            <form id="pesquisa-publica-form" class="space-y-6">
+                <!-- Seletor de Colégio -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-emerald-500/30">
+                    <label class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fas fa-school mr-1"></i> Selecione sua Instituição/Setor:</label>
+                    <select id="form-colegio" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">
+                        <option value="">Carregando instituições...</option>
+                    </select>
+                </div>
+
+                <div id="perguntas-dinamicas-container" class="space-y-6">
+                    <div class="text-center py-10 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-700 text-right">
+                    <button type="submit" id="btn-enviar-pesquisa" class="w-full md:w-auto px-10 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                        <i class="fas fa-paper-plane mr-2"></i> Enviar Resposta Anônima
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    try {
+        // 1. Carregar Colégios
+        const { data: colegios, error: errCol } = await supabase.from('colegios').select('*').order('nome');
+        if (errCol) throw errCol;
+        
+        const selColegio = document.getElementById('form-colegio');
+        selColegio.innerHTML = '<option value="">-- Selecione sua escola/setor --</option>';
+        (colegios || []).forEach(c => {
+            selColegio.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+
+        // 2. Carregar Perguntas do Construtor
+        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
+        if (errPerg) throw errPerg;
+
+        const contPerguntas = document.getElementById('perguntas-dinamicas-container');
+        contPerguntas.innerHTML = '';
+
+        if (!perguntas || perguntas.length === 0) {
+            contPerguntas.innerHTML = '<p class="text-amber-500 italic p-4 bg-slate-900 rounded-xl border border-slate-700">Nenhuma pergunta configurada no sistema.</p>';
+            return;
+        }
+
+        // 3. Renderizar Inputs Baseado no Tipo SQL
+        perguntas.forEach(p => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bg-slate-900/30 p-5 rounded-xl border border-slate-700';
+
+            const label = document.createElement('label');
+            label.className = 'block text-sm font-bold text-slate-300 mb-3';
+            label.innerText = p.label_texto;
+            wrapper.appendChild(label);
+
+            let inputElement;
+
+            if (p.tipo_sql === 'INT') {
+                inputElement = `<input type="number" name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">`;
+            } 
+            else if (p.tipo_sql === 'TEXT') {
+                inputElement = `<textarea name="${p.campo_chave}" required rows="3" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500 custom-scroll"></textarea>`;
+            } 
+            else {
+                // VARCHAR / BOOLEAN (Selects)
+                let optionsHtml = '<option value="">Selecione...</option>';
+                const listaOpcoes = p.opcoes ? p.opcoes.split(',').map(o => o.trim()) : [];
+                
+                listaOpcoes.forEach(opText => {
+                    // Lógica legada do seu app.js para booleanos
+                    let valor = opText;
+                    if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda') {
+                        valor = opText.toLowerCase() === 'sim' ? 'true' : 'false';
+                    }
+                    optionsHtml += `<option value="${valor}">${opText}</option>`;
+                });
+                
+                inputElement = `<select name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">${optionsHtml}</select>`;
+            }
+
+            wrapper.innerHTML += inputElement;
+            contPerguntas.appendChild(wrapper);
+        });
+
+        // 4. Configurar o Submit do Formulário
+        document.getElementById('pesquisa-publica-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-enviar-pesquisa');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
+
+            const formData = new FormData(this);
+            const dados = Object.fromEntries(formData.entries());
+
+            // Pega o ID e Nome do colégio
+            const seletor = document.getElementById('form-colegio');
+            dados.colegio_id = parseInt(seletor.value);
+            dados.colegio_nome = seletor.options[seletor.selectedIndex].text;
+
+            // Formatação de Tipos (Legado)
+            if (dados.idade) dados.idade = parseInt(dados.idade);
+            if (dados.foi_vitima) dados.foi_vitima = dados.foi_vitima === 'true';
+            if (dados.sabe_pedir_ajuda) dados.sabe_pedir_ajuda = dados.sabe_pedir_ajuda === 'true';
+
+            try {
+                // INSERT DINÂMICO NA TABELA DA PESQUISA SELECIONADA
+                const { error } = await supabase.from(tabelaAlvo).insert([dados]);
+                if (error) throw error;
+                
+                alert("✅ Resposta enviada com sucesso! Muito obrigado pela participação.");
+                voltarParaLista(); // Volta para o grid principal
+            } catch (error) {
+                console.error("Erro ao salvar resposta:", error);
+                alert("❌ Erro ao enviar a resposta. Tente novamente.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Enviar Resposta Anônima';
+            }
+        });
+
+    } catch (err) {
+        console.error("Erro ao carregar o formulário:", err);
+        document.getElementById('perguntas-dinamicas-container').innerHTML = '<p class="text-red-400">Erro ao processar as perguntas do formulário.</p>';
+    }
+}
+
+// =========================================================
+// MÓDULO DO CONSTRUTOR DE PERGUNTAS (SCHEMA SQL)
+// =========================================================
+async function carregarEditorPerguntas() {
+    const container = document.getElementById('lista-perguntas-container');
+    if (!container) return;
+
+    const { data: perguntas, error } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
+    
+    if (error) {
+        container.innerHTML = '<p class="text-red-400">Erro ao carregar estrutura do formulário.</p>';
+        return;
+    }
+
+    container.innerHTML = '';
+    (perguntas || []).forEach(p => {
+        // Exibe o botão de exclusão apenas se o usuário for Admin/Professor/Coordenação
+        const btnExcluir = window.canDeletePesquisa ? `<button onclick="excluirPergunta('${p.campo_chave}')" class="text-red-400 hover:text-red-300 ml-auto"><i class="fas fa-trash"></i></button>` : '';
+        
+        container.innerHTML += `
+            <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col gap-2">
+                <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                    <span class="text-emerald-400 font-mono text-sm font-bold">${p.campo_chave}</span>
+                    <span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold">${p.tipo_sql} (${p.tamanho_max})</span>
+                    ${btnExcluir}
+                </div>
+                <div class="text-white text-sm">${p.label_texto}</div>
+                <div class="text-slate-500 text-xs italic">${p.opcoes ? 'Opções: ' + p.opcoes : 'Campo de entrada livre'}</div>
+            </div>
+        `;
+    });
+}
+
+window.salvarNovaPergunta = async function(e) {
+    e.preventDefault();
+    const novaPergunta = {
+        label_texto: document.getElementById('perg-enunciado').value,
+        campo_chave: document.getElementById('perg-chave').value,
+        tipo_sql: document.getElementById('perg-tipo').value,
+        tamanho_max: parseInt(document.getElementById('perg-tamanho').value),
+        opcoes: document.getElementById('perg-opcoes').value,
+        ordem: 99, 
+        tipo_dado: document.getElementById('perg-tipo').value === 'INT' ? 'number' : 'select',
+        colegio_id: 1 // Mantendo o padrão do seu app.js antigo
+    };
+
+    const { error } = await supabase.from('perguntas_formulario').insert([novaPergunta]);
+    if (error) {
+        console.error("Erro ao inserir pergunta:", error);
+        alert("Erro ao inserir pergunta no Schema do Supabase.");
+    } else {
+        alert("Nova pergunta adicionada com sucesso!");
+        document.getElementById('form-pergunta-crud').reset();
+        carregarEditorPerguntas(); // Atualiza a lista na tela
+    }
+}
+
+window.excluirPergunta = async function(campoChave) {
+    if (!window.canDeletePesquisa) {
+        alert("Acesso Negado: Você não tem permissão para excluir.");
+        return;
+    }
+    
+    if (confirm(`Deseja apagar a pergunta '${campoChave}' do banco de dados?`)) {
+        const { error } = await supabase.from('perguntas_formulario').delete().eq('campo_chave', campoChave);
+        if (error) {
+            console.error("Erro ao excluir pergunta:", error);
+            alert("Erro ao excluir a pergunta.");
+        } else {
+            carregarEditorPerguntas(); // Atualiza a lista na tela
+        }
+    }
 }
