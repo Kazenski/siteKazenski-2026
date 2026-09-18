@@ -845,7 +845,7 @@ window.salvarNovaPergunta = async function(e) {
         ordem: 99, 
         tipo_dado: document.getElementById('perg-tipo').value === 'INT' ? 'number' : 'select',
         colegio_id: 1 // Mantendo o padrão do seu app.js antigo
-    };
+    }; 
 
     const { error } = await supabase.from('perguntas_formulario').insert([novaPergunta]);
     if (error) {
