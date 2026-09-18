@@ -14,354 +14,254 @@ export async function renderPesquisasTechTab() {
     if (!container) return;
 
     const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
-    window.canDeletePesquisa = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+    const canDelete = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
 
     container.innerHTML = `
-        <div class="h-full flex flex-col w-full mx-auto pb-20 relative">
+        <div class="h-full flex flex-col w-full mx-auto pb-20">
             
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-4 shrink-0">
                 <div>
                     <h2 class="text-2xl md:text-3xl font-cinzel font-black text-white tracking-widest uppercase">
                         <i class="fas fa-chart-pie text-indigo-500 mr-2"></i> Pesquisas Tech
                     </h2>
-                    <p class="text-slate-400 text-sm mt-1">Gestão inteligente de pesquisas e relatórios.</p>
+                    <p class="text-slate-400 text-sm mt-1">Participe das pesquisas em andamento ou analise os relatórios analíticos.</p>
                 </div>
                 
                 <div class="flex gap-3">
-                    <button id="btn-voltar-global" onclick="voltarParaPublico()" class="hidden px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2 border border-slate-700 shadow-lg">
+                    <button id="btn-voltar-pesquisas" class="hidden px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2 border border-slate-700 shadow-lg">
                         <i class="fas fa-arrow-left"></i> Voltar
                     </button>
                     ${isGestor ? `
-                    <button id="btn-toggle-crud" onclick="toggleCrudMode()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+                    <button id="btn-toggle-crud" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)]">
                         <i class="fas fa-cog"></i> Gestão
                     </button>` : ''}
                 </div>
             </div>
 
             <div id="pesquisas-main-area" class="flex-grow fade-in relative">
-                <div id="loading-pesquisas" class="hidden absolute inset-0 flex-col items-center justify-center text-slate-500 z-10 bg-slate-950/80 backdrop-blur-sm">
+                <div id="loading-pesquisas" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10">
                     <i class="fas fa-circle-notch fa-spin text-4xl mb-4 text-indigo-500"></i>
-                    <p class="font-cinzel tracking-widest uppercase text-sm">Processando...</p>
+                    <p class="font-cinzel tracking-widest uppercase text-sm">Conectando ao Supabase...</p>
                 </div>
 
-                <!-- 1. VISÃO PÚBLICA (Cards) -->
-                <div id="visao-publica" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+                <div id="lista-pesquisas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
                 
-                <!-- 2. DASHBOARD & FORMULÁRIO -->
-                <div id="visao-dashboard" class="hidden flex-col gap-8 w-full"></div>
-                <div id="visao-formulario" class="hidden flex-col gap-6 w-full max-w-3xl mx-auto fade-in"></div>
+                <div id="dashboard-pesquisa" class="hidden flex-col gap-8 w-full"></div>
+                
+                <!-- CONTAINER NOVO: FORMULÁRIO DE RESPOSTA PÚBLICO -->
+                <div id="form-responder-pesquisa" class="hidden flex-col gap-6 w-full max-w-3xl mx-auto fade-in"></div>
 
                 ${isGestor ? `
-                <!-- 3. GESTÃO DE PESQUISAS (Mestre) -->
-                <div id="visao-gestao-pesquisas" class="hidden flex-col gap-6 fade-in">
+                <div id="crud-pesquisas" class="hidden flex-col gap-6 fade-in">
+                    
+                    <!-- CRIAR NOVA PESQUISA (CATÁLOGO) -->
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl shrink-0">
-                        <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-4" id="form-pesquisa-title"><i class="fas fa-plus-circle mr-2"></i> Nova Pesquisa</h3>
-                        <form id="form-pesquisa" onsubmit="salvarPesquisa(event)" class="space-y-4">
-                            <input type="hidden" id="p-id">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="md:col-span-2">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Título</label>
-                                    <input type="text" id="p-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                        <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-6" id="form-crud-title">
+                            <i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa
+                        </h3>
+                        <form id="form-pesquisa-crud" class="space-y-4">
+                            <input type="hidden" id="crud-id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Título da Pesquisa</label>
+                                    <input type="text" id="crud-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tabela Alvo (Supabase)</label>
+                                    <input type="text" id="crud-tabela" required placeholder="Ex: respostas_pesquisa" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Período / Referência</label>
+                                    <input type="text" id="crud-data" required placeholder="Ex: Q1 2026 ou Março 2026" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</label>
-                                    <select id="p-status" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                    <select id="crud-status" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
                                         <option value="Aberta">Aberta (Coletando)</option>
-                                        <option value="Fechada">Fechada (Apenas Dash)</option>
+                                        <option value="Fechada">Fechada (Apenas Dashboard)</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="md:col-span-1">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Período</label>
-                                    <input type="text" id="p-data" required placeholder="Ex: Q1 2026" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
-                                </div>
-                                <div class="md:col-span-2">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição</label>
-                                    <input type="text" id="p-desc" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
-                                </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição</label>
+                                <textarea id="crud-descricao" required rows="2" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none custom-scroll"></textarea>
                             </div>
-                            <div class="flex justify-end gap-3 pt-2">
+                            <div class="flex justify-end gap-3 pt-2 border-t border-slate-700">
                                 <button type="button" onclick="limparFormPesquisa()" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Limpar</button>
-                                <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg">Salvar</button>
+                                <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar Pesquisa</button>
                             </div>
                         </form>
                     </div>
-                    <div class="overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl min-h-[300px]">
+
+                    <div class="flex-grow overflow-y-auto custom-scroll rounded-2xl border border-slate-700 bg-slate-900/50 shadow-xl relative min-h-[300px]">
                         <table class="w-full text-sm text-left border-collapse">
-                            <thead class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest">
+                            <thead class="bg-slate-800 text-slate-400 uppercase text-[10px] tracking-widest sticky top-0">
                                 <tr>
-                                    <th class="p-4">Título da Pesquisa</th>
+                                    <th class="p-4">Título</th>
+                                    <th class="p-4 text-center">Tabela Supabase</th>
                                     <th class="p-4 text-center">Status</th>
-                                    <th class="p-4 text-right">Ações de Gestão</th>
+                                    <th class="p-4 text-right">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabela-pesquisas" class="divide-y divide-slate-800"></tbody>
+                            <tbody id="crud-table-body" class="divide-y divide-slate-800"></tbody>
                         </table>
                     </div>
-                </div>
 
-                <!-- 4. GESTÃO DE PERGUNTAS (Detalhe) -->
-                <div id="visao-gestao-perguntas" class="hidden flex-col gap-6 fade-in">
-                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-emerald-500 shadow-xl">
-                        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+                    <!-- CONSTRUTOR DE PERGUNTAS (ENGENHARIA DE DADOS) -->
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-emerald-500 shadow-xl mt-8">
+                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6">
+                            <i class="fas fa-database mr-2"></i> Construtor de Perguntas (Schema SQL)
+                        </h3>
+                        <form id="form-pergunta-crud" class="space-y-4">
                             <div>
-                                <button onclick="voltarParaGestaoPesquisas()" class="text-slate-400 hover:text-white text-xs font-bold uppercase tracking-widest mb-2 flex items-center gap-1"><i class="fas fa-arrow-left"></i> Voltar às Pesquisas</button>
-                                <h3 class="text-emerald-400 font-cinzel font-bold text-xl" id="form-pergunta-title"><i class="fas fa-list-ol mr-2"></i> Perguntas: <span id="lbl-pesquisa-atual" class="text-white"></span></h3>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Enunciado Completo da Pergunta</label>
+                                <input type="text" id="perg-enunciado" required placeholder="Ex: Qual o aplicativo que você mais utiliza?" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
                             </div>
-                        </div>
-                        <form id="form-pergunta" onsubmit="salvarPergunta(event)" class="space-y-4">
-                            <input type="hidden" id="q-pesquisa-id">
-                            <input type="hidden" id="q-id">
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="md:col-span-3">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Enunciado</label>
-                                    <input type="text" id="q-texto" required placeholder="Ex: Qual sua idade?" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                                </div>
-                                <div class="md:col-span-1">
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ordem</label>
-                                    <input type="number" id="q-ordem" value="1" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                                </div>
-                            </div>
-
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Chave (Ex: idade_aluno)</label>
-                                    <input type="text" id="q-chave" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none font-mono text-sm lowercase">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Campo Chave (Coluna SQL)</label>
+                                    <input type="text" id="perg-chave" required placeholder="ex: app_mais_usado" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none font-mono text-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Resposta</label>
-                                    <select id="q-tipo" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                                        <option value="VARCHAR">Opções (Select)</option>
-                                        <option value="INT">Número</option>
-                                        <option value="TEXT">Texto Livre</option>
-                                        <option value="BOOLEAN">Sim / Não</option>
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Dado</label>
+                                    <select id="perg-tipo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                        <option value="VARCHAR">Lista de Opções (VARCHAR)</option>
+                                        <option value="INT">Número Inteiro (INT)</option>
+                                        <option value="BOOLEAN">Sim/Não (BOOLEAN)</option>
+                                        <option value="TEXT">Texto Livre (TEXT)</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Opções (Separar por vírgula)</label>
-                                    <input type="text" id="q-opcoes" placeholder="Ex: Matutino, Vespertino" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
+                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tamanho Máximo</label>
+                                    <input type="number" id="perg-tamanho" value="100" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
                                 </div>
                             </div>
-                            <div class="flex justify-end gap-3 pt-2">
-                                <button type="button" onclick="limparFormPergunta()" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Limpar</button>
-                                <button type="submit" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg">Adicionar Pergunta</button>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Opções de Resposta (separadas por vírgula)</label>
+                                <textarea id="perg-opcoes" rows="2" placeholder="Ex: WhatsApp, Instagram, TikTok" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none custom-scroll"></textarea>
+                            </div>
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-emerald-900/50">Adicionar Pergunta</button>
                             </div>
                         </form>
+
+                        <div id="lista-perguntas-container" class="mt-6 space-y-3 max-h-80 overflow-y-auto custom-scroll pr-2"></div>
                     </div>
 
-                    <div id="lista-perguntas" class="space-y-3 max-h-[500px] overflow-y-auto custom-scroll pr-2 mt-4"></div>
                 </div>` : ''}
             </div>
         </div>
     `;
 
-    // Expõe as funções globalmente para o HTML rodar
-    window.toggleCrudMode = toggleCrudMode;
-    window.voltarParaPublico = voltarParaPublico;
-    window.limparFormPesquisa = limparFormPesquisa;
-    window.salvarPesquisa = salvarPesquisa;
-    window.editarPesquisa = editarPesquisa;
-    window.excluirPesquisa = excluirPesquisa;
-    window.clonarPesquisa = clonarPesquisa;
+    await carregarListaPesquisasDB();
+    document.getElementById('btn-voltar-pesquisas').addEventListener('click', voltarParaLista);
     
-    window.abrirGestaoPerguntas = abrirGestaoPerguntas;
-    window.voltarParaGestaoPesquisas = voltarParaGestaoPesquisas;
-    window.limparFormPergunta = limparFormPergunta;
-    window.salvarPergunta = salvarPergunta;
-    window.editarPergunta = editarPergunta;
-    window.excluirPergunta = excluirPergunta;
-
-    window.abrirAcaoPesquisa = abrirAcaoPesquisa;
-
-    await carregarVisaoPublica();
-}
-
-
-
-// =========================================================
-// CRUD PESQUISAS MESTRE & VISÃO PÚBLICA
-// =========================================================
-async function carregarVisaoPublica() {
-    showLoading(true);
-    const container = document.getElementById('visao-publica');
-    try {
-        const { data, error } = await supabase.from('pesquisas_mestre').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
+    if (isGestor) {
+        document.getElementById('btn-toggle-crud').addEventListener('click', toggleCrudMode);
+        document.getElementById('form-pesquisa-crud').addEventListener('submit', salvarPesquisaSupabase);
         
-        container.innerHTML = '';
-        (data || []).forEach(p => {
-            const isFechada = p.status === 'Fechada';
-            const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            const btnColor = isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500';
-            const icon = isFechada ? 'fa-chart-bar' : 'fa-edit';
-            
-            container.innerHTML += `
-                <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col">
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${p.status}</span>
-                        <span class="text-xs text-slate-500 font-bold">${p.data_referencia}</span>
-                    </div>
-                    <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${p.titulo}</h3>
-                    <p class="text-sm text-slate-400 mb-6 flex-grow">${p.descricao}</p>
-                    <button onclick="window.abrirAcaoPesquisa('${p.id}', '${p.status}', '${p.titulo}')" class="${btnColor} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-                        <i class="fas ${icon}"></i> ${isFechada ? 'Ver Resultados' : 'Responder'}
-                    </button>
-                </div>
-            `;
-        });
-    } catch (e) { console.error(e); }
-    showLoading(false);
-}
-
-async function carregarTabelaPesquisas() {
-    showLoading(true);
-    const tbody = document.getElementById('tabela-pesquisas');
-    try {
-        const { data, error } = await supabase.from('pesquisas_mestre').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
+        // Listeners do Construtor de Perguntas
+        const formPergunta = document.getElementById('form-pergunta-crud');
+        if(formPergunta) formPergunta.addEventListener('submit', salvarNovaPergunta);
         
-        tbody.innerHTML = '';
-        (data || []).forEach(p => {
-            const pData = JSON.stringify(p).replace(/'/g, "\\'");
-            const btnExcluir = window.canDeletePesquisa ? `<button onclick="excluirPesquisa('${p.id}')" title="Excluir" class="text-red-400 hover:bg-red-400/10 px-3 py-1.5 rounded-lg"><i class="fas fa-trash"></i></button>` : '';
-
-            tbody.innerHTML += `
-                <tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-800">
-                    <td class="p-4">
-                        <div class="text-white font-bold">${p.titulo}</div>
-                        <div class="text-xs text-slate-500">${p.data_referencia}</div>
-                    </td>
-                    <td class="p-4 text-center">
-                        <span class="bg-slate-700 px-2 py-1 rounded-md text-[10px] font-bold uppercase text-white">${p.status}</span>
-                    </td>
-                    <td class="p-4 text-right flex justify-end gap-2">
-                        <button onclick="abrirGestaoPerguntas('${p.id}', '${p.titulo}')" title="Gerenciar Perguntas" class="text-emerald-400 hover:bg-emerald-400/10 px-3 py-1.5 rounded-lg border border-emerald-500/30"><i class="fas fa-list-ol mr-1"></i> Perguntas</button>
-                        <button onclick="clonarPesquisa('${p.id}')" title="Clonar Pesquisa" class="text-amber-400 hover:bg-amber-400/10 px-3 py-1.5 rounded-lg"><i class="fas fa-copy"></i></button>
-                        <button onclick='editarPesquisa(${pData})' title="Editar" class="text-indigo-400 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg"><i class="fas fa-edit"></i></button>
-                        ${btnExcluir}
-                    </td>
-                </tr>
-            `;
-        });
-    } catch (e) { console.error(e); }
-    showLoading(false);
-}
-
-function limparFormPesquisa() {
-    document.getElementById('form-pesquisa').reset();
-    document.getElementById('p-id').value = '';
-    document.getElementById('form-pesquisa-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Nova Pesquisa';
+        window.canDeletePesquisa = canDelete; 
+        carregarEditorPerguntas(); // Carrega as perguntas existentes na tela de gestão
+    }
 }
 
 // =========================================================
 // RENDERIZAÇÃO DA LISTA DE PESQUISAS
 // =========================================================
-// async function carregarListaPesquisasDB() {
-//     const listaContainer = document.getElementById('lista-pesquisas');
-//     const loading = document.getElementById('loading-pesquisas');
-//     const tbodyCrud = document.getElementById('crud-table-body');
+async function carregarListaPesquisasDB() {
+    const listaContainer = document.getElementById('lista-pesquisas');
+    const loading = document.getElementById('loading-pesquisas');
+    const tbodyCrud = document.getElementById('crud-table-body');
 
-//     try {
-//         const { data: pesquisas, error } = await supabase.from('pesquisas_lista').select('*').order('id', { ascending: true });
-//         if (error) throw error;
+    try {
+        const { data: pesquisas, error } = await supabase.from('pesquisas_lista').select('*').order('id', { ascending: true });
+        if (error) throw error;
 
-//         listaContainer.innerHTML = ''; 
-//         if (tbodyCrud) tbodyCrud.innerHTML = '';
+        listaContainer.innerHTML = ''; 
+        if (tbodyCrud) tbodyCrud.innerHTML = '';
 
-//         if (!pesquisas || pesquisas.length === 0) {
-//             listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
-//         } else {
-//             pesquisas.forEach(pesquisa => {
-//                 const isFechada = pesquisa.status === 'Fechada';
-//                 const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        if (!pesquisas || pesquisas.length === 0) {
+            listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
+        } else {
+            pesquisas.forEach(pesquisa => {
+                const isFechada = pesquisa.status === 'Fechada';
+                const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 
-//                 listaContainer.innerHTML += `
-//                     <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
-//                         <div class="flex justify-between items-start mb-4">
-//                             <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
-//                             <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
-//                         </div>
-//                         <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
-//                         <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
-//                         <button onclick="window.abrirAcaoPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.status}', '${pesquisa.titulo}')" 
-//                             class="${isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-//                             <i class="fas ${isFechada ? 'fa-chart-bar' : 'fa-edit'}"></i> ${isFechada ? 'Ver Resultados' : 'Responder Pesquisa'}
-//                         </button>
-//                     </div>
-//                 `;
+                listaContainer.innerHTML += `
+                    <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
+                        <div class="flex justify-between items-start mb-4">
+                            <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
+                            <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
+                        </div>
+                        <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
+                        <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
+                        <button onclick="window.abrirAcaoPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.status}', '${pesquisa.titulo}')" 
+                            class="${isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
+                            <i class="fas ${isFechada ? 'fa-chart-bar' : 'fa-edit'}"></i> ${isFechada ? 'Ver Resultados' : 'Responder Pesquisa'}
+                        </button>
+                    </div>
+                `;
 
-//                 if (tbodyCrud) {
-//                     const btnExcluir = window.canDeletePesquisa 
-//                         ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
-//                         : '';
-//                     const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
+                if (tbodyCrud) {
+                    const btnExcluir = window.canDeletePesquisa 
+                        ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
+                        : '';
+                    const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
 
-//                     tbodyCrud.innerHTML += `
-//                         <tr class="hover:bg-slate-800/50 transition-colors">
-//                             <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
-//                             <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
-//                             <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
-//                             <td class="p-4 text-right flex justify-end gap-2">
-//                                 <button onclick='editarPesquisaSupabase(${pData})' class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
-//                                 ${btnExcluir}
-//                             </td>
-//                         </tr>
-//                     `;
-//                 }
-//             });
-//         }
-//     } catch (err) {
-//         console.error("Erro ao buscar pesquisas:", err);
-//     }
+                    tbodyCrud.innerHTML += `
+                        <tr class="hover:bg-slate-800/50 transition-colors">
+                            <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
+                            <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
+                            <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
+                            <td class="p-4 text-right flex justify-end gap-2">
+                                <button onclick='editarPesquisaSupabase(${pData})' class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                                ${btnExcluir}
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+        }
+    } catch (err) {
+        console.error("Erro ao buscar pesquisas:", err);
+    }
 
-//     loading.classList.add('hidden');
-//     listaContainer.classList.remove('hidden');
-// }
+    loading.classList.add('hidden');
+    listaContainer.classList.remove('hidden');
+}
 
 // =========================================================
 // FUNÇÕES DE CRUD (ADMIN)
 // =========================================================
 function toggleCrudMode() {
+    const lista = document.getElementById('lista-pesquisas');
+    const crud = document.getElementById('crud-pesquisas');
     const btn = document.getElementById('btn-toggle-crud');
-    if (document.getElementById('visao-gestao-pesquisas').classList.contains('hidden')) {
-        hideAllViews();
-        document.getElementById('visao-gestao-pesquisas').classList.remove('hidden');
-        btn.innerHTML = '<i class="fas fa-th-large"></i> Visão Pública';
-        btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
-        carregarTabelaPesquisas();
-    } else {
-        voltarParaPublico();
+
+    if (lista.classList.contains('hidden')) {
+        lista.classList.remove('hidden');
+        crud.classList.add('hidden');
         btn.innerHTML = '<i class="fas fa-cog"></i> Gestão';
         btn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+    } else {
+        lista.classList.add('hidden');
+        crud.classList.remove('hidden');
+        btn.innerHTML = '<i class="fas fa-th-large"></i> Visão Pública';
+        btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
     }
 }
 
-function voltarParaPublico() {
-    hideAllViews();
-    document.getElementById('btn-voltar-global').classList.add('hidden');
-    document.getElementById('visao-publica').classList.remove('hidden');
-    carregarVisaoPublica();
+window.limparFormPesquisa = function() {
+    document.getElementById('form-pesquisa-crud').reset();
+    document.getElementById('crud-id').value = '';
+    document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
 }
-
-function hideAllViews() {
-    ['visao-publica', 'visao-dashboard', 'visao-formulario', 'visao-gestao-pesquisas', 'visao-gestao-perguntas'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    });
-}
-
-function showLoading(show) {
-    const el = document.getElementById('loading-pesquisas');
-    if(el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
-}
-
-// window.limparFormPesquisa = function() {
-//     document.getElementById('form-pesquisa-crud').reset();
-//     document.getElementById('crud-id').value = '';
-//     document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
-// }
 
 window.editarPesquisaSupabase = function(pesquisa) {
     document.getElementById('crud-id').value = pesquisa.id;
@@ -375,81 +275,33 @@ window.editarPesquisaSupabase = function(pesquisa) {
     document.getElementById('crud-pesquisas').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function salvarPesquisa(e) {
+async function salvarPesquisaSupabase(e) {
     e.preventDefault();
-    showLoading(true);
-    const id = document.getElementById('p-id').value;
-    const payload = {
-        titulo: document.getElementById('p-titulo').value,
-        status: document.getElementById('p-status').value,
-        data_referencia: document.getElementById('p-data').value,
-        descricao: document.getElementById('p-desc').value
+    const id = document.getElementById('crud-id').value;
+    const dados = {
+        titulo: document.getElementById('crud-titulo').value,
+        tabela_respostas_alvo: document.getElementById('crud-tabela').value,
+        data_referencia: document.getElementById('crud-data').value,
+        status: document.getElementById('crud-status').value,
+        descricao: document.getElementById('crud-descricao').value
     };
 
     try {
-        if (id) await supabase.from('pesquisas_mestre').update(payload).eq('id', id);
-        else await supabase.from('pesquisas_mestre').insert([payload]);
-        limparFormPesquisa();
-        await carregarTabelaPesquisas();
-    } catch (e) { console.error(e); alert("Erro ao salvar."); }
-    showLoading(false);
-}
-
-function editarPesquisa(p) {
-    document.getElementById('p-id').value = p.id;
-    document.getElementById('p-titulo').value = p.titulo;
-    document.getElementById('p-status').value = p.status;
-    document.getElementById('p-data').value = p.data_referencia;
-    document.getElementById('p-desc').value = p.descricao;
-    document.getElementById('form-pesquisa-title').innerHTML = '<i class="fas fa-edit mr-2 text-amber-500"></i> Editando Pesquisa';
-    document.getElementById('visao-gestao-pesquisas').scrollIntoView();
-}
-
-async function excluirPesquisa(id) {
-    if (!window.canDeletePesquisa) return;
-    if (confirm("EXCLUIR PESQUISA?\nIsso apagará todas as perguntas e respostas atreladas a ela permanentemente.")) {
-        showLoading(true);
-        await supabase.from('pesquisas_mestre').delete().eq('id', id);
-        await carregarTabelaPesquisas();
-    }
-}
-
-async function clonarPesquisa(idOriginal) {
-    if (!confirm("Deseja clonar esta pesquisa e todas as suas perguntas?")) return;
-    showLoading(true);
-    try {
-        // 1. Busca a pesquisa original
-        const { data: pesqOrig } = await supabase.from('pesquisas_mestre').select('*').eq('id', idOriginal).single();
-        // 2. Insere a nova pesquisa
-        const { data: novaPesq } = await supabase.from('pesquisas_mestre').insert([{
-            titulo: pesqOrig.titulo + ' (Cópia)',
-            descricao: pesqOrig.descricao,
-            status: 'Aberta',
-            data_referencia: pesqOrig.data_referencia
-        }]).select().single();
-
-        // 3. Busca perguntas originais
-        const { data: pergsOrig } = await supabase.from('perguntas_mestre').select('*').eq('pesquisa_id', idOriginal);
-        
-        // 4. Clona as perguntas apontando para o novo ID
-        if (pergsOrig && pergsOrig.length > 0) {
-            const novasPergs = pergsOrig.map(p => ({
-                pesquisa_id: novaPesq.id,
-                ordem: p.ordem,
-                label_texto: p.label_texto,
-                campo_chave: p.campo_chave,
-                tipo_sql: p.tipo_sql,
-                opcoes: p.opcoes
-            }));
-            await supabase.from('perguntas_mestre').insert(novasPergs);
+        if (id) {
+            const { error } = await supabase.from('pesquisas_lista').update(dados).eq('id', id);
+            if (error) throw error;
+            alert("Pesquisa atualizada com sucesso!");
+        } else {
+            const { error } = await supabase.from('pesquisas_lista').insert([dados]);
+            if (error) throw error;
+            alert("Nova pesquisa criada com sucesso!");
         }
-        await carregarTabelaPesquisas();
-        alert("Pesquisa clonada com sucesso!");
-    } catch (e) {
-        console.error(e);
-        alert("Erro ao clonar.");
+        limparFormPesquisa();
+        await carregarListaPesquisasDB();
+    } catch (error) {
+        console.error("Erro ao salvar:", error);
+        alert("Ocorreu um erro ao salvar a pesquisa no Supabase.");
     }
-    showLoading(false);
 }
 
 window.excluirPesquisaSupabase = async function(id) {
@@ -472,15 +324,15 @@ window.excluirPesquisaSupabase = async function(id) {
 // =========================================================
 // DASHBOARD ANALÍTICO (GRÁFICOS E CRUZAMENTO DE DADOS)
 // =========================================================
-// window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
-//     if (status === 'Aberta') {
-//         // Redireciona para o novo formulário renderizado dentro da própria página
-//         renderizarFormularioPesquisa(tabelaAlvo, titulo);
-//     } else {
-//         // Redireciona para o Dashboard Analítico
-//         abrirDashboardPesquisa(tabelaAlvo, titulo);
-//     }
-// };
+window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
+    if (status === 'Aberta') {
+        // Redireciona para o novo formulário renderizado dentro da própria página
+        renderizarFormularioPesquisa(tabelaAlvo, titulo);
+    } else {
+        // Redireciona para o Dashboard Analítico
+        abrirDashboardPesquisa(tabelaAlvo, titulo);
+    }
+};
 
 function voltarParaLista() {
     document.getElementById('dashboard-pesquisa').classList.add('hidden');
@@ -806,6 +658,149 @@ function renderizarGraficosEstaticos(dadosIdade, dadosMotivo, dadosTurno) {
 }
 
 
+
+// =========================================================
+// MÓDULO DE RESPOSTA PÚBLICA (FORMULÁRIO)
+// =========================================================
+async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
+    const formContainer = document.getElementById('form-responder-pesquisa');
+    
+    document.getElementById('lista-pesquisas').classList.add('hidden');
+    document.getElementById('btn-voltar-pesquisas').classList.remove('hidden');
+    formContainer.classList.remove('hidden');
+
+    formContainer.innerHTML = `
+        <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full">
+            <div class="border-b border-slate-700 pb-4 mb-6 text-center md:text-left">
+                <h3 class="text-2xl font-cinzel font-bold text-emerald-400"><i class="fas fa-edit mr-2"></i> ${titulo}</h3>
+                <p class="text-sm text-slate-400 mt-2">Sua participação é confidencial e anônima.</p>
+            </div>
+
+            <form id="pesquisa-publica-form" class="space-y-6">
+                <!-- Seletor de Colégio -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-emerald-500/30">
+                    <label class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fas fa-school mr-1"></i> Selecione sua Instituição/Setor:</label>
+                    <select id="form-colegio" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">
+                        <option value="">Carregando instituições...</option>
+                    </select>
+                </div>
+
+                <div id="perguntas-dinamicas-container" class="space-y-6">
+                    <div class="text-center py-10 text-slate-500"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
+                </div>
+
+                <div class="pt-6 border-t border-slate-700 text-right">
+                    <button type="submit" id="btn-enviar-pesquisa" class="w-full md:w-auto px-10 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                        <i class="fas fa-paper-plane mr-2"></i> Enviar Resposta Anônima
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    try {
+        // 1. Carregar Colégios
+        const { data: colegios, error: errCol } = await supabase.from('colegios').select('*').order('nome');
+        if (errCol) throw errCol;
+        
+        const selColegio = document.getElementById('form-colegio');
+        selColegio.innerHTML = '<option value="">-- Selecione sua escola/setor --</option>';
+        (colegios || []).forEach(c => {
+            selColegio.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
+        });
+
+        // 2. Carregar Perguntas do Construtor
+        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
+        if (errPerg) throw errPerg;
+
+        const contPerguntas = document.getElementById('perguntas-dinamicas-container');
+        contPerguntas.innerHTML = '';
+
+        if (!perguntas || perguntas.length === 0) {
+            contPerguntas.innerHTML = '<p class="text-amber-500 italic p-4 bg-slate-900 rounded-xl border border-slate-700">Nenhuma pergunta configurada no sistema.</p>';
+            return;
+        }
+
+        // 3. Renderizar Inputs Baseado no Tipo SQL
+        perguntas.forEach(p => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bg-slate-900/30 p-5 rounded-xl border border-slate-700';
+
+            const label = document.createElement('label');
+            label.className = 'block text-sm font-bold text-slate-300 mb-3';
+            label.innerText = p.label_texto;
+            wrapper.appendChild(label);
+
+            let inputElement;
+
+            if (p.tipo_sql === 'INT') {
+                inputElement = `<input type="number" name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">`;
+            } 
+            else if (p.tipo_sql === 'TEXT') {
+                inputElement = `<textarea name="${p.campo_chave}" required rows="3" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500 custom-scroll"></textarea>`;
+            } 
+            else {
+                // VARCHAR / BOOLEAN (Selects)
+                let optionsHtml = '<option value="">Selecione...</option>';
+                const listaOpcoes = p.opcoes ? p.opcoes.split(',').map(o => o.trim()) : [];
+                
+                listaOpcoes.forEach(opText => {
+                    // Lógica legada do seu app.js para booleanos
+                    let valor = opText;
+                    if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda') {
+                        valor = opText.toLowerCase() === 'sim' ? 'true' : 'false';
+                    }
+                    optionsHtml += `<option value="${valor}">${opText}</option>`;
+                });
+                
+                inputElement = `<select name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">${optionsHtml}</select>`;
+            }
+
+            wrapper.innerHTML += inputElement;
+            contPerguntas.appendChild(wrapper);
+        });
+
+        // 4. Configurar o Submit do Formulário
+        document.getElementById('pesquisa-publica-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-enviar-pesquisa');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
+
+            const formData = new FormData(this);
+            const dados = Object.fromEntries(formData.entries());
+
+            // Pega o ID e Nome do colégio
+            const seletor = document.getElementById('form-colegio');
+            dados.colegio_id = parseInt(seletor.value);
+            dados.colegio_nome = seletor.options[seletor.selectedIndex].text;
+
+            // Formatação de Tipos (Legado)
+            if (dados.idade) dados.idade = parseInt(dados.idade);
+            if (dados.foi_vitima) dados.foi_vitima = dados.foi_vitima === 'true';
+            if (dados.sabe_pedir_ajuda) dados.sabe_pedir_ajuda = dados.sabe_pedir_ajuda === 'true';
+
+            try {
+                // INSERT DINÂMICO NA TABELA DA PESQUISA SELECIONADA
+                const { error } = await supabase.from(tabelaAlvo).insert([dados]);
+                if (error) throw error;
+                
+                alert("✅ Resposta enviada com sucesso! Muito obrigado pela participação.");
+                voltarParaLista(); // Volta para o grid principal
+            } catch (error) {
+                console.error("Erro ao salvar resposta:", error);
+                alert("❌ Erro ao enviar a resposta. Tente novamente.");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Enviar Resposta Anônima';
+            }
+        });
+
+    } catch (err) {
+        console.error("Erro ao carregar o formulário:", err);
+        document.getElementById('perguntas-dinamicas-container').innerHTML = '<p class="text-red-400">Erro ao processar as perguntas do formulário.</p>';
+    }
+}
+
 // =========================================================
 // MÓDULO DO CONSTRUTOR DE PERGUNTAS (SCHEMA SQL)
 // =========================================================
@@ -877,218 +872,5 @@ window.excluirPergunta = async function(campoChave) {
         } else {
             carregarEditorPerguntas(); // Atualiza a lista na tela
         }
-    }
-}
-
-
-
-// =========================================================
-// CRUD PERGUNTAS (DETALHE DA PESQUISA)
-// =========================================================
-function abrirGestaoPerguntas(pesquisaId, titulo) {
-    hideAllViews();
-    document.getElementById('visao-gestao-perguntas').classList.remove('hidden');
-    document.getElementById('lbl-pesquisa-atual').innerText = titulo;
-    document.getElementById('q-pesquisa-id').value = pesquisaId;
-    limparFormPergunta();
-    carregarListaPerguntas(pesquisaId);
-}
-
-function voltarParaGestaoPesquisas() {
-    hideAllViews();
-    document.getElementById('visao-gestao-pesquisas').classList.remove('hidden');
-    carregarTabelaPesquisas();
-}
-
-function limparFormPergunta() {
-    document.getElementById('q-id').value = '';
-    document.getElementById('q-texto').value = '';
-    document.getElementById('q-chave').value = '';
-    document.getElementById('q-opcoes').value = '';
-    document.getElementById('q-tipo').value = 'VARCHAR';
-    document.getElementById('q-ordem').value = '1';
-    document.getElementById('form-pergunta-title').innerHTML = '<i class="fas fa-list-ol mr-2"></i> Perguntas: <span id="lbl-pesquisa-atual" class="text-white">' + document.getElementById('lbl-pesquisa-atual').innerText + '</span>';
-}
-
-async function carregarListaPerguntas(pesquisaId) {
-    showLoading(true);
-    const container = document.getElementById('lista-perguntas');
-    try {
-        const { data, error } = await supabase.from('perguntas_mestre').select('*').eq('pesquisa_id', pesquisaId).order('ordem', { ascending: true });
-        if (error) throw error;
-        
-        container.innerHTML = '';
-        (data || []).forEach(p => {
-            const pData = JSON.stringify(p).replace(/'/g, "\\'");
-            const btnExcluir = window.canDeletePesquisa ? `<button onclick="excluirPergunta('${p.id}')" class="text-red-400 hover:text-red-300 ml-2"><i class="fas fa-trash"></i></button>` : '';
-            
-            container.innerHTML += `
-                <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col gap-2">
-                    <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
-                        <span class="bg-emerald-900/40 text-emerald-400 px-2 py-0.5 rounded text-xs font-bold border border-emerald-500/30">Ordem: ${p.ordem}</span>
-                        <span class="text-slate-300 font-mono text-sm font-bold ml-2">Chave: ${p.campo_chave}</span>
-                        <div class="ml-auto flex gap-2">
-                            <button onclick='editarPergunta(${pData})' class="text-indigo-400 hover:text-indigo-300"><i class="fas fa-edit"></i></button>
-                            ${btnExcluir}
-                        </div>
-                    </div>
-                    <div class="text-white text-sm font-bold">${p.label_texto}</div>
-                    <div class="text-slate-500 text-xs italic">Tipo: ${p.tipo_sql} | ${p.opcoes ? 'Opções: ' + p.opcoes : 'Campo Livre'}</div>
-                </div>
-            `;
-        });
-    } catch (e) { console.error(e); }
-    showLoading(false);
-}
-
-async function salvarPergunta(e) {
-    e.preventDefault();
-    showLoading(true);
-    const pid = document.getElementById('q-pesquisa-id').value;
-    const qid = document.getElementById('q-id').value;
-    
-    const payload = {
-        pesquisa_id: pid,
-        label_texto: document.getElementById('q-texto').value,
-        campo_chave: document.getElementById('q-chave').value,
-        tipo_sql: document.getElementById('q-tipo').value,
-        opcoes: document.getElementById('q-opcoes').value,
-        ordem: parseInt(document.getElementById('q-ordem').value)
-    };
-
-    try {
-        if (qid) await supabase.from('perguntas_mestre').update(payload).eq('id', qid);
-        else await supabase.from('perguntas_mestre').insert([payload]);
-        limparFormPergunta();
-        await carregarListaPerguntas(pid);
-    } catch (e) { console.error(e); }
-    showLoading(false);
-}
-
-function editarPergunta(p) {
-    document.getElementById('q-id').value = p.id;
-    document.getElementById('q-texto').value = p.label_texto;
-    document.getElementById('q-chave').value = p.campo_chave;
-    document.getElementById('q-tipo').value = p.tipo_sql;
-    document.getElementById('q-opcoes').value = p.opcoes;
-    document.getElementById('q-ordem').value = p.ordem;
-    document.getElementById('visao-gestao-perguntas').scrollIntoView();
-}
-
-async function excluirPergunta(id) {
-    if (!window.canDeletePesquisa) return;
-    if (confirm("Excluir pergunta?")) {
-        showLoading(true);
-        const pid = document.getElementById('q-pesquisa-id').value;
-        await supabase.from('perguntas_mestre').delete().eq('id', id);
-        await carregarListaPerguntas(pid);
-    }
-}
-
-// =========================================================
-// FORMULÁRIO PÚBLICO (INSERINDO DADOS NO JSONB)
-// =========================================================
-window.abrirAcaoPesquisa = function(pesquisaId, status, titulo) {
-    if (status === 'Aberta') renderizarFormularioPesquisa(pesquisaId, titulo);
-    else abrirDashboardPesquisa(pesquisaId, titulo); // Dashboards podem ser desenvolvidos a partir do JSONB depois
-};
-
-async function renderizarFormularioPesquisa(pesquisaId, titulo) {
-    hideAllViews();
-    const formContainer = document.getElementById('visao-formulario');
-    document.getElementById('btn-voltar-global').classList.remove('hidden');
-    formContainer.classList.remove('hidden');
-
-    formContainer.innerHTML = `
-        <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full">
-            <div class="border-b border-slate-700 pb-4 mb-6">
-                <h3 class="text-2xl font-cinzel font-bold text-emerald-400"><i class="fas fa-edit mr-2"></i> ${titulo}</h3>
-                <p class="text-sm text-slate-400 mt-2">Sua participação é confidencial e anônima.</p>
-            </div>
-            <form id="form-responder" onsubmit="enviarRespostaJSONB(event, '${pesquisaId}')" class="space-y-6">
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-emerald-500/30">
-                    <label class="block text-xs font-bold text-emerald-400 uppercase tracking-widest mb-2"><i class="fas fa-school mr-1"></i> Selecione sua Instituição:</label>
-                    <select id="form-colegio" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">
-                        <option value="">Carregando...</option>
-                    </select>
-                </div>
-                <div id="perguntas-dinamicas" class="space-y-6"><div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-emerald-500"></i></div></div>
-                <div class="pt-6 border-t border-slate-700 text-right">
-                    <button type="submit" id="btn-submit-resposta" class="w-full md:w-auto px-10 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg">Enviar Resposta</button>
-                </div>
-            </form>
-        </div>
-    `;
-
-    try {
-        // Carrega Colégios (Assume que a tabela colegios ainda existe e é usada globalmente)
-        const { data: colegios } = await supabase.from('colegios').select('*').order('nome');
-        const selColegio = document.getElementById('form-colegio');
-        selColegio.innerHTML = '<option value="">-- Selecione --</option>';
-        (colegios || []).forEach(c => selColegio.innerHTML += `<option value="${c.id}">${c.nome}</option>`);
-
-        // Carrega Perguntas da Pesquisa Específica
-        const { data: perguntas } = await supabase.from('perguntas_mestre').select('*').eq('pesquisa_id', pesquisaId).order('ordem');
-        const contPerguntas = document.getElementById('perguntas-dinamicas');
-        contPerguntas.innerHTML = '';
-
-        (perguntas || []).forEach(p => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'bg-slate-900/30 p-5 rounded-xl border border-slate-700';
-            wrapper.innerHTML = `<label class="block text-sm font-bold text-slate-300 mb-3">${p.label_texto}</label>`;
-
-            let inputHtml = '';
-            if (p.tipo_sql === 'INT') {
-                inputHtml = `<input type="number" name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">`;
-            } else if (p.tipo_sql === 'TEXT') {
-                inputHtml = `<textarea name="${p.campo_chave}" required rows="3" class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500"></textarea>`;
-            } else {
-                let optionsHtml = '<option value="">Selecione...</option>';
-                const lista = p.opcoes ? p.opcoes.split(',').map(o => o.trim()) : [];
-                lista.forEach(o => optionsHtml += `<option value="${o}">${o}</option>`);
-                inputHtml = `<select name="${p.campo_chave}" required class="w-full bg-slate-800 border border-slate-600 text-white rounded-lg p-3 outline-none focus:border-emerald-500">${optionsHtml}</select>`;
-            }
-            wrapper.innerHTML += inputHtml;
-            contPerguntas.appendChild(wrapper);
-        });
-    } catch (err) { console.error(err); }
-}
-
-// A MÁGICA DO JSONB: Coleta as respostas e salva tudo num único campo flexível
-window.enviarRespostaJSONB = async function(e, pesquisaId) {
-    e.preventDefault();
-    const btn = document.getElementById('btn-submit-resposta');
-    btn.disabled = true; btn.innerHTML = 'Enviando...';
-
-    const formData = new FormData(e.target);
-    const jsonbData = {}; // Objeto que vai guardar todas as respostas dinamicas
-    let colegioId = null;
-    let colegioNome = null;
-
-    for (let [key, value] of formData.entries()) {
-        if (key === 'form-colegio') {
-            colegioId = value;
-            const sel = document.getElementById('form-colegio');
-            colegioNome = sel.options[sel.selectedIndex].text;
-        } else {
-            jsonbData[key] = value; // Guarda a resposta da pergunta na chave correspondente
-        }
-    }
-
-    try {
-        const { error } = await supabase.from('respostas_mestre').insert([{
-            pesquisa_id: pesquisaId,
-            colegio_id: parseInt(colegioId),
-            colegio_nome: colegioNome,
-            dados_dinamicos: jsonbData // O Supabase entende e salva o JSON certinho!
-        }]);
-        if (error) throw error;
-        
-        alert("✅ Resposta enviada com sucesso!");
-        voltarParaPublico();
-    } catch (err) {
-        console.error(err);
-        alert("Erro ao enviar.");
-        btn.disabled = false; btn.innerHTML = 'Enviar Resposta';
     }
 }
