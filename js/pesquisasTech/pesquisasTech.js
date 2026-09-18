@@ -117,7 +117,17 @@ export async function renderPesquisasTechTab() {
                         <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6">
                             <i class="fas fa-database mr-2"></i> Construtor de Perguntas (Schema SQL)
                         </h3>
+
+                        <!-- NOVO: Indicador de pesquisa selecionada -->
+                        <h4 id="perg-pesquisa-titulo" class="text-sm text-slate-400 mb-6 font-bold bg-slate-900 p-3 rounded-lg border border-slate-700">
+                            Selecione uma pesquisa na tabela acima para gerenciar suas perguntas.
+                        </h4>
+
                         <form id="form-pergunta-crud" class="space-y-4">
+
+                            <!-- NOVO: Campo oculto para armazenar o ID da pesquisa selecionada -->
+                            <input type="hidden" id="perg-pesquisa-id">
+
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Enunciado Completo da Pergunta</label>
                                 <input type="text" id="perg-enunciado" required placeholder="Ex: Qual o aplicativo que você mais utiliza?" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
@@ -289,6 +299,11 @@ window.limparFormPesquisa = function() {
     document.getElementById('form-pesquisa-crud').reset();
     document.getElementById('crud-id').value = '';
     document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
+    
+    // Reseta o construtor de perguntas
+    document.getElementById('perg-pesquisa-id').value = '';
+    document.getElementById('perg-pesquisa-titulo').innerHTML = 'Selecione uma pesquisa na tabela acima para gerenciar suas perguntas.';
+    window.carregarEditorPerguntas(null);
 }
 
 window.editarPesquisaSupabase = function(pesquisa) {
@@ -300,7 +315,12 @@ window.editarPesquisaSupabase = function(pesquisa) {
     document.getElementById('crud-descricao').value = pesquisa.descricao;
     
     document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-edit mr-2 text-amber-500"></i> Editando Pesquisa';
+    document.getElementById('perg-pesquisa-id').value = pesquisa.id;
+    document.getElementById('perg-pesquisa-titulo').innerHTML = `Gerenciando perguntas da pesquisa: <strong class="text-emerald-400">${pesquisa.titulo}</strong>`;
+    window.carregarEditorPerguntas(pesquisa.id);
     document.getElementById('crud-pesquisas').scrollIntoView({ behavior: 'smooth' });
+
+
 }
 
 async function salvarPesquisaSupabase(e) {
@@ -731,7 +751,8 @@ window.duplicarPesquisa = async function(pesquisaOriginal) {
 // =========================================================
 // MÓDULO DE RESPOSTA PÚBLICA (FORMULÁRIO)
 // =========================================================
-async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
+window.renderizarFormularioPesquisa = async function(tabelaAlvo, titulo, pesquisaId) {
+    
     const formContainer = document.getElementById('form-responder-pesquisa');
     
     document.getElementById('lista-pesquisas').classList.add('hidden');
@@ -892,11 +913,20 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
 // =========================================================
 // MÓDULO DO CONSTRUTOR DE PERGUNTAS (SCHEMA SQL)
 // =========================================================
-async function carregarEditorPerguntas() {
+window.carregarEditorPerguntas = async function(pesquisaId) {
     const container = document.getElementById('lista-perguntas-container');
     if (!container) return;
 
-    const { data: perguntas, error } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
+    if (!pesquisaId) {
+        container.innerHTML = '<p class="text-amber-500 italic p-4 bg-slate-900 rounded-xl border border-slate-700">Clique em "Editar" em uma pesquisa na tabela para carregar as perguntas vinculadas a ela.</p>';
+        return;
+    }
+
+    // Filtra no Supabase apenas as perguntas da pesquisa selecionada
+    const { data: perguntas, error } = await supabase.from('perguntas_formulario')
+        .select('*')
+        .eq('pesquisa_id', pesquisaId)
+        .order('ordem', { ascending: true });
     
     if (error) {
         container.innerHTML = '<p class="text-red-400">Erro ao carregar estrutura do formulário.</p>';
@@ -904,9 +934,14 @@ async function carregarEditorPerguntas() {
     }
 
     container.innerHTML = '';
+    
+    if (!perguntas || perguntas.length === 0) {
+        container.innerHTML = '<p class="text-slate-400 italic">Nenhuma pergunta cadastrada para esta pesquisa ainda.</p>';
+        return;
+    }
+
     (perguntas || []).forEach(p => {
-        // Exibe o botão de exclusão apenas se o usuário for Admin/Professor/Coordenação
-        const btnExcluir = window.canDeletePesquisa ? `<button onclick="excluirPergunta('${p.campo_chave}')" class="text-red-400 hover:text-red-300 ml-auto"><i class="fas fa-trash"></i></button>` : '';
+        const btnExcluir = window.canDeletePesquisa ? `<button onclick="window.excluirPergunta('${p.campo_chave}', ${pesquisaId})" class="text-red-400 hover:text-red-300 ml-auto"><i class="fas fa-trash"></i></button>` : '';
         
         container.innerHTML += `
             <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col gap-2">
@@ -924,6 +959,14 @@ async function carregarEditorPerguntas() {
 
 window.salvarNovaPergunta = async function(e) {
     e.preventDefault();
+    
+    const pesquisaId = document.getElementById('perg-pesquisa-id').value;
+    
+    if (!pesquisaId) {
+        alert("Por favor, clique em 'Editar' em uma pesquisa na tabela acima antes de adicionar perguntas!");
+        return;
+    }
+
     const novaPergunta = {
         label_texto: document.getElementById('perg-enunciado').value,
         campo_chave: document.getElementById('perg-chave').value,
@@ -932,7 +975,8 @@ window.salvarNovaPergunta = async function(e) {
         opcoes: document.getElementById('perg-opcoes').value,
         ordem: 99, 
         tipo_dado: document.getElementById('perg-tipo').value === 'INT' ? 'number' : 'select',
-        colegio_id: 1 // Mantendo o padrão do seu app.js antigo
+        colegio_id: 1,
+        pesquisa_id: parseInt(pesquisaId) // Vincula a pergunta à pesquisa atual
     }; 
 
     const { error } = await supabase.from('perguntas_formulario').insert([novaPergunta]);
@@ -942,23 +986,28 @@ window.salvarNovaPergunta = async function(e) {
     } else {
         alert("Nova pergunta adicionada com sucesso!");
         document.getElementById('form-pergunta-crud').reset();
-        carregarEditorPerguntas(); // Atualiza a lista na tela
+        window.carregarEditorPerguntas(pesquisaId); // Atualiza a lista segmentada na tela
     }
 }
 
-window.excluirPergunta = async function(campoChave) {
+window.excluirPergunta = async function(campoChave, pesquisaId) {
     if (!window.canDeletePesquisa) {
         alert("Acesso Negado: Você não tem permissão para excluir.");
         return;
     }
     
     if (confirm(`Deseja apagar a pergunta '${campoChave}' do banco de dados?`)) {
-        const { error } = await supabase.from('perguntas_formulario').delete().eq('campo_chave', campoChave);
+        // Exclui usando o campo_chave E o pesquisa_id para garantir que não apague de outra pesquisa acidentalmente se houver chaves iguais
+        const { error } = await supabase.from('perguntas_formulario')
+            .delete()
+            .eq('campo_chave', campoChave)
+            .eq('pesquisa_id', pesquisaId);
+            
         if (error) {
             console.error("Erro ao excluir pergunta:", error);
             alert("Erro ao excluir a pergunta.");
         } else {
-            carregarEditorPerguntas(); // Atualiza a lista na tela
+            window.carregarEditorPerguntas(pesquisaId); // Atualiza a lista segmentada
         }
     }
 }
