@@ -8,6 +8,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Variáveis globais para armazenar os dados e instâncias dos gráficos na memória
 window.pesquisaRespostasAtuais = [];
 window.chartDinamicoInstancia = null;
+// Expor funções no window
+window.abrirDashboardPesquisa = abrirDashboardPesquisa;
+window.renderizarFormularioPesquisa = renderizarFormularioPesquisa;
 
 export async function renderPesquisasTechTab() {
     const container = document.getElementById('pesquisas-tech-content');
@@ -190,43 +193,68 @@ async function carregarListaPesquisasDB() {
             listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
         } else {
             pesquisas.forEach(pesquisa => {
-                const isFechada = pesquisa.status === 'Fechada';
-                const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            const isFechada = pesquisa.status === 'Fechada';
+            const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            
+            // LÓGICA DE BOTÕES: Se for gestor e estiver aberta, mostra 2 botões.
+            const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
+            
+            let botoesAcaoHtml = '';
+            if (isFechada) {
+                botoesAcaoHtml = `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
+                    class="bg-indigo-600 hover:bg-indigo-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
+                    <i class="fas fa-chart-bar"></i> Ver Resultados Dashboard
+                </button>`;
+            } else {
+                botoesAcaoHtml = `<button onclick="window.renderizarFormularioPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}', ${pesquisa.id})" 
+                    class="bg-emerald-600 hover:bg-emerald-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mb-2">
+                    <i class="fas fa-edit"></i> Responder Pesquisa
+                </button>`;
                 
-                listaContainer.innerHTML += `
-                    <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
-                            <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
-                        </div>
-                        <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
-                        <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
-                        <button onclick="window.abrirAcaoPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.status}', '${pesquisa.titulo}')" 
-                            class="${isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-                            <i class="fas ${isFechada ? 'fa-chart-bar' : 'fa-edit'}"></i> ${isFechada ? 'Ver Resultados' : 'Responder Pesquisa'}
-                        </button>
-                    </div>
-                `;
-
-                if (tbodyCrud) {
-                    const btnExcluir = window.canDeletePesquisa 
-                        ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
-                        : '';
-                    const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
-
-                    tbodyCrud.innerHTML += `
-                        <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
-                            <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
-                            <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
-                            <td class="p-4 text-right flex justify-end gap-2">
-                                <button onclick='editarPesquisaSupabase(${pData})' class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
-                                ${btnExcluir}
-                            </td>
-                        </tr>
-                    `;
+                // Se for gestor, adiciona o botão de ver resultados mesmo aberta
+                if (isGestor) {
+                    botoesAcaoHtml += `<button onclick="window.abrirDashboardPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.titulo}')" 
+                        class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-600 hover:text-white w-full font-bold text-[10px] uppercase tracking-widest py-2 rounded-xl transition-all flex justify-center items-center gap-2">
+                        <i class="fas fa-chart-line"></i> Acessar Dashboard (Admin)
+                    </button>`;
                 }
-            });
+            }
+            
+            listaContainer.innerHTML += `
+                <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
+                        <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
+                    </div>
+                    <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
+                    <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
+                    <div class="flex flex-col w-full mt-auto">
+                        ${botoesAcaoHtml}
+                    </div>
+                </div>
+            `;
+
+            if (tbodyCrud) {
+                const btnExcluir = window.canDeletePesquisa 
+                    ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
+                    : '';
+                const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
+
+                // NOVO: Adicionado botão de Duplicar
+                tbodyCrud.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition-colors">
+                        <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
+                        <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
+                        <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
+                        <td class="p-4 text-right flex justify-end gap-2">
+                            <button onclick='window.duplicarPesquisa(${pData})' title="Duplicar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
+                            <button onclick='editarPesquisaSupabase(${pData})' title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                            ${btnExcluir}
+                        </td>
+                    </tr>
+                `;
+            }
+        });
         }
     } catch (err) {
         console.error("Erro ao buscar pesquisas:", err);
@@ -324,15 +352,6 @@ window.excluirPesquisaSupabase = async function(id) {
 // =========================================================
 // DASHBOARD ANALÍTICO (GRÁFICOS E CRUZAMENTO DE DADOS)
 // =========================================================
-window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
-    if (status === 'Aberta') {
-        // Redireciona para o novo formulário renderizado dentro da própria página
-        renderizarFormularioPesquisa(tabelaAlvo, titulo);
-    } else {
-        // Redireciona para o Dashboard Analítico
-        abrirDashboardPesquisa(tabelaAlvo, titulo);
-    }
-};
 
 function voltarParaLista() {
     document.getElementById('dashboard-pesquisa').classList.add('hidden');
@@ -376,23 +395,27 @@ async function abrirDashboardPesquisa(tabelaAlvo, titulo) {
 
         // 2. O ROTEADOR (SWITCH)
         // Olha para o nome da tabela alvo e decide qual função de renderização chamar
+        // 2. O ROTEADOR (SWITCH)
+        // 🚀 ONDE ADICIONAR NOVOS DASHBOARDS:
+        // Sempre que criar uma nova pesquisa, pegue o nome da "tabela_respostas_alvo" dela
+        // e adicione um novo `case` aqui embaixo chamando a função do novo dashboard.
         switch (tabelaAlvo) {
             case 'respostas_pesquisa':
                 renderizarGraficosConvivencia(respostas || []);
                 break;
                 
-            // EXEMPLO PARA O FUTURO:
-            // case 'pesquisa_ia_2026':
-            //     renderizarGraficosIA(respostas || []);
+            // EXEMPLO DE COMO ADICIONAR A PRÓXIMA:
+            // case 'minha_nova_tabela_tech':
+            //     minhaFuncaoDeRenderNovoDash(respostas || []);
             //     break;
                 
             default:
-                // Se a tabela não tiver um painel programado, exibe uma mensagem amigável
                 document.getElementById('dash-content').innerHTML = `
                     <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 text-center shadow-xl">
                         <i class="fas fa-tools text-4xl text-amber-500 mb-4"></i>
-                        <h4 class="text-white font-bold mb-2">Painel em Construção</h4>
-                        <p class="text-slate-400 text-sm">O dashboard analítico específico para a tabela <b>${tabelaAlvo}</b> ainda não foi programado no código-fonte.</p>
+                        <h4 class="text-white font-bold mb-2">Painel Padrão ou Em Construção</h4>
+                        <p class="text-slate-400 text-sm mb-4">A tabela <b>${tabelaAlvo}</b> coletou <b>${respostas ? respostas.length : 0} respostas</b>.</p>
+                        <p class="text-slate-500 text-xs italic">Dica: Crie uma função "renderizarGraficosX()" e adicione no switch em pesquisasTech.js</p>
                     </div>`;
         }
 
@@ -658,6 +681,52 @@ function renderizarGraficosEstaticos(dadosIdade, dadosMotivo, dadosTurno) {
 }
 
 
+// =========================================================
+// DUPLICAR PESQUISA E GERAR TABELA AUTOMÁTICA
+// =========================================================
+window.duplicarPesquisa = async function(pesquisaOriginal) {
+    const novaTabela = prompt("Digite o nome da NOVA tabela no Supabase (ex: pesquisa_nova_2026):", pesquisaOriginal.tabela_respostas_alvo + "_copia");
+    
+    if (!novaTabela) return;
+
+    try {
+        // 1. Chama a função RPC (criada no passo 1) para gerar a tabela automaticamente
+        const { error: rpcError } = await supabase.rpc('criar_tabela_pesquisa_dinamica', { nome_tabela: novaTabela });
+        if (rpcError) throw rpcError;
+
+        // 2. Duplica o registro da pesquisa no catálogo
+        const novaPesquisa = {
+            titulo: pesquisaOriginal.titulo + " (Cópia)",
+            descricao: pesquisaOriginal.descricao,
+            status: "Fechada", // Cria fechada por padrão
+            data_referencia: new Date().getFullYear().toString(),
+            tabela_respostas_alvo: novaTabela
+        };
+
+        const { data: pesqInserida, error: errInsert } = await supabase.from('pesquisas_lista').insert([novaPesquisa]).select();
+        if (errInsert) throw errInsert;
+
+        // 3. Duplicar as perguntas associadas a ela (Se houver lógica de pesquisa_id)
+        const novoPesquisaId = pesqInserida[0].id;
+        
+        const { data: perguntasAntigas } = await supabase.from('perguntas_formulario').select('*').eq('pesquisa_id', pesquisaOriginal.id);
+        
+        if (perguntasAntigas && perguntasAntigas.length > 0) {
+            const novasPerguntas = perguntasAntigas.map(p => {
+                const { id, ...resto } = p; // Remove o ID antigo
+                return { ...resto, pesquisa_id: novoPesquisaId };
+            });
+            await supabase.from('perguntas_formulario').insert(novasPerguntas);
+        }
+
+        alert(`✅ Pesquisa e Tabela '${novaTabela}' criadas com sucesso!`);
+        await carregarListaPesquisasDB();
+
+    } catch (error) {
+        console.error("Erro ao duplicar:", error);
+        alert("Erro ao duplicar. Certifique-se de ter rodado o script SQL no Supabase.");
+    }
+}
 
 // =========================================================
 // MÓDULO DE RESPOSTA PÚBLICA (FORMULÁRIO)
@@ -710,8 +779,10 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
         });
 
         // 2. Carregar Perguntas do Construtor
-        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario').select('*').order('ordem', { ascending: true });
-        if (errPerg) throw errPerg;
+        const { data: perguntas, error: errPerg } = await supabase.from('perguntas_formulario')
+            .select('*')
+            .eq('pesquisa_id', pesquisaId)
+            .order('ordem', { ascending: true });
 
         const contPerguntas = document.getElementById('perguntas-dinamicas-container');
         contPerguntas.innerHTML = '';
@@ -768,25 +839,42 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
 
             const formData = new FormData(this);
-            const dados = Object.fromEntries(formData.entries());
+            const dadosBrutos = Object.fromEntries(formData.entries());
 
             // Pega o ID e Nome do colégio
             const seletor = document.getElementById('form-colegio');
-            dados.colegio_id = parseInt(seletor.value);
-            dados.colegio_nome = seletor.options[seletor.selectedIndex].text;
+            const col_id = parseInt(seletor.value);
+            const col_nome = seletor.options[seletor.selectedIndex].text;
+            
+            // Remove dados do colegio dos dados brutos para colocar no JSON, se quiser
+            delete dadosBrutos['colegio_id'];
 
-            // Formatação de Tipos (Legado)
-            if (dados.idade) dados.idade = parseInt(dados.idade);
-            if (dados.foi_vitima) dados.foi_vitima = dados.foi_vitima === 'true';
-            if (dados.sabe_pedir_ajuda) dados.sabe_pedir_ajuda = dados.sabe_pedir_ajuda === 'true';
+            // Formatação (Legado)
+            if (dadosBrutos.idade) dadosBrutos.idade = parseInt(dadosBrutos.idade);
+            if (dadosBrutos.foi_vitima) dadosBrutos.foi_vitima = dadosBrutos.foi_vitima === 'true';
+            if (dadosBrutos.sabe_pedir_ajuda) dadosBrutos.sabe_pedir_ajuda = dadosBrutos.sabe_pedir_ajuda === 'true';
+
+            // DADOS PARA INSERIR
+            // Se for a tabela antiga, ele tenta jogar tudo na raiz (pode dar erro se a coluna não existir).
+            // Se for uma tabela NOVA criada pela nossa função SQL, ele insere no JSONB.
+            let dadosInsert = {
+                colegio_id: col_id,
+                colegio_nome: col_nome,
+                respostas_json: dadosBrutos // Envia tudo dinâmico para a coluna JSONB!
+            };
+
+            // Hack de compatibilidade retroativa com a tabela 'respostas_pesquisa' original sua
+            if (tabelaAlvo === 'respostas_pesquisa') {
+                dadosInsert = { colegio_id: col_id, colegio_nome: col_nome, ...dadosBrutos };
+                delete dadosInsert.respostas_json;
+            }
 
             try {
-                // INSERT DINÂMICO NA TABELA DA PESQUISA SELECIONADA
-                const { error } = await supabase.from(tabelaAlvo).insert([dados]);
+                const { error } = await supabase.from(tabelaAlvo).insert([dadosInsert]);
                 if (error) throw error;
                 
                 alert("✅ Resposta enviada com sucesso! Muito obrigado pela participação.");
-                voltarParaLista(); // Volta para o grid principal
+                voltarParaLista(); 
             } catch (error) {
                 console.error("Erro ao salvar resposta:", error);
                 alert("❌ Erro ao enviar a resposta. Tente novamente.");
@@ -797,7 +885,6 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
 
     } catch (err) {
         console.error("Erro ao carregar o formulário:", err);
-        document.getElementById('perguntas-dinamicas-container').innerHTML = '<p class="text-red-400">Erro ao processar as perguntas do formulário.</p>';
     }
 }
 
