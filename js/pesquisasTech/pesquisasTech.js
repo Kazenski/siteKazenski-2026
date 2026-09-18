@@ -888,6 +888,7 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo) {
     }
 }
 
+
 // =========================================================
 // MÓDULO DO CONSTRUTOR DE PERGUNTAS (SCHEMA SQL)
 // =========================================================
