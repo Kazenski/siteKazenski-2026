@@ -340,6 +340,7 @@ async function salvarPesquisaSupabase(e) {
         descricao: document.getElementById('crud-descricao').value
     };
 
+    
     try {
         if (id) {
             // Se tem ID, é apenas uma atualização de dados (a tabela já existe)
