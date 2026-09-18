@@ -328,9 +328,13 @@ window.editarPesquisaSupabase = function(pesquisa) {
 async function salvarPesquisaSupabase(e) {
     e.preventDefault();
     const id = document.getElementById('crud-id').value;
+    
+    // Pegar o nome da tabela e remover espaços ou caracteres inválidos para evitar erros no SQL
+    let nomeTabelaAlvo = document.getElementById('crud-tabela').value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    
     const dados = {
         titulo: document.getElementById('crud-titulo').value,
-        tabela_respostas_alvo: document.getElementById('crud-tabela').value,
+        tabela_respostas_alvo: nomeTabelaAlvo,
         data_referencia: document.getElementById('crud-data').value,
         status: document.getElementById('crud-status').value,
         descricao: document.getElementById('crud-descricao').value
@@ -338,15 +342,26 @@ async function salvarPesquisaSupabase(e) {
 
     try {
         if (id) {
+            // Se tem ID, é apenas uma atualização de dados (a tabela já existe)
             const { error } = await supabase.from('pesquisas_lista').update(dados).eq('id', id);
             if (error) throw error;
             alert("Pesquisa atualizada com sucesso!");
         } else {
+            // CRIAÇÃO: O pulo do gato! Antes de salvar o registro, pedimos ao Supabase para criar a tabela física.
+            const { error: rpcError } = await supabase.rpc('criar_tabela_pesquisa_dinamica', { nome_tabela: nomeTabelaAlvo });
+            
+            if (rpcError) {
+                console.error("Erro ao criar a tabela física:", rpcError);
+                alert("Erro ao criar a estrutura no banco de dados. Verifique se a tabela já não existe.");
+                return; // Aborta a operação para não criar um registro órfão
+            }
+
+            // Após criar a tabela com sucesso, insere na lista de pesquisas
             const { error } = await supabase.from('pesquisas_lista').insert([dados]);
             if (error) throw error;
-            alert("Nova pesquisa criada com sucesso!");
+            alert(`Nova pesquisa e tabela '${nomeTabelaAlvo}' criadas com sucesso!`);
         }
-        limparFormPesquisa();
+        window.limparFormPesquisa();
         await carregarListaPesquisasDB();
     } catch (error) {
         console.error("Erro ao salvar:", error);
