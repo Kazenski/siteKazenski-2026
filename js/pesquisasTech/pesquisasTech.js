@@ -246,20 +246,26 @@ async function carregarListaPesquisasDB() {
                 `;
 
                 if (tbodyCrud) {
-                    const btnExcluir = window.canDeletePesquisa 
-                        ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
+                    // Validação de permissão feita no momento exato de desenhar a linha
+                    const podeDeletar = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+                    
+                    const btnExcluir = podeDeletar 
+                        ? `<button onclick="window.excluirPesquisaSupabase(${pesquisa.id})" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
                         : '';
+                        
                     const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
 
-                    // NOVO: Adicionado botão de Duplicar
                     tbodyCrud.innerHTML += `
                         <tr class="hover:bg-slate-800/50 transition-colors">
                             <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
                             <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
                             <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
                             <td class="p-4 text-right flex justify-end gap-2">
+                                <!-- Botão de Duplicar mantido aqui -->
                                 <button onclick='window.duplicarPesquisa(${pData})' title="Duplicar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
-                                <button onclick='editarPesquisaSupabase(${pData})' title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                                
+                                <button onclick='window.editarPesquisaSupabase(${pData})' title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+                                
                                 ${btnExcluir}
                             </td>
                         </tr>
@@ -340,7 +346,7 @@ async function salvarPesquisaSupabase(e) {
         descricao: document.getElementById('crud-descricao').value
     };
 
-    
+
     try {
         if (id) {
             // Se tem ID, é apenas uma atualização de dados (a tabela já existe)
@@ -371,10 +377,13 @@ async function salvarPesquisaSupabase(e) {
 }
 
 window.excluirPesquisaSupabase = async function(id) {
-    if (!window.canDeletePesquisa) {
+    const podeDeletar = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+    
+    if (!podeDeletar) {
         alert("Acesso Negado: Você não tem permissão para excluir.");
         return;
     }
+    
     if (confirm("Atenção: Deseja realmente excluir esta pesquisa do catálogo? (Isso não apagará as respostas da tabela alvo)")) {
         try {
             const { error } = await supabase.from('pesquisas_lista').delete().eq('id', id);
