@@ -368,6 +368,7 @@ async function salvarPesquisaSupabase(e) {
             if (error) throw error;
             alert(`Nova pesquisa e tabela '${nomeTabelaAlvo}' criadas com sucesso!`);
         }
+        
         window.limparFormPesquisa();
         await carregarListaPesquisasDB();
     } catch (error) {
