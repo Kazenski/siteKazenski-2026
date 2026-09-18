@@ -274,6 +274,7 @@ async function carregarListaPesquisasDB() {
     listaContainer.classList.remove('hidden');
 }
 
+
 // =========================================================
 // FUNÇÕES DE CRUD (ADMIN)
 // =========================================================
