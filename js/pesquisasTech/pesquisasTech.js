@@ -258,67 +258,67 @@ function limparFormPesquisa() {
 // =========================================================
 // RENDERIZAÇÃO DA LISTA DE PESQUISAS
 // =========================================================
-async function carregarListaPesquisasDB() {
-    const listaContainer = document.getElementById('lista-pesquisas');
-    const loading = document.getElementById('loading-pesquisas');
-    const tbodyCrud = document.getElementById('crud-table-body');
+// async function carregarListaPesquisasDB() {
+//     const listaContainer = document.getElementById('lista-pesquisas');
+//     const loading = document.getElementById('loading-pesquisas');
+//     const tbodyCrud = document.getElementById('crud-table-body');
 
-    try {
-        const { data: pesquisas, error } = await supabase.from('pesquisas_lista').select('*').order('id', { ascending: true });
-        if (error) throw error;
+//     try {
+//         const { data: pesquisas, error } = await supabase.from('pesquisas_lista').select('*').order('id', { ascending: true });
+//         if (error) throw error;
 
-        listaContainer.innerHTML = ''; 
-        if (tbodyCrud) tbodyCrud.innerHTML = '';
+//         listaContainer.innerHTML = ''; 
+//         if (tbodyCrud) tbodyCrud.innerHTML = '';
 
-        if (!pesquisas || pesquisas.length === 0) {
-            listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
-        } else {
-            pesquisas.forEach(pesquisa => {
-                const isFechada = pesquisa.status === 'Fechada';
-                const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+//         if (!pesquisas || pesquisas.length === 0) {
+//             listaContainer.innerHTML = '<p class="text-slate-400 italic">Nenhuma pesquisa encontrada.</p>';
+//         } else {
+//             pesquisas.forEach(pesquisa => {
+//                 const isFechada = pesquisa.status === 'Fechada';
+//                 const badgeCor = isFechada ? 'bg-slate-700 text-slate-300' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 
-                listaContainer.innerHTML += `
-                    <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
-                            <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
-                        </div>
-                        <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
-                        <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
-                        <button onclick="window.abrirAcaoPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.status}', '${pesquisa.titulo}')" 
-                            class="${isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-                            <i class="fas ${isFechada ? 'fa-chart-bar' : 'fa-edit'}"></i> ${isFechada ? 'Ver Resultados' : 'Responder Pesquisa'}
-                        </button>
-                    </div>
-                `;
+//                 listaContainer.innerHTML += `
+//                     <div class="bg-slate-800/80 p-6 rounded-2xl border ${isFechada ? 'border-slate-700' : 'border-emerald-500/50'} shadow-xl flex flex-col transition-transform hover:-translate-y-1">
+//                         <div class="flex justify-between items-start mb-4">
+//                             <span class="${badgeCor} px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span>
+//                             <span class="text-xs text-slate-500 font-bold"><i class="far fa-calendar-alt mr-1"></i> ${pesquisa.data_referencia}</span>
+//                         </div>
+//                         <h3 class="text-xl font-cinzel font-bold text-white mb-2 leading-tight">${pesquisa.titulo}</h3>
+//                         <p class="text-sm text-slate-400 mb-6 flex-grow leading-relaxed">${pesquisa.descricao}</p>
+//                         <button onclick="window.abrirAcaoPesquisa('${pesquisa.tabela_respostas_alvo}', '${pesquisa.status}', '${pesquisa.titulo}')" 
+//                             class="${isFechada ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-emerald-600 hover:bg-emerald-500'} w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
+//                             <i class="fas ${isFechada ? 'fa-chart-bar' : 'fa-edit'}"></i> ${isFechada ? 'Ver Resultados' : 'Responder Pesquisa'}
+//                         </button>
+//                     </div>
+//                 `;
 
-                if (tbodyCrud) {
-                    const btnExcluir = window.canDeletePesquisa 
-                        ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
-                        : '';
-                    const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
+//                 if (tbodyCrud) {
+//                     const btnExcluir = window.canDeletePesquisa 
+//                         ? `<button onclick="excluirPesquisaSupabase(${pesquisa.id})" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>` 
+//                         : '';
+//                     const pData = JSON.stringify(pesquisa).replace(/'/g, "\\'");
 
-                    tbodyCrud.innerHTML += `
-                        <tr class="hover:bg-slate-800/50 transition-colors">
-                            <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
-                            <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
-                            <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
-                            <td class="p-4 text-right flex justify-end gap-2">
-                                <button onclick='editarPesquisaSupabase(${pData})' class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
-                                ${btnExcluir}
-                            </td>
-                        </tr>
-                    `;
-                }
-            });
-        }
-    } catch (err) {
-        console.error("Erro ao buscar pesquisas:", err);
-    }
+//                     tbodyCrud.innerHTML += `
+//                         <tr class="hover:bg-slate-800/50 transition-colors">
+//                             <td class="p-4 text-white font-bold">${pesquisa.titulo}</td>
+//                             <td class="p-4 text-center text-slate-400 font-mono text-xs">${pesquisa.tabela_respostas_alvo}</td>
+//                             <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
+//                             <td class="p-4 text-right flex justify-end gap-2">
+//                                 <button onclick='editarPesquisaSupabase(${pData})' class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
+//                                 ${btnExcluir}
+//                             </td>
+//                         </tr>
+//                     `;
+//                 }
+//             });
+//         }
+//     } catch (err) {
+//         console.error("Erro ao buscar pesquisas:", err);
+//     }
 
-    loading.classList.add('hidden');
-    listaContainer.classList.remove('hidden');
-}
+//     loading.classList.add('hidden');
+//     listaContainer.classList.remove('hidden');
+// }
 
 // =========================================================
 // FUNÇÕES DE CRUD (ADMIN)
@@ -357,11 +357,11 @@ function showLoading(show) {
     if(el) show ? el.classList.remove('hidden') : el.classList.add('hidden');
 }
 
-window.limparFormPesquisa = function() {
-    document.getElementById('form-pesquisa-crud').reset();
-    document.getElementById('crud-id').value = '';
-    document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
-}
+// window.limparFormPesquisa = function() {
+//     document.getElementById('form-pesquisa-crud').reset();
+//     document.getElementById('crud-id').value = '';
+//     document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
+// }
 
 window.editarPesquisaSupabase = function(pesquisa) {
     document.getElementById('crud-id').value = pesquisa.id;
@@ -472,15 +472,15 @@ window.excluirPesquisaSupabase = async function(id) {
 // =========================================================
 // DASHBOARD ANALÍTICO (GRÁFICOS E CRUZAMENTO DE DADOS)
 // =========================================================
-window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
-    if (status === 'Aberta') {
-        // Redireciona para o novo formulário renderizado dentro da própria página
-        renderizarFormularioPesquisa(tabelaAlvo, titulo);
-    } else {
-        // Redireciona para o Dashboard Analítico
-        abrirDashboardPesquisa(tabelaAlvo, titulo);
-    }
-};
+// window.abrirAcaoPesquisa = function(tabelaAlvo, status, titulo) {
+//     if (status === 'Aberta') {
+//         // Redireciona para o novo formulário renderizado dentro da própria página
+//         renderizarFormularioPesquisa(tabelaAlvo, titulo);
+//     } else {
+//         // Redireciona para o Dashboard Analítico
+//         abrirDashboardPesquisa(tabelaAlvo, titulo);
+//     }
+// };
 
 function voltarParaLista() {
     document.getElementById('dashboard-pesquisa').classList.add('hidden');
