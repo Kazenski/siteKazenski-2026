@@ -959,6 +959,7 @@ window.carregarEditorPerguntas = async function(pesquisaId) {
     });
 }
 
+
 window.salvarNovaPergunta = async function(e) {
     e.preventDefault();
     
