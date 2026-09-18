@@ -10,43 +10,50 @@ utilizadores (Visitantes, Alunos, Moderadores, Professores, Coordenação e Admi
 ESTRUTURA DE DIRETÓRIOS E FICHEIROS:
 
 / (Raiz)
-├── index.html              # Estrutura principal do site (SPA - Single Page Application)
-├── style.css               # Estilizações globais e customizações adicionais do Tailwind
-├── README.txt              # Documentação da estrutura do projeto
+├── index.html                 # Estrutura principal do site (SPA - Single Page Application)
+├── style.css                  # Estilizações globais e customizações adicionais do Tailwind
+├── README.txt                 # Documentação da estrutura do projeto
 │
-├── js/                     # Lógica de programação (JavaScript)
-│   ├── main.js             # Gerenciador central, roteamento de abas e autenticação
+├── js/                        # Lógica de programação (JavaScript)
+│   ├── main.js                # Gerenciador central, roteamento de abas e autenticação
 │   │
-│   ├── core/               # Núcleo de funcionalidades do sistema
-│   │   ├── firebase.js     # Configuração e inicialização do Firebase (Auth/Firestore/RTDB)
-│   │   ├── utils.js        # Funções utilitárias partilhadas
-│   │   └── validacao.js    # Validações globais (ex: filtro de palavras bloqueadas)
+│   ├── core/                  # Núcleo de funcionalidades do sistema
+│   │   ├── firebase.js        # Configuração e inicialização do Firebase (Auth/Firestore/RTDB)
+│   │   ├── utils.js           # Funções utilitárias partilhadas
+│   │   └── validacao.js       # Validações globais (ex: filtro de palavras bloqueadas)
 │   │
-│   ├── inicio/             # Módulo da aba "Início"
-│   │   └── inicio.js       # Renderizador de conteúdo da página inicial
+│   ├── inicio/                # Módulo da aba "Início"
+│   │   └── inicio.js          # Renderizador de conteúdo da página inicial
 │   │
-│   ├── conteudos/          # Módulo da aba "Conteúdos"
-│   │   └── conteudosAula.js# Acervo académico, músicas (player de áudio) e podcasts
+│   ├── conteudos/             # Módulo da aba "Conteúdos"
+│   │   └── conteudosAula.js   # Acervo académico, músicas (player de áudio) e podcasts
 │   │
-│   ├── projetos/           # Módulo da aba "Projetos"
-│   │   └── projetos.js     # Galeria e detalhes dos projetos em destaque
+│   ├── moderadorTech/         # Módulo da aba "Conteúdos"
+│   │   └── blogTecnico.js     # Acervo académico de matérias e blogs dos alunos
 │   │
-│   ├── atualizacoes/       # Módulo da aba "Atualizações"
-│   │   └── atualizacoes.js # Mural de avisos e novidades da plataforma
+│   ├── pesquisasTech/         # Módulo da aba "Conteúdos"
+│   │   └── pesquisasTech.js   # Conjunto de pesquisas técnicas realizadas pelos alunos em colégios
 │   │
-│   ├── conexaoAluno/       # Módulo da aba "Conexão Aluno" (Oculta/Desativada)
-│   │   └── conexaoAluno.js # Rede social, publicações e interação da comunidade
+│   ├── projetos/              # Módulo da aba "Projetos"
+│   │   └── projetos.js        # Galeria e detalhes dos projetos em destaque
 │   │
-│   ├── alunoTech/          # Módulo da aba "Aluno Tech" (Área do Aluno)
-│   │   └── perfilTech.js   # Dashboard do aluno (notas, caderno digital, kanban, calendário)
+│   ├── atualizacoes/          # Módulo da aba "Atualizações"
+│   │   └── atualizacoes.js    # Mural de avisos e novidades da plataforma
 │   │
-│   ├── moderadorTech/      # Módulo da aba "Moderador Tech"
+│   ├── conexaoAluno/          # Módulo da aba "Conexão Aluno" (Oculta/Desativada)
+│   │   └── conexaoAluno.js    # Rede social, publicações e interação da comunidade
+│   │
+│   ├── alunoTech/             # Módulo da aba "Aluno Tech" (Área do Aluno)
+│   │   └── perfilTech.js      # Dashboard do aluno (notas, caderno digital, kanban, calendário)
+│   │
+│   ├── moderadorTech/         # Módulo da aba "Moderador Tech"
 │   │   └── cadastroTitulos.js # Gestão de atualizações, títulos, condecorações e aprovação de posts
+│   │   └── blogTecnico.js     # Gestãodos blogs técnicos dos alunos (com aprovação de pares moderadores)
 │   │
-│   └── professorTech/      # Módulo da aba "Professor Tech" (Gestão Escolar)
-│       └── professorTech.js# Dashboard docente (chamada, notas, pontos extras, relatórios, avaliações)
+│   └── professorTech/         # Módulo da aba "Professor Tech" (Gestão Escolar)
+│       └── professorTech.js   # Dashboard docente (chamada, notas, pontos extras, relatórios, avaliações)
 │
-└── imagens/                # Recursos visuais do projeto
+└── imagens/                   # Recursos visuais do projeto
     ├── background/
     │   └── background-oficial.jpg  # Imagem de fundo principal
     └── favicon/
