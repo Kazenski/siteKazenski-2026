@@ -127,7 +127,7 @@ export async function renderProfessorTab() {
         });
     }
 
-    
+
     // Gatilho para recarregar a tabela se o professor mudar de N1 para N2 na nova aba
     if (els.aplicarAvalSlot) {
         els.aplicarAvalSlot.addEventListener('change', () => window.profAPI.renderAplicarAvalTable());
@@ -524,6 +524,7 @@ async function loadMasterData() {
                 needsBatch = true;
             }
 
+            // Extração das rubricas do banco para o cache interno do sistema
             const trimDataSafe = docSnap.exists() ? docSnap.data().disciplinasComNotas?.[disciplineId]?.[quarter] || {} : {};
             const rbMemoria = {
                 nota1: trimDataSafe.rubricas_nota1 || null,
@@ -1035,8 +1036,12 @@ window.profAPI = {
             return;
         }
 
-        const slotSelecionado = els.aplicarAvalSlot.value; // ex: "nota1"
-        const cacheSlotKey = slotSelecionado.replace('ota', ''); // Converte para "n1" para leitura do cache base
+        const slotSelecionado = els.aplicarAvalSlot.value; // ex: "nota1", "nota2"
+        const { classId, disciplineId, quarter } = state.filters;
+        
+        // 1. Chave de Rascunho Local no navegador (Garante o trabalho em pedaços / troca de aparelho via sync se persistido)
+        const rascunhoKey = `draft_aval_${classId}_${disciplineId}_${quarter}_${slotSelecionado}`;
+        const rascunhoLocal = JSON.parse(localStorage.getItem(rascunhoKey) || '{}');
 
         const opcoesSelect = `
             <option value="">Selecione...</option>
@@ -1053,34 +1058,40 @@ window.profAPI = {
             tr.dataset.uid = st.id;
             tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
 
-            // Puxa as rubricas salvas do cache (se existirem) para o aluno e o slot atual
-            const rubricasPagas = (state.notasCache[st.id] && state.notasCache[st.id].rubricas && state.notasCache[st.id].rubricas[slotSelecionado]) 
-                                  ? state.notasCache[st.id].rubricas[slotSelecionado] 
-                                  : { bncc: "", tec: "", merc: "", def: "" };
+            // ESTRATÉGIA DE DUPLA VERIFICAÇÃO:
+            // 1º Tenta resgatar do Rascunho Local (o que foi mexido mas ainda não consolidado)
+            // 2º Tenta resgatar da Memória Oficial do Firebase (o que já foi salvo em sessões anteriores)
+            let rubricasValores = { bncc: "", tec: "", merc: "", def: "" };
 
-            // Função helper para pré-selecionar o <option> correto baseado no valor salvo
+            if (rascunhoLocal[st.id] && (rascunhoLocal[st.id].bncc !== "" || rascunhoLocal[st.id].tec !== "")) {
+                rubricasValores = rascunhoLocal[st.id];
+            } else if (state.notasCache[st.id] && state.notasCache[st.id].rubricas && state.notasCache[st.id].rubricas[slotSelecionado]) {
+                rubricasValores = state.notasCache[st.id].rubricas[slotSelecionado];
+            }
+
+            // Função auxiliar para injetar o 'selected' na opção correta do select de acordo com o dado recuperado
             const selectHtml = (className, valorSalvo) => `
                 <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded p-2 outline-none focus:border-emerald-500 ${className}" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>
                     <option value="" ${valorSalvo === "" ? 'selected' : ''}>Selecione...</option>
-                    <option value="10" ${valorSalvo === "10" ? 'selected' : ''}>Excelente (Pleno)</option>
-                    <option value="7.5" ${valorSalvo === "7.5" ? 'selected' : ''}>Bom (Adequado)</option>
-                    <option value="5" ${valorSalvo === "5" ? 'selected' : ''}>Em Desenvolvimento (Parcial)</option>
-                    <option value="2.5" ${valorSalvo === "2.5" ? 'selected' : ''}>Insuficiente</option>
-                    <option value="0" ${valorSalvo === "0" ? 'selected' : ''}>Faltou (0.0)</option>
+                    <option value="10" ${String(valorSalvo) === "10" ? 'selected' : ''}>Excelente (Pleno)</option>
+                    <option value="7.5" ${String(valorSalvo) === "7.5" ? 'selected' : ''}>Bom (Adequado)</option>
+                    <option value="5" ${String(valorSalvo) === "5" ? 'selected' : ''}>Em Desenvolvimento (Parcial)</option>
+                    <option value="2.5" ${String(valorSalvo) === "2.5" ? 'selected' : ''}>Insuficiente</option>
+                    <option value="0" ${String(valorSalvo) === "0" ? 'selected' : ''}>Faltou (0.0)</option>
                 </select>
             `;
 
             tr.innerHTML = `
                 <td class="p-4 font-bold text-slate-200 truncate max-w-[200px]">${escapeHTML(st.nome)}</td>
-                <td class="p-2 text-center">${selectHtml('aval-sel-bncc', String(rubricasPagas.bncc))}</td>
-                <td class="p-2 text-center">${selectHtml('aval-sel-tec', String(rubricasPagas.tec))}</td>
-                <td class="p-2 text-center">${selectHtml('aval-sel-merc', String(rubricasPagas.merc))}</td>
-                <td class="p-2 text-center">${selectHtml('aval-sel-def', String(rubricasPagas.def))}</td>
+                <td class="p-2 text-center">${selectHtml('aval-sel-bncc', rubricasValores.bncc)}</td>
+                <td class="p-2 text-center">${selectHtml('aval-sel-tec', rubricasValores.tec)}</td>
+                <td class="p-2 text-center">${selectHtml('aval-sel-merc', rubricasValores.merc)}</td>
+                <td class="p-2 text-center">${selectHtml('aval-sel-def', rubricasValores.def)}</td>
                 <td class="p-4 text-center font-black text-xl text-slate-600" id="aval-nota-${st.id}">-</td>
             `;
             els.aplicarAvalBody.appendChild(tr);
 
-            // Chama o cálculo para renderizar a nota visualmente caso o aluno já tenha notas preenchidas ao carregar
+            // Dispara o cálculo imediato para desenhar a nota na coluna final se houver dados recuperados
             window.profAPI.calcAvalRow(st.id);
         });
     },
@@ -1094,9 +1105,18 @@ window.profAPI = {
         const vMerc = tr.querySelector('.aval-sel-merc').value;
         const vDef = tr.querySelector('.aval-sel-def').value;
 
+        // AUTO-SAVE: Salva o estado atual imediatamente no navegador para evitar perdas de progresso
+        const { classId, disciplineId, quarter } = state.filters;
+        const slotSelecionado = els.aplicarAvalSlot.value;
+        const rascunhoKey = `draft_aval_${classId}_${disciplineId}_${quarter}_${slotSelecionado}`;
+        
+        let rascunhoLocal = JSON.parse(localStorage.getItem(rascunhoKey) || '{}');
+        rascunhoLocal[uid] = { bncc: vBncc, tec: vTec, merc: vMerc, def: vDef };
+        localStorage.setItem(rascunhoKey, JSON.stringify(rascunhoLocal));
+
         const tdNota = document.getElementById(`aval-nota-${uid}`);
 
-        // Só calcula se os 4 eixos estiverem preenchidos
+        // Só calcula a nota final se todos os 4 eixos estiverem preenchidos
         if (vBncc === "" || vTec === "" || vMerc === "" || vDef === "") {
             tdNota.textContent = '-';
             tdNota.className = "p-4 text-center font-black text-xl text-slate-600";
@@ -1108,15 +1128,15 @@ window.profAPI = {
         const notaFormatada = notaCalculada.toFixed(1);
 
         tdNota.textContent = notaFormatada;
-        // getNoteColor já existe no seu arquivo e pinta de verde/amarelo/vermelho!
         tdNota.className = `p-4 text-center font-black text-xl ${getNoteColor(notaFormatada)}`;
     },
+
 
     saveAplicarAval: async () => {
         const { disciplineId, quarter } = state.filters;
         if (!disciplineId || !quarter) return alert("Selecione a Turma, Disciplina e Trimestre no menu superior primeiro.");
 
-        const slot = els.aplicarAvalSlot.value; // ex: "nota1", "nota2"
+        const slot = els.aplicarAvalSlot.value; // ex: "nota1"
         const cacheSlotKey = slot.replace('ota', ''); // Converte "nota1" -> "n1"
         const rows = document.querySelectorAll('#aplicar-aval-body tr[data-uid]');
         
@@ -1125,7 +1145,6 @@ window.profAPI = {
             const uid = tr.dataset.uid;
             const textNota = document.getElementById(`aval-nota-${uid}`).textContent;
             
-            // Só prepara para salvar se tiver a nota cheia (os 4 selects preenchidos)
             if (textNota !== '-') {
                 batchData.push({ 
                     uid: uid, 
@@ -1141,45 +1160,38 @@ window.profAPI = {
         });
 
         if (batchData.length === 0) return alert("Nenhuma nota completada para salvar. Preencha os 4 conceitos de ao menos um aluno.");
-        if (!confirm(`Confirmar o salvamento de ${batchData.length} avaliações no slot ${slot.toUpperCase()} do Trimestre ${quarter}? A nota das rubricas será SOMADA a nota atual do diário (limitada a 10.0).`)) return;
+        if (!confirm(`Confirmar o salvamento de ${batchData.length} avaliações no slot ${slot.toUpperCase()} do Trimestre ${quarter}? A nota será acumulada no diário do aluno.`)) return;
 
         let err = 0;
         els.aplicarAvalBody.style.opacity = '0.5';
 
         for (const data of batchData) {
             try {
-                // Lógica de Acumulador:
                 let notaBaseExistente = 0;
-                // Busca no cache a nota base que o aluno já possuía (se ele não tivesse rubricas prévias)
                 if (state.notasCache[data.uid] && state.notasCache[data.uid][cacheSlotKey]) {
                      notaBaseExistente = parseFloat(state.notasCache[data.uid][cacheSlotKey]) || 0;
                 }
 
-                // Subtrai a rubrica velha (se existisse) para não somar duas vezes caso o professor esteja "atualizando" o mesmo aluno!
+                // Subtrai rubrica anterior se houver para evitar duplicidade em reenvios
                 let valorRubricaAnterior = 0;
                 if (state.notasCache[data.uid] && state.notasCache[data.uid].rubricas && state.notasCache[data.uid].rubricas[slot]) {
                     const rA = state.notasCache[data.uid].rubricas[slot];
-                    // Recalcula qual era o valor da rubrica antiga salva no banco
                     valorRubricaAnterior = (parseFloat(rA.bncc||0) * 0.25) + (parseFloat(rA.tec||0) * 0.35) + (parseFloat(rA.merc||0) * 0.20) + (parseFloat(rA.def||0) * 0.20);
                 }
 
-                // Subtrai o valor que a rubrica antiga tinha na média, e soma a rubrica NOVA.
                 let notaLimpa = notaBaseExistente - valorRubricaAnterior; 
-                if (notaLimpa < 0) notaLimpa = 0; // Proteção
+                if (notaLimpa < 0) notaLimpa = 0;
 
                 let novaNotaFinal = notaLimpa + data.notaCalculadaDaRubrica;
-                
-                // Trava de 10.0
                 if (novaNotaFinal > 10) novaNotaFinal = 10.0;
                 novaNotaFinal = parseFloat(novaNotaFinal.toFixed(1));
 
-                // Payload do Firebase (Salva a nota E a memória das seleções)
+                // Payload compatível com o Firebase, gravando a nota e a memória de seleções das rubricas
                 const payload = {
                     disciplinasComNotas: {
                         [disciplineId]: {
                             [quarter]: {
                                 [slot]: novaNotaFinal,
-                                // Salvamos a memória das rubricas para aquele slot!
                                 [`rubricas_${slot}`]: data.rubricas, 
                                 updatedAt: Date.now()
                             }
@@ -1190,12 +1202,11 @@ window.profAPI = {
 
                 await setDoc(doc(db, "notas", data.uid), payload, { merge: true });
                 
-                // Atualiza o Cache Local
+                // Atualiza a memória RAM do sistema
                 if (state.notasCache[data.uid]) {
                     state.notasCache[data.uid][cacheSlotKey] = novaNotaFinal;
                     state.notasCache[data.uid].modified = false;
                     
-                    // Garante que o objeto rubricas existe no cache
                     if (!state.notasCache[data.uid].rubricas) state.notasCache[data.uid].rubricas = {};
                     state.notasCache[data.uid].rubricas[slot] = data.rubricas;
                 }
@@ -1210,89 +1221,13 @@ window.profAPI = {
         if (err > 0) {
             alert(`Processo concluído com ${err} erro(s). Verifique o console.`);
         } else {
-            alert(`Avaliações ACUMULADAS com as configurações de Rubricas Salvas com Sucesso!`);
-            // Recarrega a tabela visual para o professor ver os selects atualizados e "limpos" visualmente
+            // Limpa o rascunho local após a confirmação bem-sucedida no Firebase
+            const rascunhoKey = `draft_aval_${state.filters.classId}_${disciplineId}_${quarter}_${slot}`;
+            localStorage.removeItem(rascunhoKey);
+
+            alert(`Avaliações ACUMULADAS e salvas com sucesso!`);
             window.profAPI.renderAplicarAvalTable();
             
-            // Navega até as notas
-            const btnNotas = document.querySelector('.prof-subtab-btn[data-target="notas"]');
-            if(btnNotas) btnNotas.click();
-        }
-    },
-
-    saveAplicarAval: async () => {
-        const { disciplineId, quarter } = state.filters;
-        if (!disciplineId || !quarter) return alert("Selecione a Turma, Disciplina e Trimestre no menu superior primeiro.");
-
-        const slot = els.aplicarAvalSlot.value; // ex: "nota1", "nota2"
-        const cacheSlotKey = slot.replace('ota', ''); // Converte "nota1" -> "n1" para ler o cache interno
-        const rows = document.querySelectorAll('#aplicar-aval-body tr[data-uid]');
-        
-        let batchData = [];
-        rows.forEach(tr => {
-            const uid = tr.dataset.uid;
-            const textNota = document.getElementById(`aval-nota-${uid}`).textContent;
-            if (textNota !== '-') {
-                batchData.push({ uid, nota: parseFloat(textNota) });
-            }
-        });
-
-        if (batchData.length === 0) return alert("Nenhuma nota calculada para salvar. Selecione os conceitos dos alunos.");
-        
-        // Atualizei o texto de confirmação para deixar claro que vai SOMAR
-        if (!confirm(`Deseja SOMAR a nota de ${batchData.length} aluno(s) no slot ${slot.toUpperCase()} do Trimestre ${quarter}? A nota será adicionada ao que já existe no diário (Limitado ao máximo de 10.0).`)) return;
-
-        let err = 0;
-        for (const data of batchData) {
-            try {
-                // 1. Busca a nota atual do aluno no sistema
-                let notaAtual = 0;
-                if (state.notasCache[data.uid] && state.notasCache[data.uid][cacheSlotKey]) {
-                    notaAtual = parseFloat(state.notasCache[data.uid][cacheSlotKey]) || 0;
-                }
-                
-                // 2. Acumulador: Soma a nota atual com a nova avaliação
-                let novaNotaFinal = notaAtual + data.nota;
-                
-                // 3. Trava de segurança: A nota não pode passar de 10.0
-                if (novaNotaFinal > 10) novaNotaFinal = 10.0;
-                
-                // Arredonda para 1 casa decimal de forma segura
-                novaNotaFinal = parseFloat(novaNotaFinal.toFixed(1));
-
-                // 4. Salva no Firebase
-                const payload = {
-                    disciplinasComNotas: {
-                        [disciplineId]: {
-                            [quarter]: {
-                                [slot]: novaNotaFinal,
-                                updatedAt: Date.now()
-                            }
-                        }
-                    },
-                    lastUpdatedAt: serverTimestamp()
-                };
-                await setDoc(doc(db, "notas", data.uid), payload, { merge: true });
-                
-                // 5. Atualiza o cache interno para refletir na aba "Notas" imediatamente
-                if (state.notasCache[data.uid]) {
-                    state.notasCache[data.uid][cacheSlotKey] = novaNotaFinal;
-                    state.notasCache[data.uid].modified = false; // Reseta o status de modificação manual
-                }
-            } catch (e) {
-                console.error(e);
-                err++;
-            }
-        }
-
-        if (err > 0) {
-            alert(`Processo concluído com ${err} erro(s). Verifique o console.`);
-        } else {
-            alert(`Avaliações ACUMULADAS em ${slot.toUpperCase()} com Sucesso!`);
-            // Limpa a tabela (volta para "-") para o professor não somar duas vezes sem querer
-            window.profAPI.renderAplicarAvalTable();
-            
-            // Opcional: Clica automaticamente na aba "Notas" para ele ver o resultado
             const btnNotas = document.querySelector('.prof-subtab-btn[data-target="notas"]');
             if(btnNotas) btnNotas.click();
         }
