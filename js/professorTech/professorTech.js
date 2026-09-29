@@ -127,11 +127,12 @@ export async function renderProfessorTab() {
         });
     }
 
+    
     // Gatilho para recarregar a tabela se o professor mudar de N1 para N2 na nova aba
     if (els.aplicarAvalSlot) {
         els.aplicarAvalSlot.addEventListener('change', () => window.profAPI.renderAplicarAvalTable());
     }
-    
+
     // Botões de Status de Lançamento (Pendente/Lançado)
     els.launchBtns.forEach(btn => {
         btn.onclick = () => {
