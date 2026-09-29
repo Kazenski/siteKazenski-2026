@@ -549,6 +549,7 @@ async function loadMasterData() {
     }
 }
 
+
 function renderExtrasTable() {
     if (!els.extrasBody) return;
     els.extrasBody.innerHTML = '';
