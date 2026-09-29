@@ -1028,6 +1028,7 @@ window.profAPI = {
     // ==========================================
     // MÓDULO: APLICAR AVALIAÇÃO (RUBRICAS DO DRIVE)
     // ==========================================
+    
     renderAplicarAvalTable: () => {
         if (!els.aplicarAvalBody) return;
         els.aplicarAvalBody.innerHTML = '';
@@ -1037,21 +1038,21 @@ window.profAPI = {
             return;
         }
 
-        const slotSelecionado = els.aplicarAvalSlot.value; // ex: "nota1", "nota2"
+        const slotSelecionado = els.aplicarAvalSlot.value; 
         const { classId, disciplineId, quarter } = state.filters;
         
-        // 1. Chave de Rascunho Local no navegador (Garante o trabalho em pedaços / troca de aparelho via sync se persistido)
         const rascunhoKey = `draft_aval_${classId}_${disciplineId}_${quarter}_${slotSelecionado}`;
         const rascunhoLocal = JSON.parse(localStorage.getItem(rascunhoKey) || '{}');
 
-        const opcoesSelect = `
-            <option value="">Selecione...</option>
-            <option value="10">Excelente (Pleno)</option>
-            <option value="7.5">Bom (Adequado)</option>
-            <option value="5">Em Desenvolvimento (Parcial)</option>
-            <option value="2.5">Insuficiente</option>
-            <option value="0">Faltou (0.0)</option>
-        `;
+        // Função interna para decidir a cor de fundo do <select> baseado no valor
+        const getCorFundo = (valor) => {
+            const v = String(valor);
+            if (v === "10") return "bg-green-500/20 text-green-400 border-green-500/50"; // Verde (Excelente)
+            if (v === "7.5") return "bg-blue-500/20 text-blue-400 border-blue-500/50";   // Azul (Bom)
+            if (v === "5") return "bg-amber-500/20 text-amber-400 border-amber-500/50"; // Amarelo (Em Desenvolvimento)
+            if (v === "2.5" || v === "0") return "bg-red-500/20 text-red-400 border-red-500/50"; // Vermelho (Insuficiente)
+            return "bg-slate-900 text-slate-300 border-slate-700"; // Padrão vazio
+        };
 
         state.cache.students.forEach(st => {
             const isActive = st.registroAtivo !== false;
@@ -1059,9 +1060,6 @@ window.profAPI = {
             tr.dataset.uid = st.id;
             tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
 
-            // ESTRATÉGIA DE DUPLA VERIFICAÇÃO:
-            // 1º Tenta resgatar do Rascunho Local (o que foi mexido mas ainda não consolidado)
-            // 2º Tenta resgatar da Memória Oficial do Firebase (o que já foi salvo em sessões anteriores)
             let rubricasValores = { bncc: "", tec: "", merc: "", def: "" };
 
             if (rascunhoLocal[st.id] && (rascunhoLocal[st.id].bncc !== "" || rascunhoLocal[st.id].tec !== "")) {
@@ -1070,17 +1068,19 @@ window.profAPI = {
                 rubricasValores = state.notasCache[st.id].rubricas[slotSelecionado];
             }
 
-            // Função auxiliar para injetar o 'selected' na opção correta do select de acordo com o dado recuperado
-            const selectHtml = (className, valorSalvo) => `
-                <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded p-2 outline-none focus:border-emerald-500 ${className}" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>
-                    <option value="" ${valorSalvo === "" ? 'selected' : ''}>Selecione...</option>
-                    <option value="10" ${String(valorSalvo) === "10" ? 'selected' : ''}>Excelente (Pleno)</option>
-                    <option value="7.5" ${String(valorSalvo) === "7.5" ? 'selected' : ''}>Bom (Adequado)</option>
-                    <option value="5" ${String(valorSalvo) === "5" ? 'selected' : ''}>Em Desenvolvimento (Parcial)</option>
-                    <option value="2.5" ${String(valorSalvo) === "2.5" ? 'selected' : ''}>Insuficiente</option>
-                    <option value="0" ${String(valorSalvo) === "0" ? 'selected' : ''}>Faltou (0.0)</option>
+            // O Select agora chama getCorFundo() na montagem inicial para já vir colorido se houver cache
+            const selectHtml = (className, valorSalvo) => {
+                const corInjetada = getCorFundo(valorSalvo);
+                return `
+                <select class="w-full border text-[10px] rounded p-2 outline-none transition-colors font-bold ${corInjetada} ${className}" onchange="window.profAPI.atualizarCorSelect(this); window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>
+                    <option value="" class="bg-slate-900 text-slate-300">Selecione...</option>
+                    <option value="10" class="bg-slate-900 text-green-400" ${String(valorSalvo) === "10" ? 'selected' : ''}>Excelente (Pleno)</option>
+                    <option value="7.5" class="bg-slate-900 text-blue-400" ${String(valorSalvo) === "7.5" ? 'selected' : ''}>Bom (Adequado)</option>
+                    <option value="5" class="bg-slate-900 text-amber-400" ${String(valorSalvo) === "5" ? 'selected' : ''}>Em Desenvolvimento</option>
+                    <option value="2.5" class="bg-slate-900 text-red-400" ${String(valorSalvo) === "2.5" ? 'selected' : ''}>Insuficiente</option>
+                    <option value="0" class="bg-slate-900 text-red-600" ${String(valorSalvo) === "0" ? 'selected' : ''}>Faltou (0.0)</option>
                 </select>
-            `;
+            `};
 
             tr.innerHTML = `
                 <td class="p-4 font-bold text-slate-200 truncate max-w-[200px]">${escapeHTML(st.nome)}</td>
@@ -1092,11 +1092,28 @@ window.profAPI = {
             `;
             els.aplicarAvalBody.appendChild(tr);
 
-            // Dispara o cálculo imediato para desenhar a nota na coluna final se houver dados recuperados
             window.profAPI.calcAvalRow(st.id);
         });
     },
 
+    // >>> NOVA FUNÇÃO HELPER: Troca a cor instantaneamente no clique <<<
+    atualizarCorSelect: (selectEl) => {
+        // Remove as cores antigas
+        selectEl.classList.remove('bg-green-500/20', 'text-green-400', 'border-green-500/50', 
+                                  'bg-blue-500/20', 'text-blue-400', 'border-blue-500/50', 
+                                  'bg-amber-500/20', 'text-amber-400', 'border-amber-500/50', 
+                                  'bg-red-500/20', 'text-red-400', 'border-red-500/50', 
+                                  'bg-slate-900', 'text-slate-300', 'border-slate-700');
+
+        // Adiciona a nova cor baseado no valor escolhido
+        const val = selectEl.value;
+        if (val === "10") selectEl.classList.add('bg-green-500/20', 'text-green-400', 'border-green-500/50');
+        else if (val === "7.5") selectEl.classList.add('bg-blue-500/20', 'text-blue-400', 'border-blue-500/50');
+        else if (val === "5") selectEl.classList.add('bg-amber-500/20', 'text-amber-400', 'border-amber-500/50');
+        else if (val === "2.5" || val === "0") selectEl.classList.add('bg-red-500/20', 'text-red-400', 'border-red-500/50');
+        else selectEl.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-700');
+    },
+    
     calcAvalRow: (uid) => {
         const tr = document.querySelector(`#aplicar-aval-body tr[data-uid="${uid}"]`);
         if (!tr) return;
