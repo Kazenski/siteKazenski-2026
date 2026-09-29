@@ -107,6 +107,7 @@ export async function renderProfessorTab() {
     addSafeListener('apoia', () => window.profAPI.loadApoiaRegistros());
     addSafeListener('sorteios', () => window.profAPI.initSorteiosTab());
     addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
+    addSafeListener('aplicar-aval', () => window.profAPI.renderAplicarAvalTable());
     addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
@@ -342,6 +343,10 @@ function mapearDOM() {
         massExt2: document.getElementById('check-mass-ext2'),
         massExt3: document.getElementById('check-mass-ext3'),
         massExt4: document.getElementById('check-mass-ext4'),
+
+        // >>> Mapeamento da Nova Aba de Avaliação <<<
+        aplicarAvalBody: document.getElementById('aplicar-aval-body'),
+        aplicarAvalSlot: document.getElementById('aplicar-aval-slot'),
 
         // Logs
         logsBody: document.getElementById('logs-list-body'),
@@ -1000,6 +1005,159 @@ window.profAPI = {
         let err = 0;
         for (const uid of mods) { try { await window.profAPI.saveSingleNote(uid); } catch (e) { err++; } }
         if (err > 0) alert(`Salvo, porém com ${err} erros.`); else alert("Notas salvas no Grimório com Sucesso!");
+    },
+
+
+    // ==========================================
+    // MÓDULO: APLICAR AVALIAÇÃO (RUBRICAS DO DRIVE)
+    // ==========================================
+    renderAplicarAvalTable: () => {
+        if (!els.aplicarAvalBody) return;
+        els.aplicarAvalBody.innerHTML = '';
+
+        if (state.cache.students.length === 0) {
+            els.aplicarAvalBody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-slate-500 font-bold">Selecione Turma e Disciplina no menu superior e clique em Carregar.</td></tr>';
+            return;
+        }
+
+        const optionsHtml = `
+            <option value="">Selecione...</option>
+            <option value="10">Excelente (Pleno)</option>
+            <option value="7.5">Bom (Adequado)</option>
+            <option value="5">Em Desenvolvimento (Parcial)</option>
+            <option value="2.5">Insuficiente</option>
+            <option value="0">Faltou (0.0)</option>
+        `;
+
+        state.cache.students.forEach(st => {
+            const isActive = st.registroAtivo !== false;
+            const tr = document.createElement('tr');
+            tr.dataset.uid = st.id;
+            tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
+
+            tr.innerHTML = `
+                <td class="p-4 font-bold text-slate-200 truncate max-w-[200px]">${escapeHTML(st.nome)}</td>
+                <td class="p-2 text-center">
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-2 outline-none focus:border-emerald-500 aval-sel-bncc" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>${optionsHtml}</select>
+                </td>
+                <td class="p-2 text-center">
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-2 outline-none focus:border-emerald-500 aval-sel-tec" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>${optionsHtml}</select>
+                </td>
+                <td class="p-2 text-center">
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-2 outline-none focus:border-emerald-500 aval-sel-merc" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>${optionsHtml}</select>
+                </td>
+                <td class="p-2 text-center">
+                    <select class="w-full bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded p-2 outline-none focus:border-emerald-500 aval-sel-def" onchange="window.profAPI.calcAvalRow('${st.id}')" ${isActive ? '' : 'disabled'}>${optionsHtml}</select>
+                </td>
+                <td class="p-4 text-center font-black text-xl text-slate-600" id="aval-nota-${st.id}">-</td>
+            `;
+            els.aplicarAvalBody.appendChild(tr);
+        });
+    },
+
+    calcAvalRow: (uid) => {
+        const tr = document.querySelector(`#aplicar-aval-body tr[data-uid="${uid}"]`);
+        if (!tr) return;
+
+        const vBncc = tr.querySelector('.aval-sel-bncc').value;
+        const vTec = tr.querySelector('.aval-sel-tec').value;
+        const vMerc = tr.querySelector('.aval-sel-merc').value;
+        const vDef = tr.querySelector('.aval-sel-def').value;
+
+        const tdNota = document.getElementById(`aval-nota-${uid}`);
+
+        // Só calcula se os 4 eixos estiverem preenchidos
+        if (vBncc === "" || vTec === "" || vMerc === "" || vDef === "") {
+            tdNota.textContent = '-';
+            tdNota.className = "p-4 text-center font-black text-xl text-slate-600";
+            return;
+        }
+
+        // Pesos: BNCC (0.25), Técnicas (0.35), Mercado (0.20), Defesa (0.20)
+        const notaFinal = (parseFloat(vBncc) * 0.25) + (parseFloat(vTec) * 0.35) + (parseFloat(vMerc) * 0.20) + (parseFloat(vDef) * 0.20);
+        const notaFormatada = notaFinal.toFixed(1);
+
+        tdNota.textContent = notaFormatada;
+        // getNoteColor já existe no seu arquivo e pinta de verde/amarelo/vermelho!
+        tdNota.className = `p-4 text-center font-black text-xl ${getNoteColor(notaFormatada)}`;
+    },
+
+    saveAplicarAval: async () => {
+        const { disciplineId, quarter } = state.filters;
+        if (!disciplineId || !quarter) return alert("Selecione a Turma, Disciplina e Trimestre no menu superior primeiro.");
+
+        const slot = els.aplicarAvalSlot.value; // ex: "nota1", "nota2"
+        const cacheSlotKey = slot.replace('ota', ''); // Converte "nota1" -> "n1" para ler o cache interno
+        const rows = document.querySelectorAll('#aplicar-aval-body tr[data-uid]');
+        
+        let batchData = [];
+        rows.forEach(tr => {
+            const uid = tr.dataset.uid;
+            const textNota = document.getElementById(`aval-nota-${uid}`).textContent;
+            if (textNota !== '-') {
+                batchData.push({ uid, nota: parseFloat(textNota) });
+            }
+        });
+
+        if (batchData.length === 0) return alert("Nenhuma nota calculada para salvar. Selecione os conceitos dos alunos.");
+        
+        // Atualizei o texto de confirmação para deixar claro que vai SOMAR
+        if (!confirm(`Deseja SOMAR a nota de ${batchData.length} aluno(s) no slot ${slot.toUpperCase()} do Trimestre ${quarter}? A nota será adicionada ao que já existe no diário (Limitado ao máximo de 10.0).`)) return;
+
+        let err = 0;
+        for (const data of batchData) {
+            try {
+                // 1. Busca a nota atual do aluno no sistema
+                let notaAtual = 0;
+                if (state.notasCache[data.uid] && state.notasCache[data.uid][cacheSlotKey]) {
+                    notaAtual = parseFloat(state.notasCache[data.uid][cacheSlotKey]) || 0;
+                }
+                
+                // 2. Acumulador: Soma a nota atual com a nova avaliação
+                let novaNotaFinal = notaAtual + data.nota;
+                
+                // 3. Trava de segurança: A nota não pode passar de 10.0
+                if (novaNotaFinal > 10) novaNotaFinal = 10.0;
+                
+                // Arredonda para 1 casa decimal de forma segura
+                novaNotaFinal = parseFloat(novaNotaFinal.toFixed(1));
+
+                // 4. Salva no Firebase
+                const payload = {
+                    disciplinasComNotas: {
+                        [disciplineId]: {
+                            [quarter]: {
+                                [slot]: novaNotaFinal,
+                                updatedAt: Date.now()
+                            }
+                        }
+                    },
+                    lastUpdatedAt: serverTimestamp()
+                };
+                await setDoc(doc(db, "notas", data.uid), payload, { merge: true });
+                
+                // 5. Atualiza o cache interno para refletir na aba "Notas" imediatamente
+                if (state.notasCache[data.uid]) {
+                    state.notasCache[data.uid][cacheSlotKey] = novaNotaFinal;
+                    state.notasCache[data.uid].modified = false; // Reseta o status de modificação manual
+                }
+            } catch (e) {
+                console.error(e);
+                err++;
+            }
+        }
+
+        if (err > 0) {
+            alert(`Processo concluído com ${err} erro(s). Verifique o console.`);
+        } else {
+            alert(`Avaliações ACUMULADAS em ${slot.toUpperCase()} com Sucesso!`);
+            // Limpa a tabela (volta para "-") para o professor não somar duas vezes sem querer
+            window.profAPI.renderAplicarAvalTable();
+            
+            // Opcional: Clica automaticamente na aba "Notas" para ele ver o resultado
+            const btnNotas = document.querySelector('.prof-subtab-btn[data-target="notas"]');
+            if(btnNotas) btnNotas.click();
+        }
     },
 
     // ==========================================
