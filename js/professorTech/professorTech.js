@@ -1113,6 +1113,7 @@ window.profAPI = {
         else if (val === "2.5" || val === "0") selectEl.classList.add('bg-red-500/20', 'text-red-400', 'border-red-500/50');
         else selectEl.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-700');
     },
+
     
     calcAvalRow: (uid) => {
         const tr = document.querySelector(`#aplicar-aval-body tr[data-uid="${uid}"]`);
