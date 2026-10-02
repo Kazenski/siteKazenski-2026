@@ -503,23 +503,28 @@ function wireEvents() {
     const track = $('#kz-track');
     if (!hero || !viewport || !track) return;
 
-    let startX = 0, startY = 0, startOffset = 0, dragging = false, movedEnough = false;
-    let lastTapHandledAt = 0;
+    let startX = 0, startY = 0, startOffset = 0, dragging = false, isRealDrag = false;
+    let downCard = null, downIdx = null;
     let pointerId = null, axisLocked = null;
     let lastX = 0, lastT = 0, velocity = 0;
+    let lastHandledClickTime = 0;
 
     const offsetNow = () => {
         const m = new DOMMatrixReadOnly(getComputedStyle(track).transform);
         return m.m41;
     };
 
-    /* ---- ARRASTO (1:1 com o ponteiro) ---- */
+    /* ---- ARRASTO (1:1 com o ponteiro) E CLIQUE ROBUSTO ---- */
     const onDown = (e) => {
         if (e.button !== undefined && e.button !== 0) return;
         if (e.target.closest('.kz-navbtn')) return;
 
+        // Captura o card no momento exato em que o ponteiro encosta
+        downCard = e.target.closest('.kz-card');
+        downIdx = downCard ? Number(downCard.dataset.index) : null;
+
         dragging = true;
-        movedEnough = false;
+        isRealDrag = false;
         axisLocked = null;
         pointerId = e.pointerId;
 
@@ -530,9 +535,6 @@ function wireEvents() {
         startOffset = offsetNow();
 
         stopAutoplay();
-        viewport.classList.add('is-dragging');
-        track.style.transition = 'none';
-        try { viewport.setPointerCapture(pointerId); } catch (_) { /* ignora */ }
     };
 
     const onMove = (e) => {
@@ -541,22 +543,24 @@ function wireEvents() {
         const dx = e.clientX - startX;
         const dy = e.clientY - startY;
 
-        // Trava o eixo no primeiro movimento dominante (evita roubar o scroll vertical)
-        if (!axisLocked) {
-            if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
-            axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-            if (axisLocked === 'y') {
+        // Enquanto o deslocamento for menor que 8px, consideramos tolerância de clique (não arrasto)
+        if (!isRealDrag) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+
+            // Se o movimento dominante for vertical, permite scroll da página
+            if (Math.abs(dy) > Math.abs(dx)) {
                 dragging = false;
-                viewport.classList.remove('is-dragging');
-                track.style.transition = '';
-                try { viewport.releasePointerCapture(pointerId); } catch (_) { /* ignora */ }
                 startAutoplay();
                 return;
             }
-            viewport.setPointerCapture?.(pointerId);
-        }
 
-        if (Math.abs(dx) > 6) movedEnough = true;
+            // Confirmado arrasto horizontal real
+            isRealDrag = true;
+            axisLocked = 'x';
+            viewport.classList.add('is-dragging');
+            track.style.transition = 'none';
+            try { viewport.setPointerCapture(pointerId); } catch (_) { /* ignora */ }
+        }
 
         // Flick detection
         const now = performance.now();
@@ -572,75 +576,79 @@ function wireEvents() {
     const onUp = (e) => {
         if (!dragging || (pointerId !== null && e.pointerId !== pointerId)) return;
         dragging = false;
-        viewport.classList.remove('is-dragging');
-        track.style.transition = '';
-        try { viewport.releasePointerCapture(pointerId); } catch (_) { /* ignora */ }
-        pointerId = null;
 
-        const dx = e.clientX - startX;
-        const step = cardStep();
+        // 1. SE FOI ARRASTO REAL: finaliza o movimento no trilho
+        if (isRealDrag) {
+            viewport.classList.remove('is-dragging');
+            track.style.transition = '';
+            try { viewport.releasePointerCapture(pointerId); } catch (_) { /* ignora */ }
+            pointerId = null;
 
-        let target = activeIndex;
-        if (Math.abs(dx) > step * DRAG_RATIO || Math.abs(velocity) > FLICK_VELOCITY) {
-            // Direção do flick tem prioridade sobre o deslocamento bruto
-            const flickDir = Math.abs(velocity) > FLICK_VELOCITY
-                ? (velocity < 0 ? 1 : -1)
-                : (dx < 0 ? 1 : -1);
-            target = activeIndex + flickDir;
-        } else if (Math.abs(dx) > 4) {
-            // Arrasto curto sem troca: devolve elásticamente ao lugar
-            springBackToActive();
-            startAutoplay();
+            const dx = e.clientX - startX;
+            const step = cardStep();
+
+            let target = activeIndex;
+            if (Math.abs(dx) > step * DRAG_RATIO || Math.abs(velocity) > FLICK_VELOCITY) {
+                const flickDir = Math.abs(velocity) > FLICK_VELOCITY
+                    ? (velocity < 0 ? 1 : -1)
+                    : (dx < 0 ? 1 : -1);
+                target = activeIndex + flickDir;
+            } else if (Math.abs(dx) > 6) {
+                springBackToActive();
+                startAutoplay();
+                lastHandledClickTime = Date.now();
+                return;
+            }
+
+            if (target === activeIndex) {
+                centerIndex(activeIndex);
+            } else {
+                goTo(target);
+            }
+            lastHandledClickTime = Date.now();
             return;
         }
 
-        if (target === activeIndex) {
-            centerIndex(activeIndex);
-        } else {
-            goTo(target);
+        // 2. SE NÃO FOI ARRASTO: É UM CLIQUE LEGÍTIMO NO CARD!
+        pointerId = null;
+        if (downCard && !isNaN(downIdx) && downIdx !== null) {
+            lastHandledClickTime = Date.now();
+            const targetIdx = downIdx;
+            downCard = null;
+            downIdx = null;
+
+            // Se não for o slide ativo, atualiza para ele e abre em tela cheia na hora
+            if (targetIdx !== activeIndex) updateActive(targetIdx, { silent: true });
+            enterImmersive(targetIdx);
+            return;
         }
+
+        startAutoplay();
+    };
+
+    const onCancel = () => {
+        dragging = false;
+        isRealDrag = false;
+        downCard = null;
+        downIdx = null;
+        viewport.classList.remove('is-dragging');
+        track.style.transition = '';
+        startAutoplay();
     };
 
     viewport.addEventListener('pointerdown', onDown);
     viewport.addEventListener('pointermove', onMove, { passive: false });
     viewport.addEventListener('pointerup', onUp);
-    viewport.addEventListener('pointercancel', () => {
-        dragging = false;
-        viewport.classList.remove('is-dragging');
-        track.style.transition = '';
-        startAutoplay();
-    });
+    viewport.addEventListener('pointercancel', onCancel);
 
-    /* ---- CLIQUE NO CARD -> ZOOM IN ---- */
+    /* ---- CLIQUE NO CARD -> ZOOM IN (FALLBACK MOUSE/TECLADO) ---- */
     track.addEventListener('click', (e) => {
-        if (movedEnough) return;              // foi arrasto, não clique
-        // O pointer capture redireciona o alvo do clique para o viewport;
-        // por isso usamos a posição do clique para achar o card real.
-        let card = e.target.closest?.('.kz-card');
-        if (!card) {
-            const el = document.elementFromPoint(e.clientX, e.clientY);
-            card = el?.closest?.('.kz-card') || null;
-        }
+        if (isRealDrag || Date.now() - lastHandledClickTime < 400) return;
+        const card = e.target.closest?.('.kz-card');
         if (!card) return;
         const idx = Number(card.dataset.index);
-        lastTapHandledAt = Date.now();
-        if (idx !== activeIndex) updateActive(idx, { silent: true });
-        enterImmersive(idx);
-    });
-
-    // Tap (toque sem arrastar): o pointer capture faz o evento click mirar no
-    // viewport, então tratamos o clique aqui também (deduplicado pelo timestamp).
-    viewport.addEventListener('pointerup', (e) => {
-        if (movedEnough) return;
-        const dx = Math.abs(e.clientX - startX), dy = Math.abs(e.clientY - startY);
-        if (dx > 6 || dy > 6 || axisLocked === 'x') return;
-        if (e.target.closest?.('.kz-navbtn')) return;
-        if (Date.now() - lastTapHandledAt < 350) return;
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        const card = el?.closest?.('.kz-card');
-        if (!card) return;
-        lastTapHandledAt = Date.now();
-        const idx = Number(card.dataset.index);
+        if (isNaN(idx)) return;
+        lastHandledClickTime = Date.now();
         if (idx !== activeIndex) updateActive(idx, { silent: true });
         enterImmersive(idx);
     });
