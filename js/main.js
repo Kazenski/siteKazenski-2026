@@ -14,6 +14,7 @@ import { iniciarManutencao, renderAtualizacoesTab, aplicarPermissoes } from './m
 import { iniciarModeracao } from './core/moderacao.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
 import { renderPesquisasTechTab } from './pesquisasTech/pesquisasTech.js';
+import { renderVotacaoTab } from './votacao/votacao.js';
 import './atualizacoes/atualizacoes.js';
 import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
 import { lojaAuraAPI } from './conteudos/lojaAura.js';
@@ -52,6 +53,7 @@ const MENU_ARCHITECTURE = [
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
+    { id: 'votacao', label: 'Votação', showTo: (r) => window._votacaoAtiva === true },
 
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
@@ -68,6 +70,12 @@ const MENU_ARCHITECTURE = [
 let globalBadges = { avaliacoes: false };
 let unsubAvaliacoes = null;
 let unsubEntregas = null;
+
+// Listener da configuração da votação (controla visibilidade da aba no menu)
+onSnapshot(doc(db, 'config', 'votacao'), (snap) => {
+    window._votacaoAtiva = snap.exists() && snap.data().ativa === true;
+    buildTopMenu();
+}, (err) => console.warn('Config de votação indisponível:', err));
 
 function iniciarMonitoramentoNotificacoes(uid, turma) {
     if (!turma) return;
@@ -505,6 +513,9 @@ window.showTab = function (tabId) {
     });
 
     // Gerencia visibilidade das seções
+    // Para o mini player da votação ao trocar de aba
+    if (tabId !== 'votacao') window.votacaoAPI?.fecharPlayer();
+
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.add('hidden');
         tab.classList.remove('active');
@@ -586,6 +597,9 @@ window.showTab = function (tabId) {
     }
     else if (tabId === 'atualizacoes') {
         renderAtualizacoesTab();
+    }
+    else if (tabId === 'votacao') {
+        renderVotacaoTab();
     }
 };
 

@@ -697,6 +697,11 @@
             <!-- Renderizado via JS -->
         </div>
 
+        <div id="votacao-content"
+            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll bg-slate-950">
+            <!-- Renderizado via JS -->
+        </div>
+
         <div id="conexao-aluno-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 
@@ -1480,7 +1485,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 border-b border-slate-800 pb-4 shrink-0 w-full">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6 border-b border-slate-800 pb-4 shrink-0 w-full">
                     <button
                         class="mod-subtab-btn active px-3 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-blue-600 text-white rounded-lg transition-colors shadow-lg shadow-blue-900/30"
                         data-target="atualizacoes">
@@ -1505,6 +1510,11 @@
                         class="mod-subtab-btn px-3 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors"
                         data-target="metricas-mod">
                         <i class="fas fa-chart-pie md:mr-1 block md:inline mb-1 md:mb-0"></i> Métricas Mod
+                    </button>
+                    <button
+                        class="mod-subtab-btn px-3 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors"
+                        data-target="votacoes">
+                        <i class="fas fa-vote-yea md:mr-1 block md:inline mb-1 md:mb-0"></i> Votações
                     </button>
                 </div>
 
@@ -1908,6 +1918,10 @@
                     </div>
                 </div>
 
+                <!-- ABA: VOTAÇÕES -->
+                <div id="mtab-votacoes" class="mod-tab-content hidden flex-grow flex-col fade-in w-full pb-10">
+                    <div id="votacoes-mod-content"></div>
+                </div>
             </div>
 
             <div id="delete-title-modal"
@@ -4396,6 +4410,7 @@
     <script type="module" src="js/moderadorTech/blogTecnico.js"></script>
 
     <script type="module" src="js/pesquisasTech/pesquisasTech.js"></script>
+    <script type="module" src="js/votacao/votacao.js"></script>
 
 </body>
 

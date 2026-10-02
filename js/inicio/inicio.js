@@ -290,7 +290,7 @@ function swapBackground(index, { instant = false } = {}) {
     const current = layers.find(l => l.classList.contains('is-on')) || layers[0];
     const next = layers.find(l => l !== current);
 
-    const url = slide.imagemURL || DEFAULT_BG;
+    const url = DEFAULT_BG; // fundo nativo fixo: só os cards se movem; expansão troca a imagem (enterImmersive)
     if (current.style.backgroundImage.includes(url) && current.classList.contains('is-on')) return;
 
     next.style.backgroundImage = `url('${url}')`;
@@ -484,8 +484,13 @@ function exitImmersive() {
     rail?.classList.add('opacity-100');
     intro?.classList.remove('opacity-0', '-translate-x-4');
 
-    // Volta o fundo padrão
-    swapBackground(-1);
+    // Volta o fundo padrão (nativo)
+    const layers = Array.from(document.querySelectorAll('.kz-hero__bg'));
+    layers.forEach((l, i) => {
+        l.style.backgroundImage = `url('${DEFAULT_BG}')`;
+        l.classList.toggle('is-on', i === 0);
+        l.classList.toggle('kz-kenburns', i === 0 && !prefersReducedMotion);
+    });
     startAutoplay();
 }
 
