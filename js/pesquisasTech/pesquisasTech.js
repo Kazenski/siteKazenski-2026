@@ -423,6 +423,14 @@ window.destruirGraficos = function () {
 // =========================================================
 // CONSTRUTOR DE PERGUNTAS
 // =========================================================
+// Busca todas as perguntas e ordena no cliente (evita excluir docs sem o campo 'ordem')
+async function getPerguntas(pesquisaId) {
+    const snap = await getDocs(collection(db, COL_PESQUISAS, pesquisaId, 'perguntas'));
+    return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (Number.isFinite(Number(a.ordem)) ? Number(a.ordem) : 999) - (Number.isFinite(Number(b.ordem)) ? Number(b.ordem) : 999) || String(a.campo_chave || '').localeCompare(String(b.campo_chave || '')));
+}
+
 window.carregarEditorPerguntas = async function (pesquisaId) {
     const container = document.getElementById('lista-perguntas-container');
     if (!container) return;
@@ -433,20 +441,20 @@ window.carregarEditorPerguntas = async function (pesquisaId) {
     }
 
     try {
-        const snap = await getDocs(query(collection(db, COL_PESQUISAS, pesquisaId, 'perguntas'), orderBy('ordem', 'asc')));
-        const perguntas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const perguntas = await getPerguntas(pesquisaId);
 
         if (perguntas.length === 0) {
             container.innerHTML = '<p class="text-slate-400 italic">Nenhuma pergunta cadastrada para esta pesquisa ainda.</p>';
             return;
         }
 
-        container.innerHTML = '';
+        container.innerHTML = `<p class="text-slate-500 text-[10px] uppercase tracking-widest mb-2"><i class="fas fa-grip-vertical mr-1"></i> Arraste os cartões para reordenar</p>`;
         perguntas.forEach(p => {
             const btnExcluir = window.canDeletePesquisa ? `<button onclick="window.excluirPergunta('${pesquisaId}','${p.id}')" class="text-red-400 hover:text-red-300 ml-auto"><i class="fas fa-trash"></i></button>` : '';
             container.innerHTML += `
-                <div class="bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col gap-2">
+                <div class="perg-item bg-slate-900 border border-slate-700 p-4 rounded-xl flex flex-col gap-2 cursor-grab active:cursor-grabbing" draggable="true" data-id="${p.id}">
                     <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                        <i class="fas fa-grip-vertical text-slate-600"></i>
                         <span class="text-emerald-400 font-mono text-sm font-bold">${p.campo_chave}</span>
                         <span class="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded font-bold">${p.tipo_sql} (${p.tamanho_max})</span>
                         ${btnExcluir}
@@ -454,6 +462,31 @@ window.carregarEditorPerguntas = async function (pesquisaId) {
                     <div class="text-white text-sm">${p.label_texto}</div>
                     <div class="text-slate-500 text-xs italic">${p.opcoes ? 'Opções: ' + p.opcoes : 'Campo de entrada livre'}</div>
                 </div>`;
+        });
+
+        // Drag & drop para reordenar (atualiza o campo 'ordem' no Firestore)
+        container.querySelectorAll('.perg-item').forEach(item => {
+            item.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', item.dataset.id); item.classList.add('opacity-50'); });
+            item.addEventListener('dragend', () => item.classList.remove('opacity-50'));
+            item.addEventListener('dragover', e => e.preventDefault());
+            item.addEventListener('drop', async e => {
+                e.preventDefault();
+                const draggedId = e.dataTransfer.getData('text/plain');
+                if (draggedId === item.dataset.id) return;
+                const ids = [...container.querySelectorAll('.perg-item')].map(x => x.dataset.id);
+                const from = ids.indexOf(draggedId);
+                const to = ids.indexOf(item.dataset.id);
+                ids.splice(to, 0, ids.splice(from, 1)[0]);
+                try {
+                    const batch = writeBatch(db);
+                    ids.forEach((id, idx) => batch.update(doc(db, COL_PESQUISAS, pesquisaId, 'perguntas', id), { ordem: idx }));
+                    await batch.commit();
+                    window.carregarEditorPerguntas(pesquisaId);
+                } catch (err) {
+                    console.error('Erro ao reordenar:', err);
+                    alert('Erro ao salvar a nova ordem.');
+                }
+            });
         });
     } catch (err) {
         console.error(err);
@@ -648,8 +681,7 @@ async function renderizarFormularioPesquisa(pesquisaId) {
         }
 
         // Perguntas da pesquisa
-        const snapPerg = await getDocs(query(collection(db, COL_PESQUISAS, pesquisaId, 'perguntas'), orderBy('ordem', 'asc')));
-        const perguntas = snapPerg.docs.map(d => ({ id: d.id, ...d.data() }));
+        const perguntas = await getPerguntas(pesquisaId);
         window.pesquisaPerguntasAtuais = perguntas;
 
         const contPerguntas = document.getElementById('perguntas-dinamicas-container');
@@ -778,8 +810,7 @@ async function abrirDashboardPesquisa(pesquisaId) {
             const r = d.data();
             return { colegio_nome: r.colegio_nome, colegio_id: r.colegio_id, ...(r.respostas || {}) };
         });
-        const snapPerg = await getDocs(query(collection(db, COL_PESQUISAS, pesquisaId, 'perguntas'), orderBy('ordem', 'asc')));
-        const perguntas = snapPerg.docs.map(d => ({ id: d.id, ...d.data() }));
+        const perguntas = await getPerguntas(pesquisaId);
 
         window.pesquisaRespostasAtuais = respostas;
         window.pesquisaPerguntasAtuais = perguntas;
@@ -883,10 +914,13 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
                     <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-chart-bar mr-2"></i> ${p.label_texto}</h4>
                     ${t === 'text'
                     ? `<div id="lista-respostas-${idx}" class="text-sm text-slate-300 space-y-2 max-h-64 overflow-y-auto custom-scroll"></div>`
-                    : `<div class="grid grid-cols-1 ${t === 'cat' ? 'md:grid-cols-2' : ''} gap-4">
-                             <div class="relative min-h-[240px]"><canvas id="chart-q-bar-${idx}"></canvas></div>
-                             ${t === 'cat' ? `<div class="relative min-h-[240px]"><canvas id="chart-q-pie-${idx}"></canvas></div>` : `
-                             <div class="relative min-h-[160px]"><canvas id="chart-q-scatter-${idx}"></canvas></div>`}
+                    : `<div class="grid grid-cols-1 ${t === 'cat' ? 'md:grid-cols-3' : 'lg:grid-cols-3'} gap-4">
+                             <div class="relative min-h-[220px]"><canvas id="chart-q-bar-${idx}"></canvas></div>
+                             ${t === 'cat'
+                            ? `<div class="relative min-h-[220px]"><canvas id="chart-q-pie-${idx}"></canvas></div>
+                                <div class="relative min-h-[220px]"><canvas id="chart-q-dough-${idx}"></canvas></div>`
+                            : `<div class="relative min-h-[160px]"><canvas id="chart-q-scatter-${idx}"></canvas></div>
+                                <div class="relative min-h-[160px]"><canvas id="chart-q-line-${idx}"></canvas></div>`}
                            </div>`}
                 </div>`;
         });
@@ -925,6 +959,10 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
                 options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } }
             });
             window.chartInstances[`qpie${idx}`] = new Chart(document.getElementById(`chart-q-pie-${idx}`).getContext('2d'), {
+                type: 'pie',
+                data: { labels, datasets: [{ data, backgroundColor: PALETA }] }
+            });
+            window.chartInstances[`qdough${idx}`] = new Chart(document.getElementById(`chart-q-dough-${idx}`).getContext('2d'), {
                 type: 'doughnut',
                 data: { labels, datasets: [{ data, backgroundColor: PALETA }] }
             });
@@ -942,6 +980,12 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
                 type: 'scatter',
                 data: { datasets: [{ label: p.label_texto, data: vals.map((v, i) => ({ x: i + 1, y: v })), backgroundColor: '#10b98199' }] },
                 options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } } }
+            });
+            // Linha: evolução das respostas
+            window.chartInstances[`qline${idx}`] = new Chart(document.getElementById(`chart-q-line-${idx}`).getContext('2d'), {
+                type: 'line',
+                data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
+                options: { plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } }
             });
         }
     });
@@ -1002,17 +1046,33 @@ function desenharCruzamento(respostas, px, py, medida) {
     const ctx = document.getElementById('chart-cruzamento').getContext('2d');
     const tabelaDiv = document.getElementById('tabela-cruzamento');
 
-    // Num × Num -> dispersão
+    // Num × Num -> dispersão com linha de tendência
     if (tx === 'num' && ty === 'num') {
         const pontos = respostas
             .map(r => ({ x: Number(r[px.campo_chave]), y: Number(r[py.campo_chave]) }))
             .filter(p => !isNaN(p.x) && !isNaN(p.y));
+        // Regressão linear simples (mínimos quadrados)
+        let trend = [];
+        if (pontos.length >= 2) {
+            const n = pontos.length;
+            const sx = pontos.reduce((a, p) => a + p.x, 0), sy = pontos.reduce((a, p) => a + p.y, 0);
+            const sxy = pontos.reduce((a, p) => a + p.x * p.y, 0), sxx = pontos.reduce((a, p) => a + p.x * p.x, 0);
+            const m = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
+            const b = (sy - m * sx) / n;
+            const xs = pontos.map(p => p.x);
+            trend = [{ x: Math.min(...xs), y: m * Math.min(...xs) + b }, { x: Math.max(...xs), y: m * Math.max(...xs) + b }];
+        }
         window.chartInstances['cruz'] = new Chart(ctx, {
             type: 'scatter',
-            data: { datasets: [{ label: `${px.label_texto} × ${py.label_texto}`, data: pontos, backgroundColor: '#6366f1aa' }] },
+            data: {
+                datasets: [
+                    { label: `${px.label_texto} × ${py.label_texto}`, data: pontos, backgroundColor: '#6366f1aa', showLine: false },
+                    ...(trend.length ? [{ type: 'line', label: 'Tendência', data: trend, borderColor: '#f59e0b', borderDash: [6, 4], pointRadius: 0, fill: false }] : [])
+                ]
+            },
             options: { scales: { x: { title: { display: true, text: px.label_texto } }, y: { title: { display: true, text: py.label_texto } } } }
         });
-        tabelaDiv.innerHTML = `<p class="text-slate-400 text-sm bg-slate-900 p-4 rounded-xl border border-slate-800">Dispersão de <b>${pontos.length}</b> pares válidos. Correlação visual entre as duas variáveis numéricas.</p>`;
+        tabelaDiv.innerHTML = `<p class="text-slate-400 text-sm bg-slate-900 p-4 rounded-xl border border-slate-800">Dispersão de <b>${pontos.length}</b> pares válidos com linha de tendência (regressão linear).</p>`;
         return;
     }
 
@@ -1027,13 +1087,18 @@ function desenharCruzamento(respostas, px, py, medida) {
             (grupos[chave] = grupos[chave] || []).push(v);
         });
         const labels = Object.keys(grupos);
-        const valores = labels.map(l => medida === 'mediana' ? mediana(grupos[l]) : media(grupos[l]));
+        const medias = labels.map(l => media(grupos[l]));
+        const medianas = labels.map(l => mediana(grupos[l]));
         window.chartInstances['cruz'] = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [{ label: `${medida === 'mediana' ? 'Mediana' : 'Média'} de ${py.label_texto}`, data: valores, backgroundColor: PALETA, borderRadius: 6 }] },
-            options: { plugins: { legend: { display: false } } }
+            data: {
+                labels, datasets: [
+                    { label: `Média de ${py.label_texto}`, data: medias, backgroundColor: '#6366f1', borderRadius: 6 },
+                    { label: `Mediana de ${py.label_texto}`, data: medianas, backgroundColor: '#10b981', borderRadius: 6 }
+                ]
+            }
         });
-        tabelaDiv.innerHTML = tabelaGrupos(labels, valores, `${medida} de ${py.label_texto}`);
+        tabelaDiv.innerHTML = tabelaGruposDuo(labels, medias, medianas, py.label_texto);
         return;
     }
 
@@ -1048,13 +1113,18 @@ function desenharCruzamento(respostas, px, py, medida) {
             (grupos[chave] = grupos[chave] || []).push(v);
         });
         const labels = Object.keys(grupos);
-        const valores = labels.map(l => medida === 'mediana' ? mediana(grupos[l]) : media(grupos[l]));
+        const medias = labels.map(l => media(grupos[l]));
+        const medianas = labels.map(l => mediana(grupos[l]));
         window.chartInstances['cruz'] = new Chart(ctx, {
             type: 'bar',
-            data: { labels, datasets: [{ label: `${medida === 'mediana' ? 'Mediana' : 'Média'} de ${px.label_texto}`, data: valores, backgroundColor: PALETA, borderRadius: 6 }] },
-            options: { plugins: { legend: { display: false } } }
+            data: {
+                labels, datasets: [
+                    { label: `Média de ${px.label_texto}`, data: medias, backgroundColor: '#6366f1', borderRadius: 6 },
+                    { label: `Mediana de ${px.label_texto}`, data: medianas, backgroundColor: '#10b981', borderRadius: 6 }
+                ]
+            }
         });
-        tabelaDiv.innerHTML = tabelaGrupos(labels, valores, `${medida} de ${px.label_texto}`);
+        tabelaDiv.innerHTML = tabelaGruposDuo(labels, medias, medianas, px.label_texto);
         return;
     }
 
@@ -1104,6 +1174,12 @@ function desenharCruzamento(respostas, px, py, medida) {
     tabelaDiv.innerHTML = th;
 }
 
+function tabelaGruposDuo(labels, medias, medianas, titulo) {
+    let h = `<table class="w-full text-sm border-collapse bg-slate-900/60 rounded-xl overflow-hidden"><thead><tr class="bg-slate-800 text-slate-400 text-[10px] uppercase tracking-widest"><th class="p-3 text-left">Categoria</th><th class="p-3 text-right">Média de ${titulo}</th><th class="p-3 text-right">Mediana de ${titulo}</th></tr></thead><tbody class="divide-y divide-slate-800">`;
+    labels.forEach((l, i) => h += `<tr><td class="p-3 text-white font-bold">${l}</td><td class="p-3 text-right text-indigo-300 font-bold">${medias[i].toFixed(2)}</td><td class="p-3 text-right text-emerald-300 font-bold">${medianas[i].toFixed(2)}</td></tr>`);
+    return h + '</tbody></table>';
+}
+
 function tabelaGrupos(labels, valores, titulo) {
     let h = `<table class="w-full text-sm border-collapse bg-slate-900/60 rounded-xl overflow-hidden"><thead><tr class="bg-slate-800 text-slate-400 text-[10px] uppercase tracking-widest"><th class="p-3 text-left">Categoria</th><th class="p-3 text-right">${titulo}</th></tr></thead><tbody class="divide-y divide-slate-800">`;
     labels.forEach((l, i) => h += `<tr><td class="p-3 text-white font-bold">${l}</td><td class="p-3 text-right text-indigo-300 font-bold">${valores[i].toFixed(2)}</td></tr>`);
@@ -1140,7 +1216,11 @@ function renderEstatisticas(respostas, perguntas) {
     });
     html += '</div>';
 
-    // Gráfico de dispersão da primeira variável numérica + histograma da segunda (se houver duas)
+    // Comparativo Média × Mediana de todas as variáveis numéricas
+    html += `<div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl mb-8">
+        <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-balance-scale mr-2"></i> Média × Mediana por Pergunta</h4>
+        <div class="relative min-h-[300px]"><canvas id="chart-medias-medianas"></canvas></div>
+    </div>`;
     if (numericas.length >= 2) {
         html += `<div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl">
             <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-project-diagram mr-2"></i> Dispersão: ${numericas[0].label_texto} × ${numericas[1].label_texto}</h4>
@@ -1148,6 +1228,17 @@ function renderEstatisticas(respostas, perguntas) {
         </div>`;
     }
     corpo.innerHTML = html;
+
+    window.chartInstances['mediasmed'] = new Chart(document.getElementById('chart-medias-medianas').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: numericas.map(p => p.label_texto),
+            datasets: [
+                { label: 'Média', data: numericas.map(p => media(valsNumericos(respostas, p.campo_chave))), backgroundColor: '#6366f1', borderRadius: 6 },
+                { label: 'Mediana', data: numericas.map(p => mediana(valsNumericos(respostas, p.campo_chave))), backgroundColor: '#10b981', borderRadius: 6 }
+            ]
+        }
+    });
 
     if (numericas.length >= 2) {
         const pontos = respostas
