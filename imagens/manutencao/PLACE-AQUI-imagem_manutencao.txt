@@ -1,0 +1,7 @@
+Coloque aqui a imagem de fundo da página de manutenção.
+
+Nome exato esperado pelo site:
+
+    imagens/manutencao/imagem_manutencao.jpg
+
+Detalhes e instruções em LEIA-ME.md.

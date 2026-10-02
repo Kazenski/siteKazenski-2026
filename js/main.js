@@ -10,6 +10,7 @@ import { renderAvaliacoesTab } from './avaliacoesDigitais/avaliacoesDigitais.js'
 import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
+import { iniciarManutencao, renderAtualizacoesTab, aplicarPermissoes } from './manutencao/manutencao.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
 import { renderPesquisasTechTab } from './pesquisasTech/pesquisasTech.js';
 import './atualizacoes/atualizacoes.js';
@@ -49,7 +50,7 @@ const MENU_ARCHITECTURE = [
     { id: 'pesquisas-tech', label: 'Pesquisas Tech', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
-    // { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
+    { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
 
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
@@ -408,6 +409,19 @@ onAuthStateChanged(auth, async (user) => {
     // Reconstrói o menu com as novas permissões
     buildTopMenu();
 
+    // Informa o módulo de manutenção quem está logado (e com qual papel).
+    // É a única fonte de verdade de permissão — o módulo não lê o Firestore
+    // de novo, apenas consome este objeto.
+    aplicarPermissoes(userRoles, {
+        logado: !!user,
+        uid: user?.uid || null,
+        email: user?.email || null,
+        nome: displayRoleName,
+    });
+
+    // Fecha o modo "login aberto a partir da capa" se a sessão não for staff.
+    if (!user) window.manutencaoAPI?.fecharPausa();
+
     // Força o carregamento da aba inicial ou da aba que estava aberta
     window.showTab(activeTabId);
 });
@@ -451,6 +465,12 @@ function buildTopMenu() {
 // ============================================================================
 
 window.showTab = function (tabId) {
+    // Trava de manutenção: com o site fechado, o único destino liberado é o
+    // login (para Admin/Moderador entrarem). Qualquer outra aba volta pro Início.
+    if (window.manutencaoAPI?.bloqueiaNavegacao(tabId)) {
+        tabId = 'inicio';
+    }
+
     // Validação de Segurança
     const routeConfig = MENU_ARCHITECTURE.find(m => m.id === tabId);
     if (routeConfig && !routeConfig.showTo(userRoles)) {
@@ -552,6 +572,9 @@ window.showTab = function (tabId) {
             isModeradorLoaded = true;
             if (window.blogAPI) window.blogAPI.initMod();
         }
+    }
+    else if (tabId === 'atualizacoes') {
+        renderAtualizacoesTab();
     }
 };
 
@@ -696,9 +719,21 @@ window.logout = async function (isAuto = false) {
             localStorage.setItem('kazenski_active_tab', 'inicio');
             await signOut(auth);
             if (isAuto === true) alert(msg);
+            window.manutencaoAPI?.fecharPausa();
             window.showTab('inicio');
         } catch (error) {
             if (isAuto !== true) alert("Erro: " + error.message);
         }
     }
 };
+
+// ============================================================================
+// MANUTENÇÃO / ATUALIZAÇÕES
+// ============================================================================
+// Lê `site_status/maintenance` e o `changelog.json`, aplica a trava da tela de
+// manutenção e, ao detectar um deploy novo, fecha o site para quem não é
+// Admin/Moderador. Nunca bloqueia o carregamento: o `catch` mantém o site
+// funcionando mesmo se a leitura do Firestore falhar (fail-open).
+iniciarManutencao().catch((e) => {
+    console.error('[Manutenção] Falha na inicialização:', e);
+});

@@ -700,8 +700,8 @@
         <div id="conexao-aluno-content"
             class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
 
-        <div id="atualizacoes-content"
-            class="tab-content hidden h-full w-full absolute inset-0 overflow-y-auto custom-scroll p-6 md:p-12"></div>
+        <!-- ATUALIZAÇÕES: histórico técnico (changelog.json) + painel do Admin -->
+        <div id="atualizacoes-content" class="tab-content hidden h-full w-full absolute inset-0"></div>
 
         <div id="avaliacoes-content"
             class="tab-content hidden h-full flex-col fade-in w-full max-w-7xl mx-auto space-y-6">
@@ -4333,7 +4333,63 @@
 
     </main>
 
+    <!-- ==================================================================
+         FAIXA DE MANUTENÇÃO — visível APENAS para Admin / Moderador.
+         Não bloqueia nada: o equipe continua trabalhando normalmente.
+         ================================================================== -->
+    <div id="kz-mntbar" class="kz-mntbar" role="status" aria-live="polite"></div>
+
+    <!-- ==================================================================
+         CAPA DE MANUTENÇÃO — tela cheia, some sozinha quando a manutenção
+         acaba. Aparece para TODO mundo que não for Admin/Moderador.
+         ================================================================== -->
+    <div id="kz-mantencao" class="kz-mnt" role="dialog" aria-modal="true"
+        aria-labelledby="kz-mnt-titulo" aria-hidden="true">
+
+        <!-- Imagem de fundo. Coloque o arquivo em:
+             imagens/manutencao/imagem_manutencao.jpg
+             Se o arquivo não existir, o CSS usa o gradiente padrão. -->
+        <div class="kz-mnt__bg" id="kz-mnt-bg"
+            data-img="imagens/manutencao/imagem_manutencao.jpg"></div>
+        <div class="kz-mnt__scrim"></div>
+
+        <div class="kz-mnt__inner">
+            <span class="kz-mnt__badge"><span class="kz-pulse"></span> Manutenção em andamento</span>
+
+            <h2 class="kz-mnt__title" id="kz-mnt-titulo">Site em manutenção</h2>
+            <p class="kz-mnt__text" id="kz-mnt-texto">
+                Estamos aplicando melhorias no site. Tudo voltará ao normal em instantes —
+                seus dados e seu histórico estão intactos.
+            </p>
+
+            <div class="kz-mnt__meta" id="kz-mnt-meta"></div>
+
+            <!-- Resumo técnico do que está sendo feito agora (lê changelog.json) -->
+            <details class="kz-mnt__upd" id="kz-mnt-upd">
+                <summary>
+                    <i class="fas fa-code-branch"></i>
+                    O que está sendo feito agora
+                    <i class="fas fa-chevron-down kz-mnt__chev"></i>
+                </summary>
+                <div class="kz-mnt__updbody" id="kz-mnt-upd-body"></div>
+            </details>
+
+            <div class="kz-mnt__foot">
+                <span>É professor, coordenador ou moderador? Entre e o site é liberado para você.</span>
+                <button type="button" class="kz-mnt__login" data-mnt-act="login">
+                    <i class="fas fa-right-to-bracket"></i> Acessar Portal
+                </button>
+                <button type="button" class="kz-mnt__login" data-mnt-act="atualizacoes">
+                    <i class="fas fa-clock-rotate-left"></i> Ver todas as atualizações
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="js/main.js"></script>
+
+    <!-- `js/manutencao/manutencao.js` é importado por `js/main.js` (que chama
+         `iniciarManutencao()`), portanto não precisa de tag própria aqui. -->
 
     <script type="module" src="js/moderadorTech/cadastroTitulos.js"></script>
 

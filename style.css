@@ -2276,3 +2276,558 @@ main, .tab-content {
 .tcg-card:hover.rarity-rara .tcg-foil {
     background-position: 0% 0%;
 }
+
+/* ==============================================================
+   TELA DE MANUTENÇÃO  +  PÁGINA DE ATUALIZAÇÕES  (v1.6.0)
+   ==============================================================
+   Bloqueio do site, painel de manutenção para Admin/Moderador
+   e o feed público de novidades alimentado pelo changelog.json
+   (gerado a partir do CHANGELOG.md por tools/build_changelog.py).
+   ============================================================== */
+
+/* ---------- A. Overlay de manutenção (tela cheia) ---------- */
+.kz-mnt {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;              /* acima do header (50) e do dock (2000) */
+    display: none;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    background: #020617;
+    isolation: isolate;
+}
+.kz-mnt.is-on { display: flex; }
+
+/* Camada da imagem (usa data-img do HTML; cai no gradiente se faltar o arquivo) */
+.kz-mnt__bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-image: var(--kz-mnt-img, none);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transform: scale(1.06);
+    animation: kz-mnt-kenburns 26s ease-in-out infinite alternate;
+    will-change: transform;
+}
+@keyframes kz-mnt-kenburns {
+    0%   { transform: scale(1.04) translate3d(0, 0, 0); }
+    100% { transform: scale(1.14) translate3d(-1.8%, -1.2%, 0); }
+}
+
+/* Véu para o texto respirar sobre qualquer imagem */
+.kz-mnt__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(to top, rgba(2,6,23,.99) 0%, rgba(2,6,23,.86) 32%, rgba(2,6,23,.62) 68%, rgba(2,6,23,.86) 100%),
+        linear-gradient(to right, rgba(2,6,23,.92) 0%, rgba(2,6,23,.5) 55%, transparent 100%);
+}
+
+.kz-mnt__inner {
+    position: relative;
+    z-index: 2;
+    width: min(56rem, 100%);
+    margin: auto;
+    padding: clamp(1.25rem, 4vh, 3rem) clamp(1rem, 4vw, 2.5rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(.7rem, 1.8vh, 1.15rem);
+}
+
+.kz-mnt__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .5rem 1.1rem;
+    border-radius: 999px;
+    background: rgba(217,119,6,.14);
+    border: 1px solid rgba(245,158,11,.5);
+    color: #fcd34d;
+    font-size: clamp(.58rem, 1.4vw, .7rem);
+    font-weight: 800;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+}
+.kz-mnt__badge .kz-pulse {
+    width: .5rem;
+    height: .5rem;
+    border-radius: 999px;
+    background: #f59e0b;
+    box-shadow: 0 0 0 0 rgba(245,158,11,.7);
+    animation: kz-mnt-pulse 2s infinite;
+}
+@keyframes kz-mnt-pulse {
+    70%  { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+}
+
+.kz-mnt__title {
+    margin: 0;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -.015em;
+    text-shadow: 0 10px 40px rgba(0,0,0,.85);
+    font-size: clamp(1.7rem, 6.2vw, 3.6rem);
+    overflow-wrap: anywhere;
+}
+.kz-mnt__text {
+    margin: 0;
+    max-width: 44rem;
+    color: #cbd5e1;
+    font-size: clamp(.82rem, 2.1vw, 1.02rem);
+    line-height: 1.75;
+    text-shadow: 0 4px 18px rgba(0,0,0,.8);
+}
+.kz-mnt__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem;
+}
+.kz-mnt__meta .kz-chip { background: rgba(2,6,23,.72); backdrop-filter: blur(8px); }
+.kz-mnt__meta .kz-chip--live {
+    color: #fcd34d;
+    border-color: rgba(245,158,11,.5);
+    background: rgba(245,158,11,.1);
+}
+
+.kz-mnt__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .6rem;
+    margin-top: .35rem;
+}
+
+/* Resumo do que está sendo feito (espelha o changelog.json) */
+.kz-mnt__upd {
+    width: 100%;
+    max-width: 46rem;
+    margin-top: clamp(.6rem, 2vh, 1.2rem);
+    background: rgba(2,6,23,.72);
+    border: 1px solid #1e293b;
+    border-radius: 1rem;
+    backdrop-filter: blur(14px);
+    overflow: hidden;
+    text-align: left;
+}
+.kz-mnt__upd > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: .85rem 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    transition: color .2s ease, background .2s ease;
+}
+.kz-mnt__upd > summary::-webkit-details-marker { display: none; }
+.kz-mnt__upd > summary:hover { color: #e2e8f0; background: rgba(30,41,59,.55); }
+.kz-mnt__upd > summary .kz-mnt__chev { margin-left: auto; transition: transform .25s ease; }
+.kz-mnt__upd[open] > summary .kz-mnt__chev { transform: rotate(180deg); }
+.kz-mnt__updbody {
+    padding: 0 1.1rem 1.1rem;
+    max-height: min(34vh, 22rem);
+    overflow-y: auto;
+}
+
+/* Rodapé discreto com o atalho de login (Admin/Moderador precisam entrar) */
+.kz-mnt__foot {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    margin-top: clamp(.8rem, 2.4vh, 1.4rem);
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255,255,255,.08);
+    color: #64748b;
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+.kz-mnt__login {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .45rem .9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(59,130,246,.5);
+    background: rgba(29,78,216,.2);
+    color: #bfdbfe;
+    font-size: .6rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: all .2s ease;
+    min-height: 36px;
+}
+.kz-mnt__login:hover { background: rgba(37,99,235,.4); color: #fff; }
+.kz-mnt__login:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+/* Alvo de toque confortável */
+@media (pointer: coarse) {
+    .kz-mnt__login { min-height: 44px; padding: .6rem 1.1rem; }
+}
+
+/* ---------- B. Trava real de interação ---------- */
+/* O overlay já cobre a tela; isto garante que teclado/foco também não vazem.
+   O atributo `inert` (aplicado via JS) cuida do foco e do teclado — o CSS
+   abaixo cuida do ponteiro, do scroll e da leitura visual do conteúdo. */
+body.kz-locked #app-main,
+body.kz-locked > header,
+body.kz-locked #player-master-container,
+body.kz-locked #mobile-menu-container {
+    pointer-events: none !important;
+    user-select: none;
+    filter: saturate(.35) brightness(.6);
+}
+body.kz-locked { overflow: hidden; }
+
+/* ---------- C. Faixa para Admin/Moderador (não bloqueia) ---------- */
+.kz-mntbar {
+    position: fixed;
+    z-index: 1900;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+    padding: .5rem clamp(.6rem, 2.5vw, 1.4rem);
+    background: linear-gradient(90deg, #78350f, #b45309 50%, #78350f);
+    border-bottom: 1px solid rgba(245,158,11,.45);
+    box-shadow: 0 10px 34px rgba(0,0,0,.6);
+    color: #fef3c7;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+.kz-mntbar.is-on { display: flex; }
+.kz-mntbar__label { display: inline-flex; align-items: center; gap: .5rem; }
+.kz-mntbar__dot {
+    width: .5rem; height: .5rem; border-radius: 999px; background: #fbbf24;
+    animation: kz-mnt-pulse 2s infinite;
+}
+.kz-mntbar__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .32rem .7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(254,243,199,.45);
+    background: rgba(0,0,0,.28);
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: all .2s ease;
+    min-height: 30px;
+}
+.kz-mntbar__btn:hover { background: rgba(255,255,255,.2); }
+.kz-mntbar__btn--off { border-color: rgba(74,222,128,.6); background: rgba(22,101,52,.45); }
+.kz-mntbar__btn--off:hover { background: #15803d; }
+.kz-mntbar__btn:focus-visible { outline: 2px solid #fde68a; outline-offset: 2px; }
+
+/* Botão flutuante de saída do preview (criado via JS) */
+.kz-mntbar__sair {
+    position: fixed;
+    z-index: 4001;
+    left: 50%;
+    bottom: 1.2rem;
+    transform: translateX(-50%);
+    padding: .6rem 1.2rem;
+    border-radius: 999px;
+    font-size: .6rem;
+    min-height: 40px;
+    box-shadow: 0 14px 40px rgba(0,0,0,.6);
+}
+
+/* Utilitário: rótulo só para leitores de tela */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Quando a faixa existe, empurra o app para baixo.
+   A altura é medida por JS e publicada em `--kz-mntbar-h` (ResizeObserver),
+   porque no celular a faixa quebra em duas linhas e um valor fixo sobreporia
+   o header. Não definimos `height` em `#app-main`: ele já é `flex: 1 1 0%`,
+   então o flexbox do body (`h-[100dvh]`) entrega o espaço restante. */
+body.kz-mntbar-on header { margin-top: var(--kz-mntbar-h, 2.4rem); }
+
+/* ---------- D. Página de Atualizações ---------- */
+.kz-upd__shell {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 0;
+    padding: clamp(.6rem, 2vh, 1.4rem) clamp(.75rem, 2.4vw, 2rem) 0;
+    padding-bottom: clamp(.6rem, 2vh, 1.2rem);
+    gap: clamp(.6rem, 1.6vh, 1rem);
+}
+.kz-upd__feed {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: clamp(.75rem, 2vw, 1.4rem);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(.7rem, 1.8vw, 1.15rem);
+}
+
+.kz-upd__entry {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: border-color .25s ease;
+}
+.kz-upd__entry.is-current { border-color: rgba(59,130,246,.55); box-shadow: 0 0 0 1px rgba(59,130,246,.2), 0 18px 44px rgba(0,0,0,.5); }
+
+.kz-upd__head {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: .85rem clamp(.8rem, 2vw, 1.2rem);
+    background: rgba(2,6,23,.55);
+    border: 0;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .2s ease;
+}
+.kz-upd__head:hover { background: rgba(30,41,59,.7); }
+.kz-upd__head:focus-visible { outline: 2px solid #60a5fa; outline-offset: -2px; }
+.kz-upd__ver {
+    display: inline-flex;
+    align-items: center;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #1d4ed8, #1e3a8a);
+    color: #fff;
+    font-size: .6rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+    flex: 0 0 auto;
+}
+.kz-upd__entry.is-current .kz-upd__ver { background: linear-gradient(180deg, #047857, #064e3b); }
+.kz-upd__headtitle { font-size: .74rem; font-weight: 800; color: #e2e8f0; min-width: 0; }
+.kz-upd__date { font-size: .6rem; font-weight: 700; color: #64748b; white-space: nowrap; }
+.kz-upd__chev { margin-left: auto; color: #475569; transition: transform .25s ease; flex: 0 0 auto; }
+.kz-upd__entry.is-open .kz-upd__chev { transform: rotate(180deg); }
+
+.kz-upd__body { padding: 0 clamp(.8rem, 2vw, 1.2rem) 1.1rem; }
+.kz-upd__entry.is-open .kz-upd__body { display: block; }
+.kz-upd__entry:not(.is-open) .kz-upd__body { display: none; }
+
+.kz-upd__escopo {
+    margin: 0 0 1rem;
+    padding: .8rem .95rem;
+    border-left: 3px solid rgba(59,130,246,.55);
+    background: rgba(59,130,246,.07);
+    border-radius: 0 .6rem .6rem 0;
+    color: #cbd5e1;
+    font-size: .76rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+}
+
+.kz-upd__files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    margin-bottom: 1rem;
+}
+.kz-upd__file {
+    padding: .25rem .55rem;
+    border-radius: .4rem;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #64748b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .6rem;
+}
+
+.kz-upd__sec { margin-bottom: 1.15rem; }
+.kz-upd__sec:last-child { margin-bottom: 0; }
+.kz-upd__sectitle {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0 0 .6rem;
+    padding-bottom: .45rem;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    color: #94a3b8;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+}
+
+.kz-upd__block { margin-bottom: .8rem; }
+.kz-upd__block:last-child { margin-bottom: 0; }
+.kz-upd__blocktitle {
+    display: flex;
+    align-items: baseline;
+    gap: .5rem;
+    margin: 0 0 .35rem;
+    color: #e2e8f0;
+    font-size: .76rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+.kz-upd__lvl {
+    flex: 0 0 auto;
+    padding: .15rem .45rem;
+    border-radius: .3rem;
+    font-size: .52rem;
+    font-weight: 900;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    border: 1px solid;
+}
+.kz-upd__lvl--critico { color: #fca5a5; border-color: rgba(239,68,68,.55); background: rgba(239,68,68,.12); }
+.kz-upd__lvl--alto    { color: #fdba74; border-color: rgba(249,115,22,.55); background: rgba(249,115,22,.12); }
+.kz-upd__lvl--medio   { color: #fde68a; border-color: rgba(234,179,8,.5);  background: rgba(234,179,8,.1); }
+.kz-upd__lvl--baixo   { color: #7dd3fc; border-color: rgba(14,165,233,.45); background: rgba(14,165,233,.1); }
+
+.kz-upd__ul { margin: 0; padding-left: 1.05rem; display: flex; flex-direction: column; gap: .3rem; }
+.kz-upd__li {
+    color: #94a3b8;
+    font-size: .74rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+.kz-upd__li strong { color: #cbd5e1; }
+.kz-upd__li code, .kz-upd__p code {
+    padding: .1rem .32rem;
+    border-radius: .28rem;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #7dd3fc;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .9em;
+}
+.kz-upd__p { margin: .3rem 0 0; color: #94a3b8; font-size: .74rem; line-height: 1.7; }
+.kz-upd__pre {
+    margin: .5rem 0 0;
+    padding: .7rem .85rem;
+    border-radius: .55rem;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #cbd5e1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .66rem;
+    line-height: 1.6;
+    overflow-x: auto;
+}
+
+/* Painel de controle do Admin */
+.kz-adm {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: .95rem;
+    padding: clamp(.9rem, 2vw, 1.35rem);
+    display: flex;
+    flex-direction: column;
+    gap: .85rem;
+}
+.kz-adm__row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.kz-adm__status {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.kz-adm__status i { font-size: .85rem; }
+.kz-adm__status--off { color: #4ade80; }
+.kz-adm__status--on  { color: #fbbf24; }
+.kz-adm__hint { color: #64748b; font-size: .68rem; line-height: 1.6; }
+
+.kz-switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    cursor: pointer;
+    user-select: none;
+}
+.kz-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.kz-switch__track {
+    width: 3rem;
+    min-width: 3rem;
+    height: 1.7rem;
+    border-radius: 999px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    position: relative;
+    transition: background .25s ease, border-color .25s ease;
+}
+.kz-switch__track::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: .2rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: #94a3b8;
+    transform: translateY(-50%);
+    transition: transform .25s cubic-bezier(.16,1,.3,1), background .25s ease;
+}
+.kz-switch input:checked + .kz-switch__track { background: #b45309; border-color: #f59e0b; }
+.kz-switch input:checked + .kz-switch__track::after { transform: translate(1.25rem, -50%); background: #fff; }
+.kz-switch input:focus-visible + .kz-switch__track { outline: 2px solid #60a5fa; outline-offset: 3px; }
+
+/* ---------- Responsividade ---------- */
+@media (max-width: 767px) {
+    .kz-mnt__updbody { max-height: 30vh; }
+    .kz-mnt__foot { flex-direction: column; gap: .5rem; }
+    body.kz-mntbar-on header { margin-top: var(--kz-mntbar-h, 4.2rem); }
+    .kz-mntbar { font-size: .55rem; padding: .45rem .7rem; gap: .45rem; }
+    .kz-mntbar__btn { min-height: 38px; padding: .45rem .8rem; }
+    .kz-mntbar__sair { min-height: 44px; }
+}
+@media (max-width: 380px) {
+    .kz-mnt__actions { flex-direction: column; align-items: stretch; }
+    .kz-mnt__actions .kz-btn { justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kz-mnt__bg { animation: none; transform: scale(1.04); }
+    .kz-mnt__badge .kz-pulse,
+    .kz-mntbar__dot { animation: none; }
+    .kz-upd__chev, .kz-switch__track::after { transition-duration: .01ms; }
+}

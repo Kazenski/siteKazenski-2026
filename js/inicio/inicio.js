@@ -24,6 +24,7 @@ const DRAG_RATIO = 0.15;       // 15% da largura do card = troca de slide
 let slides = [];
 let activeIndex = 0;
 let isImmersive = false;
+let immersiveIndex = null;   // índice do card realmente ampliado
 let hoverPreview = false;
 let prefersReducedMotion = false;
 
@@ -194,22 +195,62 @@ function cardStep() {
     return card.getBoundingClientRect().width + gap;
 }
 
-/** Coloca o card ativo centralizado (com peek nas bordas) */
-function centerIndex(i, animate = true) {
+/** Calcula (sem aplicar) o translateX que centraliza o card `i` no trilho. */
+function centerOffsetFor(i) {
     const track = $('#kz-track');
     const viewport = $('#kz-viewport');
-    if (!track || !viewport || track.children.length === 0) return;
+    if (!track || !viewport || track.children.length === 0) return 0;
 
     const card = track.children[i];
-    if (!card) return;
+    if (!card) return 0;
 
     const viewportRect = viewport.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
 
     // Centro do card alvo relativo ao trilho
     const cardCenter = (cardRect.left + cardRect.width / 2) - track.getBoundingClientRect().left;
-    const target = (viewportRect.width / 2) - cardCenter;
+    return (viewportRect.width / 2) - cardCenter;
+}
 
+/**
+ * Aplica a geometria final do card no modo imersivo.
+ * Com `prefers-reduced-motion` fazemos na hora: sem animação não há motivo
+ * para esperar um `requestAnimationFrame` — e o estado final fica preso
+ * enquanto o frame não chega (aba em segundo plano, renderização suspensa).
+ */
+function aplicarGeometria(card, geo) {
+    const escrever = () => {
+        card.style.left = `${geo.left}px`;
+        card.style.top = `${geo.top}px`;
+        card.style.width = `${geo.width}px`;
+        card.style.height = `${geo.height}px`;
+    };
+    if (prefersReducedMotion) escrever();
+    else requestAnimationFrame(escrever);
+}
+
+/** Devolve o card ao fluxo normal do trilho, limpando tudo que o zoom aplicou. */
+function limparGeometria(card) {
+    const escrever = () => {
+        card.classList.remove('is-zoom');
+        card.style.position = '';
+        card.style.left = '';
+        card.style.top = '';
+        card.style.width = '';
+        card.style.height = '';
+        card.style.margin = '';   // props exclusivas do modo imersivo
+        card.style.zIndex = '';
+    };
+    if (prefersReducedMotion) escrever();
+    else requestAnimationFrame(escrever);
+}
+
+/** Coloca o card ativo centralizado (com peek nas bordas) */
+function centerIndex(i, animate = true) {
+    const track = $('#kz-track');
+    if (!track || track.children.length === 0) return;
+
+    const target = centerOffsetFor(i);
     if (!animate || prefersReducedMotion) {
         track.style.transition = 'none';
     } else {
@@ -332,9 +373,10 @@ function goTo(index) {
    ========================================================================== */
 function enterImmersive(index) {
     if (isImmersive) return;
-    isImmersive = true;
-    stopAutoplay();
 
+    // Valida ANTES de mexer em qualquer estado: se o slide não existir, marcar
+    // `isImmersive = true` primeiro deixava o módulo travado no modo imersivo
+    // sem nada renderizado e sem caminho de volta.
     const card = $('#kz-track')?.children[index];
     const hero = $('#kz-hero');
     const rail = $('#kz-rail');
@@ -343,6 +385,9 @@ function enterImmersive(index) {
     const exit = $('#kz-exit');
     const slide = slides[index];
     if (!card || !hero || !slide) return;
+
+    isImmersive = true;
+    stopAutoplay();
 
     // Guarda a posição atual para o cálculo do FLIP
     const from = card.getBoundingClientRect();
@@ -357,16 +402,11 @@ function enterImmersive(index) {
     card.style.margin = '0';
     card.style.zIndex = '100';
     card.classList.add('is-zoom');
+    immersiveIndex = index;
 
     // Estado final: cobre o hero inteiro
     const to = { left: heroRect.left, top: heroRect.top, width: heroRect.width, height: heroRect.height };
-
-    requestAnimationFrame(() => {
-        card.style.left = `${to.left}px`;
-        card.style.top = `${to.top}px`;
-        card.style.width = `${to.width}px`;
-        card.style.height = `${to.height}px`;
-    });
+    aplicarGeometria(card, to);
 
     // O fundo assume a imagem com Ken Burns mais agressivo
     const layers = Array.from(document.querySelectorAll('.kz-hero__bg'));
@@ -409,7 +449,14 @@ function exitImmersive() {
     isImmersive = false;
     clearTimeout(immersiveTimer);
 
-    const card = $('#kz-track')?.children[activeIndex];
+    // O card ampliado NÃO é necessariamente o `activeIndex` (a chamada pode
+    // vir de `expandNews(i)` ou de um clique). Guardamos o índice na entrada
+    // — usar `activeIndex` aqui deixava o card ampliado preso em
+    // `position: fixed` e restaurava outro card sem querer.
+    const idx = Number.isInteger(immersiveIndex) ? immersiveIndex : activeIndex;
+    immersiveIndex = null;
+
+    const card = $('#kz-track')?.children[idx];
     const rail = $('#kz-rail');
     const intro = $('#kz-intro');
     const news = $('#kz-news');
@@ -430,14 +477,7 @@ function exitImmersive() {
         card.style.height = `${cardRect.height}px`;
         card.classList.add('is-zoom');
 
-        requestAnimationFrame(() => {
-            card.classList.remove('is-zoom');
-            card.style.position = '';
-            card.style.left = '';
-            card.style.top = '';
-            card.style.width = '';
-            card.style.height = '';
-        });
+        limparGeometria(card);
     }
 
     rail?.classList.remove('is-immersive', 'opacity-0');
@@ -727,8 +767,18 @@ function onResize() {
    API GLOBAL (compatibilidade com index.html e outros módulos)
    ========================================================================== */
 window.inicio = {
+    /**
+     * Abre o zoom em um card. `imgUrl` é opcional: se informado, passa a valer
+     * como imagem do slide naquele índice (o parâmetro existia na assinatura mas
+     * era descartado — a imagem exibida podia ser outra).
+     */
     expandNews: function (imgUrl, index) {
-        enterImmersive(Number(index));
+        const i = Number(index);
+        if (imgUrl) {
+            if (slides[i]) slides[i] = { ...slides[i], imagemURL: imgUrl };
+            else slides[i] = { id: 'api', titulo: '', imagemURL: imgUrl, subtitulo: '', texto: '' };
+        }
+        enterImmersive(i);
     },
     revertToDefault: function () {
         exitImmersive();
@@ -749,6 +799,7 @@ function teardown() {
 
     window.isDraggingCard = false;
     isImmersive = false;
+    immersiveIndex = null;
     hoverPreview = false;
     bgTimer = null;
     immersiveTimer = null;
