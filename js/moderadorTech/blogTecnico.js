@@ -210,7 +210,7 @@ window.blogAPI = {
                 statusBadge = '<span class="bg-green-500/20 text-green-400 border border-green-500/50 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest"><i class="fas fa-check-double mr-1"></i> Publicado</span>';
             } else {
                 statusBadge = `<span class="bg-amber-500/20 text-amber-400 border border-amber-500/50 px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest"><i class="fas fa-clock mr-1"></i> Aguardando (${aprovCount}/2)</span>`;
-            } 
+            }  
 
             const podeExcluir = window.blogAPI.currentUserMod.Admin || window.blogAPI.currentUserMod.Professor;
             const euAprovei = p.aprovacoes?.includes(window.blogAPI.currentUserMod.uid);
