@@ -214,7 +214,7 @@ window.blogAPI = {
 
             const podeExcluir = window.blogAPI.currentUserMod.Admin || window.blogAPI.currentUserMod.Professor;
             const euAprovei = p.aprovacoes?.includes(window.blogAPI.currentUserMod.uid);
-            const souAutor = p.autorId === window.blogAPI.currentUserMod.uid;
+            const souAutor = (p.autorId === window.blogAPI.currentUserMod.uid) && (p.autorId !== 'automacao_spark');
 
             let acoes = `<button onclick="window.blogAPI.editPost('${p.id}')" class="text-blue-400 hover:text-white bg-slate-800 p-2 rounded transition-colors" title="Editar"><i class="fas fa-edit"></i></button>`;
             

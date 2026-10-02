@@ -57,11 +57,21 @@ main, .tab-content {
 .tab-content { display: none; }
 .tab-content.active { display: flex; }
 
-.custom-scroll::-webkit-scrollbar { width: 6px; }
+.custom-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
+}
+.custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scroll::-webkit-scrollbar-track { background: transparent; }
 .custom-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
 .custom-scroll::-webkit-scrollbar-thumb:hover {
     background: rgba(71, 85, 105, 1); /* slate-600 */
+}
+
+/* Firefox: unify a largura fina da scrollbar em todo o site */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 transparent;
 }
 
 /* Utilitário importante para forçar o Tailwind a esconder elementos corretamente */
@@ -226,7 +236,828 @@ main, .tab-content {
 /* COMPONENTE: CONTEÚDOS AULA (MATERIAIS, AUDIO PLAYER)           */
 /* ============================================================== */
 
-/* Estilização da barra de progresso do áudio nativo para combinar com Tailwind */
+/* ---- Casca da aba: ocupa 100% da tela, sem scroll externo ---- */
+#conteudos-content {
+    display: flex;
+    flex-direction: column;   /* <- corrige o corte lateral (ver CHANGELOG) */
+    overflow: hidden;
+}
+#conteudos-content > .kz-cont-shell {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 auto;
+    height: 100%;
+    padding: clamp(.6rem, 2vh, 1.4rem) clamp(.75rem, 2.4vw, 2rem) 0;
+    /* Reserva a altura real do dock (medida em JS -> --kz-dock-h),
+       evitando que o dock tape o rodape do acervo. */
+    padding-bottom: calc(var(--kz-dock-h, 0px) + clamp(.6rem, 2vh, 1.2rem));
+    gap: clamp(.6rem, 1.6vh, 1rem);
+    min-height: 0;
+}
+
+/* ---- Navegacao das sub-categorias ---- */
+.kz-seg {
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    padding: .28rem;
+    border-radius: .85rem;
+    background: rgba(2,6,23,.72);
+    border: 1px solid #1e293b;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+    flex: 0 1 auto;
+    min-width: 0;
+}
+.kz-seg__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .55rem 1rem;
+    border-radius: .65rem;
+    font-size: clamp(.62rem, 1.15vw, .75rem);
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #64748b;
+    white-space: nowrap;
+    transition: color .25s ease, background .25s ease, box-shadow .25s ease;
+    min-height: 40px;
+}
+.kz-seg__btn i { font-size: .8em; }
+.kz-seg__btn:hover { color: #e2e8f0; background: rgba(30,41,59,.6); }
+.kz-seg__btn.is-active {
+    color: #fff;
+    background: linear-gradient(180deg, #1d4ed8, #1e3a8a);
+    box-shadow: 0 6px 18px rgba(29,78,216,.4), inset 0 1px 0 rgba(255,255,255,.14);
+}
+.kz-seg__btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* ---- Painel generico (materiais / musicas / podcasts) ---- */
+.kz-panel {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;            /* <- permite o overflow interno funcionar */
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0b1220;
+    border: 1px solid #1e293b;
+    border-radius: 1.1rem;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55);
+}
+
+/* Barra de ferramentas (busca + filtros) */
+.kz-toolbar {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem clamp(.6rem, 1.6vw, 1rem);
+    background: rgba(15,23,42,.72);
+    border-bottom: 1px solid #1e293b;
+}
+.kz-search {
+    position: relative;
+    flex: 1 1 15rem;
+    min-width: 0;
+}
+.kz-search__icon {
+    position: absolute;
+    left: .85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #475569;
+    font-size: .8rem;
+    pointer-events: none;
+}
+.kz-search input {
+    width: 100%;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #e2e8f0;
+    border-radius: .7rem;
+    padding: .65rem .9rem .65rem 2.4rem;
+    font-size: .82rem;
+    outline: none;
+    transition: border-color .25s ease, box-shadow .25s ease;
+    min-height: 40px;
+}
+.kz-search input::placeholder { color: #475569; }
+.kz-search input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.16);
+}
+.kz-select {
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #cbd5e1;
+    border-radius: .7rem;
+    padding: .65rem .8rem;
+    font-size: .78rem;
+    outline: none;
+    cursor: pointer;
+    min-height: 40px;
+    max-width: 100%;
+    transition: border-color .25s ease;
+}
+.kz-select:focus { border-color: #3b82f6; }
+.kz-select option { background: #0f172a; }
+
+.kz-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .65rem .95rem;
+    min-height: 40px;
+    border-radius: .7rem;
+    background: #020617;
+    border: 1px solid #1e293b;
+    color: #64748b;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    transition: all .25s ease;
+    white-space: nowrap;
+}
+.kz-chip:hover { color: #e2e8f0; border-color: #334155; }
+.kz-chip.is-on {
+    color: #fcd34d;
+    border-color: rgba(245,158,11,.55);
+    background: rgba(245,158,11,.1);
+    box-shadow: 0 0 18px rgba(245,158,11,.18);
+}
+.kz-chip:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* ---- Grade de Materiais: preenche qualquer largura ---- */
+.kz-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: clamp(.75rem, 2vw, 1.4rem);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(11rem, 22vw, 16.5rem), 1fr));
+    gap: clamp(.75rem, 1.8vw, 1.25rem);
+    align-content: start;
+}
+
+.kz-mcard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: .95rem;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .35s cubic-bezier(.16,1,.3,1), border-color .3s ease, box-shadow .3s ease;
+    text-align: left;
+    width: 100%;
+}
+.kz-mcard:hover {
+    transform: translateY(-5px);
+    border-color: rgba(59,130,246,.55);
+    box-shadow: 0 18px 40px rgba(0,0,0,.6);
+}
+.kz-mcard:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.kz-mcard__cover {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #020617;
+    overflow: hidden;
+    flex: 0 0 auto;
+}
+.kz-mcard__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform .7s cubic-bezier(.16,1,.3,1);
+}
+.kz-mcard:hover .kz-mcard__cover img { transform: scale(1.08); }
+.kz-mcard__cover::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(2,6,23,.92), transparent 62%);
+}
+.kz-mcard__star {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    z-index: 3;
+    width: 1.8rem;
+    height: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .5rem;
+    background: rgba(2,6,23,.82);
+    border: 1px solid rgba(245,158,11,.5);
+    color: #fbbf24;
+    font-size: .7rem;
+    backdrop-filter: blur(6px);
+}
+.kz-mcard__body { padding: .75rem .85rem .9rem; display: flex; flex-direction: column; gap: .35rem; }
+.kz-mcard__meta {
+    font-size: .56rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kz-mcard__title {
+    margin: 0;
+    color: #60a5fa;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: .88rem;
+    line-height: 1.28;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Estado vazio */
+.kz-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .8rem;
+    padding: clamp(2rem, 9vh, 5rem) 1rem;
+    color: #475569;
+    text-align: center;
+}
+.kz-empty i { font-size: 2.6rem; opacity: .35; }
+.kz-empty p { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+
+/* ---- Estilo Spotify: lista lateral + area "tocando agora" ---- */
+.kz-split {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.kz-list-pane {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: rgba(2,6,23,.55);
+    border-right: 1px solid #1e293b;
+}
+.kz-list-pane__head {
+    flex: 0 0 auto;
+    padding: .55rem clamp(.75rem, 2vw, 1.15rem);
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+}
+.kz-list-pane__title {
+    font-size: .58rem;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #475569;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+.kz-list-pane__title b { color: #94a3b8; font-variant-numeric: tabular-nums; }
+
+/* ---- Responsividade do layout Spotify ---- */
+/* Desktop largo: lista lateral fixa */
+@media (min-width: 1024px) {
+    .kz-split { flex-direction: row; }
+    .kz-list-pane { width: 19rem; min-width: 15rem; }
+}
+
+/* Tablet: lista estreita e painel com respiro reduzido */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .kz-split { flex-direction: row; }
+    .kz-list-pane { width: 15rem; min-width: 12rem; }
+    .kz-now__body { padding: 1rem; gap: .6rem; }
+}
+
+/* Celular: lista vira painel superior rolável com altura maxima limitada
+   e "tocando agora" ocupa o restante. Isso mantem o player acessivel. */
+@media (max-width: 767px) {
+    .kz-split { flex-direction: column; }
+    .kz-list-pane {
+        border-right: none;
+        border-bottom: 1px solid #1e293b;
+        max-height: 38%;
+    }
+    .kz-now__head { gap: .8rem; }
+    .kz-now__cover { width: clamp(4.5rem, 22vw, 7rem); }
+    .kz-now__body { padding: .75rem; gap: .55rem; }
+    .kz-lyrics { padding: .8rem; }
+    .kz-lyrics__text { line-height: 1.75; font-size: .8rem; }
+
+    /* Dock do player empilha de forma compacta */
+    .kz-player-dock { padding-top: .4rem; }
+    .kz-player-dock__row { flex-wrap: wrap; }
+    .kz-nowplaying { flex: 1 1 100%; order: -1; }
+    .kz-progress { flex: 1 1 100%; order: 10; }
+    .kz-volume { display: none; }
+    .kz-transport { flex: 0 0 auto; order: 5; }
+}
+
+.kz-tracklist {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: .35rem .4rem .9rem;
+    margin: 0;
+    list-style: none;
+}
+
+.kz-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .45rem .55rem;
+    border-radius: .65rem;
+    cursor: pointer;
+    transition: background .2s ease;
+    width: 100%;
+    text-align: left;
+    border: 1px solid transparent;
+}
+.kz-track:hover { background: rgba(30,41,59,.75); }
+.kz-track:focus-visible { outline: 2px solid #60a5fa; outline-offset: -2px; }
+.kz-track.is-playing {
+    background: rgba(30,58,138,.32);
+    border-color: rgba(59,130,246,.4);
+}
+
+.kz-track__art {
+    position: relative;
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: .45rem;
+    overflow: hidden;
+    background: #020617;
+    border: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.kz-track__art img { width: 100%; height: 100%; object-fit: cover; }
+.kz-track__art i { color: #475569; font-size: .8rem; }
+
+/* Botao de play que sobe no hover (canonico Spotify) */
+.kz-track__play {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2,6,23,.72);
+    color: #fff;
+    font-size: .78rem;
+    opacity: 0;
+    transition: opacity .2s ease, background .2s ease;
+    backdrop-filter: blur(2px);
+}
+.kz-track:hover .kz-track__play,
+.kz-track:focus-visible .kz-track__play { opacity: 1; }
+.kz-track__play:hover { background: rgba(29,78,216,.8); }
+
+/* Equalizador animado quando toca */
+.kz-track.is-playing .kz-track__art i,
+.kz-track.is-playing .kz-track__art .no-art { display: none; }
+.kz-eq { display: none; align-items: flex-end; gap: 2px; height: 60%; }
+.kz-track.is-playing .kz-eq { display: flex; }
+.kz-eq span {
+    width: 2.5px;
+    background: #3b82f6;
+    border-radius: 1px;
+    animation: kz-eq .9s ease-in-out infinite;
+}
+.kz-eq span:nth-child(1) { height: 40%; animation-delay: -.2s; }
+.kz-eq span:nth-child(2) { height: 80%; animation-delay: -.5s; }
+.kz-eq span:nth-child(3) { height: 55%; animation-delay: -.35s; }
+@keyframes kz-eq { 0%,100% { transform: scaleY(.4); } 50% { transform: scaleY(1); } }
+
+.kz-track__meta { flex: 1 1 auto; min-width: 0; }
+.kz-track__title {
+    color: #e2e8f0;
+    font-size: .78rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kz-track.is-playing .kz-track__title { color: #93c5fd; }
+.kz-track__sub {
+    color: #64748b;
+    font-size: .62rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: .1rem;
+}
+.kz-track__dur {
+    flex: 0 0 auto;
+    color: #475569;
+    font-size: .62rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- Area de detalhe / "Tocando agora" ---- */
+.kz-now {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(120% 90% at 18% 0%, rgba(30,41,59,.75), #020617 62%);
+    overflow: hidden;
+}
+
+/* Brilho ambientado na cor da faixa */
+.kz-now__glow {
+    position: absolute;
+    top: -22%;
+    left: -10%;
+    width: 62%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: .3;
+    pointer-events: none;
+    transition: background .8s ease;
+}
+.kz-now--emerald .kz-now__glow { background: #10b981; }
+.kz-now--purple .kz-now__glow { background: #a855f7; }
+.kz-now--blue .kz-now__glow { background: #3b82f6; }
+
+.kz-now__empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #334155;
+    text-align: center;
+    padding: 1.5rem;
+}
+.kz-now__empty i { font-size: clamp(2.5rem, 7vw, 4rem); opacity: .45; }
+.kz-now__empty h3 {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    font-size: clamp(.8rem, 2.2vw, 1.05rem);
+    color: #475569;
+}
+
+.kz-now__body {
+    position: relative;
+    z-index: 2;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(.6rem, 1.6vh, 1.1rem);
+    padding: clamp(.9rem, 2.4vw, 1.9rem);
+}
+
+.kz-now__head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(.9rem, 2.4vw, 1.7rem);
+}
+
+/* Capa grande */
+.kz-now__cover {
+    position: relative;
+    flex: 0 0 auto;
+    width: clamp(6.5rem, 20vw, 15rem);
+    aspect-ratio: 1;
+    border-radius: .85rem;
+    overflow: hidden;
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,.09);
+    box-shadow: 0 22px 50px rgba(0,0,0,.65);
+}
+.kz-now__cover img { width: 100%; height: 100%; object-fit: cover; }
+.kz-now__cover--none {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.6rem, 4vw, 3rem);
+}
+.kz-now--emerald .kz-now__cover--none { color: #34d399; background: rgba(16,185,129,.1); border-color: rgba(16,185,129,.3); }
+.kz-now--purple .kz-now__cover--none { color: #c084fc; background: rgba(168,85,247,.1); border-color: rgba(168,85,247,.3); }
+.kz-now--blue .kz-now__cover--none { color: #60a5fa; background: rgba(59,130,246,.1); border-color: rgba(59,130,246,.3); }
+
+/* Botao play gigante sobre a capa */
+.kz-now__bigplay {
+    position: absolute;
+    right: -.55rem;
+    bottom: -.55rem;
+    width: clamp(2.6rem, 5.2vw, 3.5rem);
+    height: clamp(2.6rem, 5.2vw, 3.5rem);
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2563eb;
+    color: #fff;
+    border: 3px solid #020617;
+    box-shadow: 0 10px 28px rgba(37,99,235,.5);
+    transition: transform .25s cubic-bezier(.16,1,.3,1), background .25s ease;
+}
+.kz-now--emerald .kz-now__bigplay { background: #059669; box-shadow: 0 10px 28px rgba(5,150,105,.5); }
+.kz-now--purple .kz-now__bigplay { background: #7e22ce; box-shadow: 0 10px 28px rgba(126,34,206,.5); }
+.kz-now__bigplay:hover { transform: scale(1.12); filter: brightness(1.15); }
+.kz-now__bigplay:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+.kz-now__info { flex: 1 1 auto; min-width: 0; }
+.kz-now__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    margin-bottom: .4rem;
+}
+.kz-now--emerald .kz-now__eyebrow { color: #34d399; }
+.kz-now--purple .kz-now__eyebrow { color: #c084fc; }
+.kz-now--blue .kz-now__eyebrow { color: #60a5fa; }
+
+.kz-now__title {
+    margin: 0;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    line-height: 1.06;
+    letter-spacing: -.015em;
+    text-shadow: 0 6px 24px rgba(0,0,0,.7);
+    font-size: clamp(1.15rem, 3.4vw, 2.6rem);
+    overflow-wrap: anywhere;
+}
+.kz-now__artist {
+    margin: .4rem 0 0;
+    color: #94a3b8;
+    font-weight: 700;
+    font-size: clamp(.72rem, 1.5vw, .95rem);
+}
+
+.kz-now__actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    padding-bottom: clamp(.5rem, 1.4vh, .9rem);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.kz-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .55rem 1rem;
+    border-radius: .6rem;
+    background: rgba(30,41,59,.8);
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    transition: all .22s ease;
+    min-height: 38px;
+    white-space: nowrap;
+}
+.kz-btn:hover { background: #1e293b; border-color: #475569; color: #fff; transform: translateY(-1px); }
+.kz-btn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.kz-btn--accent { background: #1d4ed8; border-color: #2563eb; color: #fff; }
+.kz-btn--accent:hover { background: #2563eb; }
+.kz-btn--ml { margin-left: auto; }
+
+/* Painel de letra / descricao */
+.kz-lyrics {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    background: rgba(2,6,23,.55);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: .9rem;
+    padding: clamp(.9rem, 2.2vw, 1.6rem);
+    position: relative;
+}
+.kz-lyrics__text {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: clamp(.82rem, 1.6vw, 1.02rem);
+    line-height: 1.9;
+    color: #cbd5e1;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.kz-lyrics__empty { color: #475569; font-style: italic; }
+
+/* ---- Dock do player: largura total, estilo barra inferior ---- */
+.kz-player-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2000;
+    background: rgba(2,6,23,.93);
+    backdrop-filter: blur(22px) saturate(140%);
+    border-top: 1px solid #1e293b;
+    box-shadow: 0 -18px 50px rgba(0,0,0,.65);
+    padding: .5rem clamp(.6rem, 2.5vw, 1.6rem) .55rem;
+    padding-bottom: max(.55rem, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+}
+.kz-player-dock__bar {
+    height: 3px;
+    width: 100%;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+}
+.kz-player-dock__fill {
+    height: 100%;
+    width: calc(var(--kz-dock-progress, 0) * 100%);
+    background: linear-gradient(90deg, #1d4ed8, #60a5fa);
+    border-radius: 999px;
+    transition: width .12s linear;
+}
+.kz-player-dock__bar:hover .kz-player-dock__fill { background: linear-gradient(90deg, #2563eb, #93c5fd); }
+
+.kz-player-dock__row {
+    display: flex;
+    align-items: center;
+    gap: clamp(.5rem, 1.6vw, 1rem);
+    width: 100%;
+}
+
+.kz-nowplaying {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex: 0 1 16rem;
+    min-width: 0;
+}
+.kz-nowplaying__art {
+    flex: 0 0 auto;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: .45rem;
+    overflow: hidden;
+    background: #020617;
+    border: 1px solid #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.kz-nowplaying__art img { width: 100%; height: 100%; object-fit: cover; }
+.kz-nowplaying__art i { color: #475569; font-size: .8rem; }
+.kz-nowplaying__txt { min-width: 0; }
+.kz-nowplaying__title { color: #e2e8f0; font-size: .78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kz-nowplaying__artist { color: #64748b; font-size: .64rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.kz-transport {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(.4rem, 1.4vw, .9rem);
+    min-width: 0;
+}
+.kz-tbtn {
+    width: 2.2rem;
+    height: 2.2rem;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    background: transparent;
+    transition: all .2s ease;
+    font-size: .95rem;
+}
+.kz-tbtn:hover { color: #fff; background: rgba(30,41,59,.9); }
+.kz-tbtn.is-on { color: #3b82f6; }
+.kz-tbtn.is-on::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: #3b82f6;
+}
+.kz-tbtn { position: relative; }
+.kz-tbtn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+.kz-playbtn {
+    width: 2.7rem;
+    height: 2.7rem;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    color: #0f172a;
+    transition: transform .2s cubic-bezier(.16,1,.3,1), background .2s ease;
+    font-size: 1rem;
+    flex: 0 0 auto;
+}
+.kz-playbtn:hover { transform: scale(1.08); background: #fff; }
+.kz-playbtn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+.kz-progress {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    flex: 1 1 12rem;
+    min-width: 6rem;
+}
+.kz-time {
+    font-size: .6rem;
+    font-weight: 700;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+    min-width: 2.1rem;
+}
+.kz-time--end { text-align: right; }
+
+.kz-volume {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex: 0 0 8rem;
+}
+.kz-volume i { color: #64748b; font-size: .78rem; }
+
+.kz-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: #1e293b;
+    outline: none;
+    cursor: pointer;
+}
+.kz-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+}
+.kz-range::-webkit-slider-thumb:hover { transform: scale(1.3); background: #fff; }
+.kz-range::-moz-range-thumb {
+    width: 12px; height: 12px; border-radius: 999px;
+    background: #e2e8f0; border: none; cursor: pointer;
+}
+.kz-range:focus-visible { outline: 2px solid #60a5fa; outline-offset: 3px; }
+
+/* Estilização da barra de progresso do áudio nativo */
 .custom-range::-webkit-slider-thumb {
     appearance: none;
     width: 12px;
@@ -249,8 +1080,12 @@ main, .tab-content {
 }
 
 /* Transição suave entre as sub-abas */
+/* ATENÇÃO: precisa ser `flex` (e NÃO `block`). `.cont-tab-content.active` tem
+   especificidade 0,2,0 e VENCE a classe utilitária `.flex` do Tailwind (0,1,0).
+   Usar `display:block` aqui quebrava a altura e o overflow dos painéis de
+   Músicas/Podcasts, causando o corte lateral direito. */
 .cont-tab-content { display: none; }
-.cont-tab-content.active { display: block; animation: fadeIn 0.4s ease-out forwards; }
+.cont-tab-content.active { display: flex; animation: fadeIn 0.4s ease-out forwards; }
 
 /* ============================================================== */
 /* COMPONENTE: MESTRE LEOMA (PORTAL DO PROFESSOR)                 */
@@ -686,51 +1521,465 @@ main, .tab-content {
 .status-enviado { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
 
 
-/* Estilos para o Carrossel e Layout do Início */
+/* ============================================================== */
+/* CARROSSEL IMERSIVO DA PÁGINA INICIAL (v2)                      */
+/* Substitui o bloco ".card-carrossel" antigo (zoom fixo de 0.85) */
+/* ============================================================== */
 
-/* Container principal para evitar sobreposição */
-#sessao-inicio {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2rem;
-    padding: 20px;
-    overflow-x: hidden; /* Evita scroll lateral indesejado */
-}
-
-/* Ajuste do Container do Carrossel */
-.carrossel-container {
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+/* Container: area de captura dos gestos */
+.kz-hero {
     position: relative;
-    padding: 40px 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #020617;
+    touch-action: pan-y;           /* permite scroll vertical da pagina */
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-/* Redução dos Cards em 60% e ajuste de transição */
-.card-carrossel {
-    flex: 0 0 auto;
-    width: 250px; /* Largura reduzida para simular o zoom out */
-    height: auto;
-    transition: transform 0.5s ease, opacity 0.5s ease;
-    cursor: pointer;
-    /* Aqui aplicamos a redução visual */
-    transform: scale(0.85); 
+/* Pilha de fundos (zoom out) */
+.kz-hero__bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 900ms cubic-bezier(.4, 0, .2, 1), transform 1400ms cubic-bezier(.4, 0, .2, 1);
+    transform: scale(1.06);
+    will-change: opacity, transform;
+}
+.kz-hero__bg.is-on { opacity: 1; transform: scale(1); }
+
+/* Ken Burns: movimento lento e continuo, cria profundidade */
+.kz-hero__bg.is-on.kz-kenburns {
+    animation: kz-kenburns 20s ease-in-out infinite alternate;
+}
+@keyframes kz-kenburns {
+    0%   { transform: scale(1) translate3d(0, 0, 0); }
+    100% { transform: scale(1.12) translate3d(-1.6%, -1.4%, 0); }
 }
 
-/* Card centralizado ou em foco fica um pouco maior, mas ainda pequeno */
-.card-carrossel.active {
-    transform: scale(1);
-    z-index: 10;
+/* Escurecimento para o texto respirar */
+.kz-hero__scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(to top, rgba(2,6,23,.98) 0%, rgba(2,6,23,.72) 26%, rgba(2,6,23,.18) 58%, rgba(2,6,23,.45) 100%),
+        linear-gradient(to right, rgba(2,6,23,.94) 0%, rgba(2,6,23,.55) 42%, transparent 78%);
 }
 
-/* Esconde as scrollbars para um visual limpo */
-.carrossel-wrapper {
+/* Vinheta + textura sutil para imersao */
+.kz-hero__grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .05;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(59,130,246,.9), transparent 45%),
+        radial-gradient(circle at 80% 70%, rgba(168,85,247,.7), transparent 45%);
+    mix-blend-mode: screen;
+}
+
+/* ---- Cabecalho / titulo ---- */
+.kz-hero__intro {
+    position: absolute;
+    z-index: 20;
+    top: clamp(1rem, 6vh, 4rem);
+    left: clamp(1rem, 5vw, 4rem);
+    max-width: min(46rem, 62vw);
+    transition: opacity 600ms ease, transform 700ms cubic-bezier(.16,1,.3,1), filter 600ms ease;
+}
+.kz-hero__title {
+    margin: 0;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    line-height: .92;
+    letter-spacing: -.03em;
+    text-transform: uppercase;
+    text-shadow: 0 6px 30px rgba(0,0,0,.85);
+    font-size: clamp(2.1rem, 8vw, 6rem);
+}
+.kz-hero__title em {
+    font-style: normal;
+    color: #3b82f6;
+    text-shadow: 0 0 44px rgba(59,130,246,.55);
+}
+.kz-hero__tagline {
+    margin: 1rem 0 0;
+    max-width: 34rem;
+    color: #94a3b8;
+    font-style: italic;
+    line-height: 1.65;
+    border-left: 2px solid rgba(59,130,246,.55);
+    padding-left: 1rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,.9);
+    font-size: clamp(.75rem, 1.5vw, 1rem);
+}
+
+/* ---- Faixa inferior (trilho do carrossel) ---- */
+.kz-rail {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    padding: 0 0 clamp(.9rem, 2.4vh, 1.6rem);
+    background: linear-gradient(to top, rgba(2,6,23,.97) 12%, rgba(2,6,23,.55) 58%, transparent 100%);
+    transition: opacity 500ms ease, transform 700ms cubic-bezier(.16,1,.3,1);
+}
+
+.kz-rail__head {
     display: flex;
-    gap: 15px;
-    overflow-x: hidden; /* O JS controlará o movimento */
-    scroll-behavior: smooth;
-    padding: 20px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 clamp(1rem, 5vw, 4rem) .7rem;
+}
+.kz-rail__title {
+    font-family: 'Cinzel', serif;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: rgba(96,165,250,.85);
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    white-space: nowrap;
+}
+.kz-rail__count {
+    font-family: 'Inter', sans-serif;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    color: #475569;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Trilho: janela com overflow hidden; o inner recebe o translate */
+.kz-rail__viewport {
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+    padding: .75rem clamp(1rem, 5vw, 4rem);
+    touch-action: pan-y;
+}
+.kz-rail__viewport.is-dragging { cursor: grabbing; }
+
+.kz-rail__track {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+}
+
+/* ---- Card ---- */
+.kz-card {
+    position: relative;
+    flex: 0 0 auto;
+    width: clamp(9rem, 22vw, 15rem);
+    aspect-ratio: 16 / 10;
+    border-radius: .9rem;
+    overflow: hidden;
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 8px 26px rgba(0,0,0,.55);
+    cursor: pointer;
+    transition: transform 550ms cubic-bezier(.16,1,.3,1),
+                box-shadow 550ms ease,
+                border-color 550ms ease,
+                opacity 550ms ease,
+                filter 550ms ease;
+    will-change: transform;
+}
+.kz-card__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1);
+    transition: transform 900ms cubic-bezier(.16,1,.3,1);
+    pointer-events: none;
+}
+.kz-card__scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(2,6,23,.96) 4%, rgba(2,6,23,.28) 52%, transparent 100%);
+    pointer-events: none;
+}
+.kz-card__body {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: .6rem .7rem;
+    pointer-events: none;
+}
+.kz-card__index {
+    position: absolute;
+    top: .5rem;
+    left: .6rem;
+    font-family: 'Inter', sans-serif;
+    font-size: .55rem;
+    font-weight: 900;
+    letter-spacing: .16em;
+    color: rgba(255,255,255,.62);
+    text-shadow: 0 1px 6px rgba(0,0,0,.9);
+    font-variant-numeric: tabular-nums;
+}
+.kz-card__title {
+    margin: 0;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: .68rem;
+    line-height: 1.28;
+    text-shadow: 0 2px 8px rgba(0,0,0,.95);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Barra de progresso do autoplay no card ativo */
+.kz-card__progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: rgba(255,255,255,.12);
+    pointer-events: none;
+}
+.kz-card__progress::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: calc(var(--kz-progress, 0) * 100%);
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    box-shadow: 0 0 8px rgba(59,130,246,.9);
+}
+
+/* Estados: vizinho (zoom-out), ativo (zoom-in), foco de teclado */
+.kz-card.is-near {
+    opacity: .62;
+    filter: saturate(.72) brightness(.78);
+    transform: scale(.9);
+}
+.kz-card.is-active {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.07);
+    border-color: rgba(59,130,246,.65);
+    box-shadow: 0 14px 40px rgba(0,0,0,.7), 0 0 0 1px rgba(59,130,246,.35), 0 0 34px rgba(59,130,246,.28);
+    z-index: 2;
+}
+.kz-card.is-active .kz-card__img { transform: scale(1.06); }
+
+.kz-card:hover:not(.is-active) { opacity: .9; transform: scale(.96); }
+
+.kz-card:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 3px;
+}
+
+/* Marca de "arraste" nos extremos */
+.kz-rail__hint {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: #475569;
+    white-space: nowrap;
+}
+.kz-rail__hint kbd {
+    font-family: 'Inter', sans-serif;
+    font-size: .55rem;
+    background: rgba(30,41,59,.85);
+    border: 1px solid #334155;
+    border-bottom-width: 2px;
+    border-radius: .3rem;
+    padding: .1rem .3rem;
+    color: #94a3b8;
+}
+
+/* ---- Botoes de navegacao ---- */
+.kz-navbtn {
+    flex: 0 0 auto;
+    width: 2.4rem;
+    height: 2.4rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid #1e293b;
+    background: rgba(15,23,42,.85);
+    color: #94a3b8;
+    backdrop-filter: blur(8px);
+    transition: all .25s ease;
+    z-index: 40;
+}
+.kz-navbtn:hover:not(:disabled) {
+    background: #1d4ed8;
+    border-color: #3b82f6;
+    color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 0 18px rgba(59,130,246,.5);
+}
+.kz-navbtn:disabled { opacity: .28; cursor: not-allowed; }
+.kz-navbtn:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* ---- MODO IMERSIVO (zoom-in via FLIP) ---- */
+/* A imagem do card viaja do trilho ate o fundo de tela cheia. */
+.kz-card.is-zoom {
+    z-index: 100;
+    transition: transform 900ms cubic-bezier(.16, 1, .3, 1),
+                box-shadow 900ms ease,
+                opacity 900ms ease;
+    box-shadow: 0 40px 120px rgba(0,0,0,.9);
+}
+.kz-rail.is-immersive { pointer-events: none; }
+.kz-rail.is-immersive .kz-rail__head { opacity: 0; }
+
+/* Enquanto o card está em zoom, o hero "respira": fonte um pouco maior,
+   scrim mais fechado e trilho/nav fora do caminho do ponteiro. */
+.kz-hero.is-zoom { cursor: zoom-out; }
+.kz-hero.is-zoom .kz-hero__bg {
+    transition-duration: 1200ms;
+    filter: saturate(1.15) contrast(1.05);
+}
+.kz-hero.is-zoom .kz-hero__bg.is-on { transform: scale(1.04); }
+.kz-hero.is-zoom .kz-hero__scrim {
+    background:
+        linear-gradient(to top, rgba(2,6,23,.99) 0%, rgba(2,6,23,.8) 30%, rgba(2,6,23,.3) 62%, rgba(2,6,23,.55) 100%),
+        linear-gradient(to right, rgba(2,6,23,.92) 0%, rgba(2,6,23,.62) 40%, transparent 82%);
+}
+.kz-hero.is-zoom .kz-hero__intro { transition: opacity .5s ease, transform .7s cubic-bezier(.16,1,.3,1); }
+.kz-hero.is-zoom .kz-hero__grain { opacity: .04; }
+
+/* Botao de fechar (visivel so no modo imersivo) */
+.kz-exit {
+    position: absolute;
+    z-index: 120;
+    top: clamp(.8rem, 4vh, 2rem);
+    right: clamp(.8rem, 4vw, 2.5rem);
+    width: 2.6rem;
+    height: 2.6rem;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: rgba(2,6,23,.7);
+    border: 1px solid rgba(255,255,255,.14);
+    color: #cbd5e1;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms ease 250ms, background .25s ease, color .25s ease;
+}
+.kz-exit.is-visible { opacity: 1; pointer-events: auto; }
+.kz-exit:hover { background: #dc2626; border-color: #ef4444; color: #fff; }
+.kz-exit:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+/* ---- Painel de detalhes da noticia ---- */
+.kz-news {
+    position: absolute;
+    z-index: 60;
+    top: clamp(1rem, 6vh, 4rem);
+    left: clamp(1rem, 5vw, 4rem);
+    max-width: min(40rem, 60vw);
+    opacity: 0;
+    transform: translateY(18px);
+    pointer-events: none;
+    transition: opacity 600ms ease, transform 700ms cubic-bezier(.16,1,.3,1);
+}
+.kz-news.is-on { opacity: 1; transform: translateY(0); }
+.kz-news__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: #93c5fd;
+    border: 1px solid rgba(59,130,246,.4);
+    background: rgba(30,58,138,.28);
+    border-radius: 999px;
+    padding: .3rem .7rem;
+    margin-bottom: .85rem;
+    backdrop-filter: blur(6px);
+}
+.kz-news__title {
+    margin: 0;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    line-height: 1.04;
+    letter-spacing: -.02em;
+    text-shadow: 0 6px 26px rgba(0,0,0,.9);
+    font-size: clamp(1.5rem, 4.6vw, 3.4rem);
+}
+.kz-news__text {
+    margin: .85rem 0 0;
+    color: #cbd5e1;
+    line-height: 1.7;
+    max-width: 34rem;
+    text-shadow: 0 2px 12px rgba(0,0,0,.95);
+    font-size: clamp(.78rem, 1.6vw, 1rem);
+}
+.kz-news__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    margin-top: 1.4rem;
+    padding: .8rem 1.6rem;
+    border-radius: .6rem;
+    background: #2563eb;
+    color: #fff;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    border: 1px solid rgba(147,197,253,.45);
+    box-shadow: 0 12px 34px rgba(37,99,235,.4);
+    transition: all .25s ease;
+}
+.kz-news__cta:hover { background: #3b82f6; transform: translateY(-2px); box-shadow: 0 16px 40px rgba(37,99,235,.55); }
+
+/* ---- Tablet / celular: peek indica que ha mais conteudo ---- */
+@media (max-width: 767px) {
+    .kz-card { width: clamp(9.5rem, 46vw, 13rem); }
+    .kz-card.is-active { transform: scale(1.04); }
+    .kz-hero__intro { max-width: 88vw; }
+    .kz-news { max-width: 86vw; }
+    .kz-rail__hint { display: none; }
+    .kz-rail__head { padding-bottom: .5rem; }
+    .kz-rail__viewport { padding-bottom: .5rem; }
+}
+
+@media (max-width: 380px) {
+    .kz-card { width: 62vw; }
+}
+
+/* ---- Acessibilidade: respeita quem pediu menos movimento ---- */
+@media (prefers-reduced-motion: reduce) {
+    .kz-hero__bg.is-on.kz-kenburns { animation: none; }
+    .kz-card,
+    .kz-hero__bg,
+    .kz-hero__intro,
+    .kz-rail,
+    .kz-news,
+    .kz-card__img { transition-duration: .01ms !important; animation: none !important; }
 }
 
 
