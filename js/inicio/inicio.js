@@ -504,6 +504,7 @@ function wireEvents() {
     if (!hero || !viewport || !track) return;
 
     let startX = 0, startY = 0, startOffset = 0, dragging = false, movedEnough = false;
+    let lastTapHandledAt = 0;
     let pointerId = null, axisLocked = null;
     let lastX = 0, lastT = 0, velocity = 0;
 
@@ -612,15 +613,36 @@ function wireEvents() {
 
     /* ---- CLIQUE NO CARD -> ZOOM IN ---- */
     track.addEventListener('click', (e) => {
-        const card = e.target.closest('.kz-card');
-        if (!card) return;
         if (movedEnough) return;              // foi arrasto, não clique
-        const idx = Number(card.dataset.index);
-        if (idx === activeIndex) {
-            enterImmersive(idx);
-        } else {
-            goTo(idx);
+        // O pointer capture redireciona o alvo do clique para o viewport;
+        // por isso usamos a posição do clique para achar o card real.
+        let card = e.target.closest?.('.kz-card');
+        if (!card) {
+            const el = document.elementFromPoint(e.clientX, e.clientY);
+            card = el?.closest?.('.kz-card') || null;
         }
+        if (!card) return;
+        const idx = Number(card.dataset.index);
+        lastTapHandledAt = Date.now();
+        if (idx !== activeIndex) updateActive(idx, { silent: true });
+        enterImmersive(idx);
+    });
+
+    // Tap (toque sem arrastar): o pointer capture faz o evento click mirar no
+    // viewport, então tratamos o clique aqui também (deduplicado pelo timestamp).
+    viewport.addEventListener('pointerup', (e) => {
+        if (movedEnough) return;
+        const dx = Math.abs(e.clientX - startX), dy = Math.abs(e.clientY - startY);
+        if (dx > 6 || dy > 6 || axisLocked === 'x') return;
+        if (e.target.closest?.('.kz-navbtn')) return;
+        if (Date.now() - lastTapHandledAt < 350) return;
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const card = el?.closest?.('.kz-card');
+        if (!card) return;
+        lastTapHandledAt = Date.now();
+        const idx = Number(card.dataset.index);
+        if (idx !== activeIndex) updateActive(idx, { silent: true });
+        enterImmersive(idx);
     });
 
     /* ---- RODA DO MOUSE / TRACKPAD ---- */

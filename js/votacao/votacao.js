@@ -128,9 +128,12 @@ function renderPaginaVotacao(votacao, usuario) {
     let podioHtml = '';
     if (podeVerResultados && totalVotos > 0) {
         const [p1, p2, p3] = ranking;
-        const podItem = (m, lugar, cor, tamanho) => m ? `
+        const coresPodium = { 1: 'border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)]', 2: 'border-sky-400', 3: 'border-rose-400' };
+        const podItem = (m, lugar, tamanho) => m ? `
             <div class="flex flex-col items-center ${lugar === 1 ? 'order-2' : lugar === 2 ? 'order-1' : 'order-3'}">
-                <img src="${m.albumArtUrl || 'imagens/favicon/favicon-32x32.png'}" class="${tamanho} aspect-square object-cover rounded-2xl border-2 ${cor} mb-2">
+                <div class="${tamanho} aspect-square rounded-2xl bg-slate-800 border-4 ${coresPodium[lugar]} flex items-center justify-center mb-2">
+                    <i class="fas fa-music ${tamanho === 'w-28' ? 'text-4xl' : tamanho === 'w-20' ? 'text-3xl' : 'text-2xl'} ${lugar === 1 ? 'text-amber-400' : lugar === 2 ? 'text-sky-400' : 'text-rose-400'}"></i>
+                </div>
                 <span class="text-2xl">${lugar === 1 ? '🥇' : lugar === 2 ? '🥈' : '🥉'}</span>
                 <p class="text-white font-bold text-sm text-center max-w-[140px] truncate">${m.titulo}</p>
                 <p class="text-slate-500 text-[10px] uppercase">${m.votos} voto(s) · ${m.pct}%</p>
@@ -139,9 +142,9 @@ function renderPaginaVotacao(votacao, usuario) {
             <div class="bg-slate-900/60 border border-amber-500/30 rounded-3xl p-8 mt-6">
                 <h4 class="text-center text-amber-400 font-cinzel font-bold uppercase tracking-widest text-sm mb-8"><i class="fas fa-trophy mr-2"></i> Pódio Atual</h4>
                 <div class="flex justify-center items-end gap-8">
-                    ${podItem(p2, 2, 'border-slate-400', 'w-20')}
-                    ${podItem(p1, 1, 'border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)]', 'w-28')}
-                    ${podItem(p3, 3, 'border-orange-700', 'w-16')}
+                    ${podItem(p2, 2, 'w-20')}
+                    ${podItem(p1, 1, 'w-28')}
+                    ${podItem(p3, 3, 'w-16')}
                 </div>
             </div>`;
     }
@@ -168,7 +171,9 @@ function renderPaginaVotacao(votacao, usuario) {
                 return `
                 <div class="bg-slate-900/70 border ${ehMeuVoto ? 'border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.15)]' : 'border-slate-800'} rounded-3xl p-5 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:border-slate-600">
                     <div class="relative">
-                        <img src="${m.albumArtUrl || 'imagens/favicon/favicon-32x32.png'}" onerror="this.src='imagens/favicon/favicon-32x32.png'" class="w-full aspect-square object-cover rounded-2xl" alt="Capa">
+                        <div class="w-full aspect-square rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+                            <i class="fas fa-music text-5xl text-slate-500"></i>
+                        </div>
                         ${ehMeuVoto ? '<span class="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Seu voto</span>' : ''}
                     </div>
                     <div>
