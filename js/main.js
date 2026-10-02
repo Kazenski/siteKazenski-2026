@@ -53,7 +53,7 @@ const MENU_ARCHITECTURE = [
     { id: 'gestao-aura', label: 'Gestão Aura', showTo: (r) => r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno },
     // { id: 'conexao-aluno', label: 'Conexão Aluno', showTo: (r) => true },
     { id: 'atualizacoes', label: 'Atualizações', showTo: (r) => true },
-    { id: 'votacao', label: 'Votação', showTo: (r) => window._votacaoAtiva === true },
+    { id: 'votacao', label: 'Votação', showTo: (r) => window._votacaoAtiva === true && (r.Admin || r.Professor || r.Coordenacao || r.Moderador || r.Aluno) },
 
     // REGRAS DE OCULTAÇÃO SOLICITADAS:
     // Aluno vê até Aluno Tech. Admin vê tudo. Professor/Coordenação vê tudo menos Admin.
@@ -417,6 +417,9 @@ onAuthStateChanged(auth, async (user) => {
 
     // Reconstrói o menu com as novas permissões
     buildTopMenu();
+    if (activeTabId === 'votacao') {
+        renderVotacaoTab();
+    }
 
     // Informa o módulo de manutenção quem está logado (e com qual papel).
     // É a única fonte de verdade de permissão — o módulo não lê o Firestore
@@ -594,6 +597,7 @@ window.showTab = function (tabId) {
             isModeradorLoaded = true;
             if (window.blogAPI) window.blogAPI.initMod();
         }
+        window.votacaoModAPI?.renderPainel();
     }
     else if (tabId === 'atualizacoes') {
         renderAtualizacoesTab();

@@ -18,6 +18,7 @@ let musicasCache = [];
 let votacaoAtual = null;
 let meuVoto = null;
 let unsubVotos = null;
+let unsubVotosFallback = null;
 let unsubMusicas = null;
 
 // Mini player compartilhado
@@ -92,18 +93,57 @@ export async function renderVotacaoTab() {
             meuVoto = meu.exists() ? meu.data() : null;
         }
 
-        // Live do ranking (calculado pela Cloud Function — alunos não leem votos brutos)
+        // Live do ranking em tempo real (direto da subcoleção de votos)
         if (unsubVotos) unsubVotos();
-        unsubVotos = onSnapshot(doc(db, 'votacoes', votacao.id, 'ranking', 'atual'), (snap) => {
-            votosCache = snap.exists() ? snap.data() : { totalVotos: 0, contagem: {} };
-            renderPaginaVotacao(votacao, usuario);
-        }, (err) => console.warn('Ranking indisponível:', err));
+        if (unsubVotosFallback) unsubVotosFallback();
+        iniciarLiveRanking(votacao, usuario);
 
         renderPaginaVotacao(votacao, usuario);
     } catch (err) {
         console.error(err);
         body.innerHTML = '<p class="text-red-400">Erro ao carregar a votação.</p>';
     }
+}
+
+/**
+ * Escuta os votos em tempo real diretamente da subcoleção votos para
+ * atualizar o ranking e a contagem para qualquer usuário logado.
+ * Se houver restrição, tenta ler o ranking consolidado.
+ */
+function iniciarLiveRanking(votacao, usuario) {
+    if (unsubVotos) { unsubVotos(); unsubVotos = null; }
+    if (unsubVotosFallback) { unsubVotosFallback(); unsubVotosFallback = null; }
+
+    try {
+        unsubVotosFallback = onSnapshot(collection(db, 'votacoes', votacao.id, 'votos'), (snap) => {
+            const contagem = {};
+            snap.docs.forEach(d => {
+                const mid = d.data().musicaId;
+                if (mid) {
+                    contagem[mid] = (contagem[mid] || 0) + 1;
+                }
+            });
+            votosCache = { totalVotos: snap.size, contagem };
+            renderPaginaVotacao(votacao, auth.currentUser || usuario);
+        }, (err) => {
+            console.warn('Leitura direta da subcoleção votos indisponível, conectando ranking consolidado:', err);
+            conectarRankingConsolidado(votacao, usuario);
+        });
+    } catch (e) {
+        console.warn('Erro ao iniciar listener de votos:', e);
+        conectarRankingConsolidado(votacao, usuario);
+    }
+}
+
+function conectarRankingConsolidado(votacao, usuario) {
+    if (unsubVotos) { unsubVotos(); unsubVotos = null; }
+    unsubVotos = onSnapshot(doc(db, 'votacoes', votacao.id, 'ranking', 'atual'), (snap) => {
+        if (snap.exists()) {
+            const d = snap.data();
+            votosCache = { totalVotos: d.totalVotos || 0, contagem: d.contagem || {} };
+            renderPaginaVotacao(votacao, auth.currentUser || usuario);
+        }
+    }, (err) => console.warn('Ranking consolidado indisponível:', err));
 }
 
 function renderPaginaVotacao(votacao, usuario) {
@@ -118,8 +158,9 @@ function renderPaginaVotacao(votacao, usuario) {
     const contagem = votosCache.contagem || {};
 
     const isStaff = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
-    // Aluno só vê os resultados (pódio) DEPOIS de votar. Staff sempre vê.
-    const podeVerResultados = isStaff || !!meuVoto;
+    
+    // Votação pública para logados: qualquer usuário autenticado pode ver o pódio e os votos de cada música
+    const podeVerResultados = Boolean(usuario);
 
     const ranking = [...musicas]
         .map(m => ({ ...m, votos: contagem[m.id] || 0, pct: totalVotos ? Math.round(((contagem[m.id] || 0) / totalVotos) * 100) : 0 }))
@@ -131,33 +172,50 @@ function renderPaginaVotacao(votacao, usuario) {
         const coresPodium = { 1: 'border-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.4)]', 2: 'border-sky-400', 3: 'border-rose-400' };
         const podItem = (m, lugar, tamanho) => m ? `
             <div class="flex flex-col items-center ${lugar === 1 ? 'order-2' : lugar === 2 ? 'order-1' : 'order-3'}">
-                <div class="${tamanho} aspect-square rounded-2xl bg-slate-800 border-4 ${coresPodium[lugar]} flex items-center justify-center mb-2">
+                <div class="${tamanho} aspect-square rounded-2xl bg-slate-800 border-4 ${coresPodium[lugar]} flex items-center justify-center mb-2 shadow-lg">
                     <i class="fas fa-music ${tamanho === 'w-28' ? 'text-4xl' : tamanho === 'w-20' ? 'text-3xl' : 'text-2xl'} ${lugar === 1 ? 'text-amber-400' : lugar === 2 ? 'text-sky-400' : 'text-rose-400'}"></i>
                 </div>
                 <span class="text-2xl">${lugar === 1 ? '🥇' : lugar === 2 ? '🥈' : '🥉'}</span>
                 <p class="text-white font-bold text-sm text-center max-w-[140px] truncate">${m.titulo}</p>
-                <p class="text-slate-500 text-[10px] uppercase">${m.votos} voto(s) · ${m.pct}%</p>
+                <p class="text-slate-400 text-xs font-mono font-bold mt-1">${m.votos} voto(s) · ${m.pct}%</p>
             </div>` : '';
         podioHtml = `
-            <div class="bg-slate-900/60 border border-amber-500/30 rounded-3xl p-8 mt-6">
-                <h4 class="text-center text-amber-400 font-cinzel font-bold uppercase tracking-widest text-sm mb-8"><i class="fas fa-trophy mr-2"></i> Pódio Atual</h4>
-                <div class="flex justify-center items-end gap-8">
+            <div class="bg-slate-900/80 border border-amber-500/30 rounded-3xl p-8 mt-2 shadow-xl shadow-amber-950/20">
+                <h4 class="text-center text-amber-400 font-cinzel font-bold uppercase tracking-widest text-sm mb-8 flex items-center justify-center gap-2">
+                    <i class="fas fa-trophy"></i> Pódio em Tempo Real
+                </h4>
+                <div class="flex justify-center items-end gap-6 md:gap-12">
                     ${podItem(p2, 2, 'w-20')}
                     ${podItem(p1, 1, 'w-28')}
                     ${podItem(p3, 3, 'w-16')}
                 </div>
+            </div>`;
+    } else if (podeVerResultados && totalVotos === 0) {
+        podioHtml = `
+            <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 text-center text-slate-400 text-sm">
+                <i class="fas fa-trophy text-amber-400/50 text-2xl mb-2 block"></i>
+                Nenhum voto computado ainda. Seja o primeiro a votar!
             </div>`;
     }
 
     body.innerHTML = `
         <div class="text-center mb-2">
             <h3 class="text-2xl md:text-3xl font-cinzel font-bold text-amber-400">${votacao.titulo}</h3>
-            <p class="text-slate-500 text-xs uppercase tracking-widest mt-1">${isStaff ? `${totalVotos} voto(s) registrados` : (meuVoto ? 'Obrigado por votar! Confira o pódio:' : 'Vote para revelar o pódio')}</p>
+            <p class="text-slate-400 text-xs uppercase tracking-widest mt-1">
+                ${totalVotos} voto(s) computado(s) ${meuVoto ? '· <span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Seu voto já foi registrado</span>' : (usuario ? '· <span class="text-amber-400 font-bold"><i class="fas fa-vote-yea mr-1"></i>Escolha sua música favorita e vote!</span>' : '')}
+            </p>
         </div>
 
         ${!usuario ? `
-        <div class="bg-amber-500/10 border border-amber-500/40 text-amber-300 rounded-2xl p-5 max-w-2xl mx-auto text-sm">
-            <i class="fas fa-lock mr-2"></i> Faça login para votar. Você pode ouvir e ver os resultados abaixo.
+        <div class="bg-amber-500/10 border border-amber-500/40 text-amber-300 rounded-2xl p-6 max-w-xl mx-auto text-center space-y-3">
+            <i class="fas fa-lock text-3xl text-amber-400"></i>
+            <h4 class="font-bold text-base text-white">Votação exclusiva para usuários cadastrados</h4>
+            <p class="text-xs text-slate-300">Faça login com sua conta para visualizar os votos e votar na música do Técnico.</p>
+            <div class="pt-2">
+                <button onclick="window.showTab('login')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-transform hover:scale-105 shadow-lg shadow-amber-500/20">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Fazer Login
+                </button>
+            </div>
         </div>` : ''}
 
         ${podioHtml}
@@ -169,12 +227,12 @@ function renderPaginaVotacao(votacao, usuario) {
                 const ehMeuVoto = meuVoto?.musicaId === m.id;
                 const tocando = currentPlayingMusicaId === m.id;
                 return `
-                <div class="bg-slate-900/70 border ${ehMeuVoto ? 'border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.15)]' : 'border-slate-800'} rounded-3xl p-5 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:border-slate-600">
+                <div class="bg-slate-900/70 border ${ehMeuVoto ? 'border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.2)]' : 'border-slate-800'} rounded-3xl p-5 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:border-slate-600">
                     <div class="relative">
                         <div class="w-full aspect-square rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
                             <i class="fas fa-music text-5xl text-slate-500"></i>
                         </div>
-                        ${ehMeuVoto ? '<span class="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full">Seu voto</span>' : ''}
+                        ${ehMeuVoto ? '<span class="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow"><i class="fas fa-check mr-1"></i>Seu voto</span>' : ''}
                     </div>
                     <div>
                         <h4 class="text-white font-bold leading-tight">${m.titulo}</h4>
@@ -183,13 +241,18 @@ function renderPaginaVotacao(votacao, usuario) {
                     <button data-play-btn onclick="window.votacaoAPI.togglePlay('${m.id}')" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold uppercase tracking-widest py-2.5 rounded-xl transition-colors">
                         <i class="fas ${tocando ? 'fa-pause' : 'fa-play'}"></i> ${tocando ? 'Pausar' : 'Ouvir prévia'}
                     </button>
-                    ${isStaff ? `
-                    <div>
-                        <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-1"><span>${votos} voto(s)</span><span>${pct}%</span></div>
-                        <div class="h-2 bg-slate-800 rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all" style="width:${pct}%"></div></div>
+                    ${podeVerResultados ? `
+                    <div class="bg-slate-950/40 p-3 rounded-2xl border border-slate-800/80">
+                        <div class="flex justify-between text-[11px] uppercase font-bold text-slate-400 mb-1.5">
+                            <span><i class="fas fa-vote-yea mr-1 text-amber-400"></i>${votos} voto(s)</span>
+                            <span class="text-amber-400 font-mono">${pct}%</span>
+                        </div>
+                        <div class="h-2.5 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+                            <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500" style="width:${pct}%"></div>
+                        </div>
                     </div>` : ''}
-                    ${usuario && !meuVoto ? `<button onclick="window.votacaoAPI.votar('${votacao.id}','${m.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-transform hover:scale-[1.02]">Votar</button>` : ''}
-                    ${usuario && ehMeuVoto ? '<p class="text-center text-amber-400 text-xs font-black uppercase tracking-widest py-2"><i class="fas fa-check mr-1"></i> Voto registrado</p>' : ''}
+                    ${usuario && !meuVoto ? `<button onclick="window.votacaoAPI.votar('${votacao.id}','${m.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-amber-500/20"><i class="fas fa-check mr-1"></i>Votar</button>` : ''}
+                    ${usuario && ehMeuVoto ? '<p class="text-center text-amber-400 text-xs font-black uppercase tracking-widest py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl"><i class="fas fa-check-circle mr-1"></i> Voto registrado</p>' : ''}
                 </div>`;
             }).join('')}
         </div>
@@ -285,13 +348,18 @@ window.votacaoAPI = {
                 turma: dados.turma || '',
                 criadoEm: serverTimestamp()
             });
-            meuVoto = { musicaId };
+            meuVoto = { musicaId, nome: dados.nome || u.displayName || 'Aluno', turma: dados.turma || '' };
+            // Atualização otimista imediata para feedback visual instantâneo
+            if (!votosCache.contagem) votosCache.contagem = {};
+            votosCache.contagem[musicaId] = (votosCache.contagem[musicaId] || 0) + 1;
+            votosCache.totalVotos = (votosCache.totalVotos || 0) + 1;
+
             const m = musicasCache.find(x => x.id === musicaId);
-            alert(`✅ Voto registrado em "${m?.titulo}"! Confira o pódio abaixo.`);
+            alert(`✅ Voto registrado com sucesso em "${m?.titulo || 'Música'}"!`);
             if (votacaoAtual) renderPaginaVotacao(votacaoAtual, u);
         } catch (e) {
-            console.error(e);
-            alert('Erro ao registrar voto.');
+            console.error('Erro ao votar:', e);
+            alert('Erro ao registrar voto: ' + (e.message || 'Verifique sua conexão ou permissões.'));
         }
     }
 };
@@ -349,7 +417,9 @@ window.votacaoModAPI = {
                         ${musicas.map(m => `
                             <label class="cursor-pointer bg-slate-900 border border-slate-700 rounded-xl p-3 flex flex-col gap-2 hover:border-amber-500/50 transition-colors voto-item">
                                 <input type="checkbox" value="${m.id}" class="accent-amber-500">
-                                <img src="${m.albumArtUrl || 'imagens/favicon/favicon-32x32.png'}" class="w-full aspect-square object-cover rounded-lg">
+                                <div class="w-full aspect-square rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
+                                    <i class="fas fa-music text-2xl text-slate-500"></i>
+                                </div>
                                 <span class="text-white text-xs font-bold truncate">${m.titulo}</span>
                                 <span class="text-slate-500 text-[10px] truncate">${m.artista || ''}</span>
                             </label>`).join('')}
