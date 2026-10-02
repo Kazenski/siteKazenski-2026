@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Harness responsivo (temporario)</title>
+<style>
+  body { margin:0; background:#020617; font-family: system-ui, sans-serif; color:#e2e8f0; }
+  .row { display:flex; gap:12px; padding:12px; align-items:flex-start; }
+  figure { margin:0; }
+  figcaption { font-size:12px; padding:4px 0; color:#94a3b8; }
+  iframe { border:1px solid #1e293b; background:#0b1220; }
+</style>
+</head>
+<body>
+<div class="row">
+  <figure><figcaption>Tablet 820 x 900</figcaption><iframe id="f1" src="/index.html" width="820" height="900"></iframe></figure>
+  <figure><figcaption>Phone 390 x 780</figcaption><iframe id="f2" src="/index.html" width="390" height="780"></iframe></figure>
+</div>
+<script>
+window.probe = function (frameId, tab) {
+  const w = document.getElementById(frameId).contentWindow;
+  const d = w.document;
+  try { w.showTab(tab); } catch (e) { return { err: String(e) }; }
+  const host = d.getElementById('conteudos-content');
+  const shell = host.querySelector('.kz-cont-shell');
+  const panel = d.querySelector('.cont-tab-content.active');
+  const rect = el => el ? (({x,width,height,right,bottom}) => ({x:Math.round(x),w:Math.round(width),h:Math.round(height),right:Math.round(right),bottom:Math.round(bottom)}))(el.getBoundingClientRect()) : null;
+  const btn = d.querySelector('.cont-tab-btn[data-target="musicas"]');
+  if (btn) btn.click();
+  const split = d.querySelector('#ctab-musicas .kz-split');
+  const pane = d.querySelector('#ctab-musicas .kz-list-pane');
+  const now = d.querySelector('#ctab-musicas .kz-now');
+  return {
+    iframe: { w: w.innerWidth, h: w.innerHeight },
+    host: rect(host), shell: rect(shell), panel: rect(panel),
+    hostOverflowX: host.scrollWidth - host.clientWidth,
+    panelOverflowX: panel.scrollWidth - panel.clientWidth,
+    splitDir: split ? w.getComputedStyle(split).flexDirection : null,
+    split: rect(split), pane: rect(pane), now: rect(now),
+    splitOverflowX: split ? split.scrollWidth - split.clientWidth : null,
+    segBtnW: rect(d.querySelector('.kz-seg')),
+    gridCols: d.getElementById('cont-mat-grid') ? w.getComputedStyle(d.getElementById('cont-mat-grid')).gridTemplateColumns : null
+  };
+};
+</script>
+</body>
+</html>

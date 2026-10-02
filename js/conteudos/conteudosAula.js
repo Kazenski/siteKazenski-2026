@@ -91,31 +91,41 @@ function formatSeg(s) {
 export async function renderConteudosTab() {
     mapearDOM();
 
-    if (auth.currentUser) {
-        try {
-            const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
-            if (snap.exists()) {
-                currentUser = { uid: snap.id, ...snap.data() };
-                if (!currentUser.favoritos) currentUser.favoritos = [];
-            }
-        } catch (e) { console.error("Erro ao buscar usuário", e); }
-    } else {
-        currentUser = null;
-    }
+    setupSubTabs();                 // abas + botão "+ Novo"
+    setupToolbar();                 // busca/filtros (debounce)
+    setupPlayerEventListeners();    // dock (idempotente)
+    injetarChipFavoritos();
 
-    setupSubTabs();          // idempotente (guarda por flag)
-    aplicarPermissoes();
-    setupToolbar();
-    setupPlayerEventListeners();  // idempotente
-
-    await setupFiltros();
-
+    // Listeners do banco já disparam: a aba fica utilizável imediatamente.
     initMateriais();
     initMusicas();
     initPodcasts();
 
-    // Restaura o estado visual do player (pode ter sido minimizado antes).
+    // Perfil + listas de disciplina/professor são Complementares e podem
+    // demorar: não bloqueiam a renderização.
+    carregarUsuarioEComplementos();
+
     syncPlayButtons();
+}
+
+async function carregarUsuarioEComplementos() {
+    if (auth.currentUser) {
+        try {
+            const snap = await comTimeout(getDoc(doc(db, "users", auth.currentUser.uid)), 8000);
+            if (snap.exists()) {
+                currentUser = { uid: snap.id, ...snap.data() };
+                if (!currentUser.favoritos) currentUser.favoritos = [];
+            }
+        } catch (e) {
+            console.warn("Perfil não carregado; entrando como visitante.", e?.message || e);
+        }
+    } else {
+        currentUser = null;
+    }
+
+    aplicarPermissoes();
+    renderMaterials();
+    await setupFiltros();
 }
 
 function mapearDOM() {
@@ -279,61 +289,87 @@ function setupToolbar() {
    MÓDULO 1 — MATERIAIS DIDÁTICOS
    ========================================================================== */
 
+/** Injeta o chip de favoritos na toolbar. Roda ANTES de qualquer rede,
+    para que a aba ja fique utilizavel mesmo com Firestore lento/offline. */
+function injetarChipFavoritos() {
+    const toolbar = els.searchMat?.closest('.kz-toolbar');
+    if (!toolbar || els.filterFav || $('cont-filter-fav')) return;
+
+    const favBtn = document.createElement('button');
+    favBtn.id = 'cont-filter-fav';
+    favBtn.type = 'button';
+    favBtn.className = 'kz-chip';
+    favBtn.dataset.active = 'false';
+    favBtn.innerHTML = '<i class="far fa-star"></i> Favoritos';
+    favBtn.title = 'Mostrar apenas os materiais que você favoritou';
+    favBtn.addEventListener('click', () => {
+        if (!currentUser) { alert('Faça login no portal para acessar seus favoritos.'); return; }
+        const on = favBtn.dataset.active !== 'true';
+        favBtn.dataset.active = on ? 'true' : 'false';
+        favBtn.classList.toggle('is-on', on);
+        favBtn.innerHTML = on ? '<i class="fas fa-star"></i> Favoritos' : '<i class="far fa-star"></i> Favoritos';
+        currentPage = 1;
+        renderMaterials();
+    });
+    toolbar.appendChild(favBtn);
+    els.filterFav = favBtn;
+}
+
+/** Nao deixa uma promessa travada (rede morta) bloquear a renderizacao. */
+function comTimeout(promise, ms) {
+    return Promise.race([
+        promise,
+        new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))
+    ]);
+}
+
 async function setupFiltros() {
+    injetarChipFavoritos();
+
     let discHtml = '<option value="">Todas as Disciplinas</option>';
     let profHtml = '<option value="">Todos os Professores</option>';
 
     try {
-        const dSnap = await getDocs(collection(db, "disciplinasCadastradas"));
+        const dSnap = await comTimeout(getDocs(collection(db, "disciplinasCadastradas")), 7000);
         dSnap.forEach(d => {
             const nome = d.data().nomeExibicao || d.data().nome;
             disciplineMap[d.data().identificador] = nome;
             discHtml += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
         });
+    } catch (e) {
+        console.warn("Disciplinas indisponíveis (visitante ou rede lenta).", e?.message || e);
+    }
 
-        const pSnap = await getDocs(query(collection(db, "users"), where("Professor", "==", true)));
+    try {
+        const pSnap = await comTimeout(getDocs(query(collection(db, "users"), where("Professor", "==", true))), 7000);
         pSnap.forEach(p => {
             const nome = p.data().nome;
             profHtml += `<option value="${escapeHTML(nome)}">${escapeHTML(nome)}</option>`;
         });
     } catch (e) {
-        console.warn("Modo Visitante: filtros de disciplina/professor indisponíveis.", e);
+        console.warn("Professores indisponíveis (visitante ou rede lenta).", e?.message || e);
     }
 
     if (els.filterDisc) els.filterDisc.innerHTML = discHtml;
     const selectAdd = $('mat-disciplina');
     if (selectAdd) selectAdd.innerHTML = discHtml.replace('<option value="">Todas as Disciplinas</option>', '');
     if (els.filterProf) els.filterProf.innerHTML = profHtml;
-
-    // Chip de favoritos (injetado na toolbar de materiais)
-    const toolbar = els.searchMat?.closest('.kz-toolbar');
-    if (toolbar && !els.filterFav) {
-        const favBtn = document.createElement('button');
-        favBtn.id = 'cont-filter-fav';
-        favBtn.type = 'button';
-        favBtn.className = 'kz-chip';
-        favBtn.dataset.active = 'false';
-        favBtn.innerHTML = '<i class="far fa-star"></i> Favoritos';
-        favBtn.title = 'Mostrar apenas os materiais que você favoritou';
-        favBtn.addEventListener('click', () => {
-            if (!currentUser) { alert('Faça login no portal para acessar seus favoritos.'); return; }
-            const on = favBtn.dataset.active !== 'true';
-            favBtn.dataset.active = on ? 'true' : 'false';
-            favBtn.classList.toggle('is-on', on);
-            favBtn.innerHTML = on ? '<i class="fas fa-star"></i> Favoritos' : '<i class="far fa-star"></i> Favoritos';
-            currentPage = 1;
-            renderMaterials();
-        });
-        toolbar.appendChild(favBtn);
-        els.filterFav = favBtn;
-    }
 }
 
 function initMateriais() {
     onSnapshot(query(collection(db, "materiaisDidaticos"), orderBy("dataCriacao", "desc")), (snap) => {
         materialsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderMaterials();
-    }, (err) => console.error("Falha ao ler materiaisDidaticos:", err));
+    }, (err) => {
+        console.error("Falha ao ler materiaisDidaticos:", err);
+        if (els.matGrid && !materialsCache.length) {
+            els.matGrid.innerHTML = `<div class="kz-empty">
+                <i class="fas fa-wifi"></i>
+                <p>Não foi possível carregar o acervo</p>
+                <p style="text-transform:none;letter-spacing:0;font-weight:600;color:#1e293b">Verifique sua conexão e recarregue a página.</p>
+            </div>`;
+        }
+    });
 
     // Campos extras de link
     $('btn-add-link')?.addEventListener('click', () => {
@@ -861,6 +897,25 @@ function setupPlayerEventListeners() {
     els.volume?.addEventListener('input', (e) => { audio.volume = Number(e.target.value); });
 }
 
+/** Espelha o estado real do <audio> nos botoes (dock, pilula e painel). */
+function syncPlayButtons() {
+    const audio = els.audioEngine;
+    if (!audio) return;
+    const isPaused = audio.paused;
+
+    if (els.btnPlayPause) {
+        els.btnPlayPause.innerHTML = isPaused
+            ? '<i class="fas fa-play"></i>'
+            : '<i class="fas fa-pause"></i>';
+    }
+    if (els.btnPlayPauseMini) {
+        els.btnPlayPauseMini.innerHTML = isPaused
+            ? '<i class="fas fa-play"></i>'
+            : '<i class="fas fa-pause"></i>';
+    }
+    syncNowPaneButton();
+}
+
 function paintPlayerArt(item, tipo) {
     const isMus = tipo === 'musica';
     const art = isMus ? item?.albumArtUrl : item?.coverArtUrl;
@@ -1247,23 +1302,7 @@ window.conteudosAPI = {
         renderPodcastsList();
     },
 
-    syncPlayButtons: () => {
-        const audio = els.audioEngine;
-        if (!audio) return;
-        const isPaused = audio.paused;
-
-        if (els.btnPlayPause) {
-            els.btnPlayPause.innerHTML = isPaused
-                ? '<i class="fas fa-play"></i>'
-                : '<i class="fas fa-pause"></i>';
-        }
-        if (els.btnPlayPauseMini) {
-            els.btnPlayPauseMini.innerHTML = isPaused
-                ? '<i class="fas fa-play"></i>'
-                : '<i class="fas fa-pause"></i>';
-        }
-        syncNowPaneButton();
-    }
+    syncPlayButtons: () => syncPlayButtons()
 };
 
 /* Clique nos cards de material (delegação — evita 1 listener por card) */

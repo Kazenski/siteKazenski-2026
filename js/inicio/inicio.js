@@ -126,6 +126,10 @@ async function fetchNoticias() {
     const track = $('#kz-track');
     if (!track) return;
 
+    // Gestos, roda, teclado e botões ficam ativos mesmo sem o feed carregar
+    // (as funções de navegação já ignoram listas vazias).
+    wireEvents();
+
     try {
         const q = query(collection(db, "atualizacoes"), where('ativa', '==', true), orderBy('ordem'));
         const snapshot = await getDocs(q);
@@ -139,7 +143,6 @@ async function fetchNoticias() {
         }
 
         buildCards();
-        wireEvents();
         updateActive(0, { silent: true });
         if (slides.length > 1) startAutoplay();
     } catch (error) {
@@ -539,8 +542,8 @@ function wireEvents() {
                 : (dx < 0 ? 1 : -1);
             target = activeIndex + flickDir;
         } else if (Math.abs(dx) > 4) {
-            // Arrasto curto sem troca: devolve elastically ao lugar
-            applyInertia(startOffset - (startOffset + dx - offsetNow()), 0);
+            // Arrasto curto sem troca: devolve elásticamente ao lugar
+            springBackToActive();
             startAutoplay();
             return;
         }
@@ -669,6 +672,43 @@ function applyInertia(initialDelta, initialVelocity) {
         if (Math.abs(vel) > 0.02 || Math.abs(delta) > 0.5) {
             rafInertia = requestAnimationFrame(step);
         } else {
+            centerIndex(activeIndex);
+        }
+    };
+    rafInertia = requestAnimationFrame(step);
+}
+
+/** Volta elásticamente ao card ativo após um arrasto curto demais.
+    Mola amortecida: passa um pouco do alvo e reassenta — evita o "salto"
+    seco e dá a sensação de pegada física. */
+function springBackToActive() {
+    cancelAnimationFrame(rafInertia);
+
+    const track = $('#kz-track');
+    if (!track) return;
+    if (prefersReducedMotion) { centerIndex(activeIndex); return; }
+
+    const start = offsetNow();
+    const home = centerOffsetFor(activeIndex);
+    if (Math.abs(home - start) < 0.5) { centerIndex(activeIndex); return; }
+
+    const K = 0.16;   // rigidez
+    const D = 0.78;   // amortecimento
+    let pos = 0;     // deslocamento relativo ao ponto de partida
+    let vel = 0;
+
+    const step = () => {
+        const target = home - (start + pos);
+        vel = (vel + target * K) * D;
+        pos += vel;
+
+        track.style.transition = 'none';
+        track.style.transform = `translate3d(${start + pos}px, 0, 0)`;
+
+        if (Math.abs(vel) > 0.05 || Math.abs(target) > 0.4) {
+            rafInertia = requestAnimationFrame(step);
+        } else {
+            track.style.transition = '';
             centerIndex(activeIndex);
         }
     };
