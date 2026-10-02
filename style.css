@@ -501,6 +501,21 @@ main, .tab-content {
 .kz-empty i { font-size: 2.6rem; opacity: .35; }
 .kz-empty p { margin: 0; font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 
+/* Barra de Paginação de Conteúdos */
+#cont-mat-pagination {
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    padding: .75rem 1rem;
+    flex-shrink: 0;
+    border-top: 1px solid #1e293b;
+    background: rgba(2, 6, 23, 0.45);
+}
+#cont-mat-pagination.hidden {
+    display: none !important;
+}
+
 /* ---- Estilo Spotify: lista lateral + area "tocando agora" ---- */
 .kz-split {
     flex: 1 1 auto;

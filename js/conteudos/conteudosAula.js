@@ -38,7 +38,7 @@ let isShuffle = false;
 let repeatMode = 0;                // 0 = off, 1 = repetir tudo, 2 = repetir 1
 
 let currentPage = 1;
-const materialsPerPage = 12;
+const materialsPerPage = 21;
 let disciplineMap = {};
 
 let els = {};
@@ -510,12 +510,30 @@ function renderMaterials() {
 function renderMatPagination(totalPages) {
     const pag = els.matPagination;
     if (!pag) return;
-    if (totalPages <= 1) { pag.classList.add('hidden'); pag.innerHTML = ''; return; }
+    if (totalPages <= 1) {
+        pag.classList.add('hidden');
+        pag.classList.remove('flex');
+        pag.innerHTML = '';
+        return;
+    }
     pag.classList.remove('hidden');
+    pag.classList.add('flex');
     pag.innerHTML = `
-        <button type="button" onclick="window.conteudosAPI.mudarPaginaMat(-1)" ${currentPage === 1 ? 'disabled style="opacity:.35"' : 'style="color:#60a5fa"'} aria-label="Página anterior"><i class="fas fa-chevron-left"></i></button>
-        <span class="text-[10px] font-black uppercase tracking-[.2em] text-slate-400">Pág ${currentPage} / ${totalPages}</span>
-        <button type="button" onclick="window.conteudosAPI.mudarPaginaMat(1)" ${currentPage === totalPages ? 'disabled style="opacity:.35"' : 'style="color:#60a5fa"'} aria-label="Próxima página"><i class="fas fa-chevron-right"></i></button>`;
+        <div class="flex items-center justify-center gap-3 px-5 py-2 rounded-full bg-slate-900/90 border border-slate-800 shadow-xl backdrop-blur-sm">
+            <button type="button" onclick="window.conteudosAPI.mudarPaginaMat(-1)"
+                ${currentPage === 1 ? 'disabled class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 cursor-not-allowed"' : 'class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-400 hover:text-white hover:bg-blue-600/30 transition-all active:scale-95"'}
+                aria-label="Página anterior">
+                <i class="fas fa-chevron-left text-xs"></i>
+            </button>
+            <span class="text-[11px] font-black uppercase tracking-[.2em] text-slate-300 font-mono px-3 select-none">
+                PÁG <span class="text-blue-400 font-bold">${currentPage}</span> / ${totalPages}
+            </span>
+            <button type="button" onclick="window.conteudosAPI.mudarPaginaMat(1)"
+                ${currentPage === totalPages ? 'disabled class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 cursor-not-allowed"' : 'class="w-8 h-8 rounded-lg flex items-center justify-center text-blue-400 hover:text-white hover:bg-blue-600/30 transition-all active:scale-95"'}
+                aria-label="Próxima página">
+                <i class="fas fa-chevron-right text-xs"></i>
+            </button>
+        </div>`;
 }
 
 /* ==========================================================================
@@ -952,6 +970,7 @@ window.conteudosAPI = {
     mudarPaginaMat: (dir) => {
         currentPage = Math.max(1, currentPage + dir);
         renderMaterials();
+        els.matGrid?.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     /* ---------- Materiais ---------- */
