@@ -11,6 +11,7 @@ import { renderInicioTab } from './inicio/inicio.js';
 import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
 import { renderConteudosTab } from './conteudos/conteudosAula.js';
 import { iniciarManutencao, renderAtualizacoesTab, aplicarPermissoes } from './manutencao/manutencao.js';
+import { iniciarModeracao } from './core/moderacao.js';
 import { renderProfessorTab } from './professorTech/professorTech.js';
 import { renderPesquisasTechTab } from './pesquisasTech/pesquisasTech.js';
 import './atualizacoes/atualizacoes.js';
@@ -419,8 +420,18 @@ onAuthStateChanged(auth, async (user) => {
         nome: displayRoleName,
     });
 
+    // Informa a barreira de moderação sobre o papel do usuário logado
+    window.moderacaoAPI?.definirPapeis(userRoles, {
+        uid: user?.uid || null,
+        displayName: displayRoleName,
+        email: user?.email || null
+    });
+
     // Fecha o modo "login aberto a partir da capa" se a sessão não for staff.
-    if (!user) window.manutencaoAPI?.fecharPausa();
+    if (!user) {
+        window.manutencaoAPI?.fecharPausa();
+        window.moderacaoAPI?.encerrarSessao();
+    }
 
     // Força o carregamento da aba inicial ou da aba que estava aberta
     window.showTab(activeTabId);
@@ -728,7 +739,7 @@ window.logout = async function (isAuto = false) {
 };
 
 // ============================================================================
-// MANUTENÇÃO / ATUALIZAÇÕES
+// MANUTENÇÃO / ATUALIZAÇÕES / MODERAÇÃO
 // ============================================================================
 // Lê `site_status/maintenance` e o `changelog.json`, aplica a trava da tela de
 // manutenção e, ao detectar um deploy novo, fecha o site para quem não é
@@ -736,4 +747,9 @@ window.logout = async function (isAuto = false) {
 // funcionando mesmo se a leitura do Firestore falhar (fail-open).
 iniciarManutencao().catch((e) => {
     console.error('[Manutenção] Falha na inicialização:', e);
+});
+
+// Inicializa a barreira de moderação (lista de termos, UI de bloqueio, etc.)
+iniciarModeracao().catch((e) => {
+    console.error('[Moderação] Falha na inicialização:', e);
 });

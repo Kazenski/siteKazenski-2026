@@ -7,6 +7,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 import { arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { aprovar } from '../core/moderacao.js';
 
 const purify = window.DOMPurify;
 
@@ -403,6 +404,15 @@ async function saveKanban() {
 
     if (!titulo) return alert("A tarefa precisa de um título.");
 
+    // Nova barreira de moderação
+    if (!aprovar(
+        [
+            { nome: 'titulo', valor: titulo, rotulo: 'Título da tarefa', max: 120 },
+            { nome: 'conteudo', valor: conteudo, rotulo: 'Descrição da tarefa', max: 3000 }
+        ],
+        { origem: 'perfilTech:kanban', permitirStaff: true }
+    )) return;
+
     const payload = {
         titulo: titulo,
         conteudo: conteudo,
@@ -770,6 +780,16 @@ async function saveCalendarEvent() {
     const dateVal = document.getElementById('al-ev-date').value;
     if (!title || !dateVal) return alert("Título e Data são obrigatórios");
 
+    // Nova barreira de moderação
+    const descricao = document.getElementById('al-ev-desc').value;
+    if (!aprovar(
+        [
+            { nome: 'titulo', valor: title, rotulo: 'Título do evento', max: 120 },
+            { nome: 'descricao', valor: descricao, rotulo: 'Descrição do evento', max: 3000 }
+        ],
+        { origem: 'perfilTech:calendario', permitirStaff: true }
+    )) return;
+
     const [y, m, d] = dateVal.split('-').map(Number);
     const dateObj = new Date(y, m - 1, d, 12, 0, 0);
     const visib = document.getElementById('al-ev-visib').value;
@@ -777,7 +797,7 @@ async function saveCalendarEvent() {
     const payload = {
         titulo: title,
         dataInicio: Timestamp.fromDate(dateObj),
-        descricao: document.getElementById('al-ev-desc').value,
+        descricao: descricao,
         cor: document.getElementById('al-ev-color').value,
         visibilidade: visib,
         instrutorUID: currentUser.uid,
@@ -1427,6 +1447,15 @@ async function saveNote() {
     const conteudo = els.noteActiveBody.value.trim();
     if (!titulo && !conteudo) return alert("Escreva algo na anotação!");
 
+    // Nova barreira de moderação
+    if (!aprovar(
+        [
+            { nome: 'titulo', valor: titulo, rotulo: 'Título da anotação', max: 120 },
+            { nome: 'conteudo', valor: conteudo, rotulo: 'Conteúdo da anotação', max: 8000 }
+        ],
+        { origem: 'perfilTech:anotacao', permitirStaff: true }
+    )) return;
+
     const payload = {
         titulo: titulo,
         conteudo: conteudo,
@@ -1442,13 +1471,13 @@ async function saveNote() {
     try {
         if (id) {
             await updateDoc(doc(db, "anotacoes_pessoais", id), payload);
-            window.registrarLogAtividade("Editou anotação", `Título: ${titulo}`); // <-- INSIRA AQUI
+            window.registrarLogAtividade("Editou anotação", `Título: ${titulo}`);
         } else {
             payload.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(db, "anotacoes_pessoais"), payload);
             activeNoteId = docRef.id;
             els.noteActiveId.value = activeNoteId;
-            window.registrarLogAtividade("Criou anotação", `Título: ${titulo}`); // <-- INSIRA AQUI
+            window.registrarLogAtividade("Criou anotação", `Título: ${titulo}`);
         }
 
         // Efeito de Botão Salvo

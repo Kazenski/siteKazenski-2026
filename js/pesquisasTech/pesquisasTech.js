@@ -1,4 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { aprovar } from '../core/moderacao.js';
 
 const SUPABASE_URL = 'https://dmwbvydkogpnhmprezew.supabase.co'; 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtd2J2eWRrb2dwbmhtcHJlemV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5ODE4NDksImV4cCI6MjEwMjU1Nzg0OX0.bi15oVkl8n8veVCkKjryKtuPSzrPjKblJ9AMERymhFY';
@@ -889,6 +890,31 @@ async function renderizarFormularioPesquisa(tabelaAlvo, titulo, pesquisaId) {
 
             const formData = new FormData(this);
             const dadosBrutos = Object.fromEntries(formData.entries());
+
+            // --- NOVA BARREIRA DE MODERAÇÃO: valida todos os campos de texto ---
+            const camposParaModerar = [];
+            for (const [chave, valor] of Object.entries(dadosBrutos)) {
+                if (typeof valor === 'string' && valor.trim().length > 0) {
+                    // Heurística: se o nome do campo contém 'coment', 'texto', 'resposta', 'obs', 'msg', 'desc'
+                    const ehTextoLivre = /coment|texto|resposta|obs|msg|desc|abert|livre|justif|motiv|sugest|opin/i.test(chave);
+                    if (ehTextoLivre || valor.length > 50) {
+                        camposParaModerar.push({
+                            nome: chave,
+                            valor: valor,
+                            rotulo: `Campo "${chave}"`,
+                            max: 5000
+                        });
+                    }
+                }
+            }
+            if (camposParaModerar.length > 0) {
+                if (!aprovar(camposParaModerar, { origem: 'pesquisasTech:resposta', permitirStaff: true })) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Enviar Resposta Anônima';
+                    return;
+                }
+            }
+            // --- FIM BARREIRA ---
 
             // Pega o ID e Nome do colégio
             const seletor = document.getElementById('form-colegio');

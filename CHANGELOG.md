@@ -13,6 +13,31 @@
 
 ---
 
+## [v1.7.0] — 2026-10-02 — Autor: Equipe Kazenski (via assistente de IA)
+
+### Escopo
+**Barreira central de moderação** de conteúdo do aluno — valida **todo** texto
+digitado pelo aluno antes de chegar ao Firestore, bloqueando insultos,
+profanidade, discurso de ódio e tentativas de injeção (XSS, prototype pollution,
+path traversal, segredos, comandos shell, operadores SQL/NoSQL).
+- Lista embutida (~95 termos em 4 categorias) + lista remota em
+  `site_status/moderacao` editável pelo Admin/Moderador pelo painel, sem deploy.
+- Normalização robusta: zero-width, entidades HTML, acentos, leetspeak,
+  dobramento de letras, separadores; passada agressiva para `@ $ | + ~`.
+- 17 detectores de injeção; UI de bloqueio acessível; auditoria em
+  `moderacao_logs`; fail-safe (sem rede = lista embutida, **nunca** abre tudo).
+- Staff (Admin + Moderador) pula filtro de termos, **nunca** filtro de injeção.
+
+### Arquivos tocados
+- `js/core/moderacao.js` (novo, ~680 linhas)
+- `js/main.js` (boot + passagem de papéis no onAuthStateChanged + logout)
+- `js/conexaoAluno/conexaoAluno.js` (posts do fórum)
+- `js/alunoTech/perfilTech.js` (anotações, kanban, calendário)
+- `js/pesquisasTech/pesquisasTech.js` (respostas de formulário dinâmico Supabase)
+- `tools/test_moderacao.mjs` (novo, 76 testes automatizados)
+
+---
+
 ## [v1.6.0] — 2026-10-02 — Autor: Equipe Kazenski (via assistente de IA)
 
 ### Escopo

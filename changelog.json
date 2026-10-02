@@ -1,8 +1,57 @@
 {
-  "geradoEm": "2026-10-02T14:27:20+00:00",
-  "versaoAtual": "1.6.0",
-  "totalEntradas": 2,
+  "geradoEm": "2026-10-02T15:36:58+00:00",
+  "versaoAtual": "1.7.0",
+  "totalEntradas": 3,
   "entradas": [
+    {
+      "versao": "1.7.0",
+      "data": "2026-10-02",
+      "autor": "Equipe Kazenski (via assistente de IA)",
+      "escopo": "**Barreira central de moderação** de conteúdo do aluno — valida **todo** texto\ndigitado pelo aluno antes de chegar ao Firestore, bloqueando insultos,\nprofanidade, discurso de ódio e tentativas de injeção (XSS, prototype pollution,\npath traversal, segredos, comandos shell, operadores SQL/NoSQL).\n`site_status/moderacao` editável pelo Admin/Moderador pelo painel, sem deploy.\ndobramento de letras, separadores; passada agressiva para `@ $ | + ~`.\n`moderacao_logs`; fail-safe (sem rede = lista embutida, **nunca** abre tudo).",
+      "arquivos": [
+        "js/core/moderacao.js (novo, ~680 linhas)",
+        "js/main.js (boot + passagem de papéis no onAuthStateChanged + logout)",
+        "js/conexaoAluno/conexaoAluno.js (posts do fórum)",
+        "js/alunoTech/perfilTech.js (anotações, kanban, calendário)",
+        "js/pesquisasTech/pesquisasTech.js (respostas de formulário dinâmico Supabase)",
+        "tools/test_moderacao.mjs (novo, 76 testes automatizados)"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Lista embutida (~95 termos em 4 categorias) + lista remota em"
+                ],
+                [
+                  "li",
+                  "Normalização robusta: zero-width, entidades HTML, acentos, leetspeak,"
+                ],
+                [
+                  "li",
+                  "17 detectores de injeção; UI de bloqueio acessível; auditoria em"
+                ],
+                [
+                  "li",
+                  "Staff (Admin + Moderador) pula filtro de termos, **nunca** filtro de injeção."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.6.0",
       "data": "2026-10-02",

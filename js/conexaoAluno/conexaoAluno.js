@@ -1,6 +1,6 @@
 import { db, auth } from '../core/firebase.js';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, getDoc, updateDoc, increment, runTransaction, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { validarConteudo, encontrarPalavrasBloqueadas } from '../core/validacao.js';
+import { aprovar } from '../core/moderacao.js';
 
 let unsubscribeGeral = null;
 let postsMap = new Map();
@@ -130,12 +130,14 @@ function setupListeners(isModerador) {
 
         if (!titulo || !conteudo) return alert("Preencha título e conteúdo.");
 
-        // Encontra as palavras proibidas em vez de apenas bloquear
-        const palavrasNoTitulo = encontrarPalavrasBloqueadas(titulo);
-        const palavrasNoConteudo = encontrarPalavrasBloqueadas(conteudo);
-
-        // Junta todas as palavras encontradas sem repetir
-        const todasPalavrasProibidas = [...new Set([...palavrasNoTitulo, ...palavrasNoConteudo])];
+        // Nova barreira de moderação: bloqueia insultos, profanidade, discurso de ódio e injeção
+        if (!aprovar(
+            [
+                { nome: 'titulo', valor: titulo, rotulo: 'Título do post', max: 120 },
+                { nome: 'conteudo', valor: conteudo, rotulo: 'Conteúdo do post', max: 8000 }
+            ],
+            { origem: 'conexaoAluno:novoPost', permitirStaff: true }
+        )) return; // aprovar() já mostra o painel de bloqueio se necessário
 
         // Usa a variável corrigida
         if (!currentLoggedInUser) return alert("Você precisa estar logado para publicar.");
