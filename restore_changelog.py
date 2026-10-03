@@ -1,4 +1,6 @@
-# Changelog
+import sys
+
+s = """# Changelog
 
 Todos as alterações relevantes neste projeto são documentadas neste arquivo (append-only).
 
@@ -44,3 +46,8 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ### Observação
 - Nenhum dado acadêmico foi alterado ou movido. Alterações aditivas, compatibilidade total mantida até 31/12/2026
+"""
+
+with open('CHANGELOG.md', 'w', encoding='utf-8') as f:
+    f.write(s)
+print('ok')

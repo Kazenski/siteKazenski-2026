@@ -1,7 +1,7 @@
 {
-  "geradoEm": "2026-10-03T20:10:11+00:00",
+  "geradoEm": "2026-10-03T20:14:15+00:00",
   "versaoAtual": "1.3.0",
-  "totalEntradas": 1,
+  "totalEntradas": 2,
   "entradas": [
     {
       "versao": "1.3.0",
@@ -19,11 +19,83 @@
               "linhas": [
                 [
                   "li",
-                  "Migração de contas existentes para login com Google (fluxo \"pegar pela mão\" enquanto logado, mantendo UID)"
+                  "Login com Google ativado no fluxo de autenticação (link com conta existente via linkWithPopup, preservando UID)"
                 ],
                 [
                   "li",
-                  "Página `/migrar-conta` com tutorial passo a passo e instrução sobre uso excepcional de email/senha até 31/12/2026"
+                  "Registro da ativação do login com Google no histórico de atualizações"
+                ],
+                [
+                  "li",
+                  "Melhorias na votação pública (exibição e painel de moderação)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Ajustes de configuração do Firebase e injeção de secrets no GitHub Pages"
+                ],
+                [
+                  "li",
+                  "Hardening do getter de variáveis de ambiente (compatibilidade com Vite/GitHub Pages)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Estabilização pós-migração de login"
+                ],
+                [
+                  "li",
+                  "Carregamento da página de Atualizações (robustez com estado vazio/carregando)"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "versao": "1.2.0",
+      "data": "2026-10-03",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Migração de contas existentes para login com Google (fluxo guiado enquanto logado, mantendo UID)"
+                ],
+                [
+                  "li",
+                  "Página /migrar-conta com tutorial passo a passo e instrução sobre uso excepcional de email/senha até 31/12/2026"
                 ],
                 [
                   "li",
@@ -48,6 +120,10 @@
                 [
                   "li",
                   "Modo de manutenção ativável (flag Firestore) para validações com calma"
+                ],
+                [
+                  "li",
+                  "CHANGELOG.md, RELEASE-NOTES-DETALHADOS.md e UPDATE-LOG.md (append-only)"
                 ]
               ]
             }
@@ -108,6 +184,22 @@
                 [
                   "li",
                   "Logs, changelog e informações de atualização detalhados (append-only)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Observação",
+          "chave": "observação",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Nenhum dado acadêmico foi alterado ou movido. Alterações aditivas, compatibilidade total mantida até 31/12/2026"
                 ]
               ]
             }
