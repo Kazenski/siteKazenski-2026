@@ -1901,9 +1901,18 @@ main, .tab-content {
 /* A imagem do card viaja do trilho ate o fundo de tela cheia. */
 .kz-card.is-zoom {
     z-index: 100;
+    /* vira um fundo de verdade: sem cantos, sem borda, cursor de "fechar" */
+    border-radius: 0;
+    border-color: transparent;
+    cursor: zoom-out;
+    /* o card ativo aplica scale(1.06); aqui ele preenche a tela exata,
+       sem estourar as bordas do hero (que tem overflow: hidden) */
+    transform: none;
     transition: transform 900ms cubic-bezier(.16, 1, .3, 1),
                 box-shadow 900ms ease,
-                opacity 900ms ease;
+                opacity 900ms ease,
+                border-radius 900ms ease,
+                border-color 900ms ease;
     box-shadow: 0 40px 120px rgba(0,0,0,.9);
 }
 .kz-rail.is-immersive { pointer-events: none; }
@@ -1928,7 +1937,7 @@ main, .tab-content {
 /* Botao de fechar (visivel so no modo imersivo) */
 .kz-exit {
     position: absolute;
-    z-index: 120;
+    z-index: 140;
     top: clamp(.8rem, 4vh, 2rem);
     right: clamp(.8rem, 4vw, 2.5rem);
     width: 2.6rem;
@@ -1951,10 +1960,49 @@ main, .tab-content {
 .kz-exit:hover { background: #dc2626; border-color: #ef4444; color: #fff; }
 .kz-exit:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 
+/* ---- Contador de 30s do modo imersivo ---- */
+.kz-immersive-timer {
+    position: absolute;
+    z-index: 135;
+    left: clamp(1rem, 5vw, 4rem);
+    bottom: clamp(1rem, 4vh, 2.5rem);
+    width: min(22rem, 62vw);
+    opacity: 0;
+    transition: opacity .4s ease;
+    pointer-events: none;
+}
+.kz-immersive-timer.is-visible { opacity: 1; }
+.kz-immersive-timer__track {
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.16);
+    overflow: hidden;
+}
+.kz-immersive-timer__fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #93c5fd);
+    transform-origin: left center;
+}
+.kz-immersive-timer__label {
+    margin-top: .5rem;
+    font-size: .55rem;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #94a3b8;
+    text-shadow: 0 2px 10px rgba(0,0,0,.9);
+}
+
 /* ---- Painel de detalhes da noticia ---- */
+/* ATENÇÃO (bug corrigido): este painel ficava ATRÁS do card ampliado
+   (z-index 100 vs 60) e nunca recebia `pointer-events: auto` — o botão
+   ficava visível mas totalmente inclicável, e não dava para fechar
+   clicando na imagem. Acima: card 100 < painel 130 < sair 140. */
 .kz-news {
     position: absolute;
-    z-index: 60;
+    z-index: 130;
     top: clamp(1rem, 6vh, 4rem);
     left: clamp(1rem, 5vw, 4rem);
     max-width: min(40rem, 60vw);
@@ -1963,7 +2011,12 @@ main, .tab-content {
     pointer-events: none;
     transition: opacity 600ms ease, transform 700ms cubic-bezier(.16,1,.3,1);
 }
-.kz-news.is-on { opacity: 1; transform: translateY(0); }
+/* `pointer-events: auto` AQUI é o que torna o botão clicável de verdade. */
+.kz-news.is-on { opacity: 1; transform: translateY(0); pointer-events: auto; }
+/* O texto não é interativo: evita "capturar" o clique de fechar. */
+.kz-news__eyebrow,
+.kz-news__title,
+.kz-news__text { pointer-events: none; }
 .kz-news__eyebrow {
     display: inline-flex;
     align-items: center;

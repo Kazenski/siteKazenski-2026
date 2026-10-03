@@ -17,6 +17,7 @@ const DEFAULT_BG = "imagens/background/background-oficial.jpg";
 const PLACEHOLDER = "https://placehold.co/800x500/1e293b/94a3b8?text=Kazenski";
 
 const AUTOPLAY_MS = 4200;
+const IMMERSIVE_MS = 30000;   // tempo de tela cheia antes de voltar sozinho
 const WHEEL_THROTTLE_MS = 130;
 const FLICK_VELOCITY = 0.45;   // px/ms mínimo para contar como "flick"
 const DRAG_RATIO = 0.15;       // 15% da largura do card = troca de slide
@@ -34,6 +35,15 @@ let immersiveTimer = null;
 let autoplayTimer = null;
 let wheelLast = 0;
 let rafInertia = null;
+let rafCountdown = null;
+let rafGeo = null;           // frame pendente da geometria do modo imersivo
+
+// Um único clique do usuário gera pointerdown -> pointerup -> click.
+// O `click` chega DEPOIS de o card já estar ampliado, então o mesmo gesto
+// que abre o modo imersivo também o fecharia (piscar). Ignoramos a janela
+// logo após a abertura para separar "abrir" de "fechar".
+const GHOST_CLICK_MS = 350;
+let immersiveOpenedAt = -Infinity;
 
 const $ = (sel, root = document) => root.querySelector(sel);
 
@@ -83,6 +93,14 @@ export async function renderInicioTab() {
             <button class="kz-exit" id="kz-exit" title="Voltar ao carrossel (Esc)" aria-label="Voltar ao carrossel">
                 <i class="fas fa-xmark"></i>
             </button>
+
+            <!-- Contador regressivo do modo imersivo (30s) -->
+            <div class="kz-immersive-timer" id="kz-timer" aria-hidden="true">
+                <div class="kz-immersive-timer__track">
+                    <div class="kz-immersive-timer__fill" id="kz-timer-fill"></div>
+                </div>
+                <div class="kz-immersive-timer__label" id="kz-timer-label">Fechando em 30s</div>
+            </div>
 
             <!-- Trilho inferior -->
             <div class="kz-rail" id="kz-rail">
@@ -217,32 +235,43 @@ function centerOffsetFor(i) {
  * Com `prefers-reduced-motion` fazemos na hora: sem animação não há motivo
  * para esperar um `requestAnimationFrame` — e o estado final fica preso
  * enquanto o frame não chega (aba em segundo plano, renderização suspensa).
+ *
+ * O id do frame é guardado para que `exitImmersive` consiga CANCELAR a
+ * escrita: se o usuário fechasse antes do frame rodar, a escrita pendente
+ * reaplicava left/top/width/height depois da limpeza e deixava o card
+ * travado em tela cheia (exatamente o sintoma de "não dá para voltar").
  */
 function aplicarGeometria(card, geo) {
     const escrever = () => {
+        rafGeo = null;
         card.style.left = `${geo.left}px`;
         card.style.top = `${geo.top}px`;
         card.style.width = `${geo.width}px`;
         card.style.height = `${geo.height}px`;
     };
-    if (prefersReducedMotion) escrever();
-    else requestAnimationFrame(escrever);
+    cancelPendingGeo();
+    if (semFrames()) escrever();
+    else rafGeo = requestAnimationFrame(escrever);
 }
 
-/** Devolve o card ao fluxo normal do trilho, limpando tudo que o zoom aplicou. */
-function limparGeometria(card) {
-    const escrever = () => {
-        card.classList.remove('is-zoom');
-        card.style.position = '';
-        card.style.left = '';
-        card.style.top = '';
-        card.style.width = '';
-        card.style.height = '';
-        card.style.margin = '';   // props exclusivas do modo imersivo
-        card.style.zIndex = '';
-    };
-    if (prefersReducedMotion) escrever();
-    else requestAnimationFrame(escrever);
+/** Cancela uma escrita de geometria que ainda não saiu no próximo frame. */
+function cancelPendingGeo() {
+    if (rafGeo !== null) {
+        cancelAnimationFrame(rafGeo);
+        rafGeo = null;
+    }
+}
+
+/**
+ * `true` quando não devemos esperar um `requestAnimationFrame`.
+ *
+ * Navegador NÃO dispara rAF em aba oculta/segundo plano. Se o usuário clicar
+ * num card e trocar de aba antes do próximo frame, a escrita pendente ficava
+ * parada e o card permanecia pequeno, "colado" no trilho, enquanto o modo
+ * imersivo já estava ativo. Escrevemos na hora nesses casos.
+ */
+function semFrames() {
+    return prefersReducedMotion || document.hidden;
 }
 
 /** Coloca o card ativo centralizado (com peek nas bordas) */
@@ -334,6 +363,10 @@ function startAutoplay() {
     if (progressBar && !prefersReducedMotion) {
         const tick = (now) => {
             if (!card.classList.contains('is-active')) return;
+            if (isImmersive) {          // não repinta a barra em modo imersivo
+                card.style.removeProperty('--kz-progress');
+                return;
+            }
             const pct = Math.min(1, (now - startedAt) / AUTOPLAY_MS);
             card.style.setProperty('--kz-progress', pct.toFixed(4));
             if (pct < 1 && autoplayTimer) requestAnimationFrame(tick);
@@ -388,6 +421,8 @@ function enterImmersive(index) {
 
     isImmersive = true;
     stopAutoplay();
+    // o card ampliado não deve exibir a barra de progresso do autoplay
+    card.style.removeProperty('--kz-progress');
 
     // Guarda a posição atual para o cálculo do FLIP
     const from = card.getBoundingClientRect();
@@ -438,16 +473,65 @@ function enterImmersive(index) {
     }
     news?.classList.add('is-on');
     exit?.classList.add('is-visible');
+    immersiveOpenedAt = performance.now();
 
-    // Fecha sozinho após 30s (comportamento original)
+    // Fecha sozinho após 30s (comportamento original) + barra de contagem
     clearTimeout(immersiveTimer);
-    immersiveTimer = setTimeout(() => exitImmersive(), 30000);
+    startImmersiveCountdown();
+    immersiveTimer = setTimeout(() => exitImmersive(), IMMERSIVE_MS);
+}
+
+/** Barra regressiva: mostra visualmente que o modo imersivo dura 30s. */
+function startImmersiveCountdown() {
+    cancelAnimationFrame(rafCountdown);
+
+    const box = $('#kz-timer');
+    const fill = $('#kz-timer-fill');
+    const label = $('#kz-timer-label');
+    if (!box || !fill || !label) return;
+
+    const startedAt = performance.now();
+
+    const paint = (now) => {
+        const elapsed = now - startedAt;
+        const remaining = Math.max(0, IMMERSIVE_MS - elapsed);
+        const pct = remaining / IMMERSIVE_MS;
+
+        fill.style.transform = `scaleX(${pct.toFixed(4)})`;
+        label.textContent = `Fechando em ${Math.ceil(remaining / 1000)}s`;
+        return remaining;
+    };
+
+    const tick = (now) => {
+        if (!isImmersive) return;
+        const remaining = paint(now);
+        if (remaining > 0 && immersiveTimer) {
+            rafCountdown = requestAnimationFrame(tick);
+        }
+    };
+
+    box.classList.add('is-visible');
+    // Primeiro desenho síncrono: em aba oculta o rAF não roda e a barra
+    // ficaria vazia (0%) enquanto o texto nem apareceria.
+    paint(startedAt);
+    if (!semFrames()) requestAnimationFrame(tick);
+}
+
+function stopImmersiveCountdown() {
+    cancelAnimationFrame(rafCountdown);
+    rafCountdown = null;
+    $('#kz-timer')?.classList.remove('is-visible');
 }
 
 function exitImmersive() {
     if (!isImmersive) return;
     isImmersive = false;
     clearTimeout(immersiveTimer);
+    immersiveTimer = null;
+    stopImmersiveCountdown();
+    // Se a geometria final ainda não foi escrita, cancela: senão ela roda
+    // depois da limpeza e deixa o card preso em tela cheia.
+    cancelPendingGeo();
 
     // O card ampliado NÃO é necessariamente o `activeIndex` (a chamada pode
     // vir de `expandNews(i)` ou de um clique). Guardamos o índice na entrada
@@ -467,17 +551,12 @@ function exitImmersive() {
     document.getElementById('kz-hero')?.classList.remove('is-zoom');
 
     if (card) {
-        // Recalcula a posição original do card dentro do trilho
-        const railRect = rail.getBoundingClientRect();
-        const cardRect = card.getBoundingClientRect();
-
-        card.style.left = `${cardRect.left - railRect.left}px`;
-        card.style.top = `${cardRect.top - railRect.top}px`;
-        card.style.width = `${cardRect.width}px`;
-        card.style.height = `${cardRect.height}px`;
-        card.classList.add('is-zoom');
-
-        limparGeometria(card);
+        // REFATORADO: antes eram calculados left/top/width/height e em seguida
+        // sobrescritos por `limparGeometria` no rAF seguinte — trabalho
+        // descartado que ainda produzia um salto de 1 frame (o card ficava
+        // deslocado até o rAF rodar). Basta devolver o card ao fluxo do trilho.
+        card.classList.remove('is-zoom');
+        card.style.cssText = '';
     }
 
     rail?.classList.remove('is-immersive', 'opacity-0');
@@ -681,10 +760,22 @@ function wireEvents() {
     $('#kz-next')?.addEventListener('click', () => go(1));
     $('#kz-exit')?.addEventListener('click', () => exitImmersive());
 
-    /* ---- CLIQUE NO FUNDO PARA SAIR (modo imersivo) ---- */
+    /* ---- CLIQUE PARA SAIR (modo imersivo) ----
+           Dois bugs corrigidos aqui:
+           1) Antes excluíamos `.kz-card` do "sai ao clicar". Como o card
+              ampliado é `position: fixed` cobrindo o hero INTEIRO,
+              `closest('.kz-card')` era sempre verdadeiro e `exitImmersive()`
+              nunca era chamado — impossível voltar ao carrossel clicando.
+              Agora só o painel de detalhes (que contém o botão) é ignorado.
+           2) O `click` do mesmo gesto que ABRIU o modo imersivo chegaria aqui
+              já com o card ampliado e fecharia tudo na hora (piscar).
+              A janela GHOST_CLICK_MS separa "abrir" de "fechar". */
     hero.addEventListener('click', (e) => {
         if (!isImmersive) return;
-        if (e.target.closest('.kz-card') || e.target.closest('.kz-news')) return;
+        if (e.target.closest('.kz-news')) return;   // painel: não fecha aqui
+        if (e.target.closest('.kz-exit')) return;    // o próprio X cuida do exit
+        if (performance.now() - immersiveOpenedAt < GHOST_CLICK_MS) return;
+        e.preventDefault();
         exitImmersive();
     });
 
@@ -826,6 +917,8 @@ window.inicio = {
 function teardown() {
     stopAutoplay();
     cancelAnimationFrame(rafInertia);
+    stopImmersiveCountdown();
+    cancelPendingGeo();
     clearTimeout(bgTimer);
     clearTimeout(immersiveTimer);
 
@@ -839,5 +932,8 @@ function teardown() {
     bgTimer = null;
     immersiveTimer = null;
     rafInertia = null;
+    rafCountdown = null;
+    rafGeo = null;
+    immersiveOpenedAt = -Infinity;
     wheelLast = 0;
 }

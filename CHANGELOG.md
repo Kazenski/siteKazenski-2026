@@ -13,6 +13,87 @@
 
 ---
 
+## [v1.7.1] — 2026-10-02 — Autor: Equipe Kazenski (via assistente de IA)
+
+### Escopo
+Correção do **modo imersivo do carrossel da página Início**. Clicar num card
+agora expande a capa para tela cheia por **30 s**, com o botão do card
+**visível e clicável**, e é possível **fechar o card e voltar ao carrossel**
+clicando na imagem, no X ou no Esc. Quatro defeitos independentes causavam o
+sintoma reportado ("botão não clica" e "não volta ao carrossel").
+
+### Arquivos tocados
+- `js/inicio/inicio.js` (modo imersivo: cliques, camadas, countdown, geometria)
+- `style.css` (ordem de camadas `kz-*`, cursor e sangria do card ampliado)
+- `CHANGELOG.md`
+- `changelog.json` (gerado)
+
+### 🎠 CARROSSEL DA PÁGINA INÍCIO
+
+#### 1. `[CRÍTICO]` Botão do card ampliado era inclicável ("camada invisível")
+- **O que era:** `.kz-news` usava `pointer-events: none` e a regra
+  `.kz-news.is-on` só restabelecia `opacity`/`transform` — **nunca** devolvia
+  `pointer-events: auto`. O botão aparecia normalmente mas não recebia clique.
+- **Agravante:** `.kz-news` tinha `z-index: 60` e o card ampliado tem
+  `z-index: 100` cobrindo o hero inteiro — ou seja, uma camada **realmente
+  invisível** ficava por cima do painel e engolia os cliques.
+- **Solução:** ordem de camadas explícita e testada
+  `card 100 < painel 130 < contador 135 < botão sair 140`, com
+  `pointer-events: auto` em `.kz-news.is-on`. O texto do painel recebe
+  `pointer-events: none` para não capturar o clique de fechar.
+
+#### 2. `[CRÍTICO]` Impossível voltar ao carrossel clicando
+- **O que era:** o handler de saída ignorava cliques em `.kz-card`. Como o card
+  ampliado é `position: fixed` cobrindo 100% do hero, `closest('.kz-card')` era
+  **sempre** verdadeiro e `exitImmersive()` nunca era chamado. Só o X e o Esc
+  funcionavam.
+- **Solução:** o clique de saída agora ignora apenas `.kz-news` (o painel com o
+  botão) e o próprio X. Clicar na imagem expandida volta ao carrossel.
+
+#### 3. `[CRÍTICO]` Card travado em tela cheia ao fechar
+- **O que era:** `aplicarGeometria` agendava a escrita final num
+  `requestAnimationFrame` sem guardar o id. Fechar antes do frame rodar
+  deixava essa escrita pendente: ela executava **depois** da limpeza e
+  reaplicava `left/top/width/height`, deixando o card do tamanho da tela e
+  sem caminho de volta.
+- **Solução:** `rafGeo` é guardado e cancelado por `cancelPendingGeo()` em
+  `exitImmersive()` antes de qualquer limpeza.
+
+#### 4. `[CRÍTICO]` O mesmo clique que abria também fechava
+- **O que era:** um clique do usuário gera `pointerdown → pointerup → click`.
+  O `click` chega **depois** de o card já estar ampliado e, com a correção do
+  item 2, fechava tudo de imediato (piscar).
+- **Solução:** janela `GHOST_CLICK_MS` (350 ms) registrada em
+  `enterImmersive` separa o gesto que abre do gesto que fecha.
+
+#### 5. `ALTA` Estado preso quando a aba está oculta
+- **O que era:** o navegador **não dispara `requestAnimationFrame` em aba de
+  segundo plano**. Se o usuário clicasse num card e trocasse de aba, a geometria
+  final nunca era escrita e o contador nunca pintava — o modo imersivo ficava
+  ativo com o card pequeno, colado no trilho.
+- **Solução:** `semFrames()` (`prefers-reduced-motion || document.hidden`)
+  escreve a geometria na hora; o contador faz o primeiro desenho síncrono e
+  só entra no loop de `requestAnimationFrame` quando há frames disponíveis.
+
+#### 6. `MEDIA` Contador regressivo de 30 s
+- Barra de progresso + rótulo "Fechando em Ns" (`.kz-immersive-timer`),
+  alimentados por `requestAnimationFrame` e sincronizados com o
+  `setTimeout` de 30 s. Cancelados em `exitImmersive()` e `teardown()`.
+- Deixa explícito por que tempo a capa fica em tela cheia.
+
+#### 7. `MEDIA` Camada de fundo de verdade
+- `.kz-card.is-zoom` agora zera `border-radius`/`border` e `transform`, então a
+  capa sangra até as bordas do hero em vez de ficar com cantos e 6% de zoom
+  (o `scale(1.06)` do `.is-active` estourava a área visível).
+
+#### 8. `BAIXA` Código morto e limpeza do autoplay
+- `limparGeometria()` removida: calculava `left/top/width/height` que eram
+  imediatamente sobrescritos, produzindo um salto de 1 frame ao fechar.
+- A barra de progresso do autoplay não repinta mais em modo imersivo e o
+  `--kz-progress` é removido ao expandir.
+
+---
+
 ## [v1.7.0] — 2026-10-02 — Autor: Equipe Kazenski (via assistente de IA)
 
 ### Escopo
