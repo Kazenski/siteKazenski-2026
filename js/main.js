@@ -1,6 +1,9 @@
 import { auth, db, rtdb } from './core/firebase.js';
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc, collection, addDoc, updateDoc, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import {
+    onAuthStateChanged, signOut, signInWithEmailAndPassword,
+    signInWithPopup, GoogleAuthProvider, linkWithPopup
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
@@ -18,6 +21,8 @@ import { renderVotacaoTab } from './votacao/votacao.js';
 import './atualizacoes/atualizacoes.js';
 import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
 import { lojaAuraAPI } from './conteudos/lojaAura.js';
+import { iniciarConsentimento, forcarConsentimento } from './auth/consentimento.js';
+import { renderMigrarContaTab } from './auth/migracaoConta.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
@@ -393,9 +398,48 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Erro ao mapear permissões:", error);
         }
 
+        }
+
         // AURA: SYNC SILENCIOSO SE FOR ADMIN
         if (user.email === "kazenski.developer@gmail.com") {
             sincronizarAuraGeralSilencioso();
+        }
+
+        // ============================================================================
+        // GUARDAS DE MIGRAÇÃO + CONSENTIMENTO
+        // ============================================================================
+        // 1. Se logou com EMAIL+SENHA e ainda NÃO migrou → redireciona p/ migração guiada
+        // 2. Verifica aceite dos Termos/LGPD/ECA (versionado). Obriga aceite.
+        let redirecionadoPorGuard = false;
+
+        // Verifica se precisa migrar
+        const userDataSnap = await getDoc(doc(db, 'users', user.uid));
+        const userDataAtual = userDataSnap.exists() ? userDataSnap.data() : {};
+
+        const temGoogleProv = Array.isArray(user.providerData)
+            ? user.providerData.some((p) => p.providerId === 'google.com')
+            : false;
+        const jaMigrado = userDataAtual.migratedToGoogle === true;
+
+        // Login com password e ainda não migrado
+        const loginPassword = window._lastLoginMethod === 'password';
+        if (!temGoogleProv && !jaMigrado && loginPassword) {
+            window._lastLoginMethod = null;
+            try { sessionStorage.setItem('kz_hint_email_senha', '1'); } catch { /* ignora */ }
+            renderMigrarContaTab();
+            activeTabId = 'migrar-conta';
+            window.showTab('migrar-conta');
+            redirecionadoPorGuard = true;
+        }
+        window._lastLoginMethod = null;
+
+        // Consentimento (Termos/LGPD/ECA) — obrigatório para usuários logados
+        if (!redirecionadoPorGuard) {
+            const consentOk = await forcarConsentimento(user, () => {
+                // Após aceitar, garante que vai para home
+                if (activeTabId === 'login') window.showTab('inicio');
+            });
+            // Se ainda não aceitou, o modal está aberto — não muda aba nem força
         }
 
         emailEl.textContent = user.email;
@@ -555,6 +599,12 @@ window.showTab = function (tabId) {
     else if (tabId === 'login') {
         renderLoginTab();
     }
+    else if (tabId === 'migrar-conta') {
+        renderMigrarContaTab();
+    }
+    else if (tabId === 'migrar-conta') {
+        renderMigrarContaTab();
+    }
     else if (tabId === 'professor') {
         if (!isProfessorLoaded) {
             renderProfessorTab();
@@ -609,57 +659,127 @@ window.showTab = function (tabId) {
 
 
 // ============================================================================
-// TELA DE LOGIN DEDICADA
+// TELA DE LOGIN DEDICADA — LOGIN DUPLO (Google + Email/Senha)
 // ============================================================================
+// Regras:
+//  · Google é a forma PREFERENCIAL (botão grande, no topo).
+//  · Email/Senha em segundo plano (bloco colapsável " outra forma de entrar"),
+//    mantido até 31/12/2026 para os alunos já cadastrados.
+//  · Se o login com Google criar um usuário NOVO (isNewUser) e o e-mail não
+//    corresponder a nenhuma conta existente, mostramos a orientação de migrar —
+//    assim evitamos criar UIDs duplicados que quebrariam o histórico de notas.
+// ============================================================================
+
+// Domínios institucionais apenas para messaging/educação (não bloqueiam nada).
+const DOMINIOS_INSTITUCIONAIS = ['estudante.sed.sc.gov.br', 'profe.sed.sc.gov.br'];
+const googleProviderCompartilhado = new GoogleAuthProvider();
+
+function ehEmailInstitucional(email) {
+    const dominio = String(email || '').toLowerCase().split('@')[1] || '';
+    return DOMINIOS_INSTITUCIONAIS.includes(dominio);
+}
+
+function mensagemDominio(email) {
+    if (ehEmailInstitucional(email)) return '';
+    return `<p class="text-[11px] text-slate-500 mt-3 text-center">
+        <i class="fas fa-circle-info mr-1"></i>
+        Dica: prefira seu e-mail institucional da SED
+        (<span class="text-slate-400">@estudante.sed.sc.gov.br</span> ou
+        <span class="text-slate-400">@profe.sed.sc.gov.br</span>) para facilitar o acompanhamento.
+    </p>`;
+}
 
 function renderLoginTab() {
     const container = document.getElementById('login-content');
     if (!container) return;
 
-    // Constrói uma interface de Login moderna e limpa
     container.innerHTML = `
         <div class="w-full max-w-md bg-slate-800 p-8 md:p-10 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden fade-in">
-            
+
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600"></div>
-            
-            <div class="text-center mb-8 pt-2">
+
+            <div class="text-center mb-7 pt-2">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-700 mb-4 shadow-inner">
                     <i class="fas fa-user-astronaut text-2xl text-blue-500"></i>
                 </div>
-                <h2 class="text-3xl font-cinzel font-bold text-white">Acesso Restrito</h2>
-                <p class="text-slate-400 text-sm mt-2 font-medium">Insira suas credenciais para continuar</p>
+                <h2 class="text-3xl font-cinzel font-bold text-white">Acesso ao Portal</h2>
+                <p class="text-slate-400 text-sm mt-2 font-medium">Entre com sua conta para continuar</p>
             </div>
 
-            <form id="login-form" class="space-y-5">
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Email</label>
-                    <div class="relative">
-                        <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="email" id="login-email" required 
-                               class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600" 
-                               placeholder="seu@email.com">
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Senha</label>
-                    <div class="relative">
-                        <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                        <input type="password" id="login-pass" required 
-                               class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600" 
-                               placeholder="••••••••">
-                    </div>
-                </div>
+            <!-- ============ GOOGLE (PREFERENCIAL) ============ -->
+            <button id="btn-login-google" type="button"
+                class="w-full bg-white hover:bg-slate-100 text-slate-800 font-bold uppercase tracking-widest py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-3">
+                <svg class="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true">
+                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                <span>Entrar com Google</span>
+            </button>
 
-                <div id="login-error" class="hidden bg-red-500/10 border border-red-500/50 text-red-400 text-xs p-3 rounded-lg text-center font-bold"></div>
+            <div id="google-error" class="hidden mt-4 bg-amber-500/10 border border-amber-500/50 text-amber-300 text-xs p-3 rounded-lg text-center font-bold leading-relaxed"></div>
 
-                <button type="submit" id="btn-submit-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-3 mt-4">
-                    <span>Entrar no Portal</span>
-                    <i class="fas fa-sign-in-alt"></i>
+            ${mensagemDominio()}
+
+            <!-- ============ DIVISOR ============ -->
+            <div class="flex items-center gap-4 my-6">
+                <div class="flex-1 h-px bg-slate-700"></div>
+                <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">ou</span>
+                <div class="flex-1 h-px bg-slate-700"></div>
+            </div>
+
+            <!-- ============ EMAIL E SENHA (SEGUNDO PLANO) ============ -->
+            <div id="bloco-email-senha">
+                <button type="button" id="btn-toggle-email-senha"
+                    class="w-full flex items-center justify-between bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-slate-400 hover:text-slate-200 hover:border-slate-600 transition-all">
+                    <span class="text-[11px] font-bold uppercase tracking-widest flex items-center gap-2">
+                        <i class="fas fa-key text-slate-500"></i> Entrar com e-mail e senha
+                    </span>
+                    <i id="icone-toggle-email" class="fas fa-chevron-down text-xs transition-transform"></i>
                 </button>
-            </form>
-            
-            <div class="mt-8 text-center border-t border-slate-700/50 pt-6">
+
+                <div id="aviso-alternativo" class="hidden mt-3 bg-blue-900/20 border border-blue-500/30 text-blue-200 text-[11px] p-3 rounded-lg leading-relaxed">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    O acesso por e-mail e senha permanece disponível até <strong>31/12/2026</strong>.
+                    Se você ainda não migrou sua conta para o Google, use esta opção e depois
+                    conclua a <strong>migração guiada</strong> para não perder o acesso no futuro.
+                </div>
+
+                <form id="login-form" class="hidden space-y-5 mt-5">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Email</label>
+                        <div class="relative">
+                            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="email" id="login-email" required
+                                   class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600"
+                                   placeholder="seu@email.com">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Senha</label>
+                        <div class="relative">
+                            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                            <input type="password" id="login-pass" required
+                                   class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder-slate-600"
+                                   placeholder="••••••••">
+                        </div>
+                    </div>
+
+                    <div id="login-error" class="hidden bg-red-500/10 border border-red-500/50 text-red-400 text-xs p-3 rounded-lg text-center font-bold"></div>
+
+                    <button type="submit" id="btn-submit-login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] flex items-center justify-center gap-3 mt-4">
+                        <span>Entrar no Portal</span>
+                        <i class="fas fa-sign-in-alt"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div class="mt-8 text-center border-t border-slate-700/50 pt-6 space-y-3">
+                <button onclick="window.abrirCentralTermos?.()" class="text-slate-500 hover:text-slate-300 text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 w-full">
+                    <i class="fas fa-shield-alt"></i> Termos, LGPD e ECA Digital
+                </button>
                 <button onclick="window.showTab('inicio')" class="text-slate-500 hover:text-slate-300 text-xs font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 w-full">
                     <i class="fas fa-arrow-left"></i> Voltar para o Início
                 </button>
@@ -667,8 +787,108 @@ function renderLoginTab() {
         </div>
     `;
 
-    // Lógica de Submissão
+    // ---------- Lógica do toggle e-mail/senha ----------
+    const btnToggle = document.getElementById('btn-toggle-email-senha');
     const form = document.getElementById('login-form');
+    const avisoAlt = document.getElementById('aviso-alternativo');
+    const iconeToggle = document.getElementById('icone-toggle-email-senha') || document.getElementById('icone-toggle-email');
+
+    // Abre automaticamente o formulário se o aluno acabou de ser redirecionado
+    // vindos da migração (parâmetro na URL/localStorage).
+    let abrirForm = false;
+    try {
+        if (sessionStorage.getItem('kz_hint_email_senha') === '1') {
+            abrirForm = true;
+            sessionStorage.removeItem('kz_hint_email_senha');
+        }
+    } catch { /* ignora */ }
+
+    function aplicarToggle(aberto) {
+        form.classList.toggle('hidden', !aberto);
+        avisoAlt.classList.toggle('hidden', !aberto);
+        iconeToggle.style.transform = aberto ? 'rotate(180deg)' : '';
+        if (aberto) setTimeout(() => document.getElementById('login-email')?.focus(), 80);
+    }
+
+    aplicarToggle(abrirForm);
+    btnToggle.addEventListener('click', () => {
+        aplicarToggle(form.classList.contains('hidden'));
+    });
+
+    // ---------- Login com Google ----------
+    const btnGoogle = document.getElementById('btn-login-google');
+    const googleError = document.getElementById('google-error');
+
+    btnGoogle.addEventListener('click', async () => {
+        googleError.classList.add('hidden');
+        const htmlOriginal = btnGoogle.innerHTML;
+        btnGoogle.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Conectando...</span>';
+        btnGoogle.disabled = true;
+
+        try {
+            const provider = new GoogleAuthProvider();
+            // Não forçamos domínio: We'd break students without institutional account yet.
+            // Apenas registramos a preferência (ver `ehEmailInstitucional`).
+            const cred = await signInWithPopup(auth, provider);
+            const user = cred.user;
+            const isNewUser = cred.additionalUserInfo?.isNewUser === true;
+
+            // Log de acesso
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                await addDoc(collection(db, 'logs_usuarios'), {
+                    uid: user.uid,
+                    nome: (userDoc.exists() ? userDoc.data().nome : null) || 'Usuário',
+                    turma: (userDoc.exists() ? userDoc.data().turma : null) || 'SemTurma',
+                    acao: 'Realizou Login',
+                    detalhes: 'Acessou o portal com Google.',
+                    viaGoogle: true,
+                    institutional: ehEmailInstitucional(user.email),
+                    timestamp: serverTimestamp()
+                });
+            } catch { /* log é best-effort */ }
+
+            // Se é usuário NOVO e ainda não tem documento de perfil,
+            // tratamos como "aluno novo" (entrada apenas por Google).
+            if (isNewUser) {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    await setDoc(doc(db, 'users', user.uid), {
+                        nome: user.displayName || user.email.split('@')[0],
+                        role: 'Pendente',
+                        origemCadastro: 'google-self-signup',
+                        emailInstitucional: ehEmailInstitucional(user.email),
+                        criadoEm: serverTimestamp(),
+                    });
+                }
+            }
+
+            // Redireciona: se ainda não migrou (sem Google no providerData? impossível aqui)
+            // ou se não aceitou termos, os guards cuidado disso.
+            window.showTab('inicio');
+
+        } catch (error) {
+            console.error('[Login Google]', error);
+            btnGoogle.innerHTML = htmlOriginal;
+            btnGoogle.disabled = false;
+
+            let msg = 'Não foi possível entrar com Google. Tente novamente.';
+            if (error.code === 'auth/popup-closed-by-user') {
+                msg = 'Você fechou a janela do Google antes de concluir.';
+            } else if (error.code === 'auth/popup-blocked') {
+                msg = 'Permita popups para este site nas configurações do navegador e tente novamente.';
+            } else if (error.code === 'auth/account-exists-with-different-credential') {
+                msg = 'Já existe uma conta com este e-mail usando senha. Faça login com e-mail e senha e conclua a migração guiada.';
+            } else if (error.code === 'auth/network-request-failed') {
+                msg = 'Falha de conexão. Verifique sua internet e tente novamente.';
+            }
+
+            googleError.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> ${msg}`;
+            googleError.classList.remove('hidden');
+        }
+    });
+
+    // ---------- Login com e-mail e senha ----------
     const errorDiv = document.getElementById('login-error');
     const btnSubmit = document.getElementById('btn-submit-login');
 
@@ -679,17 +899,14 @@ function renderLoginTab() {
 
         if (!email || !pass) return;
 
-        // Animação de Loading no botão
         btnSubmit.innerHTML = '<i class="fas fa-circle-notch fa-spin text-xl"></i>';
         btnSubmit.disabled = true;
         btnSubmit.classList.add('opacity-70');
         errorDiv.classList.add('hidden');
 
         try {
-            // Tenta autenticar
             const userCredential = await signInWithEmailAndPassword(auth, email, pass);
 
-            // LOG DE LOGIN: Busca os dados básicos e grava na auditoria
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
             if (userDoc.exists()) {
                 await addDoc(collection(db, "logs_usuarios"), {
@@ -702,10 +919,11 @@ function renderLoginTab() {
                 });
             }
 
+            // Guarda os dados para o guard de migração no onAuthStateChanged.
+            window._lastLoginMethod = 'password';
             window.showTab('inicio');
 
         } catch (error) {
-            // Falha. Restaura o botão e mostra o erro
             btnSubmit.innerHTML = '<span>Entrar no Portal</span><i class="fas fa-sign-in-alt"></i>';
             btnSubmit.disabled = false;
             btnSubmit.classList.remove('opacity-70');
@@ -714,6 +932,8 @@ function renderLoginTab() {
 
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Credenciais inválidas.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Muitas tentativas. Aguarde alguns instantes.';
             } else {
                 errorDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Erro ao conectar. Tente novamente.';
             }
@@ -771,3 +991,6 @@ iniciarManutencao().catch((e) => {
 iniciarModeracao().catch((e) => {
     console.error('[Moderação] Falha na inicialização:', e);
 });
+
+// Inicializa expostos globais (botão "Termos e Políticas")
+iniciarConsentimento();
