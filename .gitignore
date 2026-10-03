@@ -1,3 +1,6 @@
+# Firebase local config (optional)
+js/core/firebase.local.js
+
 # Environment variables
 .env
 .env.local

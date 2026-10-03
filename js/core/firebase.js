@@ -16,12 +16,12 @@ const getEnv = (key) => {
 };
 
 const firebaseConfig = {
-    apiKey: getEnv('VITE_FIREBASE_API_KEY') || "AIzaSyDLvrHJrPvmqR5PTbn4B9FZO2nIt0iTTU0",
-    authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || "kazenski-a1bb2.firebaseapp.com",
-    projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || "kazenski-a1bb2",
-    storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || "kazenski-a1bb2.firebasestorage.app",
-    messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || "986432086342",
-    appId: getEnv('VITE_FIREBASE_APP_ID') || "1:986432086342:web:a1cacfa3aad260f3388547"
+    apiKey: getEnv('VITE_FIREBASE_API_KEY') || "__VITE_FIREBASE_API_KEY__",
+    authDomain: getEnv('VITE_FIREBASE_AUTH_DOMAIN') || "__VITE_FIREBASE_AUTH_DOMAIN__",
+    projectId: getEnv('VITE_FIREBASE_PROJECT_ID') || "__VITE_FIREBASE_PROJECT_ID__",
+    storageBucket: getEnv('VITE_FIREBASE_STORAGE_BUCKET') || "__VITE_FIREBASE_STORAGE_BUCKET__",
+    messagingSenderId: getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || "__VITE_FIREBASE_MESSAGING_SENDER_ID__",
+    appId: getEnv('VITE_FIREBASE_APP_ID') || "__VITE_FIREBASE_APP_ID__"
 };
 
 const app = initializeApp(firebaseConfig);
