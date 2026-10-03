@@ -4,7 +4,7 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
-## [1.2.0] - 2026-10-03
+## [v1.3.0] — 2026-10-03
 ### Adicionado
 - Migração de contas existentes para login com Google (fluxo "pegar pela mão" enquanto logado, mantendo UID)
 - Página `/migrar-conta` com tutorial passo a passo e instrução sobre uso excepcional de email/senha até 31/12/2026

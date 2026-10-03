@@ -1,41 +1,118 @@
 {
-  "version": "1.2.0",
-  "date": "2026-10-03",
-  "title": "Migração para Login com Google + Segurança",
-  "summary": "Implementação segura de login com Google com preservação total de dados, login duplo até 31/12/2026, Termos/LGPD/ECA com versionamento e melhorias de segurança.",
-  "sections": [
+  "geradoEm": "2026-10-03T20:10:11+00:00",
+  "versaoAtual": "1.3.0",
+  "totalEntradas": 1,
+  "entradas": [
     {
-      "title": "Adicionado",
-      "items": [
-        "Migração guiada para login com Google (link enquanto logado) mantendo UID e todos os dados intactos",
-        "Página de migração com tutorial passo a passo, coleta de Nome e Sobrenome e orientação sobre uso até 31/12/2026",
-        "Suporte a login duplo (Email+Senha + Google) até 31/12/2026",
-        "Registro de aceite de Termos, LGPD e ECA Digital com versionamento",
-        "Preferência educativa por e-mail institucional (@estudante.sed.sc.gov.br / @profe.sed.sc.gov.br)",
-        "Botão 'Termos e Políticas' na página inicial para releitura a qualquer momento",
-        "Modo de manutenção ativável para validações com calma",
-        "CHANGELOG.md, RELEASE-NOTES-DETALHADOS.md e UPDATE-LOG.md (append-only)"
-      ]
-    },
-    {
-      "title": "Alterado",
-      "items": [
-        "Tela de login com botões lado a lado (Email+Senha | Google)",
-        "Redirecionamentos pós-login conforme status de migração",
-        "Configuração do Firebase movida para variáveis de ambiente (VITE_*) com fallback para compatibilidade local"
-      ]
-    },
-    {
-      "title": "Segurança",
-      "items": [
-        "Workflow do GitHub Actions preparado para injeção de secrets no build",
-        "Orientações para restrição da API Key (HTTP referrers + APIs mínimas necessárias)"
-      ]
-    },
-    {
-      "title": "Observação",
-      "items": [
-        "Nenhum dado acadêmico foi alterado ou movido. Alterações aditivas, compatibilidade total mantida até 31/12/2026"
+      "versao": "1.3.0",
+      "data": "2026-10-03",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Migração de contas existentes para login com Google (fluxo \"pegar pela mão\" enquanto logado, mantendo UID)"
+                ],
+                [
+                  "li",
+                  "Página `/migrar-conta` com tutorial passo a passo e instrução sobre uso excepcional de email/senha até 31/12/2026"
+                ],
+                [
+                  "li",
+                  "Suporte a login duplo (Email+Senha + Google) até 31/12/2026"
+                ],
+                [
+                  "li",
+                  "Registro de aceite de Termos, LGPD e ECA Digital com versionamento"
+                ],
+                [
+                  "li",
+                  "Preferência/educação para uso de e-mail institucional (sem bloqueio na fase de migração)"
+                ],
+                [
+                  "li",
+                  "Coleta/validação de Nome e Sobrenome para garantir consistência em chamada/notas/boletins"
+                ],
+                [
+                  "li",
+                  "Botão \"Termos e Políticas\" na página inicial para releitura a qualquer momento"
+                ],
+                [
+                  "li",
+                  "Modo de manutenção ativável (flag Firestore) para validações com calma"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Tela de login: botões lado a lado (Email+Senha | Google)"
+                ],
+                [
+                  "li",
+                  "Redirecionamentos pós-login conforme status de migração"
+                ],
+                [
+                  "li",
+                  "Configuração do Firebase movida para variáveis de ambiente (VITE_*) com fallback para compatibilidade local"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Segurança",
+          "chave": "segurança",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Instruções/workflow para injeção de secrets no GitHub Actions"
+                ],
+                [
+                  "li",
+                  "Orientação para restrição de API Key (HTTP referrers + APIs mínimas necessárias)"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Documentação",
+          "chave": "documentação",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Logs, changelog e informações de atualização detalhados (append-only)"
+                ]
+              ]
+            }
+          ]
+        }
       ]
     }
   ]
