@@ -45,7 +45,7 @@
 import { db } from '../core/firebase.js';
 import {
     doc, setDoc, onSnapshot, serverTimestamp,
-    collection, getDocs, updateDoc, query, orderBy
+    collection, getDocs, updateDoc, deleteDoc, query, where, orderBy, limit
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { escapeHTML } from '../core/utils.js';
 
