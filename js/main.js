@@ -3,7 +3,7 @@ import {
     onAuthStateChanged, signOut, signInWithEmailAndPassword,
     signInWithPopup, GoogleAuthProvider, linkWithPopup
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, addDoc, updateDoc, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
 import { renderProjetosTab } from './projetos/projetos.js';
@@ -409,7 +409,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // AURA: SYNC SILENCIOSO SE FOR ADMIN
-        if (user.email === "kazenski.developer@gmail.com") {
+        if (user && user.email === "kazenski.developer@gmail.com") {
             sincronizarAuraGeralSilencioso();
         }
 
@@ -440,11 +440,13 @@ onAuthStateChanged(auth, async (user) => {
 
         // Consentimento (Termos/LGPD/ECA) — obrigatório para usuários logados
         if (!redirecionadoPorGuard) {
-            const consentOk = await forcarConsentimento(user, () => {
-                // Após aceitar, garante que vai para home
-                if (activeTabId === 'login') window.showTab('inicio');
-            });
-            // Se ainda não aceitou, o modal está aberto — não muda aba nem força
+            try {
+                await forcarConsentimento(user, () => {
+                    if (activeTabId === 'login') window.showTab('inicio');
+                });
+            } catch (e) {
+                console.error('[Consentimento] Erro:', e);
+            }
         }
 
         emailEl.textContent = user.email;

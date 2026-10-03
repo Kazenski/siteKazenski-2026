@@ -6,12 +6,16 @@ import { getDatabase } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-
 
 const getEnv = (key) => {
     try {
-        if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-            return import.meta.env[key];
+        const fn = new Function('key', 'try { if (typeof import.meta !== "undefined" && import.meta.env) { return import.meta.env[key]; } } catch(e){} return undefined;');
+        const v = fn(key);
+        if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    } catch (e) {}
+    try {
+        if (typeof window !== 'undefined' && window.__FIREBASE_CONFIG__ && window.__FIREBASE_CONFIG__[key]) {
+            const v = window.__FIREBASE_CONFIG__[key];
+            if (v) return String(v).trim();
         }
-    } catch (e) {
-        // ignore
-    }
+    } catch (e) {}
     return undefined;
 };
 
