@@ -398,6 +398,16 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Erro ao mapear permissões:", error);
         }
 
+        let userDocData = null;
+        try {
+            const userSnap = await getDoc(doc(db, 'users', user.uid));
+            if (userSnap.exists()) {
+                userDocData = userSnap.data();
+            }
+        } catch (e) {
+            console.error("Erro ao ler usuário:", e);
+        }
+
         }
 
         // AURA: SYNC SILENCIOSO SE FOR ADMIN
