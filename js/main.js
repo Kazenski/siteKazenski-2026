@@ -408,8 +408,6 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Erro ao ler usuário:", e);
         }
 
-        }
-
         // AURA: SYNC SILENCIOSO SE FOR ADMIN
         if (user.email === "kazenski.developer@gmail.com") {
             sincronizarAuraGeralSilencioso();
@@ -423,13 +421,10 @@ onAuthStateChanged(auth, async (user) => {
         let redirecionadoPorGuard = false;
 
         // Verifica se precisa migrar
-        const userDataSnap = await getDoc(doc(db, 'users', user.uid));
-        const userDataAtual = userDataSnap.exists() ? userDataSnap.data() : {};
-
         const temGoogleProv = Array.isArray(user.providerData)
             ? user.providerData.some((p) => p.providerId === 'google.com')
             : false;
-        const jaMigrado = userDataAtual.migratedToGoogle === true;
+        const jaMigrado = (userDocData && userDocData.migratedToGoogle === true);
 
         // Login com password e ainda não migrado
         const loginPassword = window._lastLoginMethod === 'password';
