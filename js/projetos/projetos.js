@@ -58,15 +58,7 @@ export async function renderProjetosTab() {
     if (!document.getElementById('projetos-custom-style')) {
         const style = document.createElement('style');
         style.id = 'projetos-custom-style';
-        style.innerHTML = `
-            .hide-scrollbar::-webkit-scrollbar { display: none; }
-            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            .projeto-card { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-            .projeto-card.expanded { min-width: 900px; max-width: 900px; z-index: 40; }
-            @media (max-width: 1024px) {
-                .projeto-card.expanded { min-width: 100%; max-width: 100%; flex-direction: column !important; }
-            }
-        `;
+        style.innerHTML = '';
         document.head.appendChild(style);
     }
 
@@ -288,7 +280,7 @@ function renderizarCards() {
         const plainTextPreview = rawContent.replace(/<[^>]*>?/gm, ''); // Limpa HTML para o resumo
         
         html += `
-        <div class="projeto-card relative shrink-0 w-[320px] h-[580px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]">
+        <div id="projeto-card-${proj.id}" class="projeto-card relative shrink-0 w-[320px] h-[580px] bg-slate-800 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl snap-center group flex flex-col transition-all duration-500 hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(79,70,229,0.15)]" onclick="window.toggleCardExpansion('${proj.id}')">
             
             <div class="btn-acoes-admin absolute top-4 left-4 z-30 flex flex-col gap-2 opacity-90">
                 ${isEditUser ? `<button data-id="${proj.id}" class="btn-editar bg-slate-900/80 hover:bg-yellow-500 text-slate-300 hover:text-white backdrop-blur border border-slate-600 w-9 h-9 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-110" title="Editar"><i class="fas fa-pen text-xs"></i></button>` : ''}
@@ -368,6 +360,44 @@ window.abrirTelaLeituraProjeto = function(id) {
         container.scrollTo({ top: offset, behavior: 'smooth' });
     }, 50);
 }
+
+function toggleCardExpansion(cardId) {
+    const card = document.getElementById(`projeto-card-${cardId}`);
+    if (!card) return;
+
+    // Check if the card is already expanded
+    const isExpanded = card.classList.contains('expanded');
+
+    // Collapse any currently expanded card first
+    document.querySelectorAll('.projeto-card.expanded').forEach(expandedCard => {
+        if (expandedCard.id !== `projeto-card-${cardId}`) {
+            expandedCard.classList.remove('expanded');
+            // Reset any specific styles if necessary
+            expandedCard.style.cssText = '';
+        }
+    });
+
+    if (isExpanded) {
+        // If it's already expanded, collapse it
+        card.classList.remove('expanded');
+        card.style.cssText = ''; // Clear inline styles
+        projetoExpandidoId = null;
+    } else {
+        // Expand the clicked card
+        card.classList.add('expanded');
+        projetoExpandidoId = cardId;
+        // Scroll the carousel to center the expanded card
+        const carouselContainer = document.getElementById('carouselContainer');
+        if (carouselContainer) {
+            const cardRect = card.getBoundingClientRect();
+            const containerRect = carouselContainer.getBoundingClientRect();
+            const scrollLeft = cardRect.left - containerRect.left + carouselContainer.scrollLeft - (containerRect.width / 2) + (cardRect.width / 2);
+            carouselContainer.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+        }
+    }
+}
+
+window.toggleCardExpansion = toggleCardExpansion;
 
 function iniciarAutoScroll() {
     pararAutoScroll(); 

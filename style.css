@@ -1342,6 +1342,52 @@ main, .tab-content {
 .projeto-card { 
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
 }
+.projeto-card.expanded {
+    height: 650px; /* Adjust as needed */
+    min-width: 800px;
+    max-width: 800px;
+    z-index: 90; /* Increased z-index */
+    cursor: auto; /* Change cursor back to default when expanded */
+    transform: scale(1.05); /* Slightly bigger to emphasize expansion */
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 0 9999px rgba(0,0,0,0.7); /* Overlay effect */
+}
+
+.projeto-card.expanded .h-\[320px\] { /* Target the image container */
+    height: 400px; /* Make image container larger */
+}
+
+.projeto-card.expanded img {
+    transform: scale(1); /* Reset image scale to original when card is expanded */
+}
+
+/* Ensure buttons are clickable when expanded, might already be covered by JS */
+.projeto-card.expanded .btn-ler-projeto,
+.projeto-card.expanded .btn-favoritar,
+.projeto-card.expanded .btn-editar,
+.projeto-card.expanded .btn-excluir {
+    pointer-events: auto; /* Ensure buttons are clickable */
+    opacity: 1; /* Ensure visibility */
+}
+
+/* Styles for non-expanded cards when one is expanded */
+.carouselContainer:has(.projeto-card.expanded) .projeto-card:not(.expanded) {
+    opacity: 0.4;
+    filter: blur(2px);
+    transform: scale(0.9);
+    pointer-events: none; /* Disable interaction on non-expanded cards */
+}
+
+/* Adjust button positioning for expanded state, if necessary */
+.projeto-card.expanded .btn-acoes-admin {
+    top: 1.5rem;
+    left: 1.5rem;
+}
+
+.projeto-card.expanded .btn-favoritar {
+    top: 1.5rem;
+    right: 1.5rem;
+}
+
 .projeto-card.expanded { 
     min-width: 800px; 
     max-width: 800px; 
