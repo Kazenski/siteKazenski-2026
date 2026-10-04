@@ -4,6 +4,11 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.0] — 2026-10-04
+### Adicionado
+- Gestão de Contas (Professor Tech): subaba para aprovar e vincular contas criadas via login Google que ficaram pendentes — permite definir o nome que o site todo usa, escola, turma e disciplina. Antes disso o aluno se cadastrava como `Pendente` e precisava de ajuste manual no Firestore.
+- Cores nas subabas do Professor Tech, agrupando assuntos: verde (aula/frequência), laranja (APOIA/anotações), céu (sorteios), roxo (avaliações), índigo (gestão/cadastro) e vermelho (reset).
+
 ## [v1.5.0] — 2026-10-04
 ### Adicionado
 - Painel (Professor Tech): análise dos moderadores — seção "Análise dos Moderadores" abaixo de Diferenças por Trimestre, com a equipe de moderadores, blogs criados, votações criadas, views e votos, filtrada pelo período selecionado (7/30/90 dias ou todo o período), com gráficos de pizza por moderador e tabela de resumo

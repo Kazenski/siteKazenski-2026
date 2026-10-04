@@ -1,8 +1,36 @@
 {
-  "geradoEm": "2026-10-04T19:15:56+00:00",
-  "versaoAtual": "1.5.0",
-  "totalEntradas": 5,
+  "geradoEm": "2026-10-04T19:57:17+00:00",
+  "versaoAtual": "1.6.0",
+  "totalEntradas": 6,
   "entradas": [
+    {
+      "versao": "1.6.0",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Gestão de Contas (Professor Tech): subaba para aprovar e vincular contas criadas via login Google que ficaram pendentes — permite definir o nome que o site todo usa, escola, turma e disciplina. Antes disso o aluno se cadastrava como `Pendente` e precisava de ajuste manual no Firestore."
+                ],
+                [
+                  "li",
+                  "Cores nas subabas do Professor Tech, agrupando assuntos: verde (aula/frequência), laranja (APOIA/anotações), céu (sorteios), roxo (avaliações), índigo (gestão/cadastro) e vermelho (reset)."
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.5.0",
       "data": "2026-10-04",
