@@ -3063,16 +3063,21 @@
                         <button onclick="document.getElementById('apoia-freq-analysis').classList.add('hidden')"
                             class="absolute top-4 right-4 text-red-400 hover:text-white"><i
                                 class="fas fa-times text-lg"></i></button>
-                        <h3 class="text-red-400 font-black tracking-widest uppercase text-sm mb-4"><i
+                        <h3 class="text-red-400 font-black tracking-widest uppercase text-sm mb-1"><i
                                 class="fas fa-exclamation-triangle mr-2"></i> Alunos em Situação de Alerta Crítico</h3>
+                        <p class="text-[10px] text-red-300/60 mb-4 tracking-wide">Sinaliza
+                            <strong>5+ faltas seguidas</strong> ou <strong>7+ faltas alternadas</strong>. A contagem
+                            ignora as aulas anteriores ao último APOIA já registrado para o aluno.</p>
                         <div class="overflow-x-auto rounded-xl border border-red-900/50 bg-slate-900/80">
                             <table class="w-full text-sm text-left border-collapse">
                                 <thead
                                     class="text-[10px] text-slate-400 uppercase tracking-widest border-b border-red-900/50">
                                     <tr>
                                         <th class="p-3">Aluno</th>
-                                        <th class="p-3 text-center">Faltas Totais</th>
-                                        <th class="p-3 text-center">Situação Acionada</th>
+                                        <th class="p-3 text-center">Faltas</th>
+                                        <th class="p-3 text-center" title="Maior sequência de aulas seguidas sem presença">Maior Seq.</th>
+                                        <th class="p-3 text-center" title="Blocos de falta intercalados por presenças">Alternadas</th>
+                                        <th class="p-3 text-center">Alertas</th>
                                     </tr>
                                 </thead>
                                 <tbody id="apoia-freq-body" class="divide-y divide-red-900/30"></tbody>

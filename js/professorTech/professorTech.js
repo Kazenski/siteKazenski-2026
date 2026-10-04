@@ -16,6 +16,8 @@ let state = {
 let els = {};
 let anotacoesCache = [];
 let apoiaCache = [];
+// uid -> análise de absenteísmo (usada para sinalizar risco de evasão no APOIA)
+let apoiaAlertasCache = {};
 let sortedGroupsCache = [];
 let cadastroSucessos = [];
 let recadastroCache = [];
@@ -822,6 +824,57 @@ function corPctPresenca(pct) {
     if (pct >= 90) return 'text-green-400';
     if (pct >= 75) return 'text-amber-400';
     return 'text-red-400';
+}
+
+/**
+ * Varre os diários da turma/disciplina e devolve, por aluno, a análise de
+ * absenteísmo já considerando o "reset" do APOIA: aulas anteriores ao registro
+ * APOIA mais recente do aluno não contam na contagem.
+ * Regra de alerta: 5+ faltas seguidas OU 7+ faltas alternadas.
+ * @returns {Promise<Object<string, object>>} mapa uid -> análise
+ */
+async function varrerAbsenteismoApoia(classId, disciplineId) {
+    const [apoiaSnap, presSnap] = await Promise.all([
+        getDocs(query(collection(db, "apoiaRegistros"), where("turmaId", "==", classId), where("disciplinaId", "==", disciplineId))),
+        getDocs(query(collection(db, "presencas"), where("turma", "==", classId), orderBy("data_aula_timestamp", "asc")))
+    ]);
+
+    // Data do APOIA mais recente de cada aluno (a partir dela a contagem zera)
+    const lastApoiaPerStudent = {};
+    apoiaSnap.forEach(d => {
+        const data = d.data();
+        const ts = data.criadoEm ? data.criadoEm.toMillis() : 0;
+        if (!lastApoiaPerStudent[data.alunoId] || ts > lastApoiaPerStudent[data.alunoId]) {
+            lastApoiaPerStudent[data.alunoId] = ts;
+        }
+    });
+
+    const aulas = [];
+    presSnap.forEach(d => {
+        const data = d.data();
+        if ((data.disciplineId || data.disciplinaId) !== disciplineId) return;
+        aulas.push({
+            ts: data.data_aula_timestamp ? data.data_aula_timestamp.toMillis() : 0,
+            registros: data.registros || {}
+        });
+    });
+    aulas.sort((a, b) => a.ts - b.ts);
+
+    const uids = new Set();
+    aulas.forEach(a => Object.keys(a.registros).forEach(u => uids.add(u)));
+
+    const resultado = {};
+    uids.forEach(uid => {
+        const corte = lastApoiaPerStudent[uid] || 0;
+        const seq = aulas
+            .filter(a => a.ts > corte)
+            .map(a => ({ status: a.registros[uid], data: null }));
+        const analise = analisarAusentismo(seq);
+        if (analise.registradas === 0) return;
+        resultado[uid] = analise;
+    });
+
+    return resultado;
 }
 
 // ==========================================
@@ -1784,7 +1837,7 @@ window.profAPI = {
     // MÓDULO: SISTEMA APOIA (EVASÃO E FREQUÊNCIA)
     // ==========================================
     loadApoiaRegistros: async () => {
-        const { classId } = state.filters;
+        const { classId, disciplineId } = state.filters;
         if (!classId) {
             els.apoiaList.innerHTML = '';
             els.apoiaMsg.textContent = "Selecione uma Turma e Disciplina no topo (Carregar).";
@@ -1811,6 +1864,17 @@ window.profAPI = {
                 return tB - tA;
             });
 
+            // Em paralelo: varre os diários para sinalizar risco de evasão.
+            // Falha aqui não pode impedir a listagem dos documentos.
+            apoiaAlertasCache = {};
+            if (disciplineId) {
+                try {
+                    apoiaAlertasCache = await varrerAbsenteismoApoia(classId, disciplineId);
+                } catch (e2) {
+                    console.warn("Não foi possível calcular os alertas de absenteísmo:", e2);
+                }
+            }
+
             window.profAPI.renderApoiaList();
 
         } catch (e) {
@@ -1832,18 +1896,30 @@ window.profAPI = {
             const dataStr = reg.criadoEm ? reg.criadoEm.toDate().toLocaleDateString('pt-BR') : '-';
             const isCoord = reg.status === 'enviado_coordenacao';
 
+            // Sinalização de risco de evasão para o aluno deste documento
+            const analise = apoiaAlertasCache[reg.alunoId];
+            let riscoHtml = '';
+            if (analise && analise.critico) {
+                riscoHtml = `<div class="mt-2 flex flex-wrap gap-1">${renderAlertasAusentismo(analise)}
+                    <span class="inline-flex items-center gap-1 bg-slate-700/60 text-slate-300 border border-slate-600 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide" title="Total de faltas após o último APOIA registrado"><i class="fas fa-user-minus"></i> ${analise.total} faltas</span>
+                </div>`;
+            } else if (analise && analise.total > 0) {
+                riscoHtml = `<div class="mt-2"><span class="inline-flex items-center gap-1 bg-slate-700/40 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide" title="Faltas após o último APOIA registrado, ainda dentro do limite"><i class="fas fa-user-minus"></i> ${analise.total} faltas · máx. ${analise.maxSequencia} seguidas</span></div>`;
+            }
+
             const badgeClass = isCoord ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-slate-700 text-slate-300 border-slate-600';
             const badgeLabel = isCoord ? '<i class="fas fa-building mr-1"></i> COORDENAÇÃO' : '<i class="fas fa-chalkboard-teacher mr-1"></i> PROFESSOR';
 
             const regSafe = JSON.stringify(reg).replace(/"/g, '&quot;').replace(/'/g, "&#39;");
 
             els.apoiaList.insertAdjacentHTML('beforeend', `
-                <div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-slate-800/80 border border-slate-700 rounded-xl hover:bg-slate-800 transition-colors gap-4">
-                    <div>
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between p-4 ${analise && analise.critico ? 'bg-red-950/40 border-red-500/30' : 'bg-slate-800/80 border-slate-700'} border rounded-xl hover:bg-slate-800 transition-colors gap-4">
+                    <div class="min-w-0">
                         <div class="font-bold text-slate-200 text-sm mb-1">${escapeHTML(reg.alunoNome)}</div>
                         <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                            ${reg.disciplinaNome} <span class="mx-1">|</span> ${reg.trimestre}º Trimestre <span class="mx-1">|</span> ${dataStr}
+                            ${escapeHTML(reg.disciplinaNome || '')} <span class="mx-1">|</span> ${escapeHTML(String(reg.trimestre ?? ''))}º Trimestre <span class="mx-1">|</span> ${dataStr}
                         </div>
+                        ${riscoHtml}
                     </div>
                     <div class="flex items-center gap-3 w-full md:w-auto">
                         <span class="px-3 py-1 rounded text-[9px] font-black uppercase tracking-widest border ${badgeClass}">${badgeLabel}</span>
@@ -1969,103 +2045,47 @@ window.profAPI = {
         const { classId, disciplineId } = state.filters;
         if (!classId || !disciplineId) return alert("Selecione Turma e Disciplina no topo.");
 
-        els.apoiaFreqBody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-red-400"><i class="fas fa-spinner fa-spin mr-2"></i> Varrendo diários...</td></tr>';
+        els.apoiaFreqBody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-red-400"><i class="fas fa-spinner fa-spin mr-2"></i> Varrendo diários...</td></tr>';
         els.apoiaFreqBox.classList.remove('hidden');
 
         try {
-            // --- LÓGICA DE RESET DO APOIA ---
-            // 1. Busca os Registros APOIA já existentes para saber quando "resetar" a contagem
-            const apoiaQ = query(collection(db, "apoiaRegistros"), where("turmaId", "==", classId), where("disciplinaId", "==", disciplineId));
-            const apoiaSnap = await getDocs(apoiaQ);
-            const lastApoiaPerStudent = {};
-
-            apoiaSnap.forEach(doc => {
-                const data = doc.data();
-                const timestamp = data.criadoEm ? data.criadoEm.toMillis() : 0;
-                // Guarda apenas a data do APOIA mais recente do aluno
-                if (!lastApoiaPerStudent[data.alunoId] || timestamp > lastApoiaPerStudent[data.alunoId]) {
-                    lastApoiaPerStudent[data.alunoId] = timestamp;
-                }
-            });
-
-            // 2. Busca Presenças
-            const q = query(collection(db, "presencas"), where("turma", "==", classId), orderBy("data_aula_timestamp", "asc"));
-            const snap = await getDocs(q);
-
-            const faltasAluno = {};
-
-            snap.forEach(doc => {
-                const data = doc.data();
-                const dId = data.disciplineId || data.disciplinaId;
-                if (dId !== disciplineId) return; // Garante a disciplina certa
-
-                const aulaTime = data.data_aula_timestamp ? data.data_aula_timestamp.toMillis() : 0;
-                const regs = data.registros || {};
-
-                // Reseta a contagem de consecutivas se o aluno veio na aula
-                for (const uid in faltasAluno) {
-                    let s = regs[uid];
-                    if (s === 'falta') s = 'ausente';
-                    if (s !== 'ausente') faltasAluno[uid].consecutivas = 0;
-                }
-
-                for (const [uid, status] of Object.entries(regs)) {
-                    let s = status;
-                    if (s === 'falta') s = 'ausente';
-
-                    // Se a aula ocorreu ANTES ou NO MESMO DIA do último APOIA, ignora! (Reset)
-                    if (lastApoiaPerStudent[uid] && aulaTime <= lastApoiaPerStudent[uid]) {
-                        continue;
-                    }
-
-                    if (!faltasAluno[uid]) faltasAluno[uid] = { total: 0, consecutivas: 0, maxConsecutivas: 0 };
-
-                    if (s === 'ausente') {
-                        faltasAluno[uid].total++;
-                        faltasAluno[uid].consecutivas++;
-                        if (faltasAluno[uid].consecutivas > faltasAluno[uid].maxConsecutivas) {
-                            faltasAluno[uid].maxConsecutivas = faltasAluno[uid].consecutivas;
-                        }
-                    }
-                }
-            });
+            apoiaAlertasCache = await varrerAbsenteismoApoia(classId, disciplineId);
 
             els.apoiaFreqBody.innerHTML = '';
             let count = 0;
 
-            for (const [uid, dados] of Object.entries(faltasAluno)) {
-                // A Regra de Ouro do APOIA (7 faltas totais ou 5 consecutivas)
-                if (dados.total >= 7 || dados.maxConsecutivas >= 5) {
+            for (const [uid, a] of Object.entries(apoiaAlertasCache)) {
+                if (!a.critico) continue;
 
-                    let name = "Aluno Desconhecido";
-                    const cached = state.cache.students.find(s => s.id === uid);
-                    if (cached) name = cached.nome;
-                    else {
-                        try {
-                            const uSnap = await getDoc(doc(db, "users", uid));
-                            if (uSnap.exists()) name = uSnap.data().nome;
-                        } catch (e) { }
-                    }
-
-                    let sit = [];
-                    if (dados.total >= 7) sit.push("7+ Faltas (Total)");
-                    if (dados.maxConsecutivas >= 5) sit.push("5+ Seguidas (Evasão)");
-
-                    els.apoiaFreqBody.insertAdjacentHTML('beforeend', `
-                        <tr class="bg-red-950/30 hover:bg-red-900/50 transition-colors">
-                            <td class="p-4 font-bold text-slate-200">${escapeHTML(name)}</td>
-                            <td class="p-4 text-center font-black text-red-500 text-lg">${dados.total}</td>
-                            <td class="p-4 text-center"><span class="bg-red-600 text-white px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest">${sit.join(" | ")}</span></td>
-                        </tr>
-                    `);
-                    count++;
+                let name = "Aluno Desconhecido";
+                const cached = state.cache.students.find(s => s.id === uid);
+                if (cached) name = cached.nome;
+                else {
+                    try {
+                        const uSnap = await getDoc(doc(db, "users", uid));
+                        if (uSnap.exists()) name = uSnap.data().nome;
+                    } catch (e) { }
                 }
+
+                els.apoiaFreqBody.insertAdjacentHTML('beforeend', `
+                    <tr class="bg-red-950/30 hover:bg-red-900/50 transition-colors">
+                        <td class="p-4 font-bold text-slate-200">${escapeHTML(name)}</td>
+                        <td class="p-4 text-center font-black text-red-500 text-lg">${a.total}</td>
+                        <td class="p-4 text-center font-bold ${a.alertaSequencial ? 'text-red-400' : 'text-slate-400'}">${a.maxSequencia}</td>
+                        <td class="p-4 text-center font-bold ${a.alertaAlternado ? 'text-orange-400' : 'text-slate-400'}">${a.blocos}</td>
+                        <td class="p-4 text-center">${renderAlertasAusentismo(a)}</td>
+                    </tr>
+                `);
+                count++;
             }
-            if (count === 0) els.apoiaFreqBody.innerHTML = '<tr><td colspan="3" class="text-center p-6 text-green-500 font-bold"><i class="fas fa-check-circle mr-2"></i> Nenhum aluno atingiu o limite crítico (7 faltas) nesta disciplina.</td></tr>';
+
+            if (count === 0) {
+                els.apoiaFreqBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-green-500 font-bold"><i class="fas fa-check-circle mr-2"></i> Nenhum aluno atingiu ${REGRAS_AUSENTISMO.SEQUENCIA} faltas seguidas ou ${REGRAS_AUSENTISMO.ALTERNADAS} alternadas nesta disciplina.</td></tr>`;
+            }
 
         } catch (e) {
             console.error(e);
-            els.apoiaFreqBody.innerHTML = `<tr><td colspan="3" class="text-center p-6 text-red-500 font-bold">Erro na varredura: ${e.message}</td></tr>`;
+            els.apoiaFreqBody.innerHTML = `<tr><td colspan="5" class="text-center p-6 text-red-500 font-bold">Erro na varredura: ${escapeHTML(e.message)}</td></tr>`;
         }
     },
 
