@@ -130,6 +130,7 @@ export async function renderProfessorTab() {
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
+    addSafeListener('contas', () => window.profAPI.loadContasPendentes());
     addSafeListener('aval360', () => window.profAPI.loadAvaliacoes360());
     addSafeListener('logs', () => window.profAPI.prepararAbaLogs());
     addSafeListener('tcg', () => window.tcgAPI.init());
@@ -7094,5 +7095,104 @@ window.profAPI.renderModeradoresAnalise = async () => {
         console.error(e);
         if (kpis) kpis.innerHTML = `<div class="col-span-full text-center text-xs text-red-400 py-4">Erro ao carregar: ${escapeHTML(e.message)}</div>`;
         if (tbody) tbody.innerHTML = '';
+    }
+};
+
+// ==========================================
+// GESTÃO DE CONTAS (contas pendentes criação Google)
+// ==========================================
+
+window.profAPI.loadContasPendentes = async () => {
+    const list = document.getElementById('contas-list');
+    const msg = document.getElementById('contas-msg');
+    if (!list) return;
+    list.innerHTML = '<div class="text-center text-slate-500 py-10"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando contas...</div>';
+    try {
+        const snapU = await getDocs(collection(db, 'users'));
+        const pends = [];
+        snapU.forEach(d => {
+            const x = d.data();
+            const ehPendente = x.role === 'Pendente' || x.role === 'PENDENTE' ||
+                (x.Aluno !== true && x.origemCadastro === 'google-self-signup');
+            if (ehPendente) pends.push({ id: d.id, ...x });
+        });
+
+        const [escSnap, tumSnap, discSnap] = await Promise.all([
+            getDocs(query(collection(db, 'escolasCadastradas'), where('ativo', '==', true), orderBy('nome'))),
+            getDocs(query(collection(db, 'turmasCadastradas'), where('ativo', '==', true), orderBy('nomeExibicao'))),
+            getDocs(query(collection(db, 'disciplinasCadastradas'), where('ativo', '==', true), orderBy('nomeExibicao')))
+        ]);
+        let escOpts = '', tumOpts = '', discOpts = '';
+        escSnap.forEach(d => { escOpts += `<option value="${escapeHTML(d.data().nome)}">${escapeHTML(d.data().nome)}</option>`; });
+        tumSnap.forEach(d => { tumOpts += `<option value="${escapeHTML(d.data().identificador)}">${escapeHTML(d.data().nomeExibicao)}</option>`; });
+        discSnap.forEach(d => { discOpts += `<option value="${escapeHTML(d.data().identificador)}">${escapeHTML(d.data().nomeExibicao)}</option>`; });
+
+        if (!pends.length) {
+            list.innerHTML = '<div class="text-center text-slate-500 italic p-10">Nenhuma conta pendente.</div>';
+            if (msg) msg.textContent = 'Nenhuma conta pendente encontrada.';
+            return;
+        }
+        if (msg) msg.textContent = `${pends.length} conta(s) pendente(s).`;
+
+        list.innerHTML = pends.map(p => `
+            <div class="bg-slate-950/60 border border-slate-700 rounded-xl p-4 mb-4">
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <span class="font-bold text-slate-200">${escapeHTML(p.nome || '-')}</span>
+                    <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full uppercase font-bold">Pendente</span>
+                    <span class="text-xs text-slate-500">${escapeHTML(p.email || '-')}</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 mb-3">
+                    <label class="text-[10px] text-slate-400 block">Nome (sistema)
+                        <input id="contas-nome-${p.id}" value="${escapeHTML(p.nome || '')}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm mt-1">
+                    </label>
+                    <label class="text-[10px] text-slate-400 block">Escola
+                        <select id="contas-esc-${p.id}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm mt-1">${escOpts}</select>
+                    </label>
+                    <label class="text-[10px] text-slate-400 block">Turma
+                        <select id="contas-tum-${p.id}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm mt-1">${tumOpts}</select>
+                    </label>
+                    <label class="text-[10px] text-slate-400 block">Disciplina
+                        <select id="contas-disc-${p.id}" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm mt-1">${discOpts}</select>
+                    </label>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="window.profAPI.aprovarConta('${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg">Aprovar e vincular</button>
+                    <button onclick="window.profAPI.rejeitarConta('${p.id}')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg border border-red-900/40">Rejeitar</button>
+                </div>
+            </div>`).join('');
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = `<div class="text-red-400 font-bold p-6">Erro: ${escapeHTML(e.message)}</div>`;
+    }
+};
+
+window.profAPI.aprovarConta = async (uid) => {
+    const nome = document.getElementById(`contas-nome-${uid}`)?.value.trim();
+    const esc = document.getElementById(`contas-esc-${uid}`)?.value;
+    const tum = document.getElementById(`contas-tum-${uid}`)?.value;
+    const disc = document.getElementById(`contas-disc-${uid}`)?.value;
+    if (!nome || !esc || !tum || !disc) return alert('Preencha nome, escola, turma e disciplina.');
+    try {
+        await updateDoc(doc(db, 'users', uid), {
+            nome, escola: esc, turma: tum,
+            disciplinas: { [disc]: true },
+            Aluno: true, Professor: false, Admin: false, Coordenacao: false,
+            Moderador: false, Visitante: false,
+            role: 'aluno', registroAtivo: true, vinculadoEm: serverTimestamp()
+        });
+        alert(`Conta aprovada e vinculada: ${nome}`);
+        window.profAPI.loadContasPendentes();
+    } catch (e) {
+        alert('Erro ao aprovar: ' + e.message);
+    }
+};
+
+window.profAPI.rejeitarConta = async (uid) => {
+    if (!confirm('Marcar esta conta como rejeitada?')) return;
+    try {
+        await updateDoc(doc(db, 'users', uid), { role: 'rejeitado', Aluno: false });
+        window.profAPI.loadContasPendentes();
+    } catch (e) {
+        alert('Erro ao rejeitar: ' + e.message);
     }
 };
