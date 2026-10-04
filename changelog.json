@@ -1,5 +1,5 @@
 {
-  "geradoEm": "2026-10-04T20:46:32+00:00",
+  "geradoEm": "2026-10-04T20:58:52+00:00",
   "versaoAtual": "1.6.2",
   "totalEntradas": 8,
   "entradas": [
@@ -19,7 +19,7 @@
               "linhas": [
                 [
                   "li",
-                  "Avaliações Digitais (aba ao lado do Aluno Tech): usa mais a largura da tela com cards em grid lado a lado em vez de lista única estreita vertical"
+                  "Avaliações Digitais (aba ao lado do Aluno Tech): antes era uma lista estreita em coluna única; agora usa um grid de cards lado a lado (`repeat(auto-fill, minmax(340px, 1fr))`) para aproveitar a largura da tela, com estados \"carregando\"/\"vazio\" ocupando a linha toda. Arquivos: `index.html`, `CHANGELOG.md`, `changelog.json`."
                 ]
               ]
             }
@@ -43,7 +43,7 @@
               "linhas": [
                 [
                   "li",
-                  "Conteúdos: mini player redesenhado em formato quadrado (estilo player de painel) com título/artista sincronizados — antes era um pill pequeno sem nome da faixa"
+                  "Conteúdos (Conteúdos > Músicas/Podcasts): o mini player flutuante, que era um pill pequeno e sem nome, foi redesenhado como um card quadrado estilo painel de mídia, exibindo a capa (ou ícone do conteúdo), o título e o artista da faixa, transporte (anterior, play/pausa, próxima), expandir e fechar. Arquivos: `index.html`, `js/conteudos/conteudosAula.js`, `CHANGELOG.md`, `changelog.json`."
                 ]
               ]
             }
@@ -67,11 +67,11 @@
               "linhas": [
                 [
                   "li",
-                  "Gestão de Contas (Professor Tech): subaba para aprovar e vincular contas criadas via login Google que ficaram pendentes — permite definir o nome que o site todo usa, escola, turma e disciplina. Antes disso o aluno se cadastrava como `Pendente` e precisava de ajuste manual no Firestore."
+                  "Gestão de Contas (Professor Tech): nova subaba que lista contas criadas via login Google que ficaram como `role: 'Pendente'` (sem `Aluno: true`), e permite, por linha, **aprovar e vincular** (definindo o nome canônico usado em todo o sistema, escola, turma e disciplina) ou **rejeitar**. Antes era necessário ajustar manualmente o Firestore. Arquivos: `index.html`, `js/professorTech/professorTech.js`."
                 ],
                 [
                   "li",
-                  "Cores nas subabas do Professor Tech, agrupando assuntos: verde (aula/frequência), laranja (APOIA/anotações), céu (sorteios), roxo (avaliações), índigo (gestão/cadastro) e vermelho (reset)."
+                  "Cores nas subabas do Professor Tech agrupando assuntos: verde (Chamada, Notas, Extras, Análise Aluno, Painel, Evolução, Visão Geral, Exportar Freq.), laranja (APOIA, Anotações), céu (Sorteios), roxo (Aplicar, Avaliação 360, Provas/Trabalhos), índigo (Ferramentas, Vincular, Gestão de Contas, Grade Horária, Avisos, Logs, Kaz IA, Forja TCG) e vermelho (Reset Anual). Arquivos: `index.html`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -95,7 +95,7 @@
               "linhas": [
                 [
                   "li",
-                  "Painel (Professor Tech): análise dos moderadores — seção \"Análise dos Moderadores\" abaixo de Diferenças por Trimestre, com a equipe de moderadores, blogs criados, votações criadas, views e votos, filtrada pelo período selecionado (7/30/90 dias ou todo o período), com gráficos de pizza por moderador e tabela de resumo"
+                  "Painel do Professor Tech: nova seção \"Análise dos Moderadores\" abaixo de \"Diferenças por Trimestre\", com cartões de moderadores, blogs criados, votações criadas, views e votos, resumo tabular por moderador e três gráficos de pizza (blogs, views e votos por moderador), tudo filtrado pelo período selecionado (7 / 30 / 90 dias ou todo o período). Arquivos: `index.html`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -119,7 +119,7 @@
               "linhas": [
                 [
                   "li",
-                  "Tela do Painel: gráfico \"Média por Grupo\" agora tem altura fixa (h-80), sem esticar a página ao crescer"
+                  "Painel do Professor Tech: o gráfico \"Média por Grupo\" tinha altura ilimitada e esticava a página para baixo; agora tem altura fixa (`h-80`) e mensagem de estado vazio dedicada. Arquivos: `index.html`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -135,11 +135,15 @@
               "linhas": [
                 [
                   "li",
-                  "Painel: guia \"Como interpretar os números (média, mediana, taxas e gráficos)\" e ícones informativos em cada KPI e título de gráfico"
+                  "Painel: guia colapsável \"Como interpretar os números (média, mediana, taxas e gráficos)\". Arquivos: `index.html`."
                 ],
                 [
                   "li",
-                  "Painel: detalhes por faixa de nota e de frequência, listando os alunos em cada grupo"
+                  "Painel: detalhes por faixa de notas e por faixa de frequência listando os alunos de cada subfaixa. Arquivos: `index.html`, `js/professorTech/professorTech.js`."
+                ],
+                [
+                  "li",
+                  "Painel: ícone informativo com título explicativo em cada KPI e nos títulos dos gráficos. Arquivos: `index.html`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
