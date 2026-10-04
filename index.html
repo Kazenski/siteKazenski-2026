@@ -3944,10 +3944,16 @@
                                 class="text-4xl md:text-6xl font-black text-slate-600 min-h-[120px] flex items-center justify-center text-center transition-all duration-100 uppercase tracking-wider mb-10 w-full px-4">
                                 <span class="text-2xl opacity-50">Pronto para sortear</span>
                             </div>
-                            <button id="btn-spin-indiv" onclick="window.profAPI.spinIndividual()"
-                                class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-lg md:text-xl uppercase tracking-widest px-10 py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
-                                <i class="fas fa-dice mr-2"></i> Sortear Aluno
-                            </button>
+                            <div class="flex flex-col items-center gap-3">
+                                <button id="btn-spin-indiv" onclick="window.profAPI.spinIndividual()"
+                                    class="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-black text-lg md:text-xl uppercase tracking-widest px-10 py-5 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.4)] transition-transform hover:scale-105 border-2 border-amber-400/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                                    <i class="fas fa-dice mr-2"></i> Sortear Aluno
+                                </button>
+                                <button id="btn-reset-sorteio" onclick="window.profAPI.resetSorteioIndividual()"
+                                    class="hidden bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-colors border border-slate-600">
+                                    <i class="fas fa-redo mr-2"></i> Resetar Sorteio
+                                </button>
+                            </div>
                         </div>
                     </div>
 

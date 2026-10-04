@@ -8,7 +8,10 @@ let state = {
     filters: { school: '', classId: '', disciplineId: '', quarter: '1' },
     cache: { students: [], disciplinesMap: new Map() },
     chamada: { registros: {}, obs: "", lancado: null },
-    notasCache: {}
+    notasCache: {},
+    sorteioIndividual: { pool: [], sorteados: [], winner: null },
+    sorteioGrupos: { lastGroups: [] },
+    evolucaoAluno: { alunoId: null, alunoNome: null, trimestre: '1', dados: null, chartFaltas: null, chartNotas: null }
 };
 let els = {};
 let anotacoesCache = [];
@@ -106,6 +109,7 @@ export async function renderProfessorTab() {
 
     addSafeListener('apoia', () => window.profAPI.loadApoiaRegistros());
     addSafeListener('sorteios', () => window.profAPI.initSorteiosTab());
+    if (els.btnResetSorteio) els.btnResetSorteio.onclick = () => window.profAPI.resetSorteioIndividual();
     addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
     addSafeListener('aplicar-aval', () => window.profAPI.renderAplicarAvalTable());
     addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
@@ -247,6 +251,7 @@ function mapearDOM() {
         viewSorteioGrupos: document.getElementById('view-sorteio-grupos'),
         rouletteDisplay: document.getElementById('roulette-display'),
         btnSpinIndiv: document.getElementById('btn-spin-indiv'),
+        btnResetSorteio: document.getElementById('btn-reset-sorteio'),
         btnSpinGrupos: document.getElementById('btn-spin-grupos'),
         groupSizeInput: document.getElementById('group-size'),
         btnExportTxt: document.getElementById('btn-export-txt'),
@@ -1885,10 +1890,31 @@ window.profAPI = {
 
         if (!hasStudents) {
             els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50 text-red-400">Sem Alunos. Carregue a turma.</span>';
-        } else if (els.rouletteDisplay.classList.contains('roulette-winner')) {
-            // Se já tiver rolado sorteio antes, reseta a tela
-            els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50">Pronto para sortear</span>';
-            els.rouletteDisplay.classList.remove('roulette-winner');
+            if (els.btnResetSorteio) els.btnResetSorteio.classList.add('hidden');
+            state.sorteioIndividual.pool = [];
+            state.sorteioIndividual.sorteados = [];
+            state.sorteioIndividual.winner = null;
+        } else {
+            if (els.rouletteDisplay.classList.contains('roulette-winner') || state.sorteioIndividual.winner) {
+                els.rouletteDisplay.textContent = state.sorteioIndividual.winner ? state.sorteioIndividual.winner.nome : 'Pronto para sortear';
+                els.rouletteDisplay.classList.add('roulette-winner');
+            } else {
+                els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50">Pronto para sortear</span>';
+                els.rouletteDisplay.classList.remove('roulette-winner');
+            }
+            if (!state.sorteioIndividual.pool.length || state.sorteioIndividual.pool.length !== count - state.sorteioIndividual.sorteados.length) {
+                // reset pool when loading new set
+                state.sorteioIndividual.pool = state.cache.students.map(s => ({ id: s.id, nome: s.nome }));
+                state.sorteioIndividual.sorteados = [];
+                state.sorteioIndividual.winner = null;
+                if (els.rouletteDisplay.classList.contains('roulette-winner')) {
+                    els.rouletteDisplay.classList.remove('roulette-winner');
+                    els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50">Pronto para sortear</span>';
+                }
+            }
+            if (els.btnResetSorteio) {
+                els.btnResetSorteio.classList.toggle('hidden', state.sorteioIndividual.sorteados.length === 0 && !state.sorteioIndividual.winner);
+            }
         }
     },
 
@@ -1913,6 +1939,18 @@ window.profAPI = {
         const students = state.cache.students;
         if (students.length === 0) return;
 
+        if (!state.sorteioIndividual.pool.length) {
+            state.sorteioIndividual.pool = students.map(s => ({ id: s.id, nome: s.nome }));
+            state.sorteioIndividual.sorteados = [];
+            state.sorteioIndividual.winner = null;
+        }
+
+        if (state.sorteioIndividual.pool.length === 0) {
+            alert('Todos os alunos já foram sorteados! Clique em Resetar Sorteio para recomeçar.');
+            if (els.btnResetSorteio) els.btnResetSorteio.classList.remove('hidden');
+            return;
+        }
+
         els.btnSpinIndiv.disabled = true;
         els.rouletteDisplay.classList.remove('roulette-winner');
 
@@ -1922,8 +1960,8 @@ window.profAPI = {
 
         const interval = setInterval(() => {
             // Sorteia um nome rapidamente para a animação
-            const randomIdx = Math.floor(Math.random() * students.length);
-            els.rouletteDisplay.textContent = students[randomIdx].nome;
+            const randomIdx = Math.floor(Math.random() * state.sorteioIndividual.pool.length);
+            els.rouletteDisplay.textContent = state.sorteioIndividual.pool[randomIdx].nome;
 
             elapsed += intervalTime;
 
@@ -1934,12 +1972,21 @@ window.profAPI = {
                 clearInterval(interval);
 
                 // Escolhe o Vencedor Final
-                const winnerIdx = Math.floor(Math.random() * students.length);
-                const winner = students[winnerIdx];
+                const winnerIdx = Math.floor(Math.random() * state.sorteioIndividual.pool.length);
+                const winner = state.sorteioIndividual.pool[winnerIdx];
 
                 els.rouletteDisplay.textContent = winner.nome;
                 els.rouletteDisplay.classList.add('roulette-winner');
                 els.btnSpinIndiv.disabled = false;
+
+                state.sorteioIndividual.winner = { id: winner.id, nome: winner.nome };
+                state.sorteioIndividual.sorteados.push(winner);
+                state.sorteioIndividual.pool.splice(winnerIdx, 1);
+
+                if (els.btnResetSorteio) els.btnResetSorteio.classList.remove('hidden');
+                if (state.sorteioIndividual.pool.length === 0) {
+                    els.btnSpinIndiv.disabled = true;
+                }
 
                 // Efeito de Confete!
                 if (window.confetti) {
@@ -1996,28 +2043,15 @@ window.profAPI = {
         els.btnExportTxt.classList.remove('hidden');
     },
 
-    exportGroupsTxt: () => {
-        if (sortedGroupsCache.length === 0) return;
-
-        const { school, classId } = state.filters;
-        let content = `ESCOLA: ${school}\nTURMA: ${classId}\nDATA: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
-        content += "=== EQUIPES SORTEADAS ===\n\n";
-
-        sortedGroupsCache.forEach((group, idx) => {
-            content += `[ EQUIPE ${idx + 1} ]\n`;
-            group.forEach(st => content += `- ${st.nome}\n`);
-            content += "\n";
-        });
-
-        // Cria o arquivo de texto na memória do navegador e força o download
-        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Equipes_${classId}.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    resetSorteioIndividual: () => {
+        if (!state.cache.students.length) return;
+        state.sorteioIndividual.pool = state.cache.students.map(s => ({ id: s.id, nome: s.nome }));
+        state.sorteioIndividual.sorteados = [];
+        state.sorteioIndividual.winner = null;
+        els.rouletteDisplay.classList.remove('roulette-winner');
+        els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50">Pronto para sortear</span>';
+        els.btnSpinIndiv.disabled = false;
+        if (els.btnResetSorteio) els.btnResetSorteio.classList.add('hidden');
     },
 
     // ==========================================
