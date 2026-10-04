@@ -1523,7 +1523,6 @@ function createNewNote() {
     // Reseta o seletor de cores para a cor padrão
     selectedNoteColor = '#3b82f6';
     renderColorPicker();
-    const activeState = document.getElementById('al-note-active-state');
     if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`;
 
     // 3. CONTROLE DE BOTÕES E INFOS
