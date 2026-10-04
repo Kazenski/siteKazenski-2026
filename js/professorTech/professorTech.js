@@ -11,7 +11,8 @@ let state = {
     notasCache: {},
     sorteioIndividual: { pool: [], sorteados: [], winner: null },
     sorteioGrupos: { lastGroups: [], excluidos: new Set(), classId: '' },
-    evolucaoAluno: { alunoId: null, alunoNome: null, trimestre: '1', dados: null, chartFaltas: null, chartNotas: null }
+    evolucaoAluno: { alunoId: null, alunoNome: null, trimestre: '1', dados: null, chartFaltas: null, chartNotas: null },
+    painel: { dados: null }
 };
 let els = {};
 let anotacoesCache = [];
@@ -116,6 +117,10 @@ export async function renderProfessorTab() {
     if (els.btnResetSorteio) els.btnResetSorteio.onclick = () => window.profAPI.resetSorteioIndividual();
     addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
     addSafeListener('evolucao', () => window.profAPI.initEvolucaoTab());
+    addSafeListener('painel', () => window.profAPI.initPainel());
+    if (els.painelBtn) els.painelBtn.onclick = () => window.profAPI.loadPainel();
+    if (els.painelBtnFaltas) els.painelBtnFaltas.onclick = () => window.profAPI.renderPainelFaltas();
+    if (els.painelBtnPeriodo) els.painelBtnPeriodo.onclick = () => window.profAPI.resetPainelPeriodo();
     if (els.evolBtn) els.evolBtn.onclick = () => window.profAPI.loadEvolucaoAluno();
     if (els.evolBtnFaltas) els.evolBtnFaltas.onclick = () => window.profAPI.renderEvolucaoFaltas();
     if (els.evolBtnPeriodo) els.evolBtnPeriodo.onclick = () => window.profAPI.resetEvolucaoPeriodo();
@@ -320,6 +325,18 @@ function mapearDOM() {
         evolKpis: document.getElementById('evol-kpis'),
         evolAlertas: document.getElementById('evol-alertas'),
         evolTabelaNotas: document.getElementById('evol-tabela-notas'),
+
+        // Painel de Dados
+        painelBtn: document.getElementById('painel-btn'),
+        painelBtnFaltas: document.getElementById('painel-btn-faltas'),
+        painelBtnPeriodo: document.getElementById('painel-btn-periodo'),
+        painelStart: document.getElementById('painel-start'),
+        painelEnd: document.getElementById('painel-end'),
+        painelMsg: document.getElementById('painel-msg'),
+        painelScope: document.getElementById('painel-scope'),
+        painelDashboard: document.getElementById('painel-dashboard'),
+        painelKpis: document.getElementById('painel-kpis'),
+        painelTbody: document.getElementById('painel-tbody'),
 
         // Análise Geral (Turma)
         geralDashboard: document.getElementById('geral-dashboard'),
@@ -6502,4 +6519,417 @@ window.tcgAPI = {
             alert("Erro no envio em massa.");
         }
     }
+};
+// ==========================================
+// MÓDULO: PAINEL DE DADOS (ESCOLA / TURMA / DISCIPLINA / TRIMESTRE)
+// ==========================================
+
+// Destrói e recria o gráfico da chave informada (evita "canvas already in use")
+function painelChart(chave, idCanvas, config) {
+    const canvas = document.getElementById(idCanvas);
+    if (!canvas) return;
+    if (chartInstances[chave]) chartInstances[chave].destroy();
+    chartInstances[chave] = new Chart(canvas.getContext('2d'), config);
+}
+
+window.profAPI.initPainel = () => {
+    if (els.painelStart && !els.painelStart.value) {
+        const d = new Date(); d.setDate(d.getDate() - 90);
+        els.painelStart.value = dataParaInput(d);
+    }
+    if (els.painelEnd && !els.painelEnd.value) els.painelEnd.value = dataParaInput(new Date());
+    if (els.painelMsg) els.painelMsg.textContent =
+        'Escolha os filtros no topo (Escola é obrigatória; Turma/Disciplina e Trimestre são opcionais) e clique em Carregar.';
+};
+
+window.profAPI.resetPainelPeriodo = (reRender = true) => {
+    const fim = new Date();
+    const ini = new Date(); ini.setDate(ini.getDate() - 90);
+    els.painelStart.value = dataParaInput(ini);
+    els.painelEnd.value = dataParaInput(fim);
+    if (reRender && state.painel.dados) window.profAPI.renderPainelFaltas();
+};
+
+// Frequência (%) de um aluno em um período, a partir das presenças.
+function painelFreqAluno(presencas, uid, inicio, fim) {
+    let presentes = 0, total = 0;
+    presencas.forEach(a => {
+        if (a.uid !== uid) return;
+        const t = a.date ? a.date.getTime() : NaN;
+        if (!Number.isFinite(t) || t < inicio || t > fim) return;
+        if (a.status === 'sem-registro') return;
+        total++;
+        if (a.status === 'presente') presentes++;
+    });
+    return total ? (presentes / total) * 100 : null;
+}
+
+// Notas do trimestre/disciplina do aluno: [{ v, pos, discId }]
+function painelNotas(snap, disciplineId, quarter) {
+    const notasRaw = (snap && snap.exists()) ? (snap.data().disciplinasComNotas || {}) : {};
+    const itens = [];
+    Object.entries(notasRaw).forEach(([discId, trimestres]) => {
+        if (disciplineId && discId !== disciplineId) return;
+        const t = (trimestres || {})[quarter] || {};
+        [t.nota1, t.nota2, t.nota3, t.nota4].forEach((b, i) => {
+            const v = (b === null || b === undefined || b === '') ? null : parseFloat(b);
+            if (Number.isFinite(v)) itens.push({ v, pos: i, discId });
+        });
+    });
+    return itens;
+}
+
+window.profAPI.loadPainel = async () => {
+    const { school, classId, disciplineId, quarter } = state.filters;
+    if (!school) return alert('Selecione uma Escola no topo.');
+
+    els.painelMsg.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 text-sky-400"></i> Carregando dados do painel...';
+    els.painelMsg.classList.remove('hidden');
+    els.painelDashboard.classList.add('hidden');
+
+    try {
+        // 1. Alunos do escopo (escola obrigatória, turma opcional)
+        const snapU = await getDocs(query(collection(db, 'users'), where('Aluno', '==', true)));
+        const students = [];
+        snapU.forEach(d => {
+            const s = { id: d.id, ...d.data() };
+            if (school && (s.escola !== school && s.escolaId !== school)) return;
+            if (classId && s.turma !== classId) return;
+            students.push(s);
+        });
+        students.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+        // 2. Notas de cada aluno
+        const notasSnaps = await Promise.all(students.map(s => getDoc(doc(db, 'notas', s.id))));
+
+        // 3. Presenças das turmas do escopo
+        const turmas = new Set(students.map(s => s.turma).filter(Boolean));
+        if (classId) turmas.add(classId);
+        const presencas = [];
+        for (const t of turmas) {
+            const snap = await getDocs(query(collection(db, 'presencas'), where('turma', '==', t)));
+            snap.forEach(d => {
+                const data = d.data();
+                const did = data.disciplineId || data.disciplinaId;
+                if (disciplineId && did !== disciplineId) return;
+                const ts = data.data_aula_timestamp;
+                const date = ts ? (typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts)) : null;
+                Object.entries(data.registros || {}).forEach(([uid, st]) => {
+                    presencas.push({ uid, status: normalizarStatusPresenca(st), date, discId: did });
+                });
+            });
+        }
+
+        // 4. Alunos distintos com encaminhamento APOIA
+        const apoiaSnap = school
+            ? await getDocs(query(collection(db, 'apoiaRegistros'), where('escolaId', '==', school)))
+            : await getDocs(collection(db, 'apoiaRegistros'));
+        const apoiaAlunos = new Set();
+        apoiaSnap.forEach(d => {
+            const a = d.data();
+            if (classId && a.turmaId !== classId) return;
+            if (disciplineId && a.disciplinaId !== disciplineId) return;
+            apoiaAlunos.add(a.alunoId);
+        });
+
+        // 5. Alunos distintos com anotações
+        let anotSnap;
+        if (school) {
+            const cs = [where('escola', '==', school)];
+            if (classId) cs.push(where('turma', '==', classId));
+            if (disciplineId) cs.push(where('disciplina', '==', disciplineId));
+            anotSnap = await getDocs(query(collection(db, 'anotacoesAlunos'), ...cs));
+        } else {
+            anotSnap = await getDocs(collection(db, 'anotacoesAlunos'));
+        }
+        const anotAlunos = new Set();
+        anotSnap.forEach(d => anotAlunos.add(d.data().alunoId));
+
+        state.painel.dados = {
+            students, notasSnaps, presencas, apoiaAlunos, anotAlunos,
+            filters: { school, classId, disciplineId, quarter }
+        };
+
+        window.profAPI.renderPainel();
+    } catch (e) {
+        console.error(e);
+        els.painelMsg.innerHTML = `<span class="text-red-400 font-bold">Erro ao carregar: ${escapeHTML(e.message)}</span>`;
+        els.painelMsg.classList.remove('hidden');
+    }
+};
+
+window.profAPI.renderPainel = () => {
+    const dados = state.painel.dados;
+    if (!dados) return;
+    const { students, notasSnaps, presencas, apoiaAlunos, anotAlunos, filters } = dados;
+    const { school, classId, disciplineId, quarter } = filters;
+
+    const inicio = els.painelStart.value ? new Date(els.painelStart.value + 'T00:00:00').getTime() : 0;
+    const fim = els.painelEnd.value ? new Date(els.painelEnd.value + 'T23:59:59').getTime() : Infinity;
+
+    // Escopo exibido
+    if (els.painelScope) {
+        const partes = [`Escola: ${school || 'todas'}`];
+        if (classId) partes.push(`Turma: ${classId}`);
+        if (disciplineId) partes.push(`Disciplina: ${disciplineId}`);
+        partes.push(`Trimestre: ${quarter || '1'}º`);
+        els.painelScope.textContent = 'Escopo · ' + partes.join('  ·  ');
+    }
+
+    // ---------- Agregados por aluno ----------
+    const porAluno = students.map((s, i) => {
+        const itens = painelNotas(notasSnaps[i], disciplineId, String(quarter || '1'));
+        const media = itens.length ? itens.reduce((a, n) => a + n.v, 0) / itens.length : null;
+        const freq = painelFreqAluno(presencas, s.id, inicio, fim);
+        return { s, media, freq, temApoia: apoiaAlunos.has(s.id), temAnot: anotAlunos.has(s.id) };
+    });
+
+    // ---------- KPIs ----------
+    const notasFlat = [];
+    porAluno.forEach((p, idx) => {
+        const itens = painelNotas(notasSnaps[idx], disciplineId, String(quarter || '1'));
+        itens.forEach(it => notasFlat.push(it.v));
+    });
+    const stats = estatisticasNotas(notasFlat);
+    const freqs = porAluno.map(p => p.freq).filter(f => f !== null);
+    const mediaFreq = freqs.length ? freqs.reduce((a, b) => a + b, 0) / freqs.length : null;
+
+    els.painelKpis.innerHTML = `
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="flex items-center gap-2 mb-2"><i class="fas fa-users text-sky-400 text-sm"></i></div>
+            <div class="text-3xl font-black text-white">${porAluno.length}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Alunos no escopo</div>
+        </div>
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="text-3xl font-black ${mediaFreq === null ? 'text-slate-500' : corPctPresenca(mediaFreq)}">${mediaFreq === null ? '-' : mediaFreq.toFixed(1) + '%'}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Freq. média</div>
+        </div>
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="text-3xl font-black ${stats.media === null ? 'text-slate-500' : corNota(stats.media)}">${stats.media === null ? '-' : stats.media.toFixed(2)}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Média geral</div>
+        </div>
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="text-3xl font-black ${stats.faixa === 'alta' ? 'text-red-400' : stats.faixa === 'media' ? 'text-amber-400' : 'text-emerald-400'}">${stats.desvio === null ? '-' : stats.desvio.toFixed(2)}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Dispersão (${stats.faixa})</div>
+        </div>
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="text-3xl font-black text-orange-400">${apoiaAlunos.size}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Com APOIA</div>
+        </div>
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="text-3xl font-black text-fuchsia-400">${anotAlunos.size}</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Com Anotações</div>
+        </div>`;
+
+    // ---------- Tabela por aluno ----------
+    els.painelTbody.innerHTML = porAluno.map(p => `
+        <tr class="border-b border-slate-800 hover:bg-slate-800/50">
+            <td class="p-3 font-bold text-slate-200">${escapeHTML(p.s.nome || p.s.id)}</td>
+            <td class="p-3 text-center font-black ${p.freq === null ? 'text-slate-600' : corPctPresenca(p.freq)}">${p.freq === null ? '-' : p.freq.toFixed(0) + '%'}</td>
+            <td class="p-3 text-center font-bold">${p.media === null ? '<span class="text-slate-600">-</span>' : `<span class="${corNota(p.media)} font-black">${p.media.toFixed(2)}</span>`}</td>
+            <td class="p-3 text-center">${p.temApoia ? '<i class="fas fa-check text-orange-400"></i>' : '<span class="text-slate-700">—</span>'}</td>
+            <td class="p-3 text-center">${p.temAnot ? '<i class="fas fa-check text-fuchsia-400"></i>' : '<span class="text-slate-700">—</span>'}</td>
+        </tr>`).join('');
+
+    // ---------- Frequência por aula (stacked) ----------
+    renderPainelFaltas();
+
+    // ---------- Dispersão ----------
+    const itens = [];
+    porAluno.forEach((p, idx) => {
+        const its = painelNotas(notasSnaps[idx], disciplineId, String(quarter || '1'));
+        its.forEach(it => itens.push({ pos: it.pos, rotulo: `N${it.pos + 1}`, nota: it.v, disciplina: state.cache.disciplinesMap.get(it.discId) || it.discId }));
+    });
+    const stats1 = estatisticasNotas(itens.map(i => i.nota));
+    if (itens.length === 0) {
+        mostrarOculto('painel-chart-dispersao-msg', true);
+    } else {
+        mostrarOculto('painel-chart-dispersao-msg', false);
+        const media = stats1.media ?? 0, desvio = stats1.desvio ?? 0;
+        const fx = [-0.5, itens.length - 0.5];
+        const linha = (label, valor, cor, dash) => ({ type: 'line', label, data: [{ x: fx[0], y: valor }, { x: fx[1], y: valor }], borderColor: cor, borderWidth: 1, borderDash: dash, pointRadius: 0, fill: false });
+        painelChart('painelDisp', 'painel-chart-dispersao', {
+            type: 'scatter',
+            data: { datasets: [
+                { label: 'Notas', data: itens.map((i, ix) => ({ x: ix, y: i.nota, _rot: `${i.rotulo} · ${i.disciplina}`, _nota: i.nota })), backgroundColor: itens.map(i => corNotaBg(i.nota)), borderColor: '#0f172a', borderWidth: 2, pointRadius: 4, pointHoverRadius: 7 },
+                linha('Média', media, 'rgba(245,158,11,0.95)', []),
+                linha('+1 desvio', media + desvio, 'rgba(148,163,184,0.55)', [5, 4]),
+                linha('-1 desvio', media - desvio, 'rgba(148,163,184,0.55)', [5, 4])
+            ] },
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 9 }, filter: (i) => i.text === 'Notas' || i.text === 'Média' } },
+                    tooltip: { callbacks: { label: (ctx) => { const p = ctx.raw; return (p && p._rot) ? `${p._rot}: ${p._nota.toFixed(2)}` : `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}`; } } } },
+                scales: { x: { min: fx[0], max: Math.max(fx[1], 0.5), ticks: { display: false }, grid: { color: '#334155' } }, y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } } } }
+        });
+    }
+
+    // ---------- Progressão ----------
+    const mediasPos = [0, 1, 2, 3].map(pos => {
+        const vals = itens.filter(i => i.pos === pos).map(i => i.nota);
+        return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    });
+    const prog = estatisticasNotas(mediasPos.filter(v => v !== null));
+    if (mediasPos.every(m => m === null)) {
+        mostrarOculto('painel-chart-progressao-msg', true);
+    } else {
+        mostrarOculto('painel-chart-progressao-msg', false);
+        let tendencia = [null, null, null, null];
+        const pontos = mediasPos.filter(m => m !== null);
+        if (pontos.length >= 2) {
+            const xs = mediasPos.map((m, i) => (m === null ? null : i)).filter(v => v !== null);
+            const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+            const my = pontos.reduce((a, b) => a + b, 0) / pontos.length;
+            const den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+            const slope = den ? pontos.reduce((s, y, i) => s + (xs[i] - mx) * (y - my), 0) / den : 0;
+            tendencia = [0, 1, 2, 3].map(i => +(my + slope * (i - mx)).toFixed(2));
+        }
+        painelChart('painelProg', 'painel-chart-progressao', {
+            type: 'line',
+            data: { labels: ['N1', 'N2', 'N3', 'N4'], datasets: [
+                { label: 'Média por avaliação', data: mediasPos, borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.15)', borderWidth: 3, tension: 0.35, fill: true, spanGaps: true, pointBackgroundColor: mediasPos.map(m => corNotaBg(m)), pointBorderColor: '#0f172a', pointBorderWidth: 2, pointRadius: 6, pointHoverRadius: 8 },
+                { label: 'Média geral', data: mediasPos.map(() => stats.media), borderColor: 'rgba(245,158,11,0.9)', borderWidth: 1.5, borderDash: [6, 4], pointRadius: 0, fill: false, spanGaps: true },
+                { label: 'Tendência', data: tendencia, borderColor: 'rgba(148,163,184,0.8)', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false, spanGaps: true }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 10 } } }, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y === null ? '—' : ctx.parsed.y.toFixed(2)}` } } },
+                scales: { y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 11, weight: 'bold' } }, grid: { display: false } } } }
+        });
+    }
+
+    // ---------- Média por disciplina ----------
+    const porDisc = new Map(); // discId -> [notas]
+    porAluno.forEach((p, idx) => {
+        painelNotas(notasSnaps[idx], disciplineId, String(quarter || '1')).forEach(it => {
+            if (!porDisc.has(it.discId)) porDisc.set(it.discId, []);
+            porDisc.get(it.discId).push(it.v);
+        });
+    });
+    const discArr = [...porDisc.entries()].map(([discId, vals]) => ({ discId, nome: state.cache.disciplinesMap.get(discId) || discId, media: vals.reduce((a, b) => a + b, 0) / vals.length })).sort((a, b) => b.media - a.media);
+    if (discArr.length === 0) {
+        mostrarOculto('painel-chart-disciplinas-msg', true);
+    } else {
+        mostrarOculto('painel-chart-disciplinas-msg', false);
+        const rotuloCurto = d => (d.length > 18 ? d.substring(0, 17) + '…' : d);
+        painelChart('painelDisc', 'painel-chart-disciplinas', {
+            type: 'bar', data: { labels: discArr.map(d => rotuloCurto(d.nome)), datasets: [{ label: 'Média', data: discArr.map(d => +d.media.toFixed(2)), backgroundColor: discArr.map(d => corNotaBg(d.media)), borderRadius: 4, borderSkipped: false }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (items) => discArr[items[0].dataIndex].nome, label: (ctx) => `Média: ${ctx.parsed.x.toFixed(2)}` } } }, scales: { x: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }, y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } } } }
+        });
+    }
+
+    // ---------- Média por grupo (escola / turma / disciplina) ----------
+    let grupos = [];
+    if (!school) {
+        const g = new Map();
+        porAluno.forEach(p => {
+            const chave = p.s.escola || 'Sem escola';
+            if (!g.has(chave)) g.set(chave, { notas: [], freq: [] });
+            if (p.media !== null) g.get(chave).notas.push(p.media);
+            if (p.freq !== null) g.get(chave).freq.push(p.freq);
+        });
+        grupos = [...g.entries()].map(([nome, o]) => ({ nome, media: o.notas.length ? o.notas.reduce((a, b) => a + b, 0) / o.notas.length : null }));
+    } else if (!classId) {
+        const g = new Map();
+        porAluno.forEach(p => {
+            const chave = p.s.turma || 'Sem turma';
+            if (!g.has(chave)) g.set(chave, { notas: [], freq: [] });
+            if (p.media !== null) g.get(chave).notas.push(p.media);
+            if (p.freq !== null) g.get(chave).freq.push(p.freq);
+        });
+        grupos = [...g.entries()].map(([nome, o]) => ({ nome, media: o.notas.length ? o.notas.reduce((a, b) => a + b, 0) / o.notas.length : null }));
+    } else {
+        grupos = discArr.map(d => ({ nome: d.nome, media: d.media }));
+    }
+    if (grupos.length === 0) {
+        painelChart('painelGrupos', 'painel-chart-grupos', { type: 'bar', data: { labels: [], datasets: [] }, options: {} });
+    } else {
+        painelChart('painelGrupos', 'painel-chart-grupos', {
+            type: 'bar', data: { labels: grupos.map(g => g.nome), datasets: [{ label: 'Média', data: grupos.map(g => g.media === null ? null : +g.media.toFixed(2)), backgroundColor: grupos.map(g => corNotaBg(g.media)), borderRadius: 4, borderSkipped: false }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Média: ${ctx.parsed.y === null ? '-' : ctx.parsed.y.toFixed(2)}` } } }, scales: { y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 8 } }, grid: { display: false } } } }
+        });
+    }
+
+    // ---------- Alunos por faixa de nota ----------
+    const faixasN = [[0, 3], [3, 5], [5, 7], [7, 8.5], [8.5, 10.0001]];
+    const notasBins = faixasN.map(([a, b], i) => ({
+        rotulo: i === 0 ? '0–3' : i === faixasN.length - 1 ? '8,5–10' : `${a}–${b}`,
+        total: porAluno.filter(p => p.media !== null && p.media >= a && p.media < b).length
+    }));
+    if (notasBins.every(b => b.total === 0)) {
+        mostrarOculto('painel-chart-faixas-notas-msg', true);
+    } else {
+        mostrarOculto('painel-chart-faixas-notas-msg', false);
+        painelChart('painelFaixasN', 'painel-chart-faixas-notas', { type: 'bar', data: { labels: notasBins.map(b => b.rotulo), datasets: [{ label: 'Alunos', data: notasBins.map(b => b.total), backgroundColor: '#f43f5e', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
+    }
+
+    // ---------- Alunos por faixa de frequência ----------
+    const faixasF = [[90, 101, '≥ 90%'], [75, 90, '75–90%'], [50, 75, '50–75%'], [0, 50, '< 50%']];
+    const freqBins = faixasF.map(([a, b, label]) => ({ rotulo: label, total: porAluno.filter(p => p.freq !== null && p.freq >= a && p.freq < b).length }));
+    if (freqBins.every(b => b.total === 0)) {
+        mostrarOculto('painel-chart-faixas-freq-msg', true);
+    } else {
+        mostrarOculto('painel-chart-faixas-freq-msg', false);
+        painelChart('painelFaixasF', 'painel-chart-faixas-freq', { type: 'bar', data: { labels: freqBins.map(b => b.rotulo), datasets: [{ label: 'Alunos', data: freqBins.map(b => b.total), backgroundColor: '#22d3ee', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
+    }
+
+    // ---------- Diferenças por trimestre ----------
+    const triRows = [1, 2, 3].map(t => {
+        const vals = [];
+        porAluno.forEach((p, idx) => {
+            painelNotas(notasSnaps[idx], disciplineId, String(t)).forEach(it => vals.push(it.v));
+        });
+        return { trimestre: `${t}º`, media: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null, n: vals.length };
+    });
+    if (triRows.every(r => r.media === null)) {
+        mostrarOculto('painel-chart-trimestre-msg', true);
+    } else {
+        mostrarOculto('painel-chart-trimestre-msg', false);
+        painelChart('painelTri', 'painel-chart-trimestre', { type: 'bar', data: { labels: triRows.map(r => r.trimestre), datasets: [{ label: 'Média', data: triRows.map(r => r.media === null ? null : +r.media.toFixed(2)), backgroundColor: triRows.map(r => r.media === null ? '#334155' : corNotaBg(r.media)), borderRadius: 6 }] }, options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Média: ${ctx.parsed.y === null ? '-' : ctx.parsed.y.toFixed(2)}` } } }, scales: { y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } } } });
+    }
+
+    // Revela o painel
+    els.painelMsg.classList.add('hidden');
+    els.painelDashboard.classList.remove('hidden');
+    els.painelDashboard.classList.add('flex');
+};
+
+window.profAPI.renderPainelFaltas = () => {
+    const dados = state.painel.dados;
+    if (!dados) return;
+    const { presencas } = dados;
+    const inicio = els.painelStart.value ? new Date(els.painelStart.value + 'T00:00:00').getTime() : 0;
+    const fim = els.painelEnd.value ? new Date(els.painelEnd.value + 'T23:59:59').getTime() : Infinity;
+
+    const porDia = new Map();
+    presencas.forEach(a => {
+        const t = a.date ? a.date.getTime() : NaN;
+        if (!Number.isFinite(t) || t < inicio || t > fim || a.status === 'sem-registro') return;
+        if (!a.date) return;
+        const k = a.date.toISOString().slice(0, 10);
+        if (!porDia.has(k)) porDia.set(k, { p: 0, f: 0, j: 0 });
+        const g = porDia.get(k);
+        if (a.status === 'presente') g.p++;
+        else if (a.status === 'ausente') g.f++;
+        else if (a.status === 'justificado') g.j++;
+    });
+    const dias = [...porDia.keys()].sort();
+    const labels = dias.map(d => d.slice(8, 10) + '/' + d.slice(5, 7));
+
+    const canvas = document.getElementById('painel-chart-faltas');
+    const msg = document.getElementById('painel-chart-faltas-msg');
+    if (!canvas) return;
+    if (chartInstances['painelFaltas']) chartInstances['painelFaltas'].destroy();
+    if (labels.length === 0) {
+        if (msg) { msg.textContent = 'Nenhuma aula no período selecionado.'; msg.classList.remove('hidden'); }
+        return;
+    }
+    if (msg) msg.classList.add('hidden');
+    chartInstances['painelFaltas'] = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels, datasets: [
+            { label: 'Presente', data: dias.map(d => porDia.get(d).p), backgroundColor: '#22c55e', borderRadius: 2 },
+            { label: 'Falta', data: dias.map(d => porDia.get(d).f), backgroundColor: '#ef4444', borderRadius: 2 },
+            { label: 'Justificado', data: dias.map(d => porDia.get(d).j), backgroundColor: '#3b82f6', borderRadius: 2 }
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: true, ticks: { color: '#64748b', font: { size: 8 }, autoSkip: true, maxRotation: 0 }, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } } } }
+    });
 };

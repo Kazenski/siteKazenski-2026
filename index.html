@@ -2074,6 +2074,10 @@
                         data-target="evolucao"><i class="fas fa-seedling mr-1"></i> Evolução</button>
 
                     <button
+                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-sky-400 hover:bg-sky-900/40 hover:text-sky-300 rounded-lg transition-colors whitespace-nowrap border border-sky-900/30"
+                        data-target="painel"><i class="fas fa-gauge-high mr-1"></i> Painel</button>
+
+                    <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white rounded-lg transition-colors whitespace-nowrap"
                         data-target="analise-geral"><i class="fas fa-globe mr-1"></i> Visão Geral</button>
 
@@ -3668,6 +3672,150 @@
                                         <tbody id="evol-tabela-notas" class="divide-y divide-slate-800/50"></tbody>
                                     </table>
                                 </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div id="ptab-painel" class="prof-tab-content hidden h-full fade-in flex-col">
+
+                    <div
+                        class="bg-slate-800 p-6 rounded-2xl border border-sky-700/40 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg text-sky-400 font-cinzel font-bold mb-1"><i
+                                    class="fas fa-gauge-high mr-2"></i> Painel de Dados</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Escola, Turma,
+                                Disciplina e Trimestre em conjunto</p>
+                        </div>
+                        <div class="w-full md:w-auto flex flex-wrap items-end gap-3">
+                            <button id="painel-btn"
+                                class="bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-colors h-[42px]">
+                                <i class="fas fa-magnifying-glass-chart mr-2"></i> Carregar
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800 p-5 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-3"><i
+                                class="fas fa-calendar-alt mr-2 text-blue-400"></i> Período dos gráficos de
+                            frequência</p>
+                        <div class="flex flex-wrap md:flex-nowrap gap-4 items-end">
+                            <div class="w-full md:w-1/3">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data
+                                    Início</label>
+                                <input type="date" id="painel-start"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2.5 outline-none focus:border-blue-500">
+                            </div>
+                            <div class="w-full md:w-1/3">
+                                <label
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Data
+                                    Fim</label>
+                                <input type="date" id="painel-end"
+                                    class="w-full bg-slate-900 border border-slate-700 text-white text-sm rounded-lg p-2.5 outline-none focus:border-blue-500">
+                            </div>
+                            <div class="w-full md:w-1/3 flex gap-2">
+                                <button id="painel-btn-faltas"
+                                    class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest px-4 py-3 rounded-lg shadow-lg transition-colors h-[42px]"><i
+                                        class="fas fa-filter mr-2"></i> Aplicar</button>
+                                <button id="painel-btn-periodo"
+                                    title="Usa os últimos 90 dias"
+                                    class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-4 py-3 rounded-lg shadow-lg transition-colors h-[42px]"><i
+                                        class="fas fa-rotate"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p id="painel-scope" class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold -mt-3 mb-2"></p>
+
+                    <p id="painel-msg" class="text-center text-sm text-slate-500 italic font-bold py-6">Escolha os
+                        filtros (Escola, Turma/Disciplina opcionais) no topo e clique em Carregar.</p>
+
+                    <div id="painel-dashboard"
+                        class="hidden flex-grow overflow-y-auto custom-scroll pr-2 pb-6 flex-col gap-6">
+
+                        <div id="painel-kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 shrink-0"></div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-emerald-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Progressão das Notas</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-progressao"></canvas>
+                                    <div id="painel-chart-progressao-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
+                                </div>
+                            </div>
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Dispersão Geral</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-dispersao"></canvas>
+                                    <div id="painel-chart-dispersao-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
+                            <h3 class="text-blue-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Frequência por Aula no Período</h3>
+                            <div class="flex-grow relative w-full h-full">
+                                <canvas id="painel-chart-faltas"></canvas>
+                                <div id="painel-chart-faltas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Nenhuma aula.</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-amber-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Média por Disciplina</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-disciplinas"></canvas>
+                                    <div id="painel-chart-disciplinas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
+                                </div>
+                            </div>
+                            <div class="bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                                <h3 class="text-[10px] text-amber-400 uppercase tracking-widest font-bold p-4 border-b border-slate-700 bg-slate-800/50">Média por Grupo (Escola / Turma / Disciplina)</h3>
+                                <canvas id="painel-chart-grupos" class="flex-grow w-full h-full p-3"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-rose-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Alunos por Faixa de Nota</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-faixas-notas"></canvas>
+                                    <div id="painel-chart-faixas-notas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
+                                </div>
+                            </div>
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-cyan-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Alunos por Faixa de Frequência</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-faixas-freq"></canvas>
+                                    <div id="painel-chart-faixas-freq-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem aulas.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
+                            <h3 class="text-indigo-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Diferenças por Trimestre</h3>
+                            <div class="flex-grow relative w-full h-full">
+                                <canvas id="painel-chart-trimestre"></canvas>
+                                <div id="painel-chart-trimestre-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
+                            <h3 class="text-[10px] text-amber-400 uppercase tracking-widest font-bold p-4 border-b border-slate-700 bg-slate-800/50">Resumo por Aluno</h3>
+                            <div class="overflow-x-auto custom-scroll">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-700">
+                                            <th class="p-3">Aluno</th>
+                                            <th class="p-3 text-center">Freq. %</th>
+                                            <th class="p-3 text-center">Média</th>
+                                            <th class="p-3 text-center">APOIA</th>
+                                            <th class="p-3 text-center">Anotações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="painel-tbody"></tbody>
+                                </table>
                             </div>
                         </div>
 
