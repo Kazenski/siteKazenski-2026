@@ -4,6 +4,27 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.4.0] — 2026-10-04
+### Adicionado
+- Nova subaba **Evolução** no Professor Tech: progressão das notas no trimestre, dispersão geral, média por disciplina, frequência por aula no período e tabela de notas
+- Relatório analítico de faltas com alertas: 5 faltas seguidas ou 7 alternadas
+- Nova subaba **Painel** de Dados no Professor Tech: KPIs (total de alunos, frequência média, média geral, dispersão, alunos com APOIA e com anotações), gráficos no estilo da Evolução (progressão, dispersão, média por disciplina, frequência por aula), comparativos por faixa de nota e de frequência, média por escola/turma/disciplina e diferenças por trimestre
+- APOIA em lote: encaminhamento à direção com a lista de alunos em alerta, registro automático em todos os listados e PDF com a mesma identidade visual do diário
+- Sorteio individual sem reposição: o aluno sorteado sai da possibilidade de novo sorteio até o professor resetar, com lista de já sorteados
+- Exclusão de alunos nas equipes do sorteio de grupos
+- Exportação de grupos em TXT
+
+### Alterado
+- APOIA: botão "Novo Registro" ficou acessível apenas como "Documento individual (avançado)" no rodapé do modal de encaminhamento
+
+### Corrigido
+- Erro de referência (`ReferenceError`) em `abrirEncaminhamento` que derrubava toda a aba Professor Tech, com `window.profAPI` vazio
+- Rodapé dos PDFs agora mostra "Página X de Y" correto em todas as páginas
+
+### Verificado
+- `tools/lint_colado.js` (+ self-test) pega palavra-chave colada em identificador, classe de erro que era invisível para o `node --check`
+- `tools/harness/build_boot.js` valida que todo o módulo do Professor Tech inicializa sem erro
+
 ## [v1.3.0] — 2026-10-03
 ### Adicionado
 - Login com Google ativado no fluxo de autenticação (link com conta existente via linkWithPopup, preservando UID)

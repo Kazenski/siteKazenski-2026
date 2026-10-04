@@ -1,8 +1,112 @@
 {
-  "geradoEm": "2026-10-03T20:14:15+00:00",
-  "versaoAtual": "1.3.0",
-  "totalEntradas": 2,
+  "geradoEm": "2026-10-04T18:08:40+00:00",
+  "versaoAtual": "1.4.0",
+  "totalEntradas": 3,
   "entradas": [
+    {
+      "versao": "1.4.0",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Nova subaba **Evolução** no Professor Tech: progressão das notas no trimestre, dispersão geral, média por disciplina, frequência por aula no período e tabela de notas"
+                ],
+                [
+                  "li",
+                  "Relatório analítico de faltas com alertas: 5 faltas seguidas ou 7 alternadas"
+                ],
+                [
+                  "li",
+                  "Nova subaba **Painel** de Dados no Professor Tech: KPIs (total de alunos, frequência média, média geral, dispersão, alunos com APOIA e com anotações), gráficos no estilo da Evolução (progressão, dispersão, média por disciplina, frequência por aula), comparativos por faixa de nota e de frequência, média por escola/turma/disciplina e diferenças por trimestre"
+                ],
+                [
+                  "li",
+                  "APOIA em lote: encaminhamento à direção com a lista de alunos em alerta, registro automático em todos os listados e PDF com a mesma identidade visual do diário"
+                ],
+                [
+                  "li",
+                  "Sorteio individual sem reposição: o aluno sorteado sai da possibilidade de novo sorteio até o professor resetar, com lista de já sorteados"
+                ],
+                [
+                  "li",
+                  "Exclusão de alunos nas equipes do sorteio de grupos"
+                ],
+                [
+                  "li",
+                  "Exportação de grupos em TXT"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "APOIA: botão \"Novo Registro\" ficou acessível apenas como \"Documento individual (avançado)\" no rodapé do modal de encaminhamento"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Erro de referência (`ReferenceError`) em `abrirEncaminhamento` que derrubava toda a aba Professor Tech, com `window.profAPI` vazio"
+                ],
+                [
+                  "li",
+                  "Rodapé dos PDFs agora mostra \"Página X de Y\" correto em todas as páginas"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "`tools/lint_colado.js` (+ self-test) pega palavra-chave colada em identificador, classe de erro que era invisível para o `node --check`"
+                ],
+                [
+                  "li",
+                  "`tools/harness/build_boot.js` valida que todo o módulo do Professor Tech inicializa sem erro"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.3.0",
       "data": "2026-10-03",
