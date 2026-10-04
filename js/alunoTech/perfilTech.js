@@ -26,6 +26,7 @@ let kanbanUnsub = null;
 let myNotes = [];
 let myTasks = [];
 let currentTagFilter = 'all';
+let currentNoteFilter = 'all';
 let currentPage = 1;
 const itemsPerPage = 12;
 const noteColors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#eab308', '#64748b'];
@@ -124,6 +125,11 @@ function setupTabsNavigation() {
         if (targetId === 'metricas' || targetId === 'frequencia') {
             setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
         }
+
+        // INICIALIZA KANBAN SOMENTE QUANDO A ABA FOR CLICADA
+        if (targetId === 'kanban') {
+            initKanbanSystem();
+        }
     });
 }
 
@@ -193,7 +199,7 @@ async function initDashboard(user) {
     loadFrequencia();
     loadAvaliacoes360();
     initNotebookSystem();
-    initKanbanSystem();
+    // initKanbanSystem(); // MOVIDO: só carrega quando clicar na aba Kanban
     loadHorarioEscolar();
     initCalendarSystem();
     window.mochilaAPI.init();
@@ -392,11 +398,180 @@ function setupEventListeners() {
     // Eventos de Filtros (Gráfico de Evolução)
     els.selEvol?.addEventListener('change', (e) => renderEvolutionChart(e.target.value));
 
-    // Gatilho da Coleção TCG - Garante que todos os botões "Coleção TCG" do Aluno disparem a atualização
-    document.querySelectorAll('[data-target="tcg"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            if(window.alunoTcgAPI) window.alunoTcgAPI.init();
+    // --- CADERNO DIGITAL: Eventos dos botões ---
+    // Novo Caderno (sidebar)
+    document.getElementById('btn-new-notebook')?.addEventListener('click', () => {
+        const nome = prompt('Nome do novo caderno:');
+        if (nome) {
+            // TODO: implementar criação de caderno no Firestore
+            alert(`Caderno "${nome}" criado! (Implementar salvamento no Firestore)`);
+        }
+    });
+
+    // Busca de cadernos
+    document.getElementById('al-notebook-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-notebook-list button').forEach(btn => {
+            const texto = btn.textContent.toLowerCase();
+            btn.style.display = texto.includes(termo) ? '' : 'none';
         });
+    });
+
+    // Filtros rápidos do Caderno
+    document.getElementById('btn-filter-all')?.addEventListener('click', () => {
+        currentNoteFilter = 'all';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+    document.getElementById('btn-filter-pinned')?.addEventListener('click', () => {
+        currentNoteFilter = 'pinned';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+    document.getElementById('btn-filter-recent')?.addEventListener('click', () => {
+        currentNoteFilter = 'recent';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+
+    // Filtros de Tags (sidebar)
+    document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
+        currentTagFilter = 'pendentes';
+        renderNotes();
+        updateTagFilters();
+    });
+    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
+        currentTagFilter = 'recebidas';
+        renderNotes();
+        updateTagFilters();
+    });
+
+    // Busca de Tags
+    document.getElementById('al-tags-filter-search')?.addEventListener('input', (e) => {
+        // Se houver input de busca de tags
+    });
+
+    // Busca de Cadernos
+    document.getElementById('al-notebook-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-notebook-list button').forEach(btn => {
+            const texto = btn.textContent.toLowerCase();
+            btn.style.display = texto.includes(termo) ? '' : 'none';
+        });
+    });
+
+    // Botão "Nova Anotação" - Botão flutuante no editor vazio
+    document.getElementById('btn-new-note-empty')?.addEventListener('click', createNewNote);
+
+    // Botão "Nova Anotação" - Header da lista de notas
+    document.getElementById('btn-new-note')?.addEventListener('click', createNewNote);
+
+    // Botão "Novo Caderno" na sidebar
+    document.getElementById('btn-new-notebook')?.addEventListener('click', () => {
+        const nome = prompt('Nome do novo caderno:');
+        if (nome) {
+            alert(`Caderno "${nome}" criado! (Implementar salvamento no Firestore)`);
+        }
+    });
+
+    // Botão "Mais cadernos" - placeholder
+    document.getElementById('btn-more-notebooks')?.addEventListener('click', () => {
+        alert('Funcionalidade "Mais cadernos" em desenvolvimento');
+    });
+
+    // Busca de cadernos na sidebar
+    document.getElementById('al-notebook-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-notebook-list button').forEach(btn => {
+            const texto = btn.textContent.toLowerCase();
+            btn.style.display = texto.includes(termo) ? '' : 'none';
+        });
+    });
+
+    // Busca de notas
+    document.getElementById('al-note-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-notes-list > div').forEach(noteEl => {
+            const titulo = noteEl.querySelector('h4')?.textContent?.toLowerCase() || '';
+            noteEl.style.display = titulo.includes(termo) ? '' : 'none';
+        });
+    });
+
+    // Filtros de notas (Todas / Fixadas / Recentes)
+    document.getElementById('btn-filter-all')?.addEventListener('click', () => {
+        currentNoteFilter = 'all';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+    document.getElementById('btn-filter-pinned')?.addEventListener('click', () => {
+        currentNoteFilter = 'pinned';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+    document.getElementById('btn-filter-recent')?.addEventListener('click', () => {
+        currentNoteFilter = 'recent';
+        renderNotes();
+        updateNoteFilterButtons();
+    });
+
+    // Botões de filtro de tags (Pendentes / Recebidas)
+    document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
+        currentTagFilter = 'pendentes';
+        renderNotes();
+        updateTagFilters();
+    });
+    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
+        currentTagFilter = 'recebidas';
+        renderNotes();
+        updateTagFilters();
+    });
+
+    // Novo Caderno na sidebar
+    document.getElementById('btn-new-notebook')?.addEventListener('click', () => {
+        const nome = prompt('Nome do novo caderno:');
+        if (nome) {
+            alert(`Caderno criado! (Implementar salvamento no Firestore)`);
+        }
+    });
+
+    // Busca de tags na sidebar
+    document.getElementById('al-tags-filter-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-tags-filter button').forEach(btn => {
+            const texto = btn.textContent.toLowerCase();
+            btn.style.display = texto.includes(termo) ? '' : 'none';
+        });
+    });
+
+    // Busca de notas
+    document.getElementById('al-note-search')?.addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase();
+        document.querySelectorAll('#al-notes-list > div').forEach(noteEl => {
+            const titulo = noteEl.querySelector('h4')?.textContent?.toLowerCase() || '';
+            noteEl.style.display = titulo.includes(termo) ? '' : 'none';
+        });
+    });
+
+    // Novo Caderno na sidebar
+    document.getElementById('btn-new-notebook')?.addEventListener('click', () => {
+        const nome = prompt('Nome do novo caderno:');
+        if (nome) {
+            alert('Caderno criado! (Implementar salvamento no Firestore)');
+        }
+    });
+
+    // Novo Caderno no botão flutuante do editor vazio
+    document.getElementById('btn-new-note-empty')?.addEventListener('click', createNewNote);
+
+    // Botão "Nova Anotação" no header da lista
+    document.getElementById('btn-new-note')?.addEventListener('click', createNewNote);
+
+    // Botão "Novo Caderno" na sidebar
+    document.getElementById('btn-new-notebook')?.addEventListener('click', () => {
+        const nome = prompt('Nome do novo caderno:');
+        if (nome) {
+            alert('Caderno criado! (Implementar salvamento no Firestore)');
+        }
     });
 }
 
@@ -1339,13 +1514,16 @@ function createNewNote() {
     formIsPinned = false;
     selectedNoteColor = '#3b82f6';
 
-    els.noteActiveId.value = '';
-    els.noteActiveTitle.value = '';
-    els.noteActiveBody.value = '';
-    els.noteActiveTags.value = '';
+    document.getElementById('al-note-active-id').value = '';
+    document.getElementById('al-note-active-title').value = '';
+    document.getElementById('al-note-editor').innerHTML = '';
+    document.getElementById('al-note-active-tags').value = '';
+    document.getElementById('al-note-font-size').value = '1rem'; // reset font size
 
     // Reseta o seletor de cores para a cor padrão
+    selectedNoteColor = '#3b82f6';
     renderColorPicker();
+    const activeState = document.getElementById('al-note-active-state');
     if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`;
 
     // 3. CONTROLE DE BOTÕES E INFOS
@@ -1562,9 +1740,31 @@ function updateTagFilters() {
     if (els.noteTags) els.noteTags.innerHTML = html;
 }
 
-window.setNoteTag = (tag) => {
-    currentTagFilter = tag;
-    updateTagFilters();
+function updateNoteFilterButtons() {
+    const buttons = {
+        all: document.getElementById('btn-filter-all'),
+        pinned: document.getElementById('btn-filter-pinned'),
+        recent: document.getElementById('btn-filter-recent')
+    };
+    Object.entries(buttons).forEach(([key, btn]) => {
+        if (!btn) return;
+        if (currentNoteFilter === key) {
+            btn.classList.add('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30');
+            btn.classList.remove('text-slate-400', 'hover:bg-slate-700', 'hover:text-white', 'border-transparent', 'hover:border-amber-500/30', 'hover:bg-amber-500/10');
+        } else {
+            // Reset to default styles based on filter type
+            const colors = { all: 'blue-400', pinned: 'amber-400', recent: 'emerald-400' };
+            btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-amber-500/20', 'text-amber-400', 'border-amber-500/30', 'bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
+            btn.classList.add('text-slate-400', 'hover:bg-slate-700', 'hover:text-white', 'border-transparent', 'hover:border-' + colors[key] + '-500/30', 'hover:bg-' + colors[key] + '-500/10');
+            const colors = { all: 'blue-500', pinned: 'amber-500', recent: 'emerald-500' };
+            btn.classList.add(`text-${colors[key]}`, `hover:bg-${colors[key]}-500/10`, `hover:border-${colors[key]}-500/30`);
+        });
+    }
+}
+
+window.setNoteFilter = (filter) => {
+    currentNoteFilter = filter;
+    updateNoteFilterButtons();
     renderNotes();
 };
 
