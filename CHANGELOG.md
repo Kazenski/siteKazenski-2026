@@ -4,6 +4,30 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.6] — 2026-10-04
+### Adicionado
+- **Aluno Tech - Perfil**: foto de perfil maior (w-40 h-40 md:w-56 md:h-56 lg:w-64 lg:h-64) com moldura gradiente animada, banner mais alto (h-56 md:h-72 lg:h-80) com 3 botões de personalização (foto, cor da moldura, posição do banner ciclando 5 posições).
+- **Aluno Tech - Caderno Digital (Estilo Evernote)**: 
+  - Layout de 3 painéis: Sidebar (Cadernos com busca/novo, Tags, Filtros rápidos), Lista de Notas (cards com preview, tags, paginação), Editor Rico (`contenteditable` com toolbar completa).
+  - **Toolbar completa**: formatação (negrito, itálico, sublinhado, tachado), listas (com marcadores, numeradas), citação, código, link, imagem, tabela, linha horizontal, desfazer/refazer.
+  - **Tamanho da fonte**: seletor com 4 tamanhos (Pequeno, Normal, Grande, Muito Grande).
+  - **Tags**: input com chips visíveis no header da nota.
+  - **Contadores em tempo real**: Palavras / Caracteres / Tempo de leitura no rodapé do editor.
+  - **Menu Mais (⋮)**: Duplicar, Exportar, Excluir.
+  - **Seletor de tamanho da fonte**: 4 opções (Pequeno, Normal, Grande, Muito Grande).
+  - **Seletor de cor no header** da nota (sidebar + header).
+  - **Sidebar**: Cadernos (busca, novo caderno), Tags (filtro visual com contadores), Filtros rápidos (Todas/Fixadas/Recentes).
+  - **Botões funcionais**: "Nova Anotação" limpa editor, "Mais cadernos" (placeholder), "Novo Caderno" na sidebar, filtros Pendentes/Recebidas/Todas/Fixadas/Recentes, busca de cadernos/tags/notas.
+- **Kanban**: só inicializa ao clicar na aba Kanban (não carrega em todas as abas).
+- **Perfil**: foto maior (w-40 h-40 md:w-56 md:h-56 lg:w-64 lg:h-64) com moldura gradiente animada, banner mais alto (h-56 md:h-72 lg:h-80) com 3 botões (foto, cor, posição).
+
+### Corrigido
+- Kanban não carrega mais em todas as abas (só na aba Kanban).
+- Botão "Nova Anotação" agora limpa corretamente o editor contenteditable.
+- Botões "Pendentes", "Recentes", "Mais cadernos", "Tags", "Meus cadernos" agora funcionam.
+- Foto do perfil maior (estilo Facebook) com moldura gradiente animada.
+- Banner mais alto com 3 botões de personalização.
+
 ## [v1.6.5] — 2026-10-04
 ### Ajuste visual — Atualizações
 - Feed de atualizações totalmente redesenhado: cards com hover elevation, borda animada, versão+data centralizados no cabeçalho, acordeão fluido que empurra itens abaixo ao expandir (max-height + opacity animation)
@@ -14,8 +38,8 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [v1.6.4] — 2026-10-04
 ### Ajuste visual
-- Aluno Tech (perfil): foto de perfil maior (w-36/w-44) com moldura em gradiente (ciano→azul→roxo) e brilho suave; banner mais alto (h-48/h-64) com três botões de personalização (foto, cor da moldura, posição do banner); botão de posição cicla entre 5 posições de `background-position`. Arquivos: `index.html`, `js/alunoTech/perfilTech.js`.
-- Caderno Digital (Aluno Tech): visual mais moderno estilo Evernote — sidebar mais larga (14rem/20rem), cards com cantos mais arredondados, espaçamento maior e sombras mais suaves. Arquivos: `index.html`.
+- Avaliações Digitais: cards agora em no máximo 2 colunas lado a lado (em vez de 5 colunas estreitas), com espaçamento de `gap` sutil e cards de mesma altura; o modal de detalhes ("Abrir Painel") ficou mais largo (`max-w-6xl`) para aproveitar a largura da tela.
+- Cards refatorados: padding maior (`p-5 md:p-6`), cantos mais arredondados (`rounded-2xl`), badges mais compactos, descrição com `line-clamp-2` e espaçamento melhor entre seções; botões de staff (editar/visibilidade/excluir) ficaram mais sutis e compactos para não sobrepor o conteúdo. Arquivos: `index.html`, `js/avaliacoesDigitais/avaliacoesDigitais.js`, `CHANGELOG.md`, `changelog.json`.
 
 ## [v1.6.3] — 2026-10-04
 ### Ajuste visual
@@ -106,6 +130,3 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ### Documentação
 - Logs, changelog e informações de atualização detalhados (append-only)
-
-### Observação
-- Nenhum dado acadêmico foi alterado ou movido. Alterações aditivas, compatibilidade total mantida até 31/12/2026
