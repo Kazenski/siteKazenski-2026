@@ -16,7 +16,7 @@ let bloco = src.slice(ini, fim);
 // remove indentacao de 8 espacos para deixar no mesmo nivel do harness
 bloco = bloco.split('\n').map(l => l.startsWith('        ') ? l.slice(8) : l).join('\n');
 
-const helpers = ['normalizarStatusPresenca', 'analisarAusentismo', 'renderAlertasAusentismo', 'corPctPresenca', 'criarJsPDF'];
+const helpers = ['normalizarStatusPresenca', 'analisarAusentismo', 'renderAlertasAusentismo', 'corPctPresenca', 'criarJsPDF', 'pintarRodapePaginas'];
 function extrair(nome) {
     const i = src.indexOf(`function ${nome}(`);
     let j = src.indexOf('{', i), depth = 0, fim2 = -1;
@@ -40,6 +40,9 @@ const harness = `<!DOCTYPE html>
 const erros = [];
 window.onerror = (m,s,l,c,e) => erros.push(String(m)+' @'+l+':'+c);
 const REGRAS_AUSENTISMO = { SEQUENCIA: 5, ALTERNADAS: 7 };
+// Guarda a classe real: os blocos de conteudo trocam por um wrapper sem
+// compressao e precisam devolver a original no final.
+const JSPDF_REAL = window.jspdf.jsPDF;
 ${helpers.map(extrair).join('\n\n')}
 
 function escapeHTML(s){ return String(s); }
@@ -130,8 +133,42 @@ try {
     }
   };
 } catch (e) { erros.push('conteudo: ' + e.message); }
+// restaura a classe real, senao o bloco seguinte receberia o wrapper
+window.jspdf.jsPDF = JSPDF_REAL; window.jsPDF = JSPDF_REAL;
 
-window.__RESULTADO__ = { relatorio, erros, conteudo };
+// --- conference de rodape em documento multipagina -----------------------
+// O rodape precisa sair "Página X de Y" com Y = total real. Desenhar dentro
+// do didDrawPage do autoTable produz "Página 1 de 1" em todas as páginas.
+let multipagina = null;
+try {
+  const cols = Array.from({ length: 25 }, (_, i) => ({ label: String(i + 1).padStart(2,'0') + '/09', regs: {} }));
+  const rows = mkAlunos(40, cols);
+  const real = JSPDF_REAL;
+  const Ctor = function (opts) { return new real(Object.assign({ compress: false }, opts)); };
+  window.jspdf.jsPDF = Ctor; window.jsPDF = Ctor;
+  let capturado = null, paginas = 0;
+  const orig = real.API.save;
+  real.API.save = function () { capturado = this.output(); paginas = this.internal.getNumberOfPages(); };
+  gerar({ classId: '7A', disciplineId: 'mat', cols, rows, startStr: '2026-08-01', endStr: '2026-09-30', emAlerta: rows.filter(x => x.analise.critico) });
+  real.API.save = orig;
+  window.jspdf.jsPDF = JSPDF_REAL; window.jsPDF = JSPDF_REAL;
+  const d = capturado || '';
+  const faltando = [];
+  for (let i = 1; i <= paginas; i++) {
+    if (!d.includes('Página ' + i + ' de ' + paginas)) faltando.push(i);
+  }
+  multipagina = {
+    paginas,
+    rodapeEsperado: paginas,
+    rodapeOK: paginas - faltando.length,
+    rodapeFaltando: faltando,
+    // assinatura classica do bug: total fixo no 1
+    rodapeTotalErrado: paginas > 1 && /Página 1 de 1[^0-9]/.test(d),
+    ok: paginas > 1 && faltando.length === 0 && !/Página 1 de 1[^0-9]/.test(d)
+  };
+} catch (e) { erros.push('multipagina: ' + e.message); }
+
+window.__RESULTADO__ = { relatorio, erros, conteudo, multipagina };
 </script>
 </body></html>`;
 

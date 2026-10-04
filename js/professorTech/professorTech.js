@@ -953,6 +953,37 @@ function renderExclusoesGrupos() {
 }
 
 /**
+ * Desenha o rodapé (filete + texto à esquerda + "Página X de Y") em TODAS as
+ * páginas do PDF.
+ *
+ * Precisa ser chamado DEPOIS que o documento está pronto: dentro do
+ * `didDrawPage` do autoTable o total ainda não existe, e o rodapé sairia
+ * sempre como "Página 1 de 1".
+ *
+ * @param {object} pdf        instância do jsPDF
+ * @param {string} textoEsq   texto do canto inferior esquerdo
+ * @param {number} yLinha     coordenada Y do filete
+ * @param {number} yTexto     coordenada Y do texto
+ */
+function pintarRodapePaginas(pdf, textoEsq, yLinha, yTexto) {
+    const pageW = pdf.internal.pageSize.getWidth();
+    const total = pdf.internal.getNumberOfPages();
+
+    for (let n = 1; n <= total; n++) {
+        pdf.setPage(n);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.5);
+        pdf.line(40, yLinha, pageW - 40, yLinha);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(148, 163, 184);
+        pdf.text(textoEsq, 40, yTexto);
+        pdf.text(`Página ${n} de ${total}`, pageW - 40, yTexto, { align: 'right' });
+    }
+    pdf.setPage(total);
+}
+
+/**
  * PDF do encaminhamento à direção — mesma linguagem visual da Matriz de
  * Frequência (cabeçalho escuro, faixa âmbar, legenda colorida, rodapé paginado).
  */
@@ -1033,13 +1064,15 @@ function gerarPdfEncaminhamento(lista, ctx) {
             lineColor: [71, 85, 105], lineWidth: 0.5
         },
         alternateRowStyles: { fillColor: [248, 250, 252] },
+        // Só as colunas estreitas têm largura fixa; as duas do texto (dias de falta e
+// diagnóstico) ficam sem cellWidth para o autoTable completar a largura útil.
         columnStyles: {
             0: { halign: 'left', fontStyle: 'bold', cellWidth: 100, textColor: [30, 41, 59] },
             1: { halign: 'center', fontStyle: 'bold', cellWidth: 34, textColor: [220, 38, 38], fillColor: [254, 242, 242] },
             2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
             3: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
-            4: { halign: 'left', cellWidth: 125, textColor: [71, 85, 105], fontSize: 7.5 },
-            5: { halign: 'left', cellWidth: 145, textColor: [30, 41, 59] }
+            4: { halign: 'left', textColor: [71, 85, 105], fontSize: 7.5 },
+            5: { halign: 'left', textColor: [30, 41, 59] }
         },
         didParseCell: (data) => {
             if (data.section !== 'body') return;
@@ -1049,23 +1082,14 @@ function gerarPdfEncaminhamento(lista, ctx) {
             if (data.column.index === 5 && data.row.raw[5].includes('seguidas')) data.cell.styles.textColor = [185, 28, 28];
             if (data.column.index === 0) data.cell.styles.fillColor = [254, 249, 252];
         },
-        didDrawPage: () => {
-            const p = pdf.internal.getNumberOfPages();
-            pdf.setDrawColor(226, 232, 240);
-            pdf.setLineWidth(0.5);
-            pdf.line(M, pageH - 40, pageW - M, pageH - 40);
-            pdf.setFont('helvetica', 'normal');
-            pdf.setFontSize(7.5);
-            pdf.setTextColor(148, 163, 184);
-            pdf.text(`Kazenski · APOIA · ${ctx.turmaNome || ''} · ${ctx.disciplinaNome || ''}`, M, pageH - 26);
-            pdf.text(`Página ${p} de ${pdf.internal.getNumberOfPages()}`, pageW - M, pageH - 26, { align: 'right' });
-        }
+        // O rodapé é pintado no fim (ver pintarRodapePaginas), porque aqui o
+        // total de páginas ainda não é conhecido.
     });
 
     // ---- Bloco de assinaturas (após a última página da tabela) ----
     let sy = pdf.lastAutoTable.finalY + 46;
-    const paginaExtra = (sy + 84) > (pageH - 52);
-    if (paginaExtra) {
+    const precisaPaginaExtra = (sy + 84) > (pageH - 52);
+    if (precisaPaginaExtra) {
         pdf.addPage();
         sy = 70;
         pdf.setTextColor(15, 23, 42);
@@ -1102,19 +1126,13 @@ function gerarPdfEncaminhamento(lista, ctx) {
         pdf.text(legenda, x + 60, sy + 56, { align: 'center' });
     });
 
-    // A página extra não passou pelo didDrawPage do autoTable, então seu
-    // rodapé é desenhado aqui.
-    if (paginaExtra) {
-        const p = pdf.internal.getNumberOfPages();
-        pdf.setDrawColor(226, 232, 240);
-        pdf.setLineWidth(0.5);
-        pdf.line(M, pageH - 40, pageW - M, pageH - 40);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(7.5);
-        pdf.setTextColor(148, 163, 184);
-        pdf.text(`Kazenski · APOIA · ${ctx.turmaNome || ''} · ${ctx.disciplinaNome || ''}`, M, pageH - 26);
-        pdf.text(`Página ${p} de ${p}`, pageW - M, pageH - 26, { align: 'right' });
-    }
+    // Rodapé em todas as páginas, agora que o total é conhecido.
+    pintarRodapePaginas(
+        pdf,
+        `Kazenski · APOIA · ${ctx.turmaNome || ''} · ${ctx.disciplinaNome || ''}`.replace(/\s*·\s*·\s*/g, ' · ').replace(/·\s*$/, ''),
+        pageH - 40,
+        pageH - 26
+    );
 
     const nomeArquivo = `APOIA_Encaminhamento_${(ctx.turmaNome || ctx.turmaId || 'turma').replace(/[^\w-]+/g, '').substring(0, 14)}_${dataParaInput(new Date())}.pdf`;
     pdf.save(nomeArquivo);
@@ -1933,18 +1951,16 @@ async function generatePdf() {
                     data.cell.styles.textColor = [220, 38, 38];
                 }
             },
-            didDrawPage: () => {
-                const p = pdf.internal.getNumberOfPages();
-                pdf.setDrawColor(226, 232, 240);
-                pdf.setLineWidth(0.5);
-                pdf.line(M, pageH - 34, pageW - M, pageH - 34);
-                pdf.setFont('helvetica', 'normal');
-                pdf.setFontSize(7.5);
-                pdf.setTextColor(148, 163, 184);
-                pdf.text(`Kazenski · ${school || ''} · ${classId} · ${dName}`, M, pageH - 20);
-                pdf.text(`Página ${p} de ${pdf.internal.getNumberOfPages()}`, pageW - M, pageH - 20, { align: 'right' });
-            }
+            // O rodapé é pintado no fim (ver pintarRodapePaginas), porque aqui
+            // o total de páginas ainda não é conhecido.
         });
+
+        pintarRodapePaginas(
+            pdf,
+            `Kazenski · ${school || '-'} · ${classId} · ${dName}`,
+            pageH - 34,
+            pageH - 20
+        );
 
         const nomeArquivo = `Matriz_Frequencia_${classId}_${(dName || '').replace(/[^\w-]+/g, '').substring(0, 12)}_${startStr}_${endStr}.pdf`;
         pdf.save(nomeArquivo);
