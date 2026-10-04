@@ -14,8 +14,13 @@ function extrair(nome) {
 }
 
 const REGRAS_AUSENTISMO = { SEQUENCIA: 5, ALTERNADAS: 7 };
-const codigo = [extrair('normalizarStatusPresenca'), extrair('analisarAusentismo')].join('\n\n');
-const mod = new Function('REGRAS_AUSENTISMO', codigo + '\nreturn { analisarAusentismo, normalizarStatusPresenca };')(REGRAS_AUSENTISMO);
+const codigo = [
+    extrair('normalizarStatusPresenca'),
+    extrair('analisarAusentismo'),
+    extrair('formatarDatasFalta'),
+    extrair('textoDiagnostico')
+].join('\n\n');
+const mod = new Function('REGRAS_AUSENTISMO', codigo + '\nreturn { analisarAusentismo, normalizarStatusPresenca, formatarDatasFalta, textoDiagnostico };')(REGRAS_AUSENTISMO);
 const { analisarAusentismo } = mod;
 
 let falhas = 0;
@@ -112,6 +117,72 @@ console.log('\nlista vazia');
     check('total = 0', r.total === 0);
     check('pct = 0', r.pctPresenca === 0);
     check('sem erro', r.critico === false);
+}
+
+console.log('\ndata de corte não vaza para trás');
+{
+    const d = (n) => ({ status: 'ausente', data: new Date(2026, 2, n) });
+    const p = (n) => ({ status: 'presente', data: new Date(2026, 2, n) });
+    const r = analisarAusentismo([d(2), d(3), p(4), d(5), { status: 'justificado', data: new Date(2026, 2, 6) }, d(7)]);
+    check('total = 4', r.total === 4, `-> ${r.total}`);
+    check('4 datas coletadas', r.datasFalta.length === 4, `-> ${r.datasFalta.length}`);
+    check('ultimaFalta = dia 7', r.ultimaFalta.getDate() === 7, `-> ${r.ultimaFalta}`);
+    check('justificado NAO entra como falta', r.datasFalta.every(x => x.getDate() !== 6));
+    check('3 blocos de falta', r.sequencias.length === 3, `-> ${r.sequencias.length}`);
+    check('bloco 1 tem 2 datas', r.sequencias[0].length === 2, `-> ${r.sequencias[0].length}`);
+    check('bloco 3 tem 1 data', r.sequencias[2].length === 1);
+}
+
+console.log('\nsequencias fecham no fim da lista');
+{
+    const d = (n) => ({ status: 'ausente', data: new Date(2026, 2, n) });
+    const r = analisarAusentismo([d(1), d(2)]);
+    check('1 bloco mesmo sem presenca depois', r.sequencias.length === 1, `-> ${r.sequencias.length}`);
+    check('bloco com 2 datas', r.sequencias[0].length === 2);
+    check('ultimaFalta = dia 2', r.ultimaFalta.getDate() === 2);
+}
+
+console.log('\nsem data: nao quebra e nao inventa data');
+{
+    const r = analisarAusentismo(seq(A(3)));
+    check('3 faltas', r.total === 3);
+    check('nenhuma data (todas null)', r.datasFalta.every(x => x === null), `-> ${r.datasFalta.length}`);
+    check('ultimaFalta null', r.ultimaFalta === null);
+}
+
+console.log('\nformatarDatasFalta');
+{
+    const fmt = mod.formatarDatasFalta;
+    check('vazio -> "-"', fmt([]) === '-');
+    check('null -> "-"', fmt(null) === '-');
+    check('filtra nulls', fmt([null, new Date(2026, 2, 5)]) === '05/03', `-> ${fmt([null, new Date(2026, 2, 5)])}`);
+    check('dois dias', fmt([new Date(2026, 2, 5), new Date(2026, 2, 6)]) === '05/03, 06/03');
+    const muitos = Array.from({ length: 20 }, (_, i) => new Date(2026, 2, i + 1));
+    check('limita e mostra resto', fmt(muitos, 3).endsWith('+17'), `-> ${fmt(muitos, 3)}`);
+    check('aceita Timestamp numérico', fmt([new Date(1772582400000)]) === '03/03', `-> ${fmt([new Date(1772582400000)])}`);
+}
+
+console.log('\ntextoDiagnostico');
+{
+    const t = mod.textoDiagnostico;
+    const seq5 = analisarAusentismo(seq(A(6)));
+    check('5 seguidas', t(seq5) === '6 faltas seguidas (limite: 5)', `-> ${t(seq5)}`);
+    const alt7 = analisarAusentismo(seq(A(1), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1)));
+    check('7 alternadas', t(alt7) === '7 faltas alternadas (limite: 7)', `-> ${t(alt7)}`);
+    const ambos = analisarAusentismo(seq(A(6), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1), P(1), A(1)));
+    check('os dois juntos', t(ambos) === '6 faltas seguidas (limite: 5) e 7 faltas alternadas (limite: 7)', `-> ${t(ambos)}`);
+    const nenhum = analisarAusentismo(seq(P(4)));
+    check('sem alerta mostra total', t(nenhum) === '0 faltas', `-> ${t(nenhum)}`);
+}
+
+console.log('\ngetter critico coerente');
+{
+    const r = analisarAusentismo(seq(A(6)));
+    check('critico true', r.critico === true);
+    check('ambos os flags ligados', r.alertaSequencial === true && r.alertaAlternado === false);
+    const s = analisarAusentismo(seq(P(3)));
+    check('sem alerta: critico false', s.critico === false);
+    check('sem alerta: datas vazias', s.datasFalta.length === 0 && s.ultimaFalta === null);
 }
 
 console.log(falhas === 0 ? '\nTODOS OS TESTES PASSARAM' : `\n${falhas} TESTE(S) FALHARAM`);

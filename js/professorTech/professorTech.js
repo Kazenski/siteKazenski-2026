@@ -10,7 +10,7 @@ let state = {
     chamada: { registros: {}, obs: "", lancado: null },
     notasCache: {},
     sorteioIndividual: { pool: [], sorteados: [], winner: null },
-    sorteioGrupos: { lastGroups: [] },
+    sorteioGrupos: { lastGroups: [], excluidos: new Set(), classId: '' },
     evolucaoAluno: { alunoId: null, alunoNome: null, trimestre: '1', dados: null, chartFaltas: null, chartNotas: null }
 };
 let els = {};
@@ -19,6 +19,8 @@ let apoiaCache = [];
 // uid -> análise de absenteísmo (usada para sinalizar risco de evasão no APOIA)
 let apoiaAlertasCache = {};
 let sortedGroupsCache = [];
+// Lista montada pelo modal de encaminhamento (ainda não confirmada)
+letapoiaEncaminharPendente = [];
 let cadastroSucessos = [];
 let recadastroCache = [];
 let recadastroSelected = new Set();
@@ -245,6 +247,11 @@ function mapearDOM() {
         apoiaStatus: document.getElementById('apoia-status'),
         apoiaTexto: document.getElementById('apoia-texto'),
         apoiaIntervencoes: document.getElementById('apoia-intervencoes'),
+        apoiaEncaminharModal: document.getElementById('apoia-encaminhar-modal'),
+        apoiaEncaminharSub: document.getElementById('apoia-encaminhar-sub'),
+        apoiaEncaminharBody: document.getElementById('apoia-encaminhar-body'),
+        btnApoiaEncaminhar: document.getElementById('btn-apoia-encaminhar'),
+        btnApoiaConfirmar: document.getElementById('btn-apoia-confirmar'),
         intAvisoData: document.getElementById('int-aviso-data'),
         intAvisoObs: document.getElementById('int-aviso-obs'),
         intConselhoData: document.getElementById('int-conselho-data'),
@@ -265,6 +272,11 @@ function mapearDOM() {
         groupSizeInput: document.getElementById('group-size'),
         btnExportTxt: document.getElementById('btn-export-txt'),
         groupsDisplay: document.getElementById('groups-display'),
+        sorteioJaSorteados: document.getElementById('sorteio-ja-sorteados'),
+        sorteioPendentes: document.getElementById('sorteio-pendentes'),
+        sorteioPendentesLista: document.getElementById('sorteio-pendentes-lista'),
+        gruposExclusoes: document.getElementById('grupos-exclusoes'),
+        gruposResumo: document.getElementById('grupos-resumo'),
 
         // Cadastro Massivo
         cadastroInput: document.getElementById('cadastro-input'),
@@ -793,6 +805,9 @@ function analisarAusentismo(aulas) {
     let justificadas = 0;
     let presencas = 0;
     let registradas = 0;
+    const datasFalta = [];   // datas (quando houver) de cada falta
+    const sequencias = [];   // blocos de faltas consecutivas (array de datas)
+    let blocoAtual = [];
 
     for (const aula of aulas) {
         const s = normalizarStatusPresenca(aula.status);
@@ -801,15 +816,19 @@ function analisarAusentismo(aulas) {
         if (s === 'ausente') {
             total++;
             atual++;
+            if (aula.data) datasFalta.push(aula.data);
+            blocoAtual.push(aula.data || null);
             if (atual > maxSequencia) maxSequencia = atual;
             if (!emFalta) { blocos++; emFalta = true; }
         } else {
             if (s === 'justificado') justificadas++;
             if (s === 'presente') presencas++;
+            if (blocoAtual.length) { sequencias.push(blocoAtual); blocoAtual = []; }
             atual = 0;
             emFalta = false;
         }
     }
+    if (blocoAtual.length) sequencias.push(blocoAtual);
 
     return {
         total,
@@ -818,6 +837,9 @@ function analisarAusentismo(aulas) {
         registradas,
         maxSequencia,
         blocos,
+        datasFalta,
+        sequencias,
+        ultimaFalta: datasFalta.length ? datasFalta[datasFalta.length - 1] : null,
         pctPresenca: registradas ? (presencas / registradas) * 100 : 0,
         alertaSequencial: maxSequencia >= REGRAS_AUSENTISMO.SEQUENCIA,
         alertaAlternado: blocos >= REGRAS_AUSENTISMO.ALTERNADAS,
@@ -825,6 +847,278 @@ function analisarAusentismo(aulas) {
             return this.alertaSequencial || this.alertaAlternado;
         }
     };
+}
+
+/** Formata uma lista de datas como "05/03, 06/03, 12/03" (dd/mm). */
+function formatarDatasFalta(datas, maxItens = 14) {
+    const validos = (datas || []).filter(Boolean);
+    if (!validos.length) return '-';
+    const fmt = d => {
+        const x = d instanceof Date ? d : new Date(d);
+        return `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
+    };
+    if (validos.length <= maxItens) return validos.map(fmt).join(', ');
+    return validos.slice(0, maxItens).map(fmt).join(', ') + ` +${validos.length - maxItens}`;
+}
+
+/** Texto do diagnóstico de um aluno, usado no PDF e no documento registrado. */
+function textoDiagnostico(analise) {
+    const partes = [];
+    if (analise.alertaSequencial) {
+        partes.push(`${analise.maxSequencia} faltas seguidas (limite: ${REGRAS_AUSENTISMO.SEQUENCIA})`);
+    }
+    if (analise.alertaAlternado) {
+        partes.push(`${analise.blocos} faltas alternadas (limite: ${REGRAS_AUSENTISMO.ALTERNADAS})`);
+    }
+    return partes.length ? partes.join(' e ') : `${analise.total} faltas`;
+}
+
+/** Monta o parecer descritivo que acompanha o encaminhamento. */
+function parecerEncaminhamento(item, ctx) {
+    const { analise } = item;
+    const linhas = [];
+    linhas.push(`Encaminhamento à direção em razão do padrão de frequência registrado no diário de classe da disciplina de ${ctx.disciplinaNome}, turma ${ctx.turmaNome}.`);
+    linhas.push('');
+    linhas.push(`Diagnóstico: ${textoDiagnostico(analise)}.`);
+    linhas.push(`Total de faltas: ${analise.total} em ${analise.registradas} aulas registradas. Frequência de ${analise.pctPresenca.toFixed(1)}%.`);
+    if (analise.datasFalta.length) linhas.push(`Dias de falta: ${formatarDatasFalta(analise.datasFalta, 40)}.`);
+    linhas.push('');
+    linhas.push('Solicita-se a ciência da direção e as providências que se fizerem necessárias. A partir da data deste encaminhamento a contagem de faltas do(a) aluno(a) é reiniciada, permanecendo o acompanhamento das novas ausências.');
+    return linhas.join('\n');
+}
+
+/** Chips dos alunos já sorteados que não concorrem mais + contador de pendentes. */
+function renderJaSorteados() {
+    const box = els.sorteioJaSorteados;
+    if (!box) return;
+
+    const sorteados = state.sorteioIndividual.sorteados || [];
+    const pendentes = (state.sorteioIndividual.pool || []).length;
+
+    if (els.sorteioPendentes) {
+        els.sorteioPendentes.textContent = pendentes > 0
+            ? `${pendentes} ainda concorrem`
+            : 'todos sorteados';
+    }
+
+    if (!sorteados.length) {
+        box.classList.add('hidden');
+        els.sorteioPendentesLista.innerHTML = '';
+        return;
+    }
+
+    box.classList.remove('hidden');
+    els.sorteioPendentesLista.innerHTML = sorteados.map((s, i) => `
+        <span class="inline-flex items-center gap-1.5 bg-slate-800 border border-slate-600 text-slate-300 px-2.5 py-1 rounded-lg text-[11px] font-bold">
+            <span class="text-amber-500/70 text-[9px] font-black">#${i + 1}</span>
+            ${escapeHTML(s.nome)}
+            <i class="fas fa-ban text-red-400/70 text-[9px]"></i>
+        </span>
+    `).join('');
+}
+
+/** Chips clicáveis para excluir alunos do sorteio de equipes. */
+function renderExclusoesGrupos() {
+    const box = els.gruposExclusoes;
+    if (!box) return;
+
+    const alunos = state.cache.students || [];
+    const ex = state.sorteioGrupos.excluidos;
+
+    if (!alunos.length) {
+        box.innerHTML = '<span class="text-[11px] text-slate-500 italic">Carregue a turma para escolher quem fica de fora.</span>';
+        if (els.gruposResumo) els.gruposResumo.textContent = '';
+        return;
+    }
+
+    box.innerHTML = alunos.map(s => {
+        const marcado = ex.has(s.id);
+        return `
+        <button onclick="window.profAPI.alternarExclusaoGrupo('${s.id}')"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-colors ${marcado
+                ? 'bg-red-500/20 text-red-300 border-red-500/40 line-through'
+                : 'bg-slate-900/60 text-slate-400 border-slate-700 hover:border-slate-500 hover:text-slate-200'}"
+            title="${marcado ? 'Clicar para voltar ao sorteio' : 'Clicar para excluir do sorteio'}">
+            <i class="fas ${marcado ? 'fa-user-slash' : 'fa-user'} text-[10px]"></i>
+            ${escapeHTML(s.nome)}
+        </button>`;
+    }).join('');
+
+    if (els.gruposResumo) {
+        const fora = alunos.filter(s => ex.has(s.id)).length;
+        els.gruposResumo.textContent = fora
+            ? `${alunos.length - fora} de ${alunos.length} aluno(s) sorteados · ${fora} fora do sorteio`
+            : `${alunos.length} aluno(s) em ${Math.ceil(alunos.length / Math.max(1, parseInt(els.groupSizeInput.value) || 1))} equipe(s)`;
+    }
+}
+
+/**
+ * PDF do encaminhamento à direção — mesma linguagem visual da Matriz de
+ * Frequência (cabeçalho escuro, faixa âmbar, legenda colorida, rodapé paginado).
+ */
+function gerarPdfEncaminhamento(lista, ctx) {
+    if (!lista.length) throw new Error('Nenhum aluno em alerta para encaminhar.');
+
+    const pdf = criarJsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const M = 40;
+
+    const totalFaltas = lista.reduce((s, i) => s + i.analise.total, 0);
+    const todasDatas = lista.flatMap(i => i.analise.datasFalta).sort((a, b) => a - b);
+    const de = todasDatas.length ? todasDatas[0] : null;
+    const ate = todasDatas.length ? todasDatas[todasDatas.length - 1] : null;
+    const fmtData = d => d ? d.toLocaleDateString('pt-BR') : '-';
+
+    // ---- Cabeçalho (faixa escura + faixa âmbar) ----
+    pdf.setFillColor(15, 23, 42);
+    pdf.rect(0, 0, pageW, 88, 'F');
+    pdf.setFillColor(245, 158, 11);
+    pdf.rect(0, 88, pageW, 3, 'F');
+
+    pdf.setTextColor(245, 158, 11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(15);
+    pdf.text('APOIA · ENCAMINHAMENTO À DIREÇÃO', M, 32);
+
+    pdf.setTextColor(203, 213, 225);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.text(`Escola: ${ctx.escolaNome || '-'}   |   Turma: ${ctx.turmaNome || '-'}   |   Disciplina: ${ctx.disciplinaNome || '-'}`, M, 50);
+    pdf.text(`Período das faltas: ${fmtData(de)} até ${fmtData(ate)}   |   Trimestre: ${ctx.trimestre || '-'}º   |   Alunos: ${lista.length}   |   Total de faltas: ${totalFaltas}`, M, 64);
+
+    // ---- Faixa de diagnóstico (substitui a legenda P/F/J do diário) ----
+    const ly = 108;
+    const cards = [
+        ['SEGUIDAS', `${REGRAS_AUSENTISMO.SEQUENCIA}+`, [220, 38, 38]],
+        ['ALTERNADAS', `${REGRAS_AUSENTISMO.ALTERNADAS}+`, [249, 115, 22]],
+        ['ALUNOS', String(lista.length), [245, 158, 11]]
+    ];
+    let cx = M;
+    const cardW = 108;
+    cards.forEach(([rot, val, cor]) => {
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(cx, ly - 14, cardW, 32, 3, 3, 'F');
+        pdf.setFillColor(...cor);
+        pdf.rect(cx, ly - 14, 3, 32, 'F');
+        pdf.setTextColor(...cor);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(15);
+        pdf.text(val, cx + 12, ly + 3);
+        pdf.setTextColor(100, 116, 139);
+        pdf.setFontSize(7);
+        pdf.text(rot, cx + 12, ly + 13);
+        cx += cardW + 8;
+    });
+
+    const head = [['Aluno(a)', 'Faltas', 'Seq.', 'Alt.', 'Dias de falta', 'Diagnóstico']];
+    const body = lista.map(i => [
+        i.nome,
+        String(i.analise.total),
+        String(i.analise.maxSequencia),
+        String(i.analise.blocos),
+        formatarDatasFalta(i.analise.datasFalta, 16),
+        textoDiagnostico(i.analise)
+    ]);
+
+    pdf.autoTable({
+        startY: ly + 28,
+        margin: { left: M, right: M, top: 128, bottom: 52 },
+        head, body,
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 8, halign: 'center', cellPadding: 4, lineColor: [226, 232, 240], lineWidth: 0.5, overflow: 'linebreak', valign: 'middle' },
+        headStyles: {
+            fillColor: [30, 41, 59], textColor: [248, 250, 252],
+            fontStyle: 'bold', fontSize: 7.5, halign: 'center',
+            lineColor: [71, 85, 105], lineWidth: 0.5
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            0: { halign: 'left', fontStyle: 'bold', cellWidth: 100, textColor: [30, 41, 59] },
+            1: { halign: 'center', fontStyle: 'bold', cellWidth: 34, textColor: [220, 38, 38], fillColor: [254, 242, 242] },
+            2: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
+            3: { halign: 'center', fontStyle: 'bold', cellWidth: 28 },
+            4: { halign: 'left', cellWidth: 125, textColor: [71, 85, 105], fontSize: 7.5 },
+            5: { halign: 'left', cellWidth: 145, textColor: [30, 41, 59] }
+        },
+        didParseCell: (data) => {
+            if (data.section !== 'body') return;
+            const txt = String(data.cell.raw);
+            if (data.column.index === 2 && Number(txt) >= REGRAS_AUSENTISMO.SEQUENCIA) data.cell.styles.textColor = [220, 38, 38];
+            if (data.column.index === 3 && Number(txt) >= REGRAS_AUSENTISMO.ALTERNADAS) data.cell.styles.textColor = [249, 115, 22];
+            if (data.column.index === 5 && data.row.raw[5].includes('seguidas')) data.cell.styles.textColor = [185, 28, 28];
+            if (data.column.index === 0) data.cell.styles.fillColor = [254, 249, 252];
+        },
+        didDrawPage: () => {
+            const p = pdf.internal.getNumberOfPages();
+            pdf.setDrawColor(226, 232, 240);
+            pdf.setLineWidth(0.5);
+            pdf.line(M, pageH - 40, pageW - M, pageH - 40);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(148, 163, 184);
+            pdf.text(`Kazenski · APOIA · ${ctx.turmaNome || ''} · ${ctx.disciplinaNome || ''}`, M, pageH - 26);
+            pdf.text(`Página ${p} de ${pdf.internal.getNumberOfPages()}`, pageW - M, pageH - 26, { align: 'right' });
+        }
+    });
+
+    // ---- Bloco de assinaturas (após a última página da tabela) ----
+    let sy = pdf.lastAutoTable.finalY + 46;
+    const paginaExtra = (sy + 84) > (pageH - 52);
+    if (paginaExtra) {
+        pdf.addPage();
+        sy = 70;
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.text('APOIA · ENCAMINHAMENTO À DIREÇÃO (continuação)', M, 36);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.5);
+        pdf.line(M, 46, pageW - M, 46);
+    }
+
+    pdf.setTextColor(30, 41, 59);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(8.5);
+    pdf.text('CIÊNCIA E ENCAMINHAMENTO', M, sy);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`Emitido em ${new Date().toLocaleDateString('pt-BR')} · ${lista.length} aluno(s) · ${totalFaltas} falta(s) no período.`, M, sy + 12);
+
+    const assinaturas = [
+        'Professor(a) Responsável',
+        'Coordenação Pedagógica',
+        'Direção da Escola'
+    ];
+    const colW = (pageW - M * 2) / assinaturas.length;
+    assinaturas.forEach((legenda, i) => {
+        const x = M + i * colW + colW / 2 - 60;
+        pdf.setDrawColor(148, 163, 184);
+        pdf.setLineWidth(0.5);
+        pdf.line(x, sy + 46, x + 120, sy + 46);
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(legenda, x + 60, sy + 56, { align: 'center' });
+    });
+
+    // A página extra não passou pelo didDrawPage do autoTable, então seu
+    // rodapé é desenhado aqui.
+    if (paginaExtra) {
+        const p = pdf.internal.getNumberOfPages();
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.5);
+        pdf.line(M, pageH - 40, pageW - M, pageH - 40);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(148, 163, 184);
+        pdf.text(`Kazenski · APOIA · ${ctx.turmaNome || ''} · ${ctx.disciplinaNome || ''}`, M, pageH - 26);
+        pdf.text(`Página ${p} de ${p}`, pageW - M, pageH - 26, { align: 'right' });
+    }
+
+    const nomeArquivo = `APOIA_Encaminhamento_${(ctx.turmaNome || ctx.turmaId || 'turma').replace(/[^\w-]+/g, '').substring(0, 14)}_${dataParaInput(new Date())}.pdf`;
+    pdf.save(nomeArquivo);
+    return { paginas: pdf.internal.getNumberOfPages(), totalFaltas, nomeArquivo };
 }
 
 /** Badges visuais dos alertas de absenteísmo. */
@@ -883,6 +1177,35 @@ function criarJsPDF(opts) {
     const Ctor = window.jsPDF || (window.jspdf && window.jspdf.jsPDF);
     if (!Ctor) throw new Error('Biblioteca de PDF (jsPDF) nao carregou. Recarregue a pagina.');
     return new Ctor(opts);
+}
+
+/** Preenche a tabela do modal de encaminhamento com a lista de alunos. */
+function renderListaEncaminhamento() {
+    const lista = apoiaEncaminharPendente;
+
+    if (!lista.length) {
+        els.apoiaEncaminharBody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-green-400 font-bold"><i class="fas fa-check-circle mr-2"></i> Nenhum aluno atingiu ${REGRAS_AUSENTISMO.SEQUENCIA} faltas seguidas ou ${REGRAS_AUSENTISMO.ALTERNADAS} alternadas nesta disciplina.</td></tr>`;
+        els.apoiaEncaminharSub.textContent = 'Nenhum aluno em alerta';
+        els.btnApoiaConfirmar.disabled = true;
+        return;
+    }
+
+    const totalFaltas = lista.reduce((s, i) => s + i.analise.total, 0);
+    els.apoiaEncaminharSub.textContent = `${lista.length} aluno(s) em alerta · ${totalFaltas} falta(s) no período`;
+    els.btnApoiaConfirmar.disabled = false;
+
+    els.apoiaEncaminharBody.innerHTML = lista.map(item => {
+        const a = item.analise;
+        return `
+        <tr class="bg-red-950/30 hover:bg-red-900/50 transition-colors">
+            <td class="p-4 font-bold text-slate-200">${escapeHTML(item.nome)}</td>
+            <td class="p-4 text-center font-black text-red-500 text-lg">${a.total}</td>
+            <td class="p-4 text-center font-bold ${a.alertaSequencial ? 'text-red-400' : 'text-slate-400'}">${a.maxSequencia}</td>
+            <td class="p-4 text-center font-bold ${a.alertaAlternado ? 'text-orange-400' : 'text-slate-400'}">${a.blocos}</td>
+            <td class="p-4 text-slate-300 text-xs">${escapeHTML(formatarDatasFalta(a.datasFalta, 20))}</td>
+            <td class="p-4">${renderAlertasAusentismo(a)}</td>
+        </tr>`;
+    }).join('');
 }
 
 // ==========================================
@@ -1230,13 +1553,39 @@ async function varrerAbsenteismoApoia(classId, disciplineId) {
         const corte = lastApoiaPerStudent[uid] || 0;
         const seq = aulas
             .filter(a => a.ts > corte)
-            .map(a => ({ status: a.registros[uid], data: null }));
+            .map(a => ({ status: a.registros[uid], data: new Date(a.ts) }));
         const analise = analisarAusentismo(seq);
         if (analise.registradas === 0) return;
         resultado[uid] = analise;
     });
 
     return resultado;
+}
+
+/**
+ * Monta a lista de encaminhamento à coordenação: alunos em alerta crítico,
+ * com nome, datas de falta e diagnóstico.
+ * @returns {Promise<Array<{alunoId, nome, analise}>>}
+ */
+async function montarListaEncaminhamento(classId, disciplineId) {
+    const alertas = await varrerAbsenteismoApoia(classId, disciplineId);
+    const emAlerta = Object.entries(alertas).filter(([, a]) => a.critico);
+
+    // Resolve os nomes: primeiro o cache da turma, depois o banco.
+    const cache = new Map(state.cache.students.map(s => [s.id, s.nome]));
+    const faltando = emAlerta.filter(([uid]) => !cache.has(uid)).map(([uid]) => uid);
+    if (faltando.length) {
+        await Promise.all(faltando.map(async uid => {
+            try {
+                const snap = await getDoc(doc(db, "users", uid));
+                if (snap.exists()) cache.set(uid, snap.data().nome || 'Aluno Desconhecido');
+            } catch (e) { /* segue com "Aluno Desconhecido" */ }
+        }));
+    }
+
+    return emAlerta
+        .map(([uid, analise]) => ({ alunoId: uid, nome: cache.get(uid) || 'Aluno Desconhecido', analise }))
+        .sort((a, b) => b.analise.total - a.analise.total);
 }
 
 // ==========================================
@@ -2451,6 +2800,98 @@ window.profAPI = {
         }
     },
 
+    // ==========================================
+    // ENCAMINHAMENTO EM LOTE À DIREÇÃO
+    // ==========================================
+    abrirEncaminhamento: async () => {
+        const { classId, disciplineId } = state.filters;
+        if (!classId || !disciplineId) return alert("Carregue a Turma e a Disciplina no menu superior primeiro.");
+
+        els.apoiaEncaminharModal.classList.remove('hidden');
+        els.apoiaEncaminharModal.classList.add('flex');
+        els.apoiaEncaminharBody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-300"><i class="fas fa-spinner fa-spin mr-2"></i> Varrendo diários...</td></tr>';
+        els.btnApoiaConfirmar.disabled = true;
+        els.apoiaEncaminharSub.textContent = 'Conferindo diários da disciplina...';
+
+        try {
+            apoiaEncaminharPendente = await montarListaEncaminhamento(classId, disciplineId);
+            renderListaEncaminhamento();
+        } catch (e) {
+            console.error(e);
+            apoiaEncaminharPendente = [];
+            els.apoiaEncaminharBody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-400 font-bold">Erro na varredura: ${escapeHTML(e.message)}</td></tr>`;
+            els.apoiaEncaminharSub.textContent = 'Erro ao varrer os diários';
+        }
+    },
+
+    fecharEncaminhamento: () => {
+        els.apoiaEncaminharModal.classList.add('hidden');
+        els.apoiaEncaminharModal.classList.remove('flex');
+    },
+
+    confirmarEncaminhamento: async () => {
+        const { classId, disciplineId, quarter, school } = state.filters;
+        const lista = apoiaEncaminharPendente;
+        if (!lista.length) return;
+
+        const turmaNome = els.selClass.options[els.selClass.selectedIndex]?.text || classId;
+        const disciplinaNome = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
+
+        if (!confirm(`Confirmar o encaminhamento?\n\nSerão registrados ${lista.length} documento(s) APOIA, um por aluno listado, e o PDF será baixado para impressão.\n\nA contagem de faltas desses alunos é reiniciada a partir de hoje.`)) return;
+
+        els.btnApoiaConfirmar.disabled = true;
+        els.btnApoiaConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Registrando...';
+        const rotuloOriginal = els.btnApoiaConfirmar.innerHTML;
+
+        try {
+            // PDF primeiro: se a geração falhar, nada é gravado no banco.
+            const info = gerarPdfEncaminhamento(lista, { escolaNome: school, turmaId: classId, turmaNome, disciplinaNome, trimestre: quarter });
+
+            // Registro em lote. O writeBatch tem limite de 500 operações.
+            for (let i = 0; i < lista.length; i += 450) {
+                const fatia = lista.slice(i, i + 450);
+                const batch = writeBatch(db);
+                fatia.forEach(item => {
+                    batch.set(doc(collection(db, "apoiaRegistros")), {
+                        escolaId: school, escolaNome: school,
+                        turmaId: classId, turmaNome,
+                        disciplinaId: disciplineId, disciplinaNome,
+                        alunoId: item.alunoId, alunoNome: item.nome,
+                        trimestre: quarter,
+                        status: 'enviado_coordenacao',
+                        origem: 'encaminhamento_em_lote',
+                        textoExplicativo: parecerEncaminhamento(item, { turmaNome, disciplinaNome }),
+                        diagnostico: {
+                            texto: textoDiagnostico(item.analise),
+                            alertaSequencial: item.analise.alertaSequencial,
+                            alertaAlternado: item.analise.alertaAlternado,
+                            maxSequencia: item.analise.maxSequencia,
+                            blocos: item.analise.blocos,
+                            total: item.analise.total,
+                            registradas: item.analise.registradas,
+                            pctPresenca: item.analise.pctPresenca
+                        },
+                        datasFalta: item.analise.datasFalta.map(d => Timestamp.fromDate(d)),
+                        criadoPorNome: "Professor(a)",
+                        criadoEm: serverTimestamp()
+                    });
+                });
+                await batch.commit();
+            }
+
+            window.profAPI.fecharEncaminhamento();
+            await window.profAPI.loadApoiaRegistros();
+
+            alert(`Encaminhamento concluído!\n\n${lista.length} documento(s) APOIA registrado(s).\n${info.totalFaltas} falta(s) no período.\n\nO PDF foi baixado. Imprima e leve à direção.`);
+        } catch (e) {
+            console.error(e);
+            alert("Erro no encaminhamento: " + e.message);
+        } finally {
+            els.btnApoiaConfirmar.disabled = false;
+            els.btnApoiaConfirmar.innerHTML = rotuloOriginal;
+        }
+    },
+
     generateApoiaPdf: async (data) => {
         const area = els.pdfRenderArea;
 
@@ -2530,12 +2971,23 @@ window.profAPI = {
         els.btnSpinIndiv.disabled = !hasStudents;
         els.btnSpinGrupos.disabled = count < 2;
 
+        // A lista de exclusão é por turma: trocar de turma limpa tudo.
+        if (state.sorteioGrupos.classId !== state.filters.classId) {
+            state.sorteioGrupos.classId = state.filters.classId || '';
+            state.sorteioGrupos.excluidos = new Set();
+            sortedGroupsCache = [];
+            els.groupsDisplay.innerHTML = '';
+            els.btnExportTxt.classList.add('hidden');
+        }
+        renderExclusoesGrupos();
+
         if (!hasStudents) {
             els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50 text-red-400">Sem Alunos. Carregue a turma.</span>';
             if (els.btnResetSorteio) els.btnResetSorteio.classList.add('hidden');
             state.sorteioIndividual.pool = [];
             state.sorteioIndividual.sorteados = [];
             state.sorteioIndividual.winner = null;
+            renderJaSorteados();
         } else {
             if (els.rouletteDisplay.classList.contains('roulette-winner') || state.sorteioIndividual.winner) {
                 els.rouletteDisplay.textContent = state.sorteioIndividual.winner ? state.sorteioIndividual.winner.nome : 'Pronto para sortear';
@@ -2557,7 +3009,23 @@ window.profAPI = {
             if (els.btnResetSorteio) {
                 els.btnResetSorteio.classList.toggle('hidden', state.sorteioIndividual.sorteados.length === 0 && !state.sorteioIndividual.winner);
             }
+            renderJaSorteados();
         }
+    },
+
+    /** Lista os alunos já sorteados (não concorrem mais até o reset). */
+    renderJaSorteados: () => { renderJaSorteados(); },
+
+    /** Alterna um aluno na lista de exclusão do sorteio de equipes. */
+    alternarExclusaoGrupo: (alunoId) => {
+        const ex = state.sorteioGrupos.excluidos;
+        if (ex.has(alunoId)) ex.delete(alunoId); else ex.add(alunoId);
+        renderExclusoesGrupos();
+    },
+
+    limparExclusoes: () => {
+        state.sorteioGrupos.excluidos = new Set();
+        renderExclusoesGrupos();
     },
 
     toggleSorteioMode: (mode) => {
@@ -2629,6 +3097,7 @@ window.profAPI = {
                 if (state.sorteioIndividual.pool.length === 0) {
                     els.btnSpinIndiv.disabled = true;
                 }
+                renderJaSorteados();
 
                 // Efeito de Confete!
                 if (window.confetti) {
@@ -2639,11 +3108,15 @@ window.profAPI = {
     },
 
     spinGrupos: () => {
-        const students = [...state.cache.students]; // Copia o array para não estragar o original
+        const excluidos = state.sorteioGrupos.excluidos;
+        const participantes = state.cache.students.filter(s => !excluidos.has(s.id));
         const size = parseInt(els.groupSizeInput.value);
 
-        if (students.length === 0) return;
-        if (size < 2 || size > students.length) return alert("Tamanho de equipe inválido.");
+        if (participantes.length === 0) return alert("Nenhum aluno disponível: tire todos da lista de exclusão.");
+        if (participantes.length < 2) return alert("É preciso pelo menos 2 alunos disponíveis para formar equipes.");
+        if (size < 2 || size > participantes.length) return alert(`Tamanho de equipe inválido. Com ${participantes.length} aluno(s) disponíveis, use de 2 a ${participantes.length}.`);
+
+        const students = [...participantes]; // Copia o array para não estragar o original
 
         // Algoritmo de Embaralhamento (Fisher-Yates Shuffle)
         for (let i = students.length - 1; i > 0; i--) {
@@ -2666,6 +3139,9 @@ window.profAPI = {
     renderGroups: () => {
         els.groupsDisplay.innerHTML = '';
 
+        const excluidos = state.sorteioGrupos.excluidos;
+        const fora = state.cache.students.filter(s => excluidos.has(s.id));
+
         sortedGroupsCache.forEach((group, idx) => {
             const card = document.createElement('div');
             card.className = 'group-card animate-fade-in';
@@ -2682,7 +3158,60 @@ window.profAPI = {
             els.groupsDisplay.appendChild(card);
         });
 
-        els.btnExportTxt.classList.remove('hidden');
+        // Alunos de fora ficam listados para não sumirem sem o professor perceber
+        if (fora.length) {
+            const card = document.createElement('div');
+            card.className = 'group-card animate-fade-in border-dashed opacity-90';
+            card.innerHTML = `
+                <div class="font-cinzel text-sm font-bold text-slate-400 mb-3 border-b border-slate-700 pb-2">
+                    <i class="fas fa-user-slash mr-2"></i> Fora do sorteio (${fora.length})
+                </div>
+                <ul class="list-none p-0 m-0">${fora.map(s => `<li class="py-1.5 border-b border-slate-700/50 text-slate-500 text-sm font-medium flex items-center gap-2 last:border-0"><i class="fas fa-ban text-red-400/70 text-[10px]"></i> ${escapeHTML(s.nome)}</li>`).join('')}</ul>
+            `;
+            els.groupsDisplay.appendChild(card);
+        }
+
+        if (els.gruposResumo) {
+            const total = state.cache.students.length;
+            els.gruposResumo.textContent = fora.length
+                ? `${total - fora.length} de ${total} aluno(s) sorteados · ${fora.length} fora do sorteio`
+                : `${total} aluno(s) em ${sortedGroupsCache.length} equipe(s)`;
+        }
+
+        els.btnExportTxt.classList.toggle('hidden', sortedGroupsCache.length === 0);
+    },
+
+    exportGroupsTxt: () => {
+        if (!sortedGroupsCache.length) return alert("Gere as equipes primeiro.");
+        const classe = els.selClass.options[els.selClass.selectedIndex]?.text || state.filters.classId || '';
+        const fora = state.cache.students.filter(s => state.sorteioGrupos.excluidos.has(s.id));
+
+        const linhas = [
+            `EQUIPES - ${classe}`,
+            `Tamanho: ${els.groupSizeInput.value} aluno(s) por equipe`,
+            `Gerado em: ${new Date().toLocaleString('pt-BR')}`,
+            ''
+        ];
+        sortedGroupsCache.forEach((g, i) => {
+            linhas.push(`EQUIPE ${i + 1}`);
+            g.forEach(s => linhas.push(`  - ${s.nome}`));
+            linhas.push('');
+        });
+        if (fora.length) {
+            linhas.push('FORA DO SORTEIO');
+            fora.forEach(s => linhas.push(`  - ${s.nome}`));
+            linhas.push('');
+        }
+
+        const blob = new Blob([linhas.join('\n')], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Equipes_${(classe || 'turma').replace(/[^\w-]+/g, '')}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
     },
 
     resetSorteioIndividual: () => {
@@ -2694,6 +3223,7 @@ window.profAPI = {
         els.rouletteDisplay.innerHTML = '<span class="text-2xl opacity-50">Pronto para sortear</span>';
         els.btnSpinIndiv.disabled = false;
         if (els.btnResetSorteio) els.btnResetSorteio.classList.add('hidden');
+        renderJaSorteados();
     },
 
     // ==========================================
