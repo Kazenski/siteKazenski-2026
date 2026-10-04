@@ -7,6 +7,7 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 ## [v1.6.3] — 2026-10-04
 ### Ajuste visual
 - Avaliações Digitais: cards agora em no máximo 2 colunas lado a lado (em vez de 5 colunas estreitas), com espaçamento de `gap` sutil e cards de mesma altura; o modal de detalhes ("Abrir Painel") ficou mais largo (`max-w-6xl`) para aproveitar a largura da tela.
+- Cards refatorados: padding maior (`p-5 md:p-6`), cantos mais arredondados (`rounded-2xl`), badges mais compactos, descrição com `line-clamp-2` e espaçamento melhor entre seções; botões de staff (editar/visibilidade/excluir) ficaram mais sutis e compactos para não sobrepor o conteúdo. Arquivos: `index.html`, `js/avaliacoesDigitais/avaliacoesDigitais.js`, `CHANGELOG.md`, `changelog.json`.
 
 ## [v1.6.2] — 2026-10-04
 ### Ajuste visual

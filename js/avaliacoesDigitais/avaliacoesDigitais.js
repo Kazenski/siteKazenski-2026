@@ -515,10 +515,10 @@ async function renderGridAvaliacoes(avaliacoes) {
         if (isStaff) {
             const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
             btnStaffHtml = `
-                <div class="flex gap-2 ml-auto z-20 relative shrink-0 pl-4">
-                    <button onclick="window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit"></i></button>
-                    <button onclick="window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc}"></i></button>
-                    <button onclick="window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>
+                <div class="flex gap-1.5 shrink-0">
+                    <button onclick="window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
+                    <button onclick="window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc} text-xs"></i></button>
+                    <button onclick="window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             `;
         }
@@ -535,28 +535,28 @@ async function renderGridAvaliacoes(avaliacoes) {
         if (aval.imagemBanner) extraPt = 'pt-0';
 
         return `
-            <div class="bg-slate-800 border ${bordaCard} p-5 rounded-xl mb-4 shadow-md hover:border-blue-500 transition-all relative overflow-hidden group ${opacidade}">
+            <div class="bg-slate-800/90 border ${bordaCard} p-5 md:p-6 rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all relative overflow-hidden group ${opacidade}">
                 ${badgeStatus}
                 
-                <div class="flex justify-between items-start mb-3 ${extraPt}">
-                    <h4 class="text-lg font-bold text-blue-400 font-cinzel leading-tight pr-4">${escapeHTML(tituloFinal)}</h4>
+                <div class="flex justify-between items-start gap-3 mb-4 ${extraPt}">
+                    <h4 class="text-base md:text-lg font-bold text-blue-400 font-cinzel leading-snug pr-2">${escapeHTML(tituloFinal)}</h4>
                     ${btnStaffHtml}
                 </div>
                 
-                <div class="flex flex-wrap gap-2 mb-3">
-                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>
-                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmasStr}</span>
-                </div>
-
-                <div class="text-xs text-slate-400 mb-4 bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 space-y-1.5 flex items-center justify-between">
-                    <p class="${corPrazo}"><i class="far fa-clock w-4"></i> <span class="font-bold">Data e Hora (Prazo):</span> ${strPrazo}</p>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>
+                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmasStr}</span>
                 </div>
                 
-                <p class="text-sm text-slate-300 line-clamp-2">${escapeHTML(descricaoFinal)}</p>
+                <div class="text-xs text-slate-400 mb-4 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
+                    <p class="${corPrazo} flex items-center gap-2"><i class="far fa-clock w-4 shrink-0"></i> <span class="font-bold">Prazo:</span> ${strPrazo}</p>
+                </div>
                 
-                <div class="mt-4 flex justify-end pt-3 border-t border-slate-700/50">
-                    <button onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center">
-                        <i class="fas fa-folder-open mr-2"></i> Abrir Painel
+                <p class="text-sm text-slate-300 line-clamp-2 mb-5 leading-relaxed">${escapeHTML(descricaoFinal)}</p>
+                
+                <div class="mt-auto flex justify-end pt-4 border-t border-slate-700/50">
+                    <button onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center gap-2">
+                        <i class="fas fa-folder-open"></i> Abrir Painel
                     </button>
                 </div>
             </div>
