@@ -239,7 +239,120 @@ function setupEventListeners() {
     // Seletor nativo de cor
     els.noteColorPicker?.addEventListener('input', (e) => { selectedNoteColor = e.target.value; });
 
-    els.btnConfirmCrop?.addEventListener('click', async () => {
+    // Toolbar do Editor de Notas
+    document.querySelectorAll('#al-note-toolbar [data-format]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const format = btn.dataset.format;
+            if (format === 'createLink') {
+                const url = prompt('URL do link:');
+                if (url) document.execCommand('createLink', false, url);
+            } else if (format === 'insertImage') {
+                const url = prompt('URL da imagem:');
+                if (url) document.execCommand('insertImage', false, url);
+            } else if (format === 'insertTable') {
+                const rows = parseInt(prompt('Linhas:', '3')) || 3;
+                const cols = parseInt(prompt('Colunas:', '3')) || 3;
+                let table = '<table class="w-full border-collapse border border-slate-600">';
+                for (let r = 0; r < rows; r++) {
+                    table += '<tr>';
+                    for (let c = 0; c < cols; c++) {
+                        table += '<td class="border border-slate-600 p-2 min-w-[80px]"></td>';
+                    }
+                    table += '</tr>';
+                }
+                table += '</table>';
+                document.execCommand('insertHTML', false, table);
+            } else if (format === 'insertHorizontalRule') {
+                document.execCommand('insertHorizontalRule', false, null);
+            } else {
+                document.execCommand(format, false, null);
+            }
+            document.getElementById('al-note-editor')?.focus();
+        });
+    });
+
+    // Font size selector
+    document.getElementById('al-note-font-size')?.addEventListener('change', (e) => {
+        const editor = document.getElementById('al-note-editor');
+        if (editor) {
+            editor.style.fontSize = e.target.value;
+        }
+    });
+
+    // Word/char count live update
+    const editor = document.getElementById('al-note-editor');
+    if (editor) {
+        const updateCounts = () => {
+            const text = editor.innerText || '';
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+            const readTime = Math.ceil(words / 200);
+            document.getElementById('al-note-word-count')?.querySelector('span').textContent = words;
+            document.getElementById('al-note-char-count')?.querySelector('span').textContent = chars;
+            document.getElementById('al-note-read-time')?.querySelector('span').textContent = readTime;
+        };
+        editor.addEventListener('input', updateCounts);
+        editor.addEventListener('keyup', updateCounts);
+    }
+
+    // Font size selector
+    document.getElementById('al-note-font-size')?.addEventListener('change', (e) => {
+        const editor = document.getElementById('al-note-editor');
+        if (editor) editor.style.fontSize = e.target.value;
+    });
+
+    // Toolbar format buttons
+    document.querySelectorAll('#al-note-toolbar [data-format]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const format = btn.dataset.format;
+            if (format === 'createLink') {
+                const url = prompt('URL do link:');
+                if (url) document.execCommand('createLink', false, url);
+            } else if (format === 'insertImage') {
+                const url = prompt('URL da imagem:');
+                if (url) document.execCommand('insertImage', false, url);
+            } else if (format === 'insertTable') {
+                const rows = parseInt(prompt('Linhas:', '3')) || 3;
+                const cols = parseInt(prompt('Colunas:', '3')) || 3;
+                let table = '<table class="w-full border-collapse border border-slate-600">';
+                for (let r = 0; r < rows; r++) {
+                    table += '<tr>';
+                    for (let c = 0; c < cols; c++) {
+                        table += '<td class="border border-slate-600 p-2 min-w-[80px]"></td>';
+                    }
+                    table += '</tr>';
+                }
+                table += '</table>';
+                document.execCommand('insertHTML', false, table);
+            } else if (format === 'insertHorizontalRule') {
+                document.execCommand('insertHorizontalRule', false, null);
+            } else {
+                document.execCommand(format, false, null);
+            }
+            document.getElementById('al-note-editor')?.focus();
+        });
+    });
+
+    // More menu toggle
+    const moreBtn = document.getElementById('btn-note-more');
+    const moreMenu = document.getElementById('al-note-more-menu');
+    if (moreBtn && moreMenu) {
+        moreBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            moreMenu.classList.toggle('opacity-0');
+            moreMenu.classList.toggle('invisible');
+        });
+        document.addEventListener('click', () => {
+            moreMenu.classList.add('opacity-0');
+            moreMenu.classList.add('invisible');
+        });
+    }
+
+    // Font size selector
+    document.getElementById('al-note-font-size')?.addEventListener('change', (e) => {
+        const editor = document.getElementById('al-note-editor');
+        if (editor) editor.style.fontSize = e.target.value;
+    });
         if (!cropperInstance) return;
 
         const canvas = cropperInstance.getCroppedCanvas({
@@ -1271,11 +1384,11 @@ window.selectNote = async (id) => {
     selectedNoteColor = n.color || '#3b82f6';
 
     // Preenche o painel da direita para edição imediata
-    els.noteActiveId.value = n.id;
-    els.noteActiveTitle.value = n.titulo || '';
-    els.noteActiveBody.value = n.conteudo || '';
-    els.noteActiveTags.value = (n.tags || []).join(', ');
-    els.noteColorPicker.value = selectedNoteColor;
+    document.getElementById('al-note-active-id').value = n.id;
+    document.getElementById('al-note-active-title').value = n.titulo || '';
+    document.getElementById('al-note-editor').innerHTML = n.conteudo || '';
+    document.getElementById('al-note-active-tags').value = (n.tags || []).join(', ');
+    document.getElementById('al-note-font-size').value = '1rem'; // reset font size
 
     renderColorPicker(); // Força a atualização visual da bolinha de cor
     if (activeState) activeState.style.borderTop = `4px solid ${selectedNoteColor}`; // Borda superior do painel
@@ -1451,8 +1564,11 @@ window.setNoteTag = (tag) => {
 
 // 5. Salvar a nota atual
 async function saveNote() {
-    const titulo = els.noteActiveTitle.value.trim();
-    const conteudo = els.noteActiveBody.value.trim();
+    const titulo = document.getElementById('al-note-active-title')?.value?.trim() || '';
+    const editor = document.getElementById('al-note-editor');
+    const conteudo = editor?.innerHTML?.trim() || '';
+    const tagsInput = document.getElementById('al-note-active-tags')?.value || '';
+
     if (!titulo && !conteudo) return alert("Escreva algo na anotação!");
 
     // Nova barreira de moderação
@@ -1471,10 +1587,10 @@ async function saveNote() {
         color: selectedNoteColor,
         favorita: formIsPinned,
         updatedAt: serverTimestamp(),
-        tags: els.noteActiveTags.value.split(',').map(t => t.trim()).filter(t => t)
+        tags: document.getElementById('al-note-active-tags')?.value?.split(',').map(t => t.trim()).filter(t => t) || []
     };
 
-    const id = els.noteActiveId.value;
+    const id = document.getElementById('al-note-active-id')?.value || '';
 
     try {
         if (id) {
@@ -1484,7 +1600,7 @@ async function saveNote() {
             payload.createdAt = serverTimestamp();
             const docRef = await addDoc(collection(db, "anotacoes_pessoais"), payload);
             activeNoteId = docRef.id;
-            els.noteActiveId.value = activeNoteId;
+            document.getElementById('al-note-active-id').value = activeNoteId;
             window.registrarLogAtividade("Criou anotação", `Título: ${titulo}`);
         }
 
@@ -1575,31 +1691,44 @@ function shareActiveNote() {
 
 // Utilitários de Interface (Alternar entre as telas da 3ª Coluna)
 function showEmptyNoteState() {
-    els.noteEmptyState.classList.remove('hidden');
-    els.noteActiveState.classList.add('opacity-0', 'pointer-events-none');
+    document.getElementById('al-note-empty-state')?.classList.remove('hidden');
+    document.getElementById('al-note-active-state')?.classList.add('opacity-0', 'pointer-events-none');
 }
 
 function showActiveNoteState() {
-    els.noteEmptyState.classList.add('hidden');
-    els.noteActiveState.classList.remove('opacity-0', 'pointer-events-none');
+    document.getElementById('al-note-empty-state')?.classList.add('hidden');
+    document.getElementById('al-note-active-state')?.classList.remove('opacity-0', 'pointer-events-none');
 }
 
 // --- LÓGICA DE CORES FIXAS ---
 function renderColorPicker() {
+    // Sidebar color picker
     const container = document.getElementById('al-note-colors');
-    if (!container) return;
-    container.innerHTML = noteColors.map(c => `
-        <button onclick="window.selectColor('${c}')" class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center shadow-md ${selectedNoteColor === c ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.6)]' : 'border-transparent'}" style="background-color: ${c}">
-            ${selectedNoteColor === c ? '<i class="fas fa-check text-[10px] text-white drop-shadow-md"></i>' : ''}
-        </button>
-    `).join('');
+    if (container) {
+        container.innerHTML = noteColors.map(c => `
+            <button onclick="window.selectColor('${c}')" class="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center shadow-md ${selectedNoteColor === c ? 'border-white scale-110 shadow-[0_0_8px_rgba(255,255,255,0.6)]' : 'border-transparent'}" style="background-color: ${c}">
+                ${selectedNoteColor === c ? '<i class="fas fa-check text-[10px] text-white drop-shadow-md"></i>' : ''}
+            </button>
+        `).join('');
+    }
+
+    // Header bar color picker (new editor)
+    const headerContainer = document.getElementById('al-note-colors');
+    if (headerContainer) {
+        headerContainer.innerHTML = noteColors.map(c => `
+            <button onclick="window.selectColor('${c}')" class="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 flex items-center justify-center shadow-sm ${selectedNoteColor === c ? 'border-white scale-110 shadow-[0_0_6px_rgba(255,255,255,0.6)]' : 'border-transparent'}" style="background-color: ${c}" title="${c}">
+                ${selectedNoteColor === c ? '<i class="fas fa-check text-[8px] text-white drop-shadow-md"></i>' : ''}
+            </button>
+        `).join('');
+    }
 }
 
 window.selectColor = (c) => {
     selectedNoteColor = c;
     renderColorPicker();
     // Atualiza a borda do painel direito em tempo real
-    els.noteActiveState.style.borderTop = `4px solid ${c}`;
+    const state = document.getElementById('al-note-active-state');
+    if (state) state.style.borderTop = `4px solid ${c}`;
 };
 
 // --- LÓGICA DE COMPARTILHAMENTO (BUSCA DE ALUNOS E PROFESSORES) ---
