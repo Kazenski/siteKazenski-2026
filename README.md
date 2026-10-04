@@ -275,4 +275,5 @@ Uso interno da instituição. Não redistribuir sem autorização.
 > **Deploy**: `https://kazenski.github.io/siteKazenski-2026/` | **Sandbox**: `https://kazenski.github.io/siteKazenski-test/`
    
  t r i g g e r   c a c h e   r e f r e s h   1 0 / 0 4 / 2 0 2 6   2 0 : 2 4 : 0 1  
+ c a c h e   b u s t   2 0 2 6 - 1 0 - 0 4   2 0 : 2 5 : 1 2  
  
