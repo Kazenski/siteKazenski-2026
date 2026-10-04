@@ -182,7 +182,9 @@ function mapearDOM() {
         relEnd: document.getElementById('rel-end'),
         btnGenReport: document.getElementById('btn-gen-report'),
         relResults: document.getElementById('rel-results'),
+        relOverview: document.getElementById('rel-overview'),
         relSummary: document.getElementById('rel-summary-body'),
+        relAlertas: document.getElementById('rel-alertas-body'),
         relDetailed: document.getElementById('rel-detailed-body'),
         relTotal: document.getElementById('rel-total'),
 
@@ -737,6 +739,92 @@ function getNoteColor(v) {
 }
 
 // ==========================================
+// ANÁLISE DE ABSENTEÍSMO
+// ==========================================
+// Regras acordadas para sinalizar risco de evasão:
+//   - 5 ou mais faltas em aulas consecutivas
+//   - 7 ou mais blocos de falta intercalados por presenças (padrão "alternado")
+const REGRAS_AUSENTISMO = { SEQUENCIA: 5, ALTERNADAS: 7 };
+
+/**
+ * Normaliza o status gravado no banco. historicamente o app gravou
+ * 'falta' em alguns registros e 'ausente' em outros.
+ */
+function normalizarStatusPresenca(status) {
+    if (status === undefined || status === null || status === '') return 'sem-registro';
+    const s = String(status).toLowerCase();
+    if (s === 'falta' || s === 'f' || s === 'ausente') return 'ausente';
+    if (s === 'presente' || s === 'p') return 'presente';
+    if (s === 'justificado' || s === 'justificada' || s === 'j') return 'justificado';
+    return s;
+}
+
+/**
+ * Analisa o padrão de faltas de um aluno em uma lista de aulas JÁ ORDENADA por data.
+ * @param {Array<{status: string, data: Date|null}>} aulas
+ */
+function analisarAusentismo(aulas) {
+    let atual = 0;
+    let maxSequencia = 0;
+    let blocos = 0;
+    let emFalta = false;
+    let total = 0;
+    let justificadas = 0;
+    let presencas = 0;
+    let registradas = 0;
+
+    for (const aula of aulas) {
+        const s = normalizarStatusPresenca(aula.status);
+        if (s === 'sem-registro') continue;
+        registradas++;
+        if (s === 'ausente') {
+            total++;
+            atual++;
+            if (atual > maxSequencia) maxSequencia = atual;
+            if (!emFalta) { blocos++; emFalta = true; }
+        } else {
+            if (s === 'justificado') justificadas++;
+            if (s === 'presente') presencas++;
+            atual = 0;
+            emFalta = false;
+        }
+    }
+
+    return {
+        total,
+        justificadas,
+        presencas,
+        registradas,
+        maxSequencia,
+        blocos,
+        pctPresenca: registradas ? (presencas / registradas) * 100 : 0,
+        alertaSequencial: maxSequencia >= REGRAS_AUSENTISMO.SEQUENCIA,
+        alertaAlternado: blocos >= REGRAS_AUSENTISMO.ALTERNADAS,
+        get critico() {
+            return this.alertaSequencial || this.alertaAlternado;
+        }
+    };
+}
+
+/** Badges visuais dos alertas de absenteísmo. */
+function renderAlertasAusentismo(analise) {
+    const partes = [];
+    if (analise.alertaSequencial) {
+        partes.push(`<span class="inline-flex items-center gap-1 bg-red-500/15 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide whitespace-nowrap" title="Sequência atual ou máxima de ${analise.maxSequencia} aulas seguidas sem presença"><i class="fas fa-fire"></i> ${analise.maxSequencia} seguidas</span>`);
+    }
+    if (analise.alertaAlternado) {
+        partes.push(`<span class="inline-flex items-center gap-1 bg-orange-500/15 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wide whitespace-nowrap" title="Padrão intercalado: ${analise.blocos} blocos de falta separados por presenças"><i class="fas fa-shuffle"></i> ${analise.blocos} alternadas</span>`);
+    }
+    return partes.join(' ');
+}
+
+function corPctPresenca(pct) {
+    if (pct >= 90) return 'text-green-400';
+    if (pct >= 75) return 'text-amber-400';
+    return 'text-red-400';
+}
+
+// ==========================================
 // MÓDULO 3: RELATÓRIO DE FALTAS
 // ==========================================
 async function generateReport() {
@@ -746,92 +834,152 @@ async function generateReport() {
 
     if (!classId) return alert("Selecione a Turma no topo (menu principal).");
     if (!startStr || !endStr) return alert("Selecione as datas de início e fim.");
+    if (startStr > endStr) return alert("A data de início não pode ser posterior à data de fim.");
 
     els.relResults.classList.remove('hidden');
-    els.relDetailed.innerHTML = '<tr><td colspan="2" class="text-center py-8 text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Calculando métricas...</td></tr>';
+    els.relOverview.innerHTML = '';
     els.relSummary.innerHTML = '';
+    els.relAlertas.innerHTML = '<tr><td colspan="4" class="text-center py-6 text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Calculando métricas...</td></tr>';
+    els.relDetailed.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-500"><i class="fas fa-spinner fa-spin mr-2"></i> Calculando métricas...</td></tr>';
     els.relTotal.textContent = '';
 
     try {
         const start = new Date(startStr + "T00:00:00");
         const end = new Date(endStr + "T23:59:59");
 
-        // Array de filtros do Firebase
-        const constraints = [
+        // IMPORTANTE: não filtramos disciplina no Firestore. O campo pode estar
+        // gravado como "disciplinaId" ou "disciplineId" e a query composta
+        // quebrava por falta de índice. Filtramos em JS (mesma estratégia do PDF).
+        const q = query(
+            collection(db, "presencas"),
             where("turma", "==", classId),
             where("data_aula_timestamp", ">=", Timestamp.fromDate(start)),
             where("data_aula_timestamp", "<=", Timestamp.fromDate(end))
-        ];
-
-        // Se escolheu disciplina, filtra só ela. Se não, traz todas da turma.
-        if (disciplineId) constraints.push(where("disciplinaId", "==", disciplineId));
-
-        const q = query(collection(db, "presencas"), ...constraints);
+        );
         const snap = await getDocs(q);
 
-        const stats = {};
+        // 1. Monta a lista de aulas do período (ordenada por data)
+        const aulas = [];
         const discStats = {};
-        let grandTotal = 0;
-
-        // Processa os dados
-        snap.forEach(doc => {
-            const data = doc.data();
+        snap.forEach(dSnap => {
+            const data = dSnap.data();
             const dId = data.disciplineId || data.disciplinaId;
-
-            // Filtro local da disciplina para evitar bugs do banco
             if (disciplineId && dId !== disciplineId) return;
 
-            Object.entries(data.registros || {}).forEach(([uid, status]) => {
-                let s = status;
-                if (s === 'falta') s = 'ausente';
-
-                if (s === 'ausente') {
-                    stats[uid] = (stats[uid] || 0) + 1;
-                    discStats[dId] = (discStats[dId] || 0) + 1;
-                    grandTotal++;
-                }
-            });
+            const ts = data.data_aula_timestamp;
+            const dateObj = (ts && typeof ts.toDate === 'function') ? ts.toDate() : null;
+            aulas.push({ dId, dateObj, registros: data.registros || {} });
+            discStats[dId] = (discStats[dId] || 0) + 1;
+        });
+        aulas.sort((a, b) => {
+            if (!a.dateObj && !b.dateObj) return 0;
+            if (!a.dateObj) return 1;
+            if (!b.dateObj) return -1;
+            return a.dateObj - b.dateObj;
         });
 
-        // 1. Renderiza Tabela de Resumo
-        let summaryHtml = '';
-        for (const [dId, count] of Object.entries(discStats)) {
+        // 2. Garante a lista de alunos da turma
+        let students = state.cache.students;
+        if (!students.length || state.filters.classId !== classId) {
+            const qS = query(collection(db, "users"), where("turma", "==", classId), where("Aluno", "==", true), orderBy("nome"));
+            const snapS = await getDocs(qS);
+            students = [];
+            snapS.forEach(d => students.push({ id: d.id, nome: d.data().nome }));
+            state.cache.students = students;
+        }
+
+        // 3. Análise de absenteísmo por aluno
+        const linhas = students.map(s => {
+            const seq = aulas.map(a => ({ status: (a.registros || {})[s.id], data: a.dateObj }));
+            const analise = analisarAusentismo(seq);
+            return { id: s.id, nome: s.nome, analise };
+        });
+
+        const comFalta = linhas.filter(l => l.analise.total > 0)
+            .sort((a, b) => b.analise.total - a.analise.total || b.analise.maxSequencia - a.analise.maxSequencia);
+        const emAlerta = comFalta.filter(l => l.analise.critico)
+            .sort((a, b) => b.analise.maxSequencia - a.analise.maxSequencia || b.analise.total - a.analise.total);
+
+        const totalFaltas = linhas.reduce((s, l) => s + l.analise.total, 0);
+        const totalRegistros = linhas.reduce((s, l) => s + l.analise.registradas, 0);
+
+        // 4. Cards de visão geral
+        const card = (icone, cor, valor, rotulo) => `
+            <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg ${cor} flex items-center justify-center shrink-0"><i class="fas ${icone}"></i></div>
+                <div class="min-w-0">
+                    <div class="text-2xl font-black text-white leading-none">${valor}</div>
+                    <div class="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1 truncate">${rotulo}</div>
+                </div>
+            </div>`;
+
+        els.relOverview.innerHTML = [
+            card('fa-calendar-alt', 'bg-blue-500/15 text-blue-400', aulas.length, 'Aulas no período'),
+            card('fa-user-minus', 'bg-red-500/15 text-red-500', totalFaltas, 'Total de faltas'),
+            card('fa-percent', 'bg-emerald-500/15 text-emerald-400', totalRegistros ? (100 - (totalFaltas / totalRegistros) * 100).toFixed(1) + '%' : '-', 'Frequência média'),
+            card('fa-triangle-exclamation', emAlerta.length ? 'bg-amber-500/15 text-amber-400' : 'bg-slate-700/40 text-slate-400', emAlerta.length, 'Alunos em alerta')
+        ].join('');
+
+        // 5. Tabela de resumo por disciplina
+        const summaryHtml = Object.entries(discStats).map(([dId, totalAulas]) => {
+            const faltasDisc = linhas.reduce((s, l) => {
+                const naDisc = aulas.filter(a => a.dId === dId && (a.registros || {})[l.id] !== undefined);
+                return s + naDisc.filter(a => normalizarStatusPresenca(a.registros[l.id]) === 'ausente').length;
+            }, 0);
+            const pct = totalAulas ? (faltasDisc / (totalAulas * linhas.length) * 100) : 0;
             const dName = state.cache.disciplinesMap.get(dId) || dId;
-            summaryHtml += `
+            return `
                 <tr class="hover:bg-slate-800/80 transition-colors">
                     <td class="p-4 text-slate-300 font-bold">${escapeHTML(dName)}</td>
-                    <td class="p-4 text-center font-black text-red-500 text-lg">${count}</td>
+                    <td class="p-4 text-center text-slate-400 font-bold">${totalAulas}</td>
+                    <td class="p-4 text-center font-black text-red-500 text-lg">${faltasDisc}</td>
+                    <td class="p-4 text-center font-bold ${pct > 20 ? 'text-red-400' : pct > 10 ? 'text-amber-400' : 'text-green-400'}">${pct.toFixed(1)}%</td>
                 </tr>`;
-        }
-        els.relSummary.innerHTML = summaryHtml || '<tr><td colspan="2" class="text-center p-6 text-slate-500 italic">Nenhuma falta registrada no período.</td></tr>';
-        els.relTotal.textContent = `Total de Faltas no Período: ${grandTotal}`;
+        }).join('');
+        els.relSummary.innerHTML = summaryHtml || '<tr><td colspan="4" class="text-center p-6 text-slate-500 italic">Nenhuma aula registrada no período.</td></tr>';
+        els.relTotal.textContent = `Total de Faltas no Período: ${totalFaltas}`;
 
-        // 2. Renderiza Tabela Detalhada por Aluno
-        els.relDetailed.innerHTML = '';
-        for (const [uid, count] of Object.entries(stats)) {
-            let name = "Aluno Desconhecido";
-            const cached = state.cache.students.find(s => s.id === uid);
-            if (cached) {
-                name = cached.nome;
-            } else {
-                const docSnap = await getDoc(doc(db, "users", uid));
-                if (docSnap.exists()) name = docSnap.data().nome;
-            }
-
-            els.relDetailed.insertAdjacentHTML('beforeend', `
-                <tr class="hover:bg-slate-800/80 transition-colors">
-                    <td class="p-4 font-bold text-slate-200">${escapeHTML(name)}</td>
-                    <td class="p-4 text-center font-black text-red-500 text-lg">${count}</td>
-                </tr>
-            `);
+        // 6. Alertas de absenteísmo (5 seguidas / 7 alternadas)
+        if (emAlerta.length === 0) {
+            els.relAlertas.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-green-400 italic font-bold"><i class="fas fa-check-circle mr-2"></i>Nenhum aluno atingiu ${REGRAS_AUSENTISMO.SEQUENCIA} faltas seguidas ou ${REGRAS_AUSENTISMO.ALTERNADAS} alternadas.</td></tr>`;
+        } else {
+            els.relAlertas.innerHTML = emAlerta.map(l => {
+                const a = l.analise;
+                return `
+                    <tr class="bg-red-500/[0.04] hover:bg-red-500/10 transition-colors border-l-4 border-red-500/60">
+                        <td class="p-4 font-black text-slate-100">${escapeHTML(l.nome)}</td>
+                        <td class="p-4 text-center font-black text-red-500 text-lg">${a.total}</td>
+                        <td class="p-4 text-center font-bold ${corPctPresenca(a.pctPresenca)}">${a.pctPresenca.toFixed(0)}%</td>
+                        <td class="p-4 text-center">${renderAlertasAusentismo(a) || '<span class="text-slate-600 text-xs">-</span>'}</td>
+                    </tr>`;
+            }).join('');
         }
-        if (Object.keys(stats).length === 0) {
-            els.relDetailed.innerHTML = '<tr><td colspan="2" class="text-center p-6 text-slate-500 italic">Turma com 100% de presença neste período!</td></tr>';
+
+        // 7. Tabela detalhada por aluno (apenas quem teve falta)
+        if (comFalta.length === 0) {
+            els.relDetailed.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-slate-500 italic">Turma com 100% de presença neste período!</td></tr>';
+        } else {
+            els.relDetailed.innerHTML = comFalta.map(l => {
+                const a = l.analise;
+                return `
+                    <tr class="hover:bg-slate-800/80 transition-colors ${a.critico ? 'bg-red-500/[0.04]' : ''}">
+                        <td class="p-4 font-bold text-slate-200">${escapeHTML(l.nome)}</td>
+                        <td class="p-4 text-center font-black text-red-500 text-lg">${a.total}</td>
+                        <td class="p-4 text-center text-slate-400 font-bold">${a.registradas}</td>
+                        <td class="p-4 text-center font-bold ${corPctPresenca(a.pctPresenca)}">${a.pctPresenca.toFixed(0)}%</td>
+                        <td class="p-4 text-center font-bold ${a.alertaSequencial ? 'text-red-400' : 'text-slate-400'}">${a.maxSequencia}</td>
+                        <td class="p-4 text-center font-bold ${a.alertaAlternado ? 'text-orange-400' : 'text-slate-400'}">${a.blocos}</td>
+                        <td class="p-4 text-center">${renderAlertasAusentismo(a) || '<span class="text-slate-700 text-xs">—</span>'}</td>
+                    </tr>`;
+            }).join('');
         }
 
     } catch (e) {
+        console.error(e);
         alert("Erro ao gerar relatório: " + e.message);
-        els.relDetailed.innerHTML = `<tr><td colspan="2" class="text-center p-6 text-red-500 font-bold">Falha na consulta.</td></tr>`;
+        els.relOverview.innerHTML = '';
+        els.relAlertas.innerHTML = '';
+        els.relDetailed.innerHTML = '<tr><td colspan="7" class="text-center p-6 text-red-500 font-bold">Falha na consulta: ' + escapeHTML(e.message) + '</td></tr>';
     }
 }
 
@@ -875,57 +1023,169 @@ async function generatePdf() {
         const snapP = await getDocs(qP);
 
         // Filtra as aulas da disciplina correta e monta as colunas (cobre ambos os nomes de variável)
-        const cols = [];
-        snapP.forEach(doc => {
-            const d = doc.data();
+        const aulasDisc = [];
+        snapP.forEach(dSnap => {
+            const d = dSnap.data();
             if (d.disciplineId === disciplineId || d.disciplinaId === disciplineId) {
-                const dateObj = d.data_aula_timestamp.toDate();
-                const label = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-                cols.push({ label, regs: d.registros || {} });
+                const ts = d.data_aula_timestamp;
+                aulasDisc.push({ dateObj: ts.toDate(), regs: d.registros || {} });
             }
         });
+        aulasDisc.sort((a, b) => a.dateObj - b.dateObj);
+
+        const cols = aulasDisc.map(a => ({
+            label: `${String(a.dateObj.getDate()).padStart(2, '0')}/${String(a.dateObj.getMonth() + 1).padStart(2, '0')}`,
+            regs: a.regs
+        }));
 
         if (cols.length === 0) throw new Error("Sem aulas registradas neste período para exportar.");
 
-        // 4. Monta as Linhas (Alunos e as Faltas)
-        const body = students.map(s => {
-            const row = [s.nome];
-            let totalFaltas = 0;
-
-            cols.forEach(col => {
-                const stat = col.regs[s.id];
-                let mark = '-';
-                if (stat === 'presente') mark = 'P';
-                else if (stat === 'ausente') { mark = 'F'; totalFaltas++; }
-                else if (stat === 'justificado') mark = 'J';
-                row.push(mark);
+        // 4. Monta as Linhas (Alunos x Aulas) já normalizando 'falta' -> 'F'
+        const rows = students.map(s => {
+            const seq = cols.map(c => ({ status: c.regs[s.id], data: null }));
+            const analise = analisarAusentismo(seq);
+            const cells = cols.map(c => {
+                const st = normalizarStatusPresenca(c.regs[s.id]);
+                if (st === 'ausente') return 'F';
+                if (st === 'presente') return 'P';
+                if (st === 'justificado') return 'J';
+                return '·';
             });
-            row.push(String(totalFaltas));
-            return row;
+            return { nome: s.nome, cells, analise };
         });
+
+        const totalFaltas = rows.reduce((s, r) => s + r.analise.total, 0);
+        const emAlerta = rows.filter(r => r.analise.critico);
 
         // 5. Instancia o PDF e Desenha a Tabela
-        const pdf = new jsPDF('landscape');
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
         const dName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const M = 34; // margem lateral
 
-        pdf.setFontSize(14);
-        pdf.text("Diario Oficial - Matriz de Frequência", 14, 15);
-        pdf.setFontSize(10);
-        pdf.text(`Escola: ${school} | Turma: ${classId} | Disciplina: ${dName}`, 14, 22);
+        // ---- Cabeçalho (faixa escura) ----
+        pdf.setFillColor(15, 23, 42);           // slate-900
+        pdf.rect(0, 0, pageW, 74, 'F');
+        pdf.setFillColor(245, 158, 11);         // amber-500
+        pdf.rect(0, 74, pageW, 3, 'F');
 
-        pdf.autoTable({
-            startY: 30,
-            head: [['Aluno', ...cols.map(c => c.label), 'Total Faltas']],
-            body: body,
-            styles: { fontSize: 8, halign: 'center' },
-            columnStyles: { 0: { halign: 'left', fontStyle: 'bold' } },
-            theme: 'grid',
-            headStyles: { fillColor: [59, 130, 246] } // Azul padrão para combinar com o layout
+        pdf.setTextColor(245, 158, 11);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(16);
+        pdf.text('DIÁRIO DE CLASSE · MATRIZ DE FREQUÊNCIA', M, 30);
+
+        pdf.setTextColor(203, 213, 225);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.text(`Escola: ${school || '-'}   |   Turma: ${classId}   |   Disciplina: ${dName}`, M, 47);
+        pdf.text(`Período: ${startStr} até ${endStr}   |   Aulas: ${cols.length}   |   Total de faltas: ${totalFaltas}   |   Alunos em alerta: ${emAlerta.length}`, M, 62);
+
+        // ---- Legenda ----
+        let lx = M;
+        const ly = 92;
+        const legenda = [
+            ['P', 'Presente', [22, 163, 74]],
+            ['F', 'Falta', [220, 38, 38]],
+            ['J', 'Justificado', [37, 99, 235]],
+            ['·', 'Sem registro', [148, 163, 184]]
+        ];
+        pdf.setFontSize(8);
+        legenda.forEach(([sig, txt, cor]) => {
+            pdf.setFillColor(...cor);
+            pdf.roundedRect(lx, ly - 8, 12, 12, 2, 2, 'F');
+            pdf.setTextColor(...cor);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(sig, lx + 6, ly + 1, { align: 'center' });
+            pdf.setTextColor(100, 116, 139);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(txt, lx + 17, ly + 1);
+            lx += pdf.getTextWidth(txt) + 34;
         });
 
-        pdf.save(`Matriz_Frequencia_${classId}_${dName.substring(0, 10)}.pdf`);
+        pdf.setTextColor(100, 116, 139);
+        pdf.setFontSize(7.5);
+        pdf.text('Alerta: 5+ faltas seguidas  |  7+ faltas alternadas', pageW - M, ly + 1, { align: 'right' });
 
-        els.pdfMsg.innerHTML = '<i class="fas fa-check-circle mr-2"></i> PDF Baixado com Sucesso!';
+        const head = [['Aluno', ...cols.map(c => c.label), 'Faltas', 'Seq.', 'Alt.', 'Sinal']];
+        const body = rows.map(r => [
+            r.nome,
+            ...r.cells,
+            String(r.analise.total),
+            String(r.analise.maxSequencia),
+            String(r.analise.blocos),
+            r.analise.critico ? '!' : ''
+        ]);
+
+        const primeiraColAulas = 1;
+        const ultimaColAulas = cols.length;
+
+        pdf.autoTable({
+            startY: 104,
+            margin: { left: M, right: M, top: 92, bottom: 44 },
+            head: head,
+            body: body,
+            theme: 'grid',
+            styles: { font: 'helvetica', fontSize: 7, halign: 'center', cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.5 },
+            headStyles: {
+                fillColor: [30, 41, 59], textColor: [248, 250, 252],
+                fontStyle: 'bold', fontSize: 7, halign: 'center',
+                lineColor: [71, 85, 105], lineWidth: 0.5
+            },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            columnStyles: {
+                0: { halign: 'left', fontStyle: 'bold', cellWidth: 108, textColor: [30, 41, 59] },
+                [ultimaColAulas + 1]: { halign: 'center', fontStyle: 'bold', cellWidth: 30, textColor: [220, 38, 38], fillColor: [254, 242, 242] },
+                [ultimaColAulas + 2]: { halign: 'center', fontStyle: 'bold', cellWidth: 24 },
+                [ultimaColAulas + 3]: { halign: 'center', fontStyle: 'bold', cellWidth: 24 },
+                [ultimaColAulas + 4]: { halign: 'center', fontStyle: 'bold', cellWidth: 26 }
+            },
+            didParseCell: (data) => {
+                if (data.section !== 'body') return;
+                const col = data.column.index;
+                const txt = String(data.cell.raw);
+
+                // Células P / F / J / · com cor por status
+                if (col >= primeiraColAulas && col <= ultimaColAulas) {
+                    if (txt === 'P') { data.cell.styles.textColor = [22, 163, 74]; data.cell.styles.fontStyle = 'bold'; }
+                    else if (txt === 'F') { data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle = 'bold'; data.cell.styles.fillColor = [254, 226, 226]; }
+                    else if (txt === 'J') { data.cell.styles.textColor = [37, 99, 235]; data.cell.styles.fontStyle = 'bold'; }
+                    else { data.cell.styles.textColor = [203, 213, 225]; }
+                }
+
+                // Destaque de linha em alerta de absenteísmo
+                if (txt === '!') {
+                    data.cell.styles.textColor = [255, 255, 255];
+                    data.cell.styles.fillColor = [220, 38, 38];
+                    data.cell.styles.fontSize = 11;
+                }
+                if (col === 0 && data.row.raw[ultimaColAulas + 4] === '!') {
+                    data.cell.styles.fillColor = [254, 242, 242];
+                    data.cell.styles.textColor = [185, 28, 28];
+                }
+                // Sequência / alternadas em alerta
+                if ((col === ultimaColAulas + 2 && Number(txt) >= REGRAS_AUSENTISMO.SEQUENCIA) ||
+                    (col === ultimaColAulas + 3 && Number(txt) >= REGRAS_AUSENTISMO.ALTERNADAS)) {
+                    data.cell.styles.textColor = [220, 38, 38];
+                }
+            },
+            didDrawPage: () => {
+                const p = pdf.internal.getNumberOfPages();
+                pdf.setDrawColor(226, 232, 240);
+                pdf.setLineWidth(0.5);
+                pdf.line(M, pageH - 34, pageW - M, pageH - 34);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7.5);
+                pdf.setTextColor(148, 163, 184);
+                pdf.text(`Kazenski · ${school || ''} · ${classId} · ${dName}`, M, pageH - 20);
+                pdf.text(`Página ${p} de ${pdf.internal.getNumberOfPages()}`, pageW - M, pageH - 20, { align: 'right' });
+            }
+        });
+
+        const nomeArquivo = `Matriz_Frequencia_${classId}_${(dName || '').replace(/[^\w-]+/g, '').substring(0, 12)}_${startStr}_${endStr}.pdf`;
+        pdf.save(nomeArquivo);
+
+        els.pdfMsg.innerHTML = `<i class="fas fa-check-circle mr-2"></i> PDF baixado! ${emAlerta.length ? `<span class="text-amber-400">${emAlerta.length} aluno(s) com alerta de absenteísmo.</span>` : 'Nenhum aluno em alerta.'}`;
         els.pdfMsg.classList.replace('text-blue-400', 'text-green-400');
 
     } catch (e) {
