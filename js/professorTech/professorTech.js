@@ -6732,7 +6732,7 @@ window.profAPI.renderPainel = () => {
         </tr>`).join('');
 
     // ---------- Frequência por aula (stacked) ----------
-    renderPainelFaltas();
+    window.profAPI.renderPainelFaltas();
 
     // ---------- Dispersão ----------
     const itens = [];
