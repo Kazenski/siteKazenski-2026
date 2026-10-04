@@ -4,6 +4,10 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.3] — 2026-10-04
+### Ajuste visual
+- Avaliações Digitais: cards agora em no máximo 2 colunas lado a lado (em vez de 5 colunas estreitas), com espaçamento de `gap` sutil e cards de mesma altura; o modal de detalhes ("Abrir Painel") ficou mais largo (`max-w-6xl`) para aproveitar a largura da tela.
+
 ## [v1.6.2] — 2026-10-04
 ### Ajuste visual
 - Avaliações Digitais (aba ao lado do Aluno Tech): antes era uma lista estreita em coluna única; agora usa um grid de cards lado a lado (`repeat(auto-fill, minmax(340px, 1fr))`) para aproveitar a largura da tela, com estados "carregando"/"vazio" ocupando a linha toda. Arquivos: `index.html`, `CHANGELOG.md`, `changelog.json`.
