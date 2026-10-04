@@ -3474,7 +3474,7 @@
                             <div
                                 class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                                    <h3 class="text-amber-500 font-cinzel font-bold text-sm">Média por Disciplina</h3>
+                                    <h3 class="text-amber-500 font-cinzel font-bold text-sm title="Média das notas de cada disciplina do escopo, no trimestre escolhido.">Média por Disciplina</h3>
                                 </div>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="chart-grades"></canvas>
@@ -3729,6 +3729,21 @@
 
                     <p id="painel-scope" class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold -mt-3 mb-2"></p>
 
+                    <details class="text-xs text-slate-400 mb-4 bg-slate-900/50 border border-slate-700 rounded-xl p-3">
+                        <summary class="cursor-pointer font-bold text-sky-400 flex items-center gap-2">
+                            <i class="fas fa-circle-info"></i> Como interpretar os números (média, mediana, taxas e gráficos)
+                        </summary>
+                        <ul class="mt-2 space-y-1 list-disc list-inside">
+                            <li><b>Média</b>: soma de todas as notas dividida pela quantidade de avaliações.</li>
+                            <li><b>Mediana</b>: o valor do meio quando as notas são postas em ordem.</li>
+                            <li><b>Taxa de frequência</b>: (aulas presentes) ÷ (total de aulas do período).</li>
+                            <li><b>Progressão</b>: tendência da média entre as avaliações (N1→N4).</li>
+                            <li><b>Dispersão</b>: o quanto as notas se afastam da média (desvio-padrão).</li>
+                            <li><b>Faixas</b>: agrupa os alunos em grupos por nota ou por frequência.</li>
+                            <li><b>APOIA / Anotações</b>: quantos alunos do escopo têm encaminhamento APOIA ou anotação registrada.</li>
+                        </ul>
+                    </details>
+
                     <p id="painel-msg" class="text-center text-sm text-slate-500 italic font-bold py-6">Escolha os
                         filtros (Escola, Turma/Disciplina opcionais) no topo e clique em Carregar.</p>
 
@@ -3739,14 +3754,14 @@
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
-                                <h3 class="text-emerald-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Progressão das Notas</h3>
+                                <h3 class="text-emerald-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Medalhar a média de cada avaliação (N1→N4) ao longo do trimestre. A linha tracejada mostra a tendência geral.">Progressão das Notas</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-progressao"></canvas>
                                     <div id="painel-chart-progressao-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
                             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
-                                <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Dispersão Geral</h3>
+                                <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Cada ponto é uma nota de um aluno; quanto mais longe da média, maior a variação entre os estudantes.">Dispersão Geral</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-dispersao"></canvas>
                                     <div id="painel-chart-dispersao-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
@@ -3755,7 +3770,7 @@
                         </div>
 
                         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
-                            <h3 class="text-blue-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Frequência por Aula no Período</h3>
+                            <h3 class="text-blue-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Aula por aula: quantas presenças, faltas e justificativa houveram no período selecionado.">Frequência por Aula no Período</h3>
                             <div class="flex-grow relative w-full h-full">
                                 <canvas id="painel-chart-faltas"></canvas>
                                 <div id="painel-chart-faltas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Nenhuma aula.</div>
@@ -3770,22 +3785,25 @@
                                     <div id="painel-chart-disciplinas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
-                            <div class="bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
-                                <h3 class="text-[10px] text-amber-400 uppercase tracking-widest font-bold p-4 border-b border-slate-700 bg-slate-800/50">Média por Grupo (Escola / Turma / Disciplina)</h3>
-                                <canvas id="painel-chart-grupos" class="flex-grow w-full h-full p-3"></canvas>
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                <h3 class="text-amber-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Média geral de notas por Escola, Turma ou Disciplina, conforme os filtros usados.">Média por Grupo (Escola / Turma / Disciplina)</h3>
+                                <div class="flex-grow relative w-full h-full">
+                                    <canvas id="painel-chart-grupos"></canvas>
+                                    <div id="painel-chart-grupos-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem dados.</div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
-                                <h3 class="text-rose-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Alunos por Faixa de Nota</h3>
+                                <h3 class="text-rose-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Em quantas faixas de nota cada aluno se encaixa (0–3, 3–5, 5–7, 7–8,5, 8,5–10).">Alunos por Faixa de Nota</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-faixas-notas"></canvas>
                                     <div id="painel-chart-faixas-notas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
                             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
-                                <h3 class="text-cyan-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Alunos por Faixa de Frequência</h3>
+                                <h3 class="text-cyan-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Quantos alunos caem em cada faixa de frequência (≥90%, 75–90%, 50–75%, <50%).">Alunos por Faixa de Frequência</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-faixas-freq"></canvas>
                                     <div id="painel-chart-faixas-freq-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem aulas.</div>
@@ -3793,8 +3811,19 @@
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300">
+                                <summary class="cursor-pointer font-bold text-rose-400 flex items-center gap-2"><i class="fas fa-list"></i> Alunos por Faixa de Nota (detalhe)</summary>
+                                <ul id="painel-notas-alunos" class="mt-2 space-y-1 max-h-48 overflow-y-auto custom-scroll"></ul>
+                            </details>
+                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300">
+                                <summary class="cursor-pointer font-bold text-cyan-400 flex items-center gap-2"><i class="fas fa-list"></i> Alunos por Faixa de Frequência (detalhe)</summary>
+                                <ul id="painel-frequencia-alunos" class="mt-2 space-y-1 max-h-48 overflow-y-auto custom-scroll"></ul>
+                            </details>
+                        </div>
+
                         <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
-                            <h3 class="text-indigo-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Diferenças por Trimestre</h3>
+                            <h3 class="text-indigo-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Compara a média geral de notas entre o 1º, o 2º e o 3º trimestre.">Diferenças por Trimestre</h3>
                             <div class="flex-grow relative w-full h-full">
                                 <canvas id="painel-chart-trimestre"></canvas>
                                 <div id="painel-chart-trimestre-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>

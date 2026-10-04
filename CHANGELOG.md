@@ -4,6 +4,14 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.4.1] — 2026-10-04
+### Corrigido
+- Tela do Painel: gráfico "Média por Grupo" agora tem altura fixa (h-80), sem esticar a página ao crescer
+
+### Adicionado
+- Painel: guia "Como interpretar os números (média, mediana, taxas e gráficos)" e ícones informativos em cada KPI e título de gráfico
+- Painel: detalhes por faixa de nota e de frequência, listando os alunos em cada grupo
+
 ## [v1.4.0] — 2026-10-04
 ### Adicionado
 - Nova subaba **Evolução** no Professor Tech: progressão das notas no trimestre, dispersão geral, média por disciplina, frequência por aula no período e tabela de notas

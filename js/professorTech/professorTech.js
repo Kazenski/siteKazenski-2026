@@ -6698,27 +6698,27 @@ window.profAPI.renderPainel = () => {
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="flex items-center gap-2 mb-2"><i class="fas fa-users text-sky-400 text-sm"></i></div>
             <div class="text-3xl font-black text-white">${porAluno.length}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Alunos no escopo</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Total de alunos considerados pela escola/turma selecionada."><i class="fas fa-circle-info ml-1 text-slate-600" title="Total de alunos considerados pela escola/turma selecionada."></i>Alunos no escopo</div>
         </div>
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="text-3xl font-black ${mediaFreq === null ? 'text-slate-500' : corPctPresenca(mediaFreq)}">${mediaFreq === null ? '-' : mediaFreq.toFixed(1) + '%'}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Freq. média</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Taxa média de presença: presenças totais sobre o total de aulas no período."><i class="fas fa-circle-info ml-1 text-slate-600" title="Taxa média de presença: presenças totais sobre o total de aulas no período."></i>Freq. média</div>
         </div>
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="text-3xl font-black ${stats.media === null ? 'text-slate-500' : corNota(stats.media)}">${stats.media === null ? '-' : stats.media.toFixed(2)}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Média geral</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Média aritmética de todas as notas do escopo."><i class="fas fa-circle-info ml-1 text-slate-600" title="Média aritmética de todas as notas do escopo."></i>Média geral</div>
         </div>
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="text-3xl font-black ${stats.faixa === 'alta' ? 'text-red-400' : stats.faixa === 'media' ? 'text-amber-400' : 'text-emerald-400'}">${stats.desvio === null ? '-' : stats.desvio.toFixed(2)}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Dispersão (${stats.faixa})</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Desvio-padrão das notas: quanto maior, mais irregulares são os resultados."><i class="fas fa-circle-info ml-1 text-slate-600" title="Desvio-padrão das notas: quanto maior, mais irregulares são os resultados."></i>Dispersão (${stats.faixa})</div>
         </div>
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="text-3xl font-black text-orange-400">${apoiaAlunos.size}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Com APOIA</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Quantos alunos do escopo possuem um encaminhamento APOIA registrado."><i class="fas fa-circle-info ml-1 text-slate-600" title="Quantos alunos do escopo possuem um encaminhamento APOIA registrado."></i>Com APOIA</div>
         </div>
         <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
             <div class="text-3xl font-black text-fuchsia-400">${anotAlunos.size}</div>
-            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Com Anotações</div>
+            <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1" title="Quantos alunos do escopo possuem anotações registradas."><i class="fas fa-circle-info ml-1 text-slate-600" title="Quantos alunos do escopo possuem anotações registradas."></i>Com Anotações</div>
         </div>`;
 
     // ---------- Tabela por aluno ----------
@@ -6840,8 +6840,9 @@ window.profAPI.renderPainel = () => {
         grupos = discArr.map(d => ({ nome: d.nome, media: d.media }));
     }
     if (grupos.length === 0) {
-        painelChart('painelGrupos', 'painel-chart-grupos', { type: 'bar', data: { labels: [], datasets: [] }, options: {} });
+        mostrarOculto('painel-chart-grupos-msg', true, 'Sem dados.');
     } else {
+        mostrarOculto('painel-chart-grupos-msg', false);
         painelChart('painelGrupos', 'painel-chart-grupos', {
             type: 'bar', data: { labels: grupos.map(g => g.nome), datasets: [{ label: 'Média', data: grupos.map(g => g.media === null ? null : +g.media.toFixed(2)), backgroundColor: grupos.map(g => corNotaBg(g.media)), borderRadius: 4, borderSkipped: false }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `Média: ${ctx.parsed.y === null ? '-' : ctx.parsed.y.toFixed(2)}` } } }, scales: { y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 8 } }, grid: { display: false } } } }
@@ -6861,6 +6862,16 @@ window.profAPI.renderPainel = () => {
         painelChart('painelFaixasN', 'painel-chart-faixas-notas', { type: 'bar', data: { labels: notasBins.map(b => b.rotulo), datasets: [{ label: 'Alunos', data: notasBins.map(b => b.total), backgroundColor: '#f43f5e', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
     }
 
+    // Detalhe dos alunos por faixa de nota
+    const detNotas = document.getElementById('painel-notas-alunos');
+    if (detNotas) {
+        detNotas.innerHTML = faixasN.map(([a, b], i) => {
+            const rotulo = i === 0 ? '0–3' : i === faixasN.length - 1 ? '8,5–10' : `${a}–${b}`;
+            const nomes = porAluno.filter(p => p.media !== null && p.media >= a && p.media < b).map(p => `${escapeHTML(p.s.nome || p.s.id)} (${p.media.toFixed(2)})`);
+            return `<li><span class="font-bold text-slate-200">[${rotulo}]</span> ${nomes.length ? nomes.join(', ') : 'ninguém'}</li>`;
+        }).join('');
+    }
+
     // ---------- Alunos por faixa de frequência ----------
     const faixasF = [[90, 101, '≥ 90%'], [75, 90, '75–90%'], [50, 75, '50–75%'], [0, 50, '< 50%']];
     const freqBins = faixasF.map(([a, b, label]) => ({ rotulo: label, total: porAluno.filter(p => p.freq !== null && p.freq >= a && p.freq < b).length }));
@@ -6869,6 +6880,15 @@ window.profAPI.renderPainel = () => {
     } else {
         mostrarOculto('painel-chart-faixas-freq-msg', false);
         painelChart('painelFaixasF', 'painel-chart-faixas-freq', { type: 'bar', data: { labels: freqBins.map(b => b.rotulo), datasets: [{ label: 'Alunos', data: freqBins.map(b => b.total), backgroundColor: '#22d3ee', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } } } } });
+    }
+
+    // Detalhe dos alunos por faixa de frequência
+    const detFreq = document.getElementById('painel-frequencia-alunos');
+    if (detFreq) {
+        detFreq.innerHTML = faixasF.map(([a, b, label]) => {
+            const nomes = porAluno.filter(p => p.freq !== null && p.freq >= a && p.freq < b).map(p => `${escapeHTML(p.s.nome || p.s.id)} (${p.freq.toFixed(0)}%)`);
+            return `<li><span class="font-bold text-slate-200">[${label}]</span> ${nomes.length ? nomes.join(', ') : 'ninguém'}</li>`;
+        }).join('');
     }
 
     // ---------- Diferenças por trimestre ----------

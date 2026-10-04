@@ -1,8 +1,52 @@
 {
-  "geradoEm": "2026-10-04T18:08:40+00:00",
-  "versaoAtual": "1.4.0",
-  "totalEntradas": 3,
+  "geradoEm": "2026-10-04T19:07:22+00:00",
+  "versaoAtual": "1.4.1",
+  "totalEntradas": 4,
   "entradas": [
+    {
+      "versao": "1.4.1",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Tela do Painel: gráfico \"Média por Grupo\" agora tem altura fixa (h-80), sem esticar a página ao crescer"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Painel: guia \"Como interpretar os números (média, mediana, taxas e gráficos)\" e ícones informativos em cada KPI e título de gráfico"
+                ],
+                [
+                  "li",
+                  "Painel: detalhes por faixa de nota e de frequência, listando os alunos em cada grupo"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.4.0",
       "data": "2026-10-04",
