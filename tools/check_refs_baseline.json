@@ -1,0 +1,17 @@
+{
+  "els_sem_declarar": [
+    "evalSelectAv"
+  ],
+  "ids_ausentes_no_html": [
+    "btn-grant-all-tcg",
+    "dynamic-tcg-modal",
+    "evol-kpi-freq",
+    "evol-kpi-freq-sub",
+    "hist-faltas-dinamico",
+    "kaz-ia-config-panel",
+    "kaz-ia-context-display",
+    "kaz-ia-result-area",
+    "kaz-ia-source-content",
+    "tcg-eligible-list"
+  ]
+}

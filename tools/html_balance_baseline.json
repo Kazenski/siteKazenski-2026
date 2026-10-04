@@ -1,0 +1,4 @@
+{
+  "_comment": "Deltas de balanceamento ja presentes em origin/main. Div -3 vem de tres <div/> escritos sem fechamento, herdado do main. Compare com: git show origin/main:index.html",
+  "div": -3
+}
