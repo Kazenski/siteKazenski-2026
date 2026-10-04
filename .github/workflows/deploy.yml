@@ -1,114 +1,33 @@
 name: Deploy to GitHub Pages
 
-# Publica a `main` na raiz do site (produção) e a branch de teste em `/test/`.
-# Assim dá para validar as mudanças sem mexer no site que está no ar.
 on:
   push:
-    branches: [main, homolog, test-prof-impr]
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      test_ref:
-        description: 'Branch publicada em /test/ (ex.: test-prof-impr)'
-        required: false
-        default: 'test-prof-impr'
 
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Nunca deixa dois deploys rodando ao mesmo tempo (eles sobrescrevem o site).
-concurrency:
-  group: pages-deploy
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      TEST_REF: ${{ github.event.inputs.test_ref || 'test-prof-impr' }}
     steps:
-      - name: Checkout branch atual (teste)
-        uses: actions/checkout@v4
-        with:
-          path: workspace
-
-      - name: Checkout main (produção)
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: prod
-
-      - name: Montar artifact (raiz = main, /test = branch de teste)
-        run: |
-          set -euo pipefail
-          mkdir -p _site
-
-          # Produção na raiz
-          cp -r prod/. _site/
-          rm -rf _site/.git _site/.github _site/workspace _site/prod
-
-          # Branch de teste em /test
-          mkdir -p _site/test
-          cp -r workspace/. _site/test/
-          rm -rf _site/test/.git _site/test/.github
-
-          # Se a branch de teste for a própria main, /test espelha a raiz
-          echo "Produção: raiz | Teste ($TEST_REF): /test/"
-          echo "Arquivos na raiz:"
-          ls -1 _site
+      - uses: actions/checkout@v4
 
       - name: Inject Firebase config from secrets
-        env:
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
         run: |
-          python3 - <<'PY'
-          import os, pathlib
-
-          keys = [
-              "API_KEY", "AUTH_DOMAIN", "PROJECT_ID",
-              "STORAGE_BUCKET", "MESSAGING_SENDER_ID", "APP_ID",
-          ]
-          targets = [
-              pathlib.Path("_site/js/core/firebase.js"),
-              pathlib.Path("_site/test/js/core/firebase.js"),
-          ]
-          for path in targets:
-              if not path.exists():
-                  print(f"AVISO: {path} nao encontrado, pulando")
-                  continue
-              text = path.read_text(encoding="utf-8")
-              for key in keys:
-                  token = f"__VITE_FIREBASE_{key}__"
-                  value = os.environ.get(f"VITE_FIREBASE_{key}", "")
-                  if token in text and not value:
-                      print(f"ERRO: secret VITE_FIREBASE_{key} vazio")
-                      raise SystemExit(1)
-                  text = text.replace(token, value)
-              path.write_text(text, encoding="utf-8")
-              print(f"OK: config injetada em {path}")
-          PY
-
-      - name: Validar artifact
-        run: |
-          set -euo pipefail
-          test -f _site/index.html || { echo "ERRO: _site/index.html ausente"; exit 1; }
-          test -f _site/test/index.html || { echo "ERRO: _site/test/index.html ausente"; exit 1; }
-          if grep -rq "__VITE_FIREBASE_" _site; then
-            echo "ERRO: placeholders de secrets ainda presentes no artifact"
-            grep -rn --max-count=2 "__VITE_FIREBASE_" _site
-            exit 1
-          fi
-          echo "Artifact OK"
+          sed -i "s|__VITE_FIREBASE_API_KEY__|${{ secrets.VITE_FIREBASE_API_KEY }}|g" js/core/firebase.js
+          sed -i "s|__VITE_FIREBASE_AUTH_DOMAIN__|${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}|g" js/core/firebase.js
+          sed -i "s|__VITE_FIREBASE_PROJECT_ID__|${{ secrets.VITE_FIREBASE_PROJECT_ID }}|g" js/core/firebase.js
+          sed -i "s|__VITE_FIREBASE_STORAGE_BUCKET__|${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}|g" js/core/firebase.js
+          sed -i "s|__VITE_FIREBASE_MESSAGING_SENDER_ID__|${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}|g" js/core/firebase.js
+          sed -i "s|__VITE_FIREBASE_APP_ID__|${{ secrets.VITE_FIREBASE_APP_ID }}|g" js/core/firebase.js
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: .
 
   deploy:
     runs-on: ubuntu-latest
