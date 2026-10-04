@@ -20,7 +20,7 @@ let apoiaCache = [];
 let apoiaAlertasCache = {};
 let sortedGroupsCache = [];
 // Lista montada pelo modal de encaminhamento (ainda não confirmada)
-letapoiaEncaminharPendente = [];
+let apoiaEncaminharPendente = [];
 let cadastroSucessos = [];
 let recadastroCache = [];
 let recadastroSelected = new Set();

@@ -12,6 +12,8 @@ function Rodar($nome, $cmd) {
 if (-not $SkipNode) {
     Rodar "sintaxe do professorTech" "node --check js/professorTech/professorTech.js"
     Rodar "sintaxe de todos os modulos" "for %f in (js\core\*.js js\main.js js\manutencao\*.js js\aluno\*.js) do @node --check %f"
+    Rodar "self-test do lint_colado" "node tools\test_lint_colado.js"
+    Rodar "palavra-chave colada" "node tools\lint_colado.js js\professorTech\professorTech.js js\main.js"
 }
 
 Rodar "testes de absenteismo" "node tools\test_ausentismo.js"
