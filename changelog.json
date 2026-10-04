@@ -1,8 +1,48 @@
 {
-  "geradoEm": "2026-10-04T21:27:12+00:00",
-  "versaoAtual": "1.6.4",
-  "totalEntradas": 10,
+  "geradoEm": "2026-10-04T22:09:31+00:00",
+  "versaoAtual": "1.6.5",
+  "totalEntradas": 11,
   "entradas": [
+    {
+      "versao": "1.6.5",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Ajuste visual — Atualizações",
+          "chave": "ajuste visual — atualizações",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Feed de atualizações totalmente redesenhado: cards com hover elevation, borda animada, versão+data centralizados no cabeçalho, acordeão fluido que empurra itens abaixo ao expandir (max-height + opacity animation)"
+                ],
+                [
+                  "li",
+                  "Tipografia refinada: versão em badge gradiente, título centralizado, data alinhada à direita, chevron animado com cubic-bezier"
+                ],
+                [
+                  "li",
+                  "Corpo do acordeão com max-height/opacity animation suave (0.4s cubic-bezier), push suave dos cards abaixo ao expandir"
+                ],
+                [
+                  "li",
+                  "Tipografia refinada: listas com border-left animada no hover, blocos com título sublinhado, código com sombra interna"
+                ],
+                [
+                  "li",
+                  "Arquivos: `style.css`, `js/manutencao/manutencao.js` (JS mantido, CSS totalmente reescrito)"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.6.4",
       "data": "2026-10-04",

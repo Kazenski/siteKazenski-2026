@@ -4,6 +4,14 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.5] — 2026-10-04
+### Ajuste visual — Atualizações
+- Feed de atualizações totalmente redesenhado: cards com hover elevation, borda animada, versão+data centralizados no cabeçalho, acordeão fluido que empurra itens abaixo ao expandir (max-height + opacity animation)
+- Tipografia refinada: versão em badge gradiente, título centralizado, data alinhada à direita, chevron animado com cubic-bezier
+- Corpo do acordeão com max-height/opacity animation suave (0.4s cubic-bezier), push suave dos cards abaixo ao expandir
+- Tipografia refinada: listas com border-left animada no hover, blocos com título sublinhado, código com sombra interna
+- Arquivos: `style.css`, `js/manutencao/manutencao.js` (JS mantido, CSS totalmente reescrito)
+
 ## [v1.6.4] — 2026-10-04
 ### Ajuste visual
 - Aluno Tech (perfil): foto de perfil maior (w-36/w-44) com moldura em gradiente (ciano→azul→roxo) e brilho suave; banner mais alto (h-48/h-64) com três botões de personalização (foto, cor da moldura, posição do banner); botão de posição cicla entre 5 posições de `background-position`. Arquivos: `index.html`, `js/alunoTech/perfilTech.js`.
