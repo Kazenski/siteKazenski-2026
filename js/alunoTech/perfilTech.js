@@ -287,9 +287,12 @@ function setupEventListeners() {
             const words = text.trim() ? text.trim().split(/\s+/).length : 0;
             const chars = text.length;
             const readTime = Math.ceil(words / 200);
-            document.getElementById('al-note-word-count')?.querySelector('span').textContent = words;
-            document.getElementById('al-note-char-count')?.querySelector('span').textContent = chars;
-            document.getElementById('al-note-read-time')?.querySelector('span').textContent = readTime;
+            const wordEl = document.getElementById('al-note-word-count')?.querySelector('span');
+            const charEl = document.getElementById('al-note-char-count')?.querySelector('span');
+            const readEl = document.getElementById('al-note-read-time')?.querySelector('span');
+            if (wordEl) wordEl.textContent = words;
+            if (charEl) charEl.textContent = chars;
+            if (readEl) readEl.textContent = readTime;
         };
         editor.addEventListener('input', updateCounts);
         editor.addEventListener('keyup', updateCounts);
