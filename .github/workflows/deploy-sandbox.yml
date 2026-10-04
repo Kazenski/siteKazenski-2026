@@ -61,8 +61,10 @@ jobs:
         run: |
           set -euo pipefail
           test -f index.html || { echo "ERRO: index.html ausente"; exit 1; }
-          if grep -rq "__VITE_FIREBASE_" .; then
-            echo "ERRO: placeholders de secrets ainda presentes"
+          # Só faz sentido procurar placeholder no código da app
+          if grep -rq "__VITE_FIREBASE_" js; then
+            echo "ERRO: placeholders de secrets ainda presentes em js/"
+            grep -rln "__VITE_FIREBASE_" js
             exit 1
           fi
           echo "Artifact OK"
