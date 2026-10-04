@@ -1,8 +1,36 @@
 {
-  "geradoEm": "2026-10-04T21:06:24+00:00",
-  "versaoAtual": "1.6.3",
-  "totalEntradas": 9,
+  "geradoEm": "2026-10-04T21:27:12+00:00",
+  "versaoAtual": "1.6.4",
+  "totalEntradas": 10,
   "entradas": [
+    {
+      "versao": "1.6.4",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Ajuste visual",
+          "chave": "ajuste visual",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Aluno Tech (perfil): foto de perfil maior (w-36/w-44) com moldura em gradiente (ciano→azul→roxo) e brilho suave; banner mais alto (h-48/h-64) com três botões de personalização (foto, cor da moldura, posição do banner); botão de posição cicla entre 5 posições de `background-position`. Arquivos: `index.html`, `js/alunoTech/perfilTech.js`."
+                ],
+                [
+                  "li",
+                  "Caderno Digital (Aluno Tech): visual mais moderno estilo Evernote — sidebar mais larga (14rem/20rem), cards com cantos mais arredondados, espaçamento maior e sombras mais suaves. Arquivos: `index.html`."
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.6.3",
       "data": "2026-10-04",

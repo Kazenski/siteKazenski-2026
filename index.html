@@ -768,7 +768,7 @@
                 <div class="w-full flex flex-col flex-grow relative">
 
                     <div class="w-full relative">
-                        <div class="w-full h-40 md:h-48 relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat"
+                        <div class="w-full h-48 md:h-64 relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat group"
                             id="al-bg-cover">
                             <div
                                 class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0">
@@ -778,23 +778,28 @@
                                 class="absolute inset-0 bg-gradient-to-r from-slate-900 via-transparent to-slate-900 z-0 opacity-90 hidden md:block">
                             </div>
 
-                            <button id="btn-edit-cover"
-                                class="absolute top-4 right-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
-                                    class="fas fa-camera"></i></button>
-                            <button id="btn-edit-border"
-                                class="absolute top-4 left-4 bg-slate-900/60 hover:bg-blue-600 text-white p-2 rounded-full backdrop-blur-sm transition-all"><i
-                                    class="fas fa-palette"></i></button>
+                            <div class="absolute top-4 right-4 flex gap-2 z-10">
+                                <button id="btn-edit-cover"
+                                    class="bg-slate-900/60 hover:bg-blue-600 text-white p-2.5 rounded-full backdrop-blur-sm transition-all" title="Alterar banner"><i
+                                        class="fas fa-camera"></i></button>
+                                <button id="btn-edit-border"
+                                    class="bg-slate-900/60 hover:bg-blue-600 text-white p-2.5 rounded-full backdrop-blur-sm transition-all" title="Cor da moldura"><i
+                                        class="fas fa-palette"></i></button>
+                                <button id="btn-edit-cover-pos"
+                                    class="bg-slate-900/60 hover:bg-blue-600 text-white p-2.5 rounded-full backdrop-blur-sm transition-all" title="Posição do banner"><i
+                                        class="fas fa-arrows-up-down"></i></button>
+                            </div>
                         </div>
 
                         <div
-                            class="flex flex-col md:flex-row items-center md:items-end justify-between px-6 md:px-14 -mt-12 md:-mt-16 relative z-10 mb-4">
+                            class="flex flex-col md:flex-row items-center md:items-end justify-between px-6 md:px-14 -mt-16 md:-mt-20 relative z-10 mb-4">
                             <div class="flex flex-col md:flex-row items-center md:items-end gap-5">
                                 <div class="relative shrink-0">
+                                    <div class="absolute -inset-1.5 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 opacity-80 blur-sm"></div>
                                     <img src="" id="al-img-profile"
-                                        class="w-28 h-28 md:w-32 md:h-32 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.5)] bg-slate-900"
-                                        style="border-color: #00e5ff;">
+                                        class="relative w-36 h-36 md:w-44 md:h-44 rounded-full object-cover border-4 border-slate-950 cursor-pointer shadow-[0_0_25px_rgba(0,229,255,0.4)] bg-slate-900">
                                     <button id="btn-edit-profile"
-                                        class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full shadow-lg text-xs transition-all"><i
+                                        class="absolute bottom-1 right-1 bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-full shadow-lg text-xs transition-all"><i
                                             class="fas fa-camera"></i></button>
                                 </div>
                                 <div class="text-center md:text-left mb-2">
@@ -5004,6 +5009,17 @@
         }
         #grid-avaliacoes > div { margin-bottom: 0 !important; height: 100%; }
         #grid-avaliacoes > div:only-child { grid-column: 1 / -1; }
+
+        /* Caderno Digital: visual mais moderno estilo Evernote */
+        #atab-caderno .w-48 { width: 14rem; }
+        #atab-caderno .w-80 { width: 20rem; }
+        #atab-caderno .bg-slate-800\/80 { background-color: rgba(30, 41, 59, 0.92); }
+        #atab-caderno .rounded-2xl { border-radius: 1rem; }
+        #atab-caderno .p-4 { padding: 1.25rem; }
+        #atab-caderno .p-2 { padding: 0.75rem; }
+        #atab-caderno .gap-4 { gap: 1.25rem; }
+        #atab-caderno .gap-2 { gap: 0.75rem; }
+        #atab-caderno .shadow-lg { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.35); }
     </style>
 </body>
 

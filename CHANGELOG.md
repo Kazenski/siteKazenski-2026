@@ -4,6 +4,11 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.4] — 2026-10-04
+### Ajuste visual
+- Aluno Tech (perfil): foto de perfil maior (w-36/w-44) com moldura em gradiente (ciano→azul→roxo) e brilho suave; banner mais alto (h-48/h-64) com três botões de personalização (foto, cor da moldura, posição do banner); botão de posição cicla entre 5 posições de `background-position`. Arquivos: `index.html`, `js/alunoTech/perfilTech.js`.
+- Caderno Digital (Aluno Tech): visual mais moderno estilo Evernote — sidebar mais larga (14rem/20rem), cards com cantos mais arredondados, espaçamento maior e sombras mais suaves. Arquivos: `index.html`.
+
 ## [v1.6.3] — 2026-10-04
 ### Ajuste visual
 - Avaliações Digitais: cards agora em no máximo 2 colunas lado a lado (em vez de 5 colunas estreitas), com espaçamento de `gap` sutil e cards de mesma altura; o modal de detalhes ("Abrir Painel") ficou mais largo (`max-w-6xl`) para aproveitar a largura da tela.

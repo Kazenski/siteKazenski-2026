@@ -213,6 +213,14 @@ function setupEventListeners() {
     document.getElementById('btn-edit-profile')?.addEventListener('click', () => els.inpProfile.click());
     document.getElementById('btn-edit-cover')?.addEventListener('click', () => els.inpCover.click());
     document.getElementById('btn-edit-border')?.addEventListener('click', () => els.inpColor.click());
+    document.getElementById('btn-edit-cover-pos')?.addEventListener('click', () => {
+        const cover = document.getElementById('al-bg-cover');
+        if (!cover) return;
+        const posicoes = ['center top', 'center center', 'center bottom', 'center 30%', 'center 70%'];
+        const atual = cover.style.backgroundPosition || 'center center';
+        const idx = posicoes.indexOf(atual);
+        cover.style.backgroundPosition = posicoes[(idx + 1) % posicoes.length];
+    });
 
     els.badgeTitle?.addEventListener('click', toggleTitleSelect);
     els.selTitle?.addEventListener('change', (e) => saveTitle(e.target.value));
