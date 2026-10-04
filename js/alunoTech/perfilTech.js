@@ -356,6 +356,9 @@ function setupEventListeners() {
         const editor = document.getElementById('al-note-editor');
         if (editor) editor.style.fontSize = e.target.value;
     });
+
+    // Cropper confirm
+    els.btnConfirmCrop?.addEventListener('click', async () => {
         if (!cropperInstance) return;
 
         const canvas = cropperInstance.getCroppedCanvas({
