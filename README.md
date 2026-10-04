@@ -273,3 +273,5 @@ Uso interno da instituição. Não redistribuir sem autorização.
 
 > **Última atualização**: 2026-10-04 | **Versão atual**: `v1.6.5`  
 > **Deploy**: `https://kazenski.github.io/siteKazenski-2026/` | **Sandbox**: `https://kazenski.github.io/siteKazenski-test/`
+   
+ 
