@@ -1745,20 +1745,18 @@ function updateNoteFilterButtons() {
         pinned: document.getElementById('btn-filter-pinned'),
         recent: document.getElementById('btn-filter-recent')
     };
-    const colors = { all: 'blue-500', pinned: 'amber-500', recent: 'emerald-500' };
-    const colorsLight = { all: 'blue-400', pinned: 'amber-400', recent: 'emerald-400' };
+    // Matiz de cada filtro. As classes de texto/cor são estáticas no HTML;
+    // aqui alternamos apenas o fundo/borda de "ativo" vs "inativo".
+    const shades = { all: 'blue', pinned: 'amber', recent: 'emerald' };
     Object.entries(buttons).forEach(([key, btn]) => {
         if (!btn) return;
-        if (currentNoteFilter === key) {
-            btn.classList.add('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30');
-            btn.classList.remove('text-slate-400', 'hover:bg-slate-700', 'hover:text-white', 'border-transparent', 'hover:border-amber-500/30', 'hover:bg-amber-500/10');
-        } else {
-            // Reset to default styles based on filter type
-            btn.classList.remove('bg-blue-600/20', 'text-blue-400', 'border-blue-500/30', 'bg-amber-500/20', 'text-amber-400', 'border-amber-500/30', 'bg-emerald-500/20', 'text-emerald-400', 'border-emerald-500/30');
-            btn.classList.add('text-slate-400', 'hover:bg-slate-700', 'hover:text-white', 'border-transparent', 'hover:border-' + colors[key] + '-500/30', 'hover:bg-' + colors[key] + '-500/10');
-            btn.classList.add(`text-${colors[key]}`, `hover:bg-${colors[key]}-500/10`, `hover:border-${colors[key]}-500/30`);
-        });
-    }
+        const hue = shades[key];
+        const isActive = currentNoteFilter === key;
+        btn.classList.toggle(`bg-${hue}-500/20`, isActive);
+        btn.classList.toggle(`border-${hue}-500/50`, isActive);
+        btn.classList.toggle(`bg-${hue}-500/10`, !isActive);
+        btn.classList.toggle(`border-${hue}-500/30`, !isActive);
+    });
 }
 
 window.setNoteFilter = (filter) => {

@@ -4,6 +4,44 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.7] — 2026-10-04
+### Escopo
+Estabilização final do módulo Aluno Tech. O `perfilTech.js` tinha um erro de sintaxe real que impedia o navegador de carregar o arquivo inteiro — ou seja, Perfil, Caderno Digital e Kanban estavam todos mortos em produção. Este ciclo remove o erro, corrige a ferramenta de validação que não enxergava esse tipo de problema, restaura o `README.md` (que estava corrompido com bytes nulos) e elimina o carregamento duplicado do Tailwind.
+
+### Corrigido
+
+#### [CRÍTICO] Aluno Tech inteiro parava de carregar — `SyntaxError: Unexpected token ')'`
+Em `updateNoteFilterButtons()` o fecha-chaves e o fecha-parênteses estavam trocados: o laço terminava com `});` e ainda Sobravam dois `}` soltos. Como o erro é de sintaxe, o navegador descartava o arquivo inteiro, então nenhuma função do módulo existia — inclusive `window.setNoteFilter` e `window.deleteNote`. A função foi reescrita com `classList.toggle()` por matiz de cor (azul/âmbar/esmeralda), o que elimina as três chamadas `classList.add()` duplicadas e a variável morta `colorsLight` que existia sem uso. Os botões Todas/Fixadas/Recentes voltam a alternar destaque de fundo e borda corretamente. Arquivos: `js/alunoTech/perfilTech.js`.
+
+#### A validação de sintaxe estava cega — foi ela que deixou o erro chegar em produção
+`node --check arquivo.js` não detecta nada quando o arquivo começa com `import`: o Node identifica sintaxe de módulo, sai com código 0 e **não valida o corpo**. Todo este projeto é ES Module, então os `node --check` anteriores davam "OK" em arquivos com erro de sintaxe real. A verificação agora copia cada `.js` para um `.mjs` temporário (forçado como módulo) e só aí roda `node --check`, que de fato acusa o erro. Arquivos: `tools/check_syntax.ps1` (novo), `tools/check_all.ps1`.
+
+#### `README.md` estava corrompido com 110 bytes nulos
+Quatro commits seguidos de "cache bust" usaram o `README.md` como isca para forçar o GitHub Pages a revalidar a página, e cada edição passou a gravar bytes nulos no arquivo. O resultado foi um `README.md` que nenhuma ferramenta conseguia ler. O arquivo foi restaurado da última versão íntegra (`23a9f3a`) e a prática de usar o README como gatilho de cache foi encerrada: a partir de agora as correções usam `Ctrl+Shift+R` ou aguardam o `max-age=600`. Arquivos: `README.md`.
+
+#### Tailwind CDN carregado duas vezes
+`<script src="https://cdn.tailwindcss.com"></script>` aparecia duplicado no `<head>`, fazendo o Tailwind rodar duas vezes (geração de CSS dobrada e aviso de produção duplicado no console). Mantida uma única instância. Arquivos: `index.html`.
+
+### Adicionado
+- `tools/check_syntax.ps1`: varre todos os `.js` do projeto validando-os como ES Module de verdade, e reporta arquivo, mensagem e a linha com problema. Está ligado ao `check_all.ps1`, então erro de sintaxe agora barra o commit. Arquivos: `tools/check_syntax.ps1`.
+- `perfilTech.js` incluído na varredura do `tools/lint_colado.js` dentro do `check_all.ps1` — antes o módulo mais denso do Aluno Tech ficava de fora do lint de palavra-chave colada. Arquivos: `tools/check_all.ps1`.
+
+### Verificado
+- `tools/check_all.ps1` inteiro: `TODAS AS VERIFICACOES PASSARAM` (37 arquivos `.js` válidos, 0 falhas de sintaxe).
+- `tools/harness/build_boot.js`: `window.profAPI` com 134 chaves (piso 125) e `erros: []` — aba Professor viva.
+- `index.html` carregado no navegador: **0 erros de console** (antes havia o `SyntaxError`), restando apenas o aviso esperado do Tailwind CDN.
+- `window.setNoteFilter` e `window.deleteNote` confirmados como função em runtime — prova direta de que o `perfilTech.js` passou a ser avaliado inteiro.
+- `tools/check_refs.py` e `tools/html_balance.py`: sem regressões (deltas pré-existentes mantidos).
+
+### Arquivos tocados
+- js/alunoTech/perfilTech.js
+- tools/check_syntax.ps1
+- tools/check_all.ps1
+- index.html
+- README.md
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.6.6] — 2026-10-04
 ### Adicionado
 - **Aluno Tech - Perfil**: foto de perfil maior (w-40 h-40 md:w-56 md:h-56 lg:w-64 lg:h-64) com moldura gradiente animada, banner mais alto (h-56 md:h-72 lg:h-80) com 3 botões de personalização (foto, cor da moldura, posição do banner ciclando 5 posições).

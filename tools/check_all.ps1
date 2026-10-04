@@ -10,10 +10,13 @@ function Rodar($nome, $cmd) {
 }
 
 if (-not $SkipNode) {
-    Rodar "sintaxe do professorTech" "node --check js/professorTech/professorTech.js"
-    Rodar "sintaxe de todos os modulos" "for %f in (js\core\*.js js\main.js js\manutencao\*.js js\aluno\*.js) do @node --check %f"
+    # NAO use `node --check *.js` aqui: em arquivos .js que contem `import`,
+    # o Node detecta sintaxe de modulo e sai com codigo 0 SEM VERIFICAR NADA.
+    # Foi exatamente isso que deixou o erro de sintaxe do perfilTech.js
+    # chegar em producao. Use check_syntax.ps1, que valida de verdade (.mjs).
+    Rodar "sintaxe ESM de todos os .js" "powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_syntax.ps1"
     Rodar "self-test do lint_colado" "node tools\test_lint_colado.js"
-    Rodar "palavra-chave colada" "node tools\lint_colado.js js\professorTech\professorTech.js js\main.js"
+    Rodar "palavra-chave colada" "node tools\lint_colado.js js\professorTech\professorTech.js js\main.js js\alunoTech\perfilTech.js"
 }
 
 Rodar "testes de absenteismo" "node tools\test_ausentismo.js"

@@ -71,6 +71,7 @@ Plataforma educacional completa (SPA) com gestão de cursos, projetos, notas, fr
 └── tools/                     # Ferramentas de build/validação
     ├── build_changelog.py
     ├── check_all.ps1
+    ├── check_syntax.ps1
     ├── lint_colado.js
     ├── html_balance.py
     └── harness/               # Testes visuais (PDF, charts, PDFs)
@@ -176,12 +177,17 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 | Check | Ferramenta | O que valida |
 |-------|------------|--------------|
-| Sintaxe JS | `node --check` | ES6 modules, imports |
+| Sintaxe JS | `tools/check_syntax.ps1` | Todos os `.js` validados como **ES Module de verdade** |
 | Lint "palavra colada" | `tools/lint_colado.js` | `letvar`, `constvar`, `returnvalor`... |
 | Testes unitários | `tools/test_*.js` | Absenteísmo, estatísticas, PDFs |
 | Referências DOM | `tools/check_refs.py` | `els.*` sem declaração, `getElementById` sem ID no HTML |
 | Balanceamento HTML | `tools/html_balance.py` | Tags abertas/fechadas |
 | Sanitização PDF | `tools/harness/` | jsPDF + autoTable (rodapé, largura, páginas) |
+
+> ⚠️ **Não use `node --check *.js` neste projeto.** Todos os arquivos começam com
+> `import`, e nesse caso o Node detecta sintaxe de módulo, **sai com código 0 sem
+> verificar nada** — foi assim que um `SyntaxError` real chegou em produção.
+> Use sempre `tools/check_syntax.ps1`, que copia o arquivo para `.mjs` antes de validar.
 
 ---
 
@@ -189,9 +195,11 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 | Versão | Data | Destaques |
 |--------|------|-----------|
+| **v1.6.7** | 2026-10-04 | Aluno Tech volta a carregar (erro de sintaxe crítico), validador de sintaxe real, README restaurado |
+| **v1.6.6** | 2026-10-04 | Aluno Tech: Caderno Digital estilo Evernote, foto maior, banner 3 ações |
 | **v1.6.5** | 2026-10-04 | Feed de Atualizações redesenhado (acordeão fluido, grid 2-col, modal largo) |
-| **v1.6.4** | 2026-10-04 | Aluno Tech: foto maior, banner 3 ações, Caderno estilo Evernote |
-| **v1.6.3** | 2026-10-04 | Avaliações: grid 2-col, cards refatorados, modal largo |
+| **v1.6.4** | 2026-10-04 | Avaliações: cards refatorados, modal `max-w-6xl` |
+| **v1.6.3** | 2026-10-04 | Avaliações: grid de 2 colunas |
 | **v1.6.2** | 2026-10-04 | Avaliações: grid 2-col + layout largo |
 | **v1.6.1** | 2026-10-04 | Mini-player quadrado (YouTube style) |
 | **v1.6.0** | 2026-10-04 | Gestão de Contas + Cores subabas Professor |
@@ -246,6 +254,9 @@ Arquivos: arquivo1, arquivo2
 # Validação completa
 powershell -ExecutionPolicy Bypass -File tools/check_all.ps1
 
+# Sintaxe ESM de todos os .js (NÃO usar `node --check` aqui)
+powershell -ExecutionPolicy Bypass -File tools/check_syntax.ps1
+
 # Regenerar changelog.json
 python tools/build_changelog.py
 
@@ -271,10 +282,5 @@ Uso interno da instituição. Não redistribuir sem autorização.
 
 ---
 
-> **Última atualização**: 2026-10-04 | **Versão atual**: `v1.6.5`  
+> **Última atualização**: 2026-10-04 | **Versão atual**: `v1.6.7`  
 > **Deploy**: `https://kazenski.github.io/siteKazenski-2026/` | **Sandbox**: `https://kazenski.github.io/siteKazenski-test/`
-   
- t r i g g e r   c a c h e   r e f r e s h   1 0 / 0 4 / 2 0 2 6   2 0 : 2 4 : 0 1  
- c a c h e   b u s t   2 0 2 6 - 1 0 - 0 4   2 0 : 2 5 : 1 2  
- c a c h e   b u s t   2 0 2 6 - 1 0 - 0 4   2 0 : 2 6 : 3 4  
- 
