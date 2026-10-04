@@ -338,6 +338,11 @@ function mapearDOM() {
         painelKpis: document.getElementById('painel-kpis'),
         painelTbody: document.getElementById('painel-tbody'),
 
+        // Análise dos Moderadores
+        modAnalisePeriodo: document.getElementById('modAnalisePeriodo'),
+        modAnaliseKpis: document.getElementById('mod-analise-kpis'),
+        modAnaliseTbody: document.getElementById('mod-analise-tbody'),
+
         // Análise Geral (Turma)
         geralDashboard: document.getElementById('geral-dashboard'),
         geralMsg: document.getElementById('geral-msg'),
@@ -6540,6 +6545,14 @@ window.profAPI.initPainel = () => {
     if (els.painelEnd && !els.painelEnd.value) els.painelEnd.value = dataParaInput(new Date());
     if (els.painelMsg) els.painelMsg.textContent =
         'Escolha os filtros no topo (Escola é obrigatória; Turma/Disciplina e Trimestre são opcionais) e clique em Carregar.';
+
+    // Análise dos moderadores (independente dos filtros de alunos)
+    const sel = document.getElementById('modAnalisePeriodo');
+    if (sel && !sel._modWired) {
+        sel._modWired = true;
+        sel.addEventListener('change', () => window.profAPI.renderModeradoresAnalise());
+    }
+    window.profAPI.renderModeradoresAnalise();
 };
 
 window.profAPI.resetPainelPeriodo = (reRender = true) => {
@@ -6952,4 +6965,134 @@ window.profAPI.renderPainelFaltas = () => {
         ] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 10 } } }, tooltip: { mode: 'index', intersect: false } }, scales: { x: { stacked: true, ticks: { color: '#64748b', font: { size: 8 }, autoSkip: true, maxRotation: 0 }, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } } } }
     });
+};
+
+// ==========================================
+// ANÁLISE DOS MODERADORES (emergencia no painel, abaixo de Diferenças)
+// ==========================================
+
+function painelPizza(canvasId, key, linhas, campo) {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    if (chartInstances[key]) chartInstances[key].destroy();
+    const dados = linhas.filter(l => l[campo] > 0);
+    if (dados.length === 0) return;
+    chartInstances[key] = new Chart(el.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: dados.map(l => l.nome),
+            datasets: [{ data: dados.map(l => l[campo]), backgroundColor: dados.map((_, i) => ['#38bdf8','#818cf8','#f472b6','#fb923c','#34d399','#facc15','#a78bfa','#f87171','#2dd4bf','#c084fc','#fb7185'][i % 11]) }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1', boxWidth: 8, font: { size: 8 } } } } }
+    });
+}
+
+window.profAPI.renderModeradoresAnalise = async () => {
+    const sel = document.getElementById('modAnalisePeriodo');
+    const periodo = sel ? sel.value : '30';
+    const kpis = document.getElementById('mod-analise-kpis');
+    const tbody = document.getElementById('mod-analise-tbody');
+    if (!kpis && !tbody) return;
+
+    if (kpis) kpis.innerHTML = '<div class="col-span-full text-center text-xs text-slate-500 py-4">Carregando análise dos moderadores...</div>';
+    if (tbody) tbody.innerHTML = '';
+
+    try {
+        const agora = Date.now();
+        const inicio = (periodo === 'all') ? 0 : agora - (Number(periodo) || 30) * 24 * 60 * 60 * 1000;
+
+        const snapU = await getDocs(collection(db, 'users'));
+        const moders = [];
+        snapU.forEach(d => {
+            const x = d.data();
+            if (x.Moderador === true || x.Moderador === 'true' || x.moderador === true || x.moderador === 'true') {
+                moders.push({ uid: d.id, nome: x.nome || d.id });
+            }
+        });
+
+        const porModB = {};
+        const snapB = await getDocs(collection(db, 'blog_posts'));
+        snapB.forEach(d => {
+            const b = d.data();
+            if (!b.autorId) return;
+            let ts = b.dataCriacao && typeof b.dataCriacao.toMillis === 'function' ? b.dataCriacao.toMillis() : null;
+            if (ts !== null && ts < inicio) return;
+            porModB[b.autorId] = porModB[b.autorId] || { blogs: 0, views: 0 };
+            porModB[b.autorId].blogs++;
+            porModB[b.autorId].views += Number(b.views) || 0;
+        });
+
+        const porModV = {};
+        const snapV = await getDocs(collection(db, 'votacoes'));
+        for (const d of snapV.docs) {
+            const v = d.data();
+            let ts = v.criadoEm && typeof v.criadoEm.toMillis === 'function' ? v.criadoEm.toMillis() : null;
+            if (ts !== null && ts < inicio) continue;
+            if (!v.criadoPor) continue;
+            porModV[v.criadoPor] = porModV[v.criadoPor] || { votacoes: 0, votos: 0 };
+            porModV[v.criadoPor].votacoes++;
+            try {
+                const sv = await getDocs(collection(db, 'votacoes', d.id, 'votos'));
+                porModV[v.criadoPor].votos += sv.size;
+            } catch (e) { /* sem acesso */ }
+        }
+
+        const linhas = moders.map(m => ({
+            nome: m.nome,
+            blogs: (porModB[m.uid] && porModB[m.uid].blogs) || 0,
+            views: (porModB[m.uid] && porModB[m.uid].views) || 0,
+            votacoes: (porModV[m.uid] && porModV[m.uid].votacoes) || 0,
+            votos: (porModV[m.uid] && porModV[m.uid].votos) || 0,
+        })).sort((a, b) => b.views - a.views);
+
+        const totB = linhas.reduce((s, l) => s + l.blogs, 0);
+        const totV = linhas.reduce((s, l) => s + l.votacoes, 0);
+        const totViews = linhas.reduce((s, l) => s + l.views, 0);
+        const totVotos = linhas.reduce((s, l) => s + l.votos, 0);
+
+        if (kpis) {
+            kpis.innerHTML = `
+                <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+                    <div class="text-3xl font-black text-white">${moders.length}</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Moderadores</div>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+                    <div class="text-3xl font-black text-sky-400">${totB}</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Blogs</div>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+                    <div class="text-3xl font-black text-fuchsia-400">${totV}</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Votações</div>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+                    <div class="text-3xl font-black text-indigo-400">${totViews}</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Views</div>
+                </div>
+                <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+                    <div class="text-3xl font-black text-amber-400">${totVotos}</div>
+                    <div class="text-[9px] text-slate-500 uppercase tracking-widest font-bold mt-1">Votos</div>
+                </div>`;
+        }
+        if (tbody) {
+            tbody.innerHTML = linhas.length
+                ? linhas.map(l => `
+                <tr class="border-b border-slate-800">
+                    <td class="p-2 font-bold text-slate-200">${escapeHTML(l.nome)}</td>
+                    <td class="p-2 text-center">${l.blogs}</td>
+                    <td class="p-2 text-center">${l.votacoes}</td>
+                    <td class="p-2 text-center">${l.views}</td>
+                    <td class="p-2 text-center">${l.votos}</td>
+                </tr>`).join('')
+                : '<tr><td colspan="5" class="p-4 text-center text-slate-500 italic">Sem dados no período.</td></tr>';
+        }
+
+        painelPizza('mod-chart-blogs', 'modChartBlogs', linhas, 'blogs');
+        painelPizza('mod-chart-views', 'modChartViews', linhas, 'views');
+        painelPizza('mod-chart-votos', 'modChartVotos', linhas, 'votos');
+
+    } catch (e) {
+        console.error(e);
+        if (kpis) kpis.innerHTML = `<div class="col-span-full text-center text-xs text-red-400 py-4">Erro ao carregar: ${escapeHTML(e.message)}</div>`;
+        if (tbody) tbody.innerHTML = '';
+    }
 };

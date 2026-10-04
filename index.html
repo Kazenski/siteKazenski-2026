@@ -3830,6 +3830,54 @@
                             </div>
                         </div>
 
+                        <!-- ANÁLISE DOS MODERADORES -->
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0">
+                            <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-slate-700 pb-2">
+                                <h3 class="text-rose-400 font-cinzel font-bold text-sm" title="Blog e votação. Balanceamento do trabalho da equipe de moderação.">Análise dos Moderadores</h3>
+                                <div class="flex items-center gap-2">
+                                    <label for="modAnalisePeriodo" class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Período</label>
+                                    <select id="modAnalisePeriodo" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-2 py-1.5 outline-none focus:border-rose-500">
+                                        <option value="7">Últimos 7 dias</option>
+                                        <option value="30" selected>Últimos 30 dias</option>
+                                        <option value="90">Últimos 90 dias</option>
+                                        <option value="all">Todo o período</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="mod-analise-kpis" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 shrink-0"></div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                                <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 h-72">
+                                    <h4 class="text-[10px] text-sky-400 uppercase tracking-widest font-bold mb-2">Blogs por moderador</h4>
+                                    <div class="w-full h-full"><canvas id="mod-chart-blogs"></canvas></div>
+                                </div>
+                                <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 h-72">
+                                    <h4 class="text-[10px] text-indigo-400 uppercase tracking-widest font-bold mb-2">Views por moderador</h4>
+                                    <div class="w-full h-full"><canvas id="mod-chart-views"></canvas></div>
+                                </div>
+                                <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 h-72">
+                                    <h4 class="text-[10px] text-amber-400 uppercase tracking-widest font-bold mb-2">Votos recebidos (nas votações criadas)</h4>
+                                    <div class="w-full h-full"><canvas id="mod-chart-votos"></canvas></div>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto custom-scroll mt-4">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-700">
+                                            <th class="p-2">Moderador</th>
+                                            <th class="p-2 text-center">Blogs</th>
+                                            <th class="p-2 text-center">Votações</th>
+                                            <th class="p-2 text-center">Views</th>
+                                            <th class="p-2 text-center">Votos</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mod-analise-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <div class="bg-slate-900/50 border border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col">
                             <h3 class="text-[10px] text-amber-400 uppercase tracking-widest font-bold p-4 border-b border-slate-700 bg-slate-800/50">Resumo por Aluno</h3>
                             <div class="overflow-x-auto custom-scroll">

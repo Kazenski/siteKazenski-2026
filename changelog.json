@@ -1,8 +1,32 @@
 {
-  "geradoEm": "2026-10-04T19:07:22+00:00",
-  "versaoAtual": "1.4.1",
-  "totalEntradas": 4,
+  "geradoEm": "2026-10-04T19:15:56+00:00",
+  "versaoAtual": "1.5.0",
+  "totalEntradas": 5,
   "entradas": [
+    {
+      "versao": "1.5.0",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Painel (Professor Tech): análise dos moderadores — seção \"Análise dos Moderadores\" abaixo de Diferenças por Trimestre, com a equipe de moderadores, blogs criados, votações criadas, views e votos, filtrada pelo período selecionado (7/30/90 dias ou todo o período), com gráficos de pizza por moderador e tabela de resumo"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.4.1",
       "data": "2026-10-04",

@@ -4,6 +4,10 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.5.0] — 2026-10-04
+### Adicionado
+- Painel (Professor Tech): análise dos moderadores — seção "Análise dos Moderadores" abaixo de Diferenças por Trimestre, com a equipe de moderadores, blogs criados, votações criadas, views e votos, filtrada pelo período selecionado (7/30/90 dias ou todo o período), com gráficos de pizza por moderador e tabela de resumo
+
 ## [v1.4.1] — 2026-10-04
 ### Corrigido
 - Tela do Painel: gráfico "Média por Grupo" agora tem altura fixa (h-80), sem esticar a página ao crescer
