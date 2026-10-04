@@ -1,8 +1,32 @@
 {
-  "geradoEm": "2026-10-04T20:30:27+00:00",
-  "versaoAtual": "1.6.1",
-  "totalEntradas": 7,
+  "geradoEm": "2026-10-04T20:46:32+00:00",
+  "versaoAtual": "1.6.2",
+  "totalEntradas": 8,
   "entradas": [
+    {
+      "versao": "1.6.2",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Ajuste visual",
+          "chave": "ajuste visual",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Avaliações Digitais (aba ao lado do Aluno Tech): usa mais a largura da tela com cards em grid lado a lado em vez de lista única estreita vertical"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.6.1",
       "data": "2026-10-04",

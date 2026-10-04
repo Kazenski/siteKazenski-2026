@@ -4990,6 +4990,18 @@
     <script type="module" src="js/pesquisasTech/pesquisasTech.js"></script>
     <script type="module" src="js/votacao/votacao.js"></script>
 
+    <style>
+        /* Central de Avaliações: aproveita a largura da tela com grid e cards lado a lado */
+        #avaliacoes-content { max-width: 100%; }
+        #grid-avaliacoes {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1rem;
+            align-items: start;
+        }
+        #grid-avaliacoes > div { margin-bottom: 0 !important; }
+        #grid-avaliacoes > div:only-child { grid-column: 1 / -1; }
+    </style>
 </body>
 
 </html>

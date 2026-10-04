@@ -4,6 +4,10 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.2] — 2026-10-04
+### Ajuste visual
+- Avaliações Digitais (aba ao lado do Aluno Tech): usa mais a largura da tela com cards em grid lado a lado em vez de lista única estreita vertical
+
 ## [v1.6.1] — 2026-10-04
 ### Corrigido
 - Conteúdos: mini player redesenhado em formato quadrado (estilo player de painel) com título/artista sincronizados — antes era um pill pequeno sem nome da faixa
