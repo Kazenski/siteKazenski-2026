@@ -4,6 +4,10 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.1] — 2026-10-04
+### Corrigido
+- Conteúdos: mini player redesenhado em formato quadrado (estilo player de painel) com título/artista sincronizados — antes era um pill pequeno sem nome da faixa
+
 ## [v1.6.0] — 2026-10-04
 ### Adicionado
 - Gestão de Contas (Professor Tech): subaba para aprovar e vincular contas criadas via login Google que ficaram pendentes — permite definir o nome que o site todo usa, escola, turma e disciplina. Antes disso o aluno se cadastrava como `Pendente` e precisava de ajuste manual no Firestore.

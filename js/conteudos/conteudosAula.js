@@ -957,8 +957,14 @@ function paintPlayerArt(item, tipo) {
         else els.miniPlayerThumb.classList.add('hidden');
     }
     if (els.miniPlayerIcon) {
-        els.miniPlayerIcon.className = `fas ${isMus ? 'fa-music text-emerald-400' : 'fa-microphone text-purple-400'}`;
+        els.miniPlayerIcon.className = `fas ${isMus ? 'fa-music text-emerald-400' : 'fa-microphone text-purple-400'} text-3xl`;
     }
+
+    // Sincroniza título/artista no mini player
+    const miniTitle = document.getElementById('mini-song-title');
+    const miniArtist = document.getElementById('mini-song-artist');
+    if (miniTitle) miniTitle.textContent = document.getElementById('player-song-title')?.textContent || '…';
+    if (miniArtist) miniArtist.textContent = document.getElementById('player-song-artist')?.textContent || '';
 }
 
 /* ==========================================================================

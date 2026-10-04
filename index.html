@@ -519,36 +519,40 @@
                 </div>
             </div>
 
-            <!-- Pílula flutuante (usada quando o app está fora da aba Conteúdos) -->
+            <!-- PINÍQULA flutuante redesenhada (estilo mini player YouTube, quadrada) -->
             <div id="mini-audio-player"
-                class="hidden fixed bottom-24 right-4 md:bottom-6 md:right-6 bg-slate-900/95 border border-slate-700 p-2 pr-3 rounded-full z-[2000] shadow-[0_10px_30px_rgba(0,0,0,0.8)] items-center gap-3 transition-transform hover:scale-105 group backdrop-blur-xl">
+                class="hidden fixed bottom-24 right-4 md:bottom-6 md:right-6 z-[2000] w-56 bg-slate-900/95 border border-slate-700 rounded-2xl shadow-[0_12px_32px_rgba(0,0,0,0.7)] backdrop-blur-xl overflow-hidden">
 
-                <div class="flex items-center gap-3 flex-grow cursor-pointer pl-1"
-                    onclick="window.conteudosAPI.maximizePlayer()" title="Expandir Player">
-                    <div
-                        class="w-10 h-10 rounded-full bg-slate-800 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0 shadow-inner group-hover:ring-2 ring-blue-500/50 transition-all">
-                        <img id="mini-player-thumb" src="" class="w-full h-full object-cover hidden">
-                        <i id="mini-player-icon" class="fas fa-music text-slate-400 text-sm"></i>
-                    </div>
-                    <div class="max-w-[120px] overflow-hidden pr-2">
-                        <div
-                            class="text-[10px] font-bold text-slate-300 truncate uppercase tracking-widest group-hover:text-blue-400 transition-colors">
-                            <i class="fas fa-expand-arrows-alt mr-1 opacity-50"></i> Expandir
-                        </div>
-                    </div>
+                <div class="relative w-full aspect-square bg-slate-800 flex items-center justify-center">
+                    <img id="mini-player-thumb" src="" class="w-full h-full object-cover hidden">
+                    <i id="mini-player-icon" class="fas fa-music text-slate-400 text-3xl"></i>
+                    <button onclick="window.conteudosAPI.maximizePlayer()"
+                        class="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70"
+                        title="Expandir" aria-label="Expandir">
+                        <i class="fas fa-expand text-xs"></i>
+                    </button>
+                    <button onclick="window.conteudosAPI.closePlayer()"
+                        class="absolute top-2 left-2 w-7 h-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-red-500/80"
+                        title="Fechar" aria-label="Fechar">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
                 </div>
 
-                <div class="h-6 w-px bg-slate-700 mx-1"></div> <button id="btn-play-pause-mini"
-                    onclick="window.conteudosAPI.togglePlay()"
-                    class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-500 shrink-0 shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-colors">
-                    <i class="fas fa-play ml-0.5 text-sm"></i>
-                </button>
-
-                <button onclick="window.conteudosAPI.closePlayer()"
-                    class="w-8 h-8 text-slate-500 hover:text-red-400 rounded-full hover:bg-slate-800 flex items-center justify-center transition-colors"
-                    title="Fechar Música">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="p-3">
+                    <div id="mini-song-title" class="text-[11px] font-bold text-slate-200 truncate">...</div>
+                    <div id="mini-song-artist" class="text-[9px] text-slate-500 truncate mb-2">...</div>
+                    <div class="flex items-center justify-center gap-1">
+                        <button onclick="window.conteudosAPI.prevAudio()"
+                            class="w-9 h-9 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center"
+                            title="Anterior"><i class="fas fa-step-backward text-xs"></i></button>
+                        <button id="btn-play-pause-mini" onclick="window.conteudosAPI.togglePlay()"
+                            class="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-[0_0_12px_rgba(59,130,246,0.6)]"
+                            aria-label="Reproduzir ou pausar"><i class="fas fa-play ml-0.5"></i></button>
+                        <button onclick="window.conteudosAPI.nextAudio()"
+                            class="w-9 h-9 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center"
+                            title="Próxima"><i class="fas fa-step-forward text-xs"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
 

@@ -1,8 +1,32 @@
 {
-  "geradoEm": "2026-10-04T19:57:17+00:00",
-  "versaoAtual": "1.6.0",
-  "totalEntradas": 6,
+  "geradoEm": "2026-10-04T20:30:27+00:00",
+  "versaoAtual": "1.6.1",
+  "totalEntradas": 7,
   "entradas": [
+    {
+      "versao": "1.6.1",
+      "data": "2026-10-04",
+      "autor": "",
+      "escopo": "",
+      "secoes": [
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Conteúdos: mini player redesenhado em formato quadrado (estilo player de painel) com título/artista sincronizados — antes era um pill pequeno sem nome da faixa"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.6.0",
       "data": "2026-10-04",
