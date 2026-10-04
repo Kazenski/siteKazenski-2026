@@ -1,16 +1,16 @@
-# 🏫 Site Prof. Kazenski 2026
+# Site Prof. Kazenski 2026
 
 > Plataforma educacional e portfólio do Prof. Kazenski — cursos, projetos, gestão escolar e permissões por perfil.
 
 ---
 
-## 📖 Visão Geral
+## Visão Geral
 
 Plataforma educacional completa (SPA) com gestão de cursos, projetos, notas, frequência, caderno digital, avaliações e painéis administrativos. Suporte a múltiplos perfis com permissões granulares via Firebase.
 
 ---
 
-## 🗂️ Estrutura do Projeto
+## Estrutura do Projeto
 
 ```text
 /
@@ -78,7 +78,7 @@ Plataforma educacional completa (SPA) com gestão de cursos, projetos, notas, fr
 
 ---
 
-## 🛠️ Stack Tecnológico
+## Stack Tecnológico
 
 | Categoria | Tecnologias |
 |-----------|-------------|
@@ -93,7 +93,7 @@ Plataforma educacional completa (SPA) com gestão de cursos, projetos, notas, fr
 
 ---
 
-## 👥 Sistema de Permissões (`MENU_ARCHITECTURE`)
+## Sistema de Permissões (`MENU_ARCHITECTURE`)
 
 O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **roles** do Firebase (`users/{uid}`).
 
@@ -110,15 +110,15 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 ---
 
-## 🚀 Principais Funcionalidades por Módulo
+## Principais Funcionalidades por Módulo
 
-### 🎓 **Aluno Tech** (`perfilTech.js`)
+### **Aluno Tech** (`perfilTech.js`)
 - Dashboard: notas, frequência, dispersão, evolução
 - **Caderno Digital** estilo Evernote (sidebar, tags, busca, pin, cores)
 - Kanban de atividades, Calendário, Mochila, Coleção TCG
 - **Perfil**: foto maior, banner personalizável (posição/cor), título editável
 
-### 👨‍🏫 **Professor Tech** (`professorTech.js`)
+### **Professor Tech** (`professorTech.js`)
 - Chamada digital com status (P/F/J) + observações
 - Notas por disciplina/trimestre (N1–N4 + extras)
 - **APOIA**: encaminhamento em lote à direção + PDF oficial
@@ -127,25 +127,25 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 - **Análise de Moderadores**: blogs, votações, views, votos + gráficos de pizza
 - Relatórios de frequência (PDF profissional), Avaliação 360°, Grade horária, Avisos, Logs, Reset Anual
 
-### 📝 **Avaliações Digitais** (`avaliacoesDigitais.js`)
+### **Avaliações Digitais** (`avaliacoesDigitais.js`)
 - Criação de provas/trabalhos com banner, anexos, links
 - Entrega pelo aluno (texto + arquivos)
 - Correção com nota + devolutiva + histórico de comentários
 - Grid responsivo de cards (2 colunas), modal amplo (`max-w-6xl`)
 
-### 📚 **Conteúdos** (`conteudosAula.js`)
+### **Conteúdos** (`conteudosAula.js`)
 - Acervo: Materiais, Músicas (player global), Podcasts
 - **Mini-player** quadrado (estilo YouTube) com capa, título, artista, controles
 - Admin: upload de banner/capa, cropper, cores
 
-### 🛡️ **Moderador Tech**
+### **Moderador Tech**
 - Blog técnico com aprovação de pares
 - Cadastro de títulos/condecorações
 - Métricas de moderação (posts, aprovações, views)
 
 ---
 
-## 🔐 Segurança & Sessão
+## Segurança & Sessão
 
 - **Auth**: Firebase Auth (Email/Senha + Google OAuth + linkWithPopup)
 - **Sessão**: Realtime DB expira após **15 min** de inatividade
@@ -154,7 +154,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 ---
 
-## 📦 Deploy & CI/CD
+## Deploy & CI/CD
 
 | Ambiente | Branch | URL |
 |----------|--------|-----|
@@ -167,7 +167,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 ---
 
-## ✅ Qualidade & Validação
+## Qualidade & Validação
 
 ```powershell
 # Suite completa (PowerShell)
@@ -185,7 +185,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 ---
 
-## 📋 Histórico de Versões (Changelog)
+## Histórico de Versões (Changelog)
 
 | Versão | Data | Destaques |
 |--------|------|-----------|
@@ -201,11 +201,11 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 | **v1.3.0** | 2026-10-03 | Login Google, migração contas, votação |
 | **v1.2.0** | 2026-10-03 | Migração Google, LGPD/ECA, manutenção |
 
-> 📄 **Completo**: `CHANGELOG.md` | `changelog.json` (gerado via `python tools/build_changelog.py`)
+>  **Completo**: `CHANGELOG.md` | `changelog.json` (gerado via `python tools/build_changelog.py`)
 
 ---
 
-## 🧪 Testes & Harnesses
+##  Testes & Harnesses
 
 | Harness | Comando | O que testa |
 |---------|---------|-------------|
@@ -218,7 +218,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 ---
 
-## 📝 Convenções de Commit
+## Convenções de Commit
 
 ```
 <tipo>(escopo): descrição curta
@@ -264,7 +264,7 @@ python -m http.server 8791
 
 ---
 
-## 📄 Licença
+## Licença
 
 Projeto educacional privado — Prof. Kazenski 2026.  
 Uso interno da instituição. Não redistribuir sem autorização.
