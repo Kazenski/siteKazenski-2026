@@ -873,6 +873,18 @@ function dataParaInput(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Resolve o construtor do jsPDF.
+ * O bundle UMD (jspdf.umd.min.js) publica a classe em `window.jspdf.jsPDF`,
+ * e NÃO em `window.jsPDF`. Usar `new jsPDF(...)` direto quebrava a exportação
+ * de PDF com ReferenceError. Aqui tentamos os dois caminhos.
+ */
+function criarJsPDF(opts) {
+    const Ctor = window.jsPDF || (window.jspdf && window.jspdf.jsPDF);
+    if (!Ctor) throw new Error('Biblioteca de PDF (jsPDF) nao carregou. Recarregue a pagina.');
+    return new Ctor(opts);
+}
+
 // ==========================================
 // EVOLUÇÃO DO ALUNO — RENDERIZADORES
 // ==========================================
@@ -1461,7 +1473,7 @@ async function generatePdf() {
         const emAlerta = rows.filter(r => r.analise.critico);
 
         // 5. Instancia o PDF e Desenha a Tabela
-        const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+        const pdf = criarJsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
         const dName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
         const pageW = pdf.internal.pageSize.getWidth();
         const pageH = pdf.internal.pageSize.getHeight();
