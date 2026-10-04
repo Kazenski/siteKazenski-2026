@@ -113,6 +113,11 @@ export async function renderProfessorTab() {
     addSafeListener('sorteios', () => window.profAPI.initSorteiosTab());
     if (els.btnResetSorteio) els.btnResetSorteio.onclick = () => window.profAPI.resetSorteioIndividual();
     addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
+    addSafeListener('evolucao', () => window.profAPI.initEvolucaoTab());
+    if (els.evolBtn) els.evolBtn.onclick = () => window.profAPI.loadEvolucaoAluno();
+    if (els.evolBtnFaltas) els.evolBtnFaltas.onclick = () => window.profAPI.renderEvolucaoFaltas();
+    if (els.evolBtnPeriodo) els.evolBtnPeriodo.onclick = () => window.profAPI.resetEvolucaoPeriodo();
+    if (els.evolTrimestre) els.evolTrimestre.onchange = () => window.profAPI.loadEvolucaoAluno();
     addSafeListener('aplicar-aval', () => window.profAPI.renderAplicarAvalTable());
     addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
@@ -289,6 +294,20 @@ function mapearDOM() {
         msgEvolution: document.getElementById('chart-evolution-msg'),
         selEvolutionDisc: document.getElementById('chart-evolution-disc'),
         predictiveList: document.getElementById('predictive-list'),
+
+        // Evolução do Aluno
+        evolAluno: document.getElementById('evol-aluno'),
+        evolTrimestre: document.getElementById('evol-trimestre'),
+        evolBtn: document.getElementById('evol-btn'),
+        evolBtnFaltas: document.getElementById('evol-btn-faltas'),
+        evolBtnPeriodo: document.getElementById('evol-btn-periodo'),
+        evolStart: document.getElementById('evol-start'),
+        evolEnd: document.getElementById('evol-end'),
+        evolMsg: document.getElementById('evol-msg'),
+        evolDashboard: document.getElementById('evol-dashboard'),
+        evolKpis: document.getElementById('evol-kpis'),
+        evolAlertas: document.getElementById('evol-alertas'),
+        evolTabelaNotas: document.getElementById('evol-tabela-notas'),
 
         // Análise Geral (Turma)
         geralDashboard: document.getElementById('geral-dashboard'),
@@ -824,6 +843,337 @@ function corPctPresenca(pct) {
     if (pct >= 90) return 'text-green-400';
     if (pct >= 75) return 'text-amber-400';
     return 'text-red-400';
+}
+
+/** Estatísticas de um conjunto de notas (0 a 10). */
+function estatisticasNotas(valores) {
+    const vals = valores.filter(v => Number.isFinite(v));
+    const n = vals.length;
+    if (!n) return { n: 0, media: null, desvio: null, min: null, max: null, slope: null, faixa: 'sem-dados' };
+
+    const media = vals.reduce((a, b) => a + b, 0) / n;
+    const desvio = Math.sqrt(vals.reduce((s, v) => s + (v - media) ** 2, 0) / n);
+
+    // Inclinação da reta de tendência (progressão): >0 subindo, <0 caindo
+    let slope = null;
+    if (n >= 2) {
+        const xs = vals.map((_, i) => i);
+        const mx = xs.reduce((a, b) => a + b, 0) / n;
+        const num = vals.reduce((s, v, i) => s + (xs[i] - mx) * (v - media), 0);
+        const den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+        slope = den ? num / den : 0;
+    }
+
+    const faixa = desvio >= 2.5 ? 'alta' : desvio >= 1.5 ? 'media' : 'baixa';
+    return { n, media, desvio, min: Math.min(...vals), max: Math.max(...vals), slope, faixa };
+}
+
+/** Data no formato YYYY-MM-DD sem escorregar de fuso horário. */
+function dataParaInput(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ==========================================
+// EVOLUÇÃO DO ALUNO — RENDERIZADORES
+// ==========================================
+
+function corNota(v) {
+    if (v === null || v === undefined) return 'text-slate-600';
+    if (v >= 7) return 'text-emerald-400';
+    if (v >= 6) return 'text-amber-400';
+    return 'text-red-400';
+}
+
+function corNotaBg(v) {
+    if (v === null || v === undefined) return '#334155';
+    if (v >= 7) return '#10b981';
+    if (v >= 6) return '#f59e0b';
+    return '#ef4444';
+}
+
+function mostrarOculto(msgId, visivel, texto) {
+    const el = document.getElementById(msgId);
+    if (!el) return;
+    if (visivel) {
+        if (texto) el.textContent = texto;
+        el.classList.remove('hidden');
+    } else {
+        el.classList.add('hidden');
+    }
+}
+
+function renderEvolucaoKpis(stats, mediasPos, porDisciplina) {
+    const card = (icone, corIcone, valor, corValor, rotulo, sub, id) => `
+        <div class="bg-slate-900/70 border border-slate-700 rounded-xl p-4 shadow">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fas ${icone} ${corIcone} text-sm"></i>
+                <span class="text-[9px] uppercase tracking-widest text-slate-400 font-bold truncate">${rotulo}</span>
+            </div>
+            <div class="text-3xl font-black leading-none ${corValor}"${id ? ` id="${id}"` : ''}>${valor}</div>
+            <div class="text-[10px] text-slate-500 mt-1 truncate"${id ? ` id="${id}-sub"` : ''}>${sub || ''}</div>
+        </div>`;
+
+    const rotDispersao = { baixa: 'Estável', media: 'Oscilante', alta: 'Irregular' };
+    const corDispersao = { baixa: 'text-emerald-400', media: 'text-amber-400', alta: 'text-orange-400' };
+
+    const prog = mediasPos.valor !== null ? mediasPos.slope : null;
+    const progValor = prog === null ? '—' : (prog > 0 ? '+' : '') + prog.toFixed(2);
+    const progRot = prog === null ? 'sem avaliações repetidas'
+        : prog > 0.15 ? 'Em alta'
+            : prog < -0.15 ? 'Em queda'
+                : 'Estável';
+    const progCor = prog === null ? 'text-slate-500'
+        : prog > 0.15 ? 'text-emerald-400'
+            : prog < -0.15 ? 'text-red-400'
+                : 'text-slate-300';
+
+    const comNota = porDisciplina.filter(d => d.media !== null);
+
+    els.evolKpis.innerHTML = [
+        card('fa-bullseye', 'text-emerald-400', stats.media === null ? '—' : stats.media.toFixed(2), corNota(stats.media),
+            'Média do Trimestre', `${stats.n} avaliação(ões) · ${comNota.length} disciplina(s)`),
+        card('fa-arrow-up', 'text-sky-400', stats.max === null ? '—' : stats.max.toFixed(1), 'text-sky-400',
+            'Maior Nota', 'melhor desempenho'),
+        card('fa-arrow-down', 'text-rose-400', stats.min === null ? '—' : stats.min.toFixed(1), 'text-rose-400',
+            'Menor Nota', 'pior desempenho'),
+        card('fa-arrows-left-right', corDispersao[stats.faixa] || 'text-slate-400',
+            stats.desvio === null ? '—' : stats.desvio.toFixed(2), corDispersao[stats.faixa] || 'text-slate-500',
+            'Dispersão', `${rotDispersao[stats.faixa] || 'sem dados'} · desvio-padrão`),
+        card('fa-chart-line', progCor, progValor, progCor, 'Progressão', `${progRot} · N1→N4`),
+        card('fa-user-check', 'text-blue-400', '-', 'text-slate-500', 'Frequência no Período', 'definir período abaixo', 'evol-kpi-freq')
+    ].join('');
+}
+
+function renderEvolucaoProgressao(medias, stats) {
+    const canvas = document.getElementById('evol-chart-progressao');
+    if (!canvas) return;
+
+    if (chartInstances['evolProgressao']) chartInstances['evolProgressao'].destroy();
+
+    if (medias.every(m => m === null)) {
+        mostrarOculto('evol-chart-progressao-msg', true, 'Sem notas no trimestre.');
+        return;
+    }
+    mostrarOculto('evol-chart-progressao-msg', false);
+
+    // Reta de tendência sobre as médias por posição
+    const pontos = medias.map((m, i) => (m === null ? null : m)).filter(m => m !== null);
+    let tendencia = [null, null, null, null];
+    if (pontos.length >= 2) {
+        const xs = medias.map((m, i) => (m === null ? null : i)).filter(v => v !== null);
+        const n = xs.length;
+        const mx = xs.reduce((a, b) => a + b, 0) / n;
+        const my = pontos.reduce((a, b) => a + b, 0) / n;
+        const den = xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+        const slope = den ? pontos.reduce((s, y, i) => s + (xs[i] - mx) * (y - my), 0) / den : 0;
+        tendencia = [0, 1, 2, 3].map(i => +(my + slope * (i - mx)).toFixed(2));
+    }
+
+    chartInstances['evolProgressao'] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: ['N1', 'N2', 'N3', 'N4'],
+            datasets: [
+                {
+                    label: 'Média por avaliação',
+                    data: medias,
+                    borderColor: '#34d399',
+                    backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                    borderWidth: 3,
+                    tension: 0.35,
+                    fill: true,
+                    spanGaps: true,
+                    pointBackgroundColor: medias.map(m => corNotaBg(m)),
+                    pointBorderColor: '#0f172a',
+                    pointBorderWidth: 2,
+                    pointRadius: 7,
+                    pointHoverRadius: 9
+                },
+                {
+                    label: 'Média do trimestre',
+                    data: medias.map(() => stats.media),
+                    borderColor: 'rgba(245, 158, 11, 0.9)',
+                    borderWidth: 1.5,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    spanGaps: true
+                },
+                {
+                    label: 'Tendência',
+                    data: tendencia,
+                    borderColor: 'rgba(148, 163, 184, 0.8)',
+                    borderWidth: 1.5,
+                    borderDash: [3, 3],
+                    pointRadius: 0,
+                    fill: false,
+                    spanGaps: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 10 } } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y === null ? '—' : ctx.parsed.y.toFixed(2)}`
+                    }
+                }
+            },
+            scales: {
+                y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 11, weight: 'bold' } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderEvolucaoDispersao(itens, stats) {
+    const canvas = document.getElementById('evol-chart-dispersao');
+    if (!canvas) return;
+
+    if (chartInstances['evolDispersao']) chartInstances['evolDispersao'].destroy();
+
+    if (itens.length === 0) {
+        mostrarOculto('evol-chart-dispersao-msg', true, 'Sem notas no trimestre.');
+        return;
+    }
+    mostrarOculto('evol-chart-dispersao-msg', false);
+
+    const media = stats.media ?? 0;
+    const desvio = stats.desvio ?? 0;
+    const faixaX = [-0.5, itens.length - 0.5];
+
+    // Linhas horizontais de referência (média e ± 1 desvio)
+    const linha = (label, valor, cor, dash) => ({
+        type: 'line',
+        label,
+        data: [{ x: faixaX[0], y: valor }, { x: faixaX[1], y: valor }],
+        borderColor: cor,
+        borderWidth: 1,
+        borderDash: dash,
+        pointRadius: 0,
+        fill: false
+    });
+
+    chartInstances['evolDispersao'] = new Chart(canvas.getContext('2d'), {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Notas',
+                    data: itens.map((i, idx) => ({
+                        x: idx,
+                        y: i.nota,
+                        _rot: `${i.rotulo} · ${i.disciplina}`,
+                        _nota: i.nota
+                    })),
+                    backgroundColor: itens.map(i => corNotaBg(i.nota)),
+                    borderColor: '#0f172a',
+                    borderWidth: 2,
+                    pointRadius: 7,
+                    pointHoverRadius: 10
+                },
+                linha('Média', media, 'rgba(245, 158, 11, 0.95)', []),
+                linha('+1 desvio', media + desvio, 'rgba(148, 163, 184, 0.55)', [5, 4]),
+                linha('-1 desvio', media - desvio, 'rgba(148, 163, 184, 0.55)', [5, 4])
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 9 }, filter: (i) => i.text === 'Notas' || i.text === 'Média' } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const p = ctx.raw;
+                            if (p && p._rot) return `${p._rot}: ${p._nota.toFixed(2)}`;
+                            return `${ctx.dataset.label}: ${Number(ctx.parsed.y).toFixed(2)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    min: faixaX[0],
+                    max: Math.max(faixaX[1], 0.5),
+                    ticks: { display: false },
+                    grid: { color: '#334155' }
+                },
+                y: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } }
+            }
+        }
+    });
+}
+
+function renderEvolucaoDisciplinas(porDisciplina) {
+    const canvas = document.getElementById('evol-chart-disciplinas');
+    if (!canvas) return;
+
+    if (chartInstances['evolDisc']) chartInstances['evolDisc'].destroy();
+
+    const comNota = porDisciplina.filter(d => d.media !== null);
+    if (comNota.length === 0) {
+        mostrarOculto('evol-chart-disciplinas-msg', true, 'Sem notas no trimestre.');
+        return;
+    }
+    mostrarOculto('evol-chart-disciplinas-msg', false);
+
+    const rotuloCurto = d => (d.length > 18 ? d.substring(0, 17) + '…' : d);
+
+    chartInstances['evolDisc'] = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: comNota.map(d => rotuloCurto(d.nome)),
+            datasets: [{
+                label: 'Média',
+                data: comNota.map(d => +d.media.toFixed(2)),
+                backgroundColor: comNota.map(d => corNotaBg(d.media)),
+                borderRadius: 4,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => comNota[items[0].dataIndex].nome,
+                        label: (ctx) => `Média: ${ctx.parsed.x.toFixed(2)}`
+                    }
+                }
+            },
+            scales: {
+                x: { min: 0, max: 10, ticks: { color: '#64748b', stepSize: 2 }, grid: { color: '#334155' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+            }
+        }
+    });
+}
+
+function renderEvolucaoTabela(porDisciplina) {
+    if (porDisciplina.length === 0) {
+        els.evolTabelaNotas.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-500 italic">Nenhuma nota registrada neste trimestre.</td></tr>';
+        return;
+    }
+
+    els.evolTabelaNotas.innerHTML = porDisciplina.map(d => `
+        <tr class="hover:bg-slate-800/60 transition-colors">
+            <td class="p-3 font-bold text-slate-200">${escapeHTML(d.nome)}</td>
+            ${d.brutos.map(b => {
+        const v = (b === null || b === undefined || b === '') ? null : parseFloat(b);
+        return `<td class="p-3 text-center font-bold ${Number.isFinite(v) ? corNota(v) : 'text-slate-700'}">${Number.isFinite(v) ? v.toFixed(1) : '–'}</td>`;
+    }).join('')}
+            <td class="p-3 text-center font-black ${corNota(d.media)}">${d.media === null ? '–' : d.media.toFixed(2)}</td>
+        </tr>
+    `).join('');
 }
 
 /**
@@ -2904,6 +3254,226 @@ window.profAPI = {
         };
 
         chartInstances[id] = new Chart(ctx, config);
+    },
+
+    // ==========================================
+    // MÓDULO: EVOLUÇÃO DO ALUNO (NOTAS + FREQUÊNCIA)
+    // ==========================================
+    initEvolucaoTab: () => {
+        const list = state.cache.students;
+        const anterior = els.evolAluno.value;
+
+        els.evolAluno.innerHTML = '<option value="">Selecione...</option>';
+        list.forEach(s => els.evolAluno.add(new Option(s.nome, s.id)));
+        if (anterior && list.some(s => s.id === anterior)) els.evolAluno.value = anterior;
+
+        els.evolTrimestre.value = state.filters.quarter || '1';
+        if (!els.evolStart.value || !els.evolEnd.value) window.profAPI.resetEvolucaoPeriodo(false);
+
+        els.evolMsg.textContent = list.length
+            ? 'Selecione um aluno acima e clique em Analisar.'
+            : 'Carregue a turma no menu superior primeiro.';
+    },
+
+    resetEvolucaoPeriodo: (reRender = true) => {
+        const fim = new Date();
+        const ini = new Date();
+        ini.setDate(ini.getDate() - 90);
+        els.evolStart.value = dataParaInput(ini);
+        els.evolEnd.value = dataParaInput(fim);
+        if (reRender && state.evolucaoAluno.dados) window.profAPI.renderEvolucaoFaltas();
+    },
+
+    loadEvolucaoAluno: async () => {
+        const uid = els.evolAluno.value;
+        if (!uid) return alert('Selecione um aluno.');
+        const { classId } = state.filters;
+        if (!classId) return alert('Selecione a turma no menu superior.');
+
+        els.evolMsg.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 text-emerald-400"></i> Montando dossiê de evolução...';
+        els.evolDashboard.classList.add('hidden');
+        els.evolMsg.classList.remove('hidden');
+
+        try {
+            const [notasSnap, presSnap] = await Promise.all([
+                getDoc(doc(db, "notas", uid)),
+                getDocs(query(collection(db, "presencas"), where("turma", "==", classId)))
+            ]);
+
+            const trimestre = String(els.evolTrimestre.value || '1');
+            const nome = els.evolAluno.options[els.evolAluno.selectedIndex]?.text || 'Aluno';
+            const notasRaw = notasSnap.exists() ? (notasSnap.data().disciplinasComNotas || {}) : {};
+
+            // --- Notas do trimestre selecionado, por disciplina ---
+            const porDisciplina = Object.entries(notasRaw).map(([discId, trimestres]) => {
+                const t = (trimestres || {})[trimestre] || {};
+                const brutos = [t.nota1, t.nota2, t.nota3, t.nota4];
+                const vals = brutos
+                    .map(v => (v === null || v === undefined || v === '' ? null : parseFloat(v)))
+                    .filter(v => Number.isFinite(v));
+                return {
+                    discId,
+                    nome: state.cache.disciplinesMap.get(discId) || discId,
+                    brutos,
+                    vals,
+                    media: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+                };
+            }).sort((a, b) => (b.media ?? -1) - (a.media ?? -1));
+
+            // --- Aulas do aluno (todas as disciplinas da turma) ---
+            const aulas = [];
+            presSnap.forEach(d => {
+                const data = d.data();
+                const status = normalizarStatusPresenca(data.registros ? data.registros[uid] : null);
+                if (status === 'sem-registro') return;
+                const ts = data.data_aula_timestamp;
+                const dateObj = ts ? (typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts)) : null;
+                aulas.push({ date: dateObj, status, discId: data.disciplineId || data.disciplinaId });
+            });
+            aulas.sort((a, b) => (a.date ? a.date.getTime() : 0) - (b.date ? b.date.getTime() : 0));
+
+            state.evolucaoAluno = {
+                ...state.evolucaoAluno,
+                alunoId: uid,
+                alunoNome: nome,
+                trimestre,
+                dados: { porDisciplina, aulas }
+            };
+
+            window.profAPI.renderEvolucao();
+
+        } catch (e) {
+            console.error(e);
+            els.evolMsg.innerHTML = `<span class="text-red-400 font-bold">Erro ao carregar: ${escapeHTML(e.message)}</span>`;
+        }
+    },
+
+    renderEvolucao: () => {
+        const { porDisciplina } = state.evolucaoAluno.dados;
+
+        // Achata todas as notas do trimestre, mantendo a ordem N1..N4
+        const itens = [];
+        porDisciplina.forEach(d => {
+            d.brutos.forEach((b, i) => {
+                const v = (b === null || b === undefined || b === '') ? null : parseFloat(b);
+                if (Number.isFinite(v)) itens.push({ pos: i, rotulo: `N${i + 1}`, nota: v, disciplina: d.nome });
+            });
+        });
+
+        const stats = estatisticasNotas(itens.map(i => i.nota));
+
+        // Progressão = reta de tendência sobre a MÉDIA de cada posição (N1..N4).
+        // Usar as notas achatadas daria um resultado distorcido, porque a ordem
+        // seria por disciplina e não ao longo do trimestre.
+        const mediasPos = [0, 1, 2, 3].map(pos => {
+            const vals = itens.filter(i => i.pos === pos).map(i => i.nota);
+            return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+        });
+        const progStats = estatisticasNotas(mediasPos.filter(v => v !== null));
+
+        // Revela o painel ANTES de criar os gráficos: o Chart.js precisa que o
+        // canvas já tenha largura para não renderizar em 0x0.
+        els.evolMsg.classList.add('hidden');
+        els.evolDashboard.classList.remove('hidden');
+        els.evolDashboard.classList.add('flex');
+
+        renderEvolucaoKpis(stats, progStats, porDisciplina);
+        renderEvolucaoProgressao(mediasPos, stats); // Progressão das notas
+        renderEvolucaoDispersao(itens, stats);    // Dispersão
+        renderEvolucaoDisciplinas(porDisciplina); // Média por disciplina
+        renderEvolucaoTabela(porDisciplina);      // Tabela N1..N4
+        window.profAPI.renderEvolucaoFaltas();     // Frequência no período
+    },
+
+    renderEvolucaoFaltas: () => {
+        const dados = state.evolucaoAluno.dados;
+        if (!dados) return;
+
+        const startStr = els.evolStart.value;
+        const endStr = els.evolEnd.value;
+        const inicio = startStr ? new Date(startStr + 'T00:00:00').getTime() : 0;
+        const fim = endStr ? new Date(endStr + 'T23:59:59').getTime() : Infinity;
+
+        const noPeriodo = dados.aulas.filter(a => {
+            const t = a.date ? a.date.getTime() : NaN;
+            return !Number.isNaN(t) && t >= inicio && t <= fim;
+        });
+
+        const analise = analisarAusentismo(noPeriodo.map(a => ({ status: a.status, date: a.date })));
+
+        // Agrupa por data (aulas do mesmo dia viram uma coluna)
+        const porDia = new Map();
+        noPeriodo.forEach(a => {
+            if (!a.date) return;
+            const k = a.date.toISOString().slice(0, 10);
+            if (!porDia.has(k)) porDia.set(k, { p: 0, f: 0, j: 0 });
+            const g = porDia.get(k);
+            if (a.status === 'presente') g.p++;
+            else if (a.status === 'ausente') g.f++;
+            else if (a.status === 'justificado') g.j++;
+        });
+        const dias = [...porDia.keys()].sort();
+        const labels = dias.map(d => d.slice(8, 10) + '/' + d.slice(5, 7));
+
+        // Atualiza o KPI de frequência do período
+        const kpiFreq = document.getElementById('evol-kpi-freq');
+        if (kpiFreq) {
+            const pct = analise.pctPresenca.toFixed(1) + '%';
+            kpiFreq.textContent = analise.registradas ? pct : '-';
+            kpiFreq.className = 'text-3xl font-black ' + (analise.registradas ? corPctPresenca(analise.pctPresenca) : 'text-slate-500');
+        }
+        const kpiFreqSub = document.getElementById('evol-kpi-freq-sub');
+        if (kpiFreqSub) kpiFreqSub.textContent = analise.registradas ? `${analise.total} faltas em ${analise.registradas} aulas` : 'sem aulas no período';
+
+        // Alertas de absenteísmo do período escolhido
+        const box = els.evolAlertas;
+        if (analise.critico) {
+            box.innerHTML = `<div class="bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex flex-wrap items-center gap-4">
+                <div class="w-11 h-11 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center shrink-0"><i class="fas fa-triangle-exclamation text-lg"></i></div>
+                <div class="flex-1 min-w-[200px]">
+                    <div class="text-red-400 font-black uppercase tracking-widest text-xs">Alerta de absenteísmo no período selecionado</div>
+                    <div class="text-slate-400 text-[11px] mt-1">${startStr || 'início'} até ${endStr || 'fim'} · ${analise.total} faltas em ${analise.registradas} aulas</div>
+                </div>
+                <div class="flex flex-wrap gap-1">${renderAlertasAusentismo(analise)}</div>
+            </div>`;
+        } else {
+            box.innerHTML = '';
+        }
+
+        const canvas = document.getElementById('evol-chart-faltas');
+        const msg = document.getElementById('evol-chart-faltas-msg');
+        if (!canvas) return;
+
+        if (chartInstances['evolFaltas']) chartInstances['evolFaltas'].destroy();
+        if (labels.length === 0) {
+            if (msg) { msg.textContent = 'Nenhuma aula no período selecionado.'; msg.classList.remove('hidden'); }
+            return;
+        }
+        if (msg) msg.classList.add('hidden');
+
+        chartInstances['evolFaltas'] = new Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Presente', data: dias.map(d => porDia.get(d).p), backgroundColor: '#22c55e', borderRadius: 2 },
+                    { label: 'Falta', data: dias.map(d => porDia.get(d).f), backgroundColor: '#ef4444', borderRadius: 2 },
+                    { label: 'Justificado', data: dias.map(d => porDia.get(d).j), backgroundColor: '#3b82f6', borderRadius: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 10 } } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { stacked: true, ticks: { color: '#64748b', font: { size: 8 }, autoSkip: true, maxRotation: 0 }, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, ticks: { color: '#64748b', precision: 0 }, grid: { color: '#334155' } }
+                }
+            }
+        });
     },
 
     runPredictiveAnalysis: () => {
