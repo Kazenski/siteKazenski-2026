@@ -417,33 +417,14 @@ function setupEventListeners() {
         });
     });
 
-    // Filtros rápidos do Caderno
-    document.getElementById('btn-filter-all')?.addEventListener('click', () => {
-        currentNoteFilter = 'all';
-        renderNotes();
-        updateNoteFilterButtons();
-    });
-    document.getElementById('btn-filter-pinned')?.addEventListener('click', () => {
-        currentNoteFilter = 'pinned';
-        renderNotes();
-        updateNoteFilterButtons();
-    });
-    document.getElementById('btn-filter-recent')?.addEventListener('click', () => {
-        currentNoteFilter = 'recent';
-        renderNotes();
-        updateNoteFilterButtons();
+    // Filtros rápidos do Caderno (Todas / Fixadas / Recentes)
+    ['all', 'pinned', 'recent'].forEach(f => {
+        document.getElementById(`btn-filter-${f}`)?.addEventListener('click', () => setNoteFilter(f));
     });
 
-    // Filtros de Tags (sidebar)
-    document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
-        currentTagFilter = 'pendentes';
-        renderNotes();
-        updateTagFilters();
-    });
-    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
-        currentTagFilter = 'recebidas';
-        renderNotes();
-        updateTagFilters();
+    // Filtros de Tags (sidebar): Pendentes / Recebidas
+    ['pendentes', 'recebidas'].forEach(t => {
+        document.getElementById(`btn-filter-${t}`)?.addEventListener('click', () => setTagFilterFast(t));
     });
 
     // Busca de Tags
@@ -495,35 +476,6 @@ function setupEventListeners() {
             const titulo = noteEl.querySelector('h4')?.textContent?.toLowerCase() || '';
             noteEl.style.display = titulo.includes(termo) ? '' : 'none';
         });
-    });
-
-    // Filtros de notas (Todas / Fixadas / Recentes)
-    document.getElementById('btn-filter-all')?.addEventListener('click', () => {
-        currentNoteFilter = 'all';
-        renderNotes();
-        updateNoteFilterButtons();
-    });
-    document.getElementById('btn-filter-pinned')?.addEventListener('click', () => {
-        currentNoteFilter = 'pinned';
-        renderNotes();
-        updateNoteFilterButtons();
-    });
-    document.getElementById('btn-filter-recent')?.addEventListener('click', () => {
-        currentNoteFilter = 'recent';
-        renderNotes();
-        updateNoteFilterButtons();
-    });
-
-    // Botões de filtro de tags (Pendentes / Recebidas)
-    document.getElementById('btn-filter-pendentes')?.addEventListener('click', () => {
-        currentTagFilter = 'pendentes';
-        renderNotes();
-        updateTagFilters();
-    });
-    document.getElementById('btn-filter-recebidas')?.addEventListener('click', () => {
-        currentTagFilter = 'recebidas';
-        renderNotes();
-        updateTagFilters();
     });
 
     // Novo Caderno na sidebar
@@ -1178,6 +1130,10 @@ async function loadBoletimAndMetrics() {
     const selFoco = document.querySelector('th select#al-sel-media-foco') || document.getElementById('al-sel-media-foco');
     const trimestreFoco = selFoco ? selFoco.value : '1';
 
+    // Acumuladores dos KPIs da Visão Geral (preenchidos dentro do laço)
+    const kpiMedias = [];
+    let kpiExtras = 0;
+
     // Iteramos sobre o map "disciplinas" do aluno
     for (const [discId, isEnrolled] of Object.entries(mapDisciplinas)) {
         if (isEnrolled === false) continue;
@@ -1193,6 +1149,13 @@ async function loadBoletimAndMetrics() {
         
         const trimesters = [m1, m2, m3].filter(m => m !== null);
         const mGeral = trimesters.length > 0 ? trimesters.reduce((a, b) => a + b, 0) / trimesters.length : null;
+        if (mGeral !== null) kpiMedias.push(mGeral);
+
+        // KPI "Atividades Extras": ext1..ext4 são booleanos (lançado ou não)
+        ['1', '2', '3'].forEach(t => {
+            const notasT = (studentGradesData[discId] || {})[t] || {};
+            ['1', '2', '3', '4'].forEach(k => { if (notasT[`ext${k}`] === true) kpiExtras++; });
+        });
 
         // Formata as médias prontas para exibição (vazio resulta em "---")
         const fmt1 = m1 !== null ? m1.toFixed(1) : "---";
@@ -1228,6 +1191,19 @@ async function loadBoletimAndMetrics() {
     }
 
     els.boletimBody.innerHTML = html;
+
+    // ---- KPIs da Visão Geral (derivam dos dados já calculados acima) ----
+    const kpiMediaEl = document.getElementById('al-kpi-media');
+    if (kpiMediaEl) {
+        const media = kpiMedias.length > 0 ? kpiMedias.reduce((a, b) => a + b, 0) / kpiMedias.length : null;
+        kpiMediaEl.textContent = media !== null ? media.toFixed(1) : '---';
+        kpiMediaEl.className = 'kz-kpi__value ' + (media === null ? 'text-slate-500'
+            : media >= 6 ? 'text-emerald-400' : media >= 5 ? 'text-amber-400' : 'text-red-400');
+    }
+    const kpiDiscsEl = document.getElementById('al-kpi-discs');
+    if (kpiDiscsEl) kpiDiscsEl.textContent = `${kpiMedias.length} disciplina${kpiMedias.length === 1 ? '' : 's'}`;
+    const kpiExtrasEl = document.getElementById('al-kpi-extras');
+    if (kpiExtrasEl) kpiExtrasEl.textContent = String(kpiExtras);
 
     // Nova tática: Escutar o select e alterar os valores via atributos, sem precisar buscar do banco de novo
     if (selFoco && !selFoco.hasAttribute('data-fast-listener')) {
@@ -1632,6 +1608,17 @@ window.selectNote = async (id) => {
 };
 
 // 3. Renderiza a Lista (Coluna 2)
+// Janela do filtro "Recentes": notas editadas nos últimos 7 dias.
+const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Normaliza updatedAt (Timestamp do Firestore, number ou ausente) para milissegundos.
+function msDaNota(n) {
+    const v = n?.updatedAt;
+    if (!v) return 0;
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    return typeof v === 'number' ? v : 0;
+}
+
 function renderNotes() {
     if (!els.noteList) return;
     const search = els.noteSearch.value.toLowerCase();
@@ -1657,14 +1644,32 @@ function renderNotes() {
         return textMatch && tagMatch;
     });
 
-    filtered.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
+    // Filtro rápido do Caderno: Todas / Fixadas / Recentes.
+    // "Fixadas" = notas com favorita. "Recentes" = editadas nos últimos 7 dias.
+    let visiveis = filtered;
+    if (currentNoteFilter === 'pinned') {
+        visiveis = visiveis.filter(n => n.favorita);
+        visiveis.sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
+    } else if (currentNoteFilter === 'recent') {
+        const limite = Date.now() - RECENT_WINDOW_MS;
+        visiveis = visiveis.filter(n => msDaNota(n) >= limite);
+        visiveis.sort((a, b) => msDaNota(b) - msDaNota(a));
+    } else {
+        visiveis = visiveis.slice().sort((a, b) => (b.favorita ? 1 : 0) - (a.favorita ? 1 : 0));
+    }
 
-    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    const totalPages = Math.ceil(visiveis.length / itemsPerPage) || 1;
     if (currentPage > totalPages) currentPage = totalPages;
-    const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    if (currentPage < 1) currentPage = 1;
+    const paginated = visiveis.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    if (filtered.length === 0) {
-        els.noteList.innerHTML = '<div class="text-center text-slate-500 py-10 italic text-sm">Nenhuma nota aqui.</div>';
+    if (visiveis.length === 0) {
+        const vazio = currentNoteFilter === 'pinned'
+            ? 'Nenhuma nota fixada. Use o clipe 📌 na nota para fixá-la.'
+            : currentNoteFilter === 'recent'
+                ? 'Nenhuma nota editada nos últimos 7 dias.'
+                : 'Nenhuma nota aqui.';
+        els.noteList.innerHTML = `<div class="text-center text-slate-500 py-10 italic text-sm">${vazio}</div>`;
         document.getElementById('notes-pagination').classList.add('hidden');
         return;
     }
@@ -1759,11 +1764,22 @@ function updateNoteFilterButtons() {
     });
 }
 
+// Aplica um filtro rápido de NOTAS (Todas / Fixadas / Recentes).
+// Fica disponível no window porque os botões da sidebar chamam por onclick.
 window.setNoteFilter = (filter) => {
     currentNoteFilter = filter;
+    currentPage = 1; // troca de filtro sempre volta para a primeira página
     updateNoteFilterButtons();
     renderNotes();
 };
+
+// Aplica um filtro rápido de TAGS/STATUS da sidebar (Pendentes / Recebidas).
+function setTagFilterFast(tag) {
+    currentTagFilter = tag;
+    currentPage = 1;
+    renderNotes();
+    updateTagFilters();
+}
 
 // 5. Salvar a nota atual
 async function saveNote() {
@@ -2599,6 +2615,10 @@ async function loadAvaliacoes360() {
         );
 
         const snap = await getDocs(q);
+
+        // KPI "Avaliações 360º" da Visão Geral
+        const kpiEval = document.getElementById('al-kpi-eval');
+        if (kpiEval) kpiEval.textContent = String(snap.size);
 
         if (snap.empty) {
             // Volta pro layout centralizado se estiver vazio

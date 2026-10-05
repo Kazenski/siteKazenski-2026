@@ -20,5 +20,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Paginas geradas pelos harnesses (tools/harness/build_*.js)
+# Paginas geradas pelos harnesses (tools/harness/build_*.js, build_aluno.py)
 _boot.html
+_aluno.html

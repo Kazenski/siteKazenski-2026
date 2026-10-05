@@ -17,6 +17,8 @@ if (-not $SkipNode) {
     Rodar "sintaxe ESM de todos os .js" "powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_syntax.ps1"
     Rodar "self-test do lint_colado" "node tools\test_lint_colado.js"
     Rodar "palavra-chave colada" "node tools\lint_colado.js js\professorTech\professorTech.js js\main.js js\alunoTech\perfilTech.js"
+    Rodar "estrutura das abas do Aluno Tech" "node tools\test_abas_aluno.js"
+    Rodar "filtros do Caderno Digital" "node tools\test_filtros_caderno.js"
 }
 
 Rodar "testes de absenteismo" "node tools\test_ausentismo.js"

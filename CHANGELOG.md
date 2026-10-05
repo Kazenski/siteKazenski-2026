@@ -4,6 +4,55 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.6.8] — 2026-10-04
+### Escopo
+Correção do bug que fazia o Kanban aparecer em todas as sub-abas do Aluno Tech (e o texto `id="atab-kanban" class="aluno-tab-content w-full">` ser desenhado na tela), devolução de cada aba ao seu conteúdo original, modernização da Visão Geral do Aluno Tech — que até aqui só tinha sido modernizada dentro do Caderno Digital — e ação de verdade nos filtros "Fixadas" e "Recentes" do Caderno.
+
+### Corrigido
+
+#### [CRÍTICO] O Kanban invadia todas as abas e o `id="atab-kanban"` aparecia como texto
+O `index.html` estava com dois erros de tag na mesma região, introduzidos quando o Caderno Digital foi reescrito: a abertura da aba do Caderno tinha um `<div` duplicado (`<div <div id="atab-caderno" ...>`) e, no fim daquele bloco, faltava o `<div ` de abertura do Kanban (`</div>id="atab-kanban" class="aluno-tab-content w-full">`). Consequências, todas relatadas: (1) o navegador desenhava aquele trecho de atributo como **texto** no meio da página; (2) como o Kanban deixou de ter um container próprio, ele passou a ser filho direto do container do Aluno Tech e apareceu na **Visão Geral** e em **todas** as outras abas; (3) a aba do Caderno ficava unbalanced e engolia o conteúdo seguinte. As duas tags foram corrigidas e o `</div>` que faltava foi recolocado, devolvendo as sete abas ao conteúdo delas. Arquivos: `index.html`.
+
+#### Filtros "Fixadas" e "Recentes" do Caderno não faziam nada
+Os três botões da sidebar registravam o filtro e chamavam `renderNotes()`, mas **`renderNotes()` nunca lia `currentNoteFilter`** — a variável era escrita e nunca consultada, então a lista de notas saía exatamente igual. Agora `renderNotes()` aplica o filtro: "Fixadas" mostra apenas notas com `favorita`, "Recentes" mostra as editadas nos últimos 7 dias ordenadas da mais nova para a mais antiga, e trocar de filtro volta para a primeira página. Cada filtro tem sua própria mensagem de lista vazia. Arquivos: `js/alunoTech/perfilTech.js`.
+
+#### Listeners duplicados no Caderno
+`setupEventListeners()` registrava os filtros de notas e de tags **duas vezes** (bloco repetido), então cada clique disparava o handler duas vezes. O bloco repetido foi removido e os listeners passaram a usar um caminho único (`setNoteFilter` / `setTagFilterFast`). Arquivos: `js/alunoTech/perfilTech.js`.
+
+### Adicionado
+
+#### Visão Geral do Aluno Tech modernizada
+A página do Aluno Tech em si ainda estava no layout antigo — só o Caderno Digital tinha sido refeito. A Visão Geral ganhou uma faixa de 4 indicadores no topo (**Presença Global**, **Média Geral**, **Avaliações 360º** e **Atividades Extras**), com ícone, valor grande, cor semântica conforme a média e selo de apoio; os painéis passaram a usar um card único (`kz-panel`) com fundo em gradiente, borda, sombra e realce no hover; títulos ganharam ícone e régua inferior; e os dois `select` (disciplina de Pontos Extras e disciplina da Evolução) foram padronizados. A tabela do Boletim foi preservada byte a byte. A Média Geral e a contagem de disciplinas são calculadas a partir das médias que o Boletim já produzia, e os contadores de Avaliações 360º e Atividades Extras vêm das consultas que as abas correspondentes já faziam. Arquivos: `index.html`, `style.css`, `js/alunoTech/perfilTech.js`.
+
+#### Sistema visual das abas (CSS)
+Novas classes em `style.css`: `.kz-panel` (card), `.kz-panel__title` / `.kz-panel__subtitle` / `.kz-panel__head`, `.kz-kpi` e derivados (indicadores), `.kz-select` (select padronizado) e `.kz-empty` (estado vazio tracejado), com variantes mobile e respeito a `prefers-reduced-motion`. Arquivos: `style.css`.
+
+#### Rede de segurança contra o bug das abas
+- `tools/test_abas_aluno.js` (44 verificações): garante que cada `atab-*` existe uma vez e é uma tag de verdade, que o conteúdo de cada aba é balanceado em `<div>`, que nenhum id de elemento vive em duas abas, que o Kanban não está dentro de outra aba e que cada aba contém os elementos dela. O guard foi validado contra a versão quebrada: acusa as 3 marcas do bug (`</div>id="atab-`, `<div <div` e `atab-kanban` sem `<div` na frente) e libera a versão corrigida.
+- `tools/test_filtros_caderno.js` (19 verificações): **extrai** o bloco de filtro do `perfilTech.js` de verdade e executa em sandbox com notas fictícias — Testa Todas/Fixadas/Recentes, ordenação, janela de 7 dias, paginação e integridade do array original. Se alguém editar o `renderNotes` e quebrar o filtro, o teste quebra junto.
+- `tools/harness/build_aluno.py`: gera `_aluno.html`, uma página que renderiza só o markup das sete abas com o Tailwind e o `style.css` reais, para inspeção visual sem depender de login ou Firebase. Aceita `?tab=caderno`, `?tab=kanban` etc.
+- Os dois novos testes entram no `tools/check_all.ps1`. Arquivos: `tools/test_abas_aluno.js`, `tools/test_filtros_caderno.js`, `tools/harness/build_aluno.py`, `tools/check_all.ps1`, `.gitignore`.
+
+### Verificado
+- `tools/check_all.ps1`: `TODAS AS VERIFICACOES PASSARAM` — 39 arquivos `.js` válidos, 44 + 19 testes novos passando, `check_refs.py` e `html_balance.py` sem regressões.
+- Cada uma das 7 abas contém exclusivamente o seu conteúdo: **nenhum id de elemento aparece em duas abas** ( conferido no DOM e no source).
+- Kanban aparece apenas em `atab-kanban`; na Visão Geral não há mais nada de Kanban.
+- Nenhum texto literal `id="atab-` sobrevive no corpo da página.
+- As 7 regiões `atab-*` estão balanceadas em `<div>` (32/32, 44/44, 15/15, 3/3, 14/14, 6/6).
+- Editor de notas do Caderno mantido intacto, como pedido.
+
+### Arquivos tocados
+- index.html
+- js/alunoTech/perfilTech.js
+- style.css
+- tools/test_abas_aluno.js
+- tools/test_filtros_caderno.js
+- tools/harness/build_aluno.py
+- tools/check_all.ps1
+- .gitignore
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.6.7] — 2026-10-04
 ### Escopo
 Estabilização final do módulo Aluno Tech. O `perfilTech.js` tinha um erro de sintaxe real que impedia o navegador de carregar o arquivo inteiro — ou seja, Perfil, Caderno Digital e Kanban estavam todos mortos em produção. Este ciclo remove o erro, corrige a ferramenta de validação que não enxergava esse tipo de problema, restaura o `README.md` (que estava corrompido com bytes nulos) e elimina o carregamento duplicado do Tailwind.

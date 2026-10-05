@@ -73,8 +73,10 @@ Plataforma educacional completa (SPA) com gestão de cursos, projetos, notas, fr
     ├── check_all.ps1
     ├── check_syntax.ps1
     ├── lint_colado.js
+    ├── test_abas_aluno.js     # abas do Aluno Tech não podem vazar conteúdo
+    ├── test_filtros_caderno.js
     ├── html_balance.py
-    └── harness/               # Testes visuais (PDF, charts, PDFs)
+    └── harness/               # Páginas de teste (boot, abas, PDF, gráficos)
 ```
 
 ---
@@ -179,6 +181,8 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 |-------|------------|--------------|
 | Sintaxe JS | `tools/check_syntax.ps1` | Todos os `.js` validados como **ES Module de verdade** |
 | Lint "palavra colada" | `tools/lint_colado.js` | `letvar`, `constvar`, `returnvalor`... |
+| Estrutura das abas | `tools/test_abas_aluno.js` | Cada `atab-*` é uma tag real, balanceada e sem conteúdo vazado |
+| Filtros do Caderno | `tools/test_filtros_caderno.js` | Todas/Fixadas/Recentes extraídos do fonte real |
 | Testes unitários | `tools/test_*.js` | Absenteísmo, estatísticas, PDFs |
 | Referências DOM | `tools/check_refs.py` | `els.*` sem declaração, `getElementById` sem ID no HTML |
 | Balanceamento HTML | `tools/html_balance.py` | Tags abertas/fechadas |
@@ -195,6 +199,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 
 | Versão | Data | Destaques |
 |--------|------|-----------|
+| **v1.6.8** | 2026-10-04 | Abas do Aluno Tech separadas (Kanban não invade mais), Visão Geral modernizada, filtros Fixadas/Recentes com ação |
 | **v1.6.7** | 2026-10-04 | Aluno Tech volta a carregar (erro de sintaxe crítico), validador de sintaxe real, README restaurado |
 | **v1.6.6** | 2026-10-04 | Aluno Tech: Caderno Digital estilo Evernote, foto maior, banner 3 ações |
 | **v1.6.5** | 2026-10-04 | Feed de Atualizações redesenhado (acordeão fluido, grid 2-col, modal largo) |
@@ -218,6 +223,7 @@ O menu e o acesso são reconstruídos dinamicamente no `main.js` com base nos **
 | Harness | Comando | O que testa |
 |---------|---------|-------------|
 | **Boot** | `node tools/harness/build_boot.js` | `window.profAPI` ≥ 125 chaves, 0 erros console |
+| **Abas Aluno Tech** | `python tools/harness/build_aluno.py` | Renderiza as 7 abas isoladas; abre `/_aluno.html?tab=caderno` |
 | **Evolução** | `node tools/harness/build_evolucao.js` | KPIs, gráficos (progressão, dispersão, freq) |
 | **PDF** | `node tools/harness/build_pdf.js` | jsPDF+autoTable: rodapé, largura, multipágina |
 | **APOIA/Sorteios** | `node tools/harness/build_apoia.js` | PDF encaminhamento, preview, chips, exclusões |
@@ -282,5 +288,5 @@ Uso interno da instituição. Não redistribuir sem autorização.
 
 ---
 
-> **Última atualização**: 2026-10-04 | **Versão atual**: `v1.6.7`  
+> **Última atualização**: 2026-10-04 | **Versão atual**: `v1.6.8`  
 > **Deploy**: `https://kazenski.github.io/siteKazenski-2026/` | **Sandbox**: `https://kazenski.github.io/siteKazenski-test/`

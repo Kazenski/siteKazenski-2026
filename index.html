@@ -859,39 +859,75 @@
                     <div class="px-6 md:px-14 py-6 pb-32">
 
                         <div id="atab-geral" class="aluno-tab-content active">
-                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                                <div class="col-span-1 flex flex-col gap-4">
-                                    <div
-                                        class="bg-slate-800 p-6 rounded-2xl border border-slate-700 text-center flex-grow flex flex-col justify-center shadow-lg">
-                                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest"><i
-                                                class="fas fa-calendar-check mr-2"></i> Presença Global</h4>
-                                        <div id="al-freq-perc"
-                                            class="text-6xl font-black text-green-400 drop-shadow-md">100%</div>
-                                        <div id="al-freq-total"
-                                            class="text-red-400 mt-2 font-bold text-sm bg-red-500/10 py-1 px-3 rounded-full self-center mx-auto">
-                                            0 Faltas</div>
+                            <!-- ======================= INDICORES ======================= -->
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--emerald">
+                                        <i class="fas fa-calendar-check"></i>
                                     </div>
-                                    <div
-                                        class="bg-slate-800 p-4 rounded-2xl border border-slate-700 flex items-center justify-center h-48 shadow-lg">
-                                        <canvas id="al-chart-freq"></canvas>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Presença Global</span>
+                                        <span class="kz-kpi__value text-emerald-400" id="al-freq-perc">100%</span>
+                                        <span class="kz-kpi__hint" id="al-freq-total">0 Faltas</span>
                                     </div>
                                 </div>
 
-                                <div
-                                    class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
-                                    <h3
-                                        class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
-                                        <i class="fas fa-bullhorn mr-2"></i> Mural de Avisos
-                                    </h3>
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--blue">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Média Geral</span>
+                                        <span class="kz-kpi__value text-blue-400" id="al-kpi-media">---</span>
+                                        <span class="kz-kpi__hint" id="al-kpi-discs">0 disciplinas</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--violet">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Avaliações 360º</span>
+                                        <span class="kz-kpi__value text-violet-400" id="al-kpi-eval">0</span>
+                                        <span class="kz-kpi__hint">registros recebidos</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--amber">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Atividades Extras</span>
+                                        <span class="kz-kpi__value text-amber-400" id="al-kpi-extras">0</span>
+                                        <span class="kz-kpi__hint">lançamentos</span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- ======================= PAINÉIS ======================= -->
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                                <div class="kz-panel col-span-1 flex flex-col self-start w-full">
+                                    <h3 class="kz-panel__title text-emerald-400"><i class="fas fa-chart-area"></i>
+                                        Frequência por Aula</h3>
+                                    <div class="h-52 w-full"><canvas id="al-chart-freq"></canvas></div>
+                                </div>
+
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-blue-400"><i class="fas fa-bullhorn"></i>
+                                        Mural de Avisos</h3>
                                     <div id="al-avisos-list"
                                         class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]"></div>
                                 </div>
 
-                                <div
-                                    class="col-span-1 lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mt-2 flex flex-col">
-                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg"><i
-                                            class="fas fa-file-invoice mr-2"></i> Boletim Escolar</h3>
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-blue-400"><i class="fas fa-file-invoice"></i>
+                                        Boletim Escolar</h3>
 
                                     <div class="overflow-x-auto custom-scroll w-full px-2 md:px-6 pb-4">
                                         <table
@@ -941,15 +977,11 @@
                                     </div>
                                 </div>
 
-                                <!-- NOVO MÓDULO: ATIVIDADES EXTRAS -->
-                                <div
-                                    class="col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
-                                    <div
-                                        class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 gap-2">
-                                        <h3 class="text-amber-500 font-cinzel font-bold text-lg whitespace-nowrap"><i
-                                                class="fas fa-star mr-2"></i> Pontos Extras</h3>
-                                        <select id="al-sel-extras-disc"
-                                            class="bg-slate-900 text-slate-200 text-[10px] font-bold p-2 rounded border border-slate-600 outline-none w-full max-w-[140px]"></select>
+                                <div class="kz-panel col-span-1 flex flex-col">
+                                    <div class="kz-panel__head">
+                                        <h3 class="kz-panel__title text-amber-400"><i class="fas fa-star"></i>
+                                            Pontos Extras</h3>
+                                        <select id="al-sel-extras-disc" class="kz-select"></select>
                                     </div>
                                     <div id="al-extras-matrix" class="flex-grow flex items-center justify-center">
                                         <span class="text-slate-500 text-xs italic">Carregando matriz de
@@ -957,38 +989,33 @@
                                     </div>
                                 </div>
 
-                                <!-- AVALIAÇÃO 360º (DESLOCADO PARA BAIXO) -->
-                                <div
-                                    class="col-span-1 lg:col-span-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 mt-2 flex flex-col shadow-lg">
-                                    <h3 class="text-blue-400 font-cinzel font-bold text-lg mb-4"><i
-                                            class="fas fa-users-viewfinder mr-2"></i> Avaliação 360º</h3>
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-violet-400"><i
+                                            class="fas fa-users-viewfinder"></i> Avaliação 360º</h3>
                                     <div id="al-eval-360-content"
-                                        class="bg-slate-900/50 p-6 rounded-xl border border-dashed border-slate-600 text-center text-slate-400 flex-grow flex items-center justify-center">
+                                        class="kz-empty flex-grow flex items-center justify-center">
                                         Nenhuma avaliação pendente no momento.
                                     </div>
                                 </div>
 
-                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                                        <h4
-                                            class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest text-center">
-                                            Dispersão de Notas</h4>
+                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div class="kz-panel">
+                                        <h4 class="kz-panel__subtitle">Dispersão de Notas</h4>
                                         <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
                                     </div>
-                                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg">
-                                        <div class="flex justify-between items-center mb-4">
-                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                Evolução</h4>
-                                            <select id="al-sel-evol"
-                                                class="bg-slate-900 text-slate-200 text-xs p-1.5 rounded border border-slate-600 outline-none"></select>
+                                    <div class="kz-panel">
+                                        <div class="kz-panel__head">
+                                            <h4 class="kz-panel__subtitle">Evolução</h4>
+                                            <select id="al-sel-evol" class="kz-select"></select>
                                         </div>
                                         <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
 
-                        <div <div id="atab-caderno" class="aluno-tab-content h-full">
+                        <div id="atab-caderno" class="aluno-tab-content h-full">
                             <div class="flex gap-4 h-[calc(100vh-350px)] min-h-[550px] w-full">
 
                                 <!-- SIDEBAR: Notebooks & Tags -->
@@ -1251,7 +1278,8 @@
                                 </div>
 
                             </div>
-                        </div>id="atab-kanban" class="aluno-tab-content w-full">
+                        </div>
+                        <div id="atab-kanban" class="aluno-tab-content w-full">
                             <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
                                 <div class="flex justify-end mb-6 shrink-0">
                                     <button id="btn-toggle-kanban-form"
