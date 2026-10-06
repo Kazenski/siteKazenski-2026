@@ -1,7 +1,10 @@
 import { app, db, auth, storage } from '../core/firebase.js';
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, orderBy, limit, serverTimestamp, Timestamp, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { httpsCallable, getFunctions } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 import { escapeHTML } from '../core/utils.js';
+
+const functions = getFunctions(app);
 window.profAPI = window.profAPI || {};
 
 let state = {
@@ -424,9 +427,10 @@ function mapearDOM() {
         kazIaMsg: document.getElementById('kaz-ia-msg'),
         kazIaConfigPanel: document.getElementById('kaz-ia-config-panel'),
         kazIaContextDisplay: document.getElementById('kaz-ia-context-display'),
-        kazIaApiKey: document.getElementById('kaz-ia-apikey'),
+        kazIaModel: document.getElementById('kaz-ia-model'),
         kazIaTipo: document.getElementById('kaz-ia-tipo'),
         kazIaAulas: document.getElementById('kaz-ia-aulas'),
+        kazIaTrimestre: document.getElementById('kaz-ia-trimestre'),
         kazIaPrompt: document.getElementById('kaz-ia-prompt'),
         btnGeneratePlan: document.getElementById('btn-generate-plan'),
         kazIaResultArea: document.getElementById('kaz-ia-result-area'),
@@ -5541,7 +5545,6 @@ window.profAPI = {
         
         const msgEl = document.getElementById('kaz-ia-msg');
         const panelEl = document.getElementById('kaz-ia-config-panel');
-        const apiKeyInput = document.getElementById('kaz-ia-apikey');
         const contextDisplay = document.getElementById('kaz-ia-context-display');
 
         if (!classId || !disciplineId) {
@@ -5557,33 +5560,21 @@ window.profAPI = {
         const className = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
         contextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
 
-        // 1. Tenta recuperar do LocalStorage primeiro (Rápido)
-        const localKey = localStorage.getItem('kaz_gemini_key');
-        if (localKey) {
-            apiKeyInput.value = localKey;
-        } 
-        // 2. Se não tiver, busca do Firebase
-        else if (auth.currentUser) {
-            try {
-                const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-                if (userDoc.exists() && userDoc.data().geminiApiKey) {
-                    apiKeyInput.value = userDoc.data().geminiApiKey;
-                    localStorage.setItem('kaz_gemini_key', userDoc.data().geminiApiKey); // Salva no cache
-                }
-            } catch (e) {
-                console.warn("Erro ao buscar chave API: ", e);
-            }
+        // Sincroniza o trimestre com o filtro global
+        const trimestreSelect = document.getElementById('kaz-ia-trimestre');
+        if (trimestreSelect && quarter) {
+            trimestreSelect.value = quarter;
         }
     },
 
-    openKazIaResult: (htmlContent, isNew = false) => {
-        document.getElementById('kaz-ia-render-box').innerHTML = htmlContent;
+    openKazIaResult: (textContent, isNew = false) => {
+        document.getElementById('kaz-ia-render-box').value = textContent;
         const modal = document.getElementById('modal-kaz-ia-result');
         const btnSave = document.getElementById('btn-kaz-save-history');
         
         if(isNew) {
             btnSave.classList.remove('hidden');
-            btnSave.innerHTML = '<i class="fas fa-save"></i> <span>Salvar Plano</span>';
+            btnSave.innerHTML = '<i class="fas fa-save"></i> <span>Salvar nos Modelos</span>';
             btnSave.disabled = false;
         } else {
             btnSave.classList.add('hidden');
@@ -5593,12 +5584,26 @@ window.profAPI = {
         modal.classList.add('flex');
     },
 
+    copyPlanToClipboard: () => {
+        const textarea = document.getElementById('kaz-ia-render-box');
+        textarea.select();
+        document.execCommand('copy');
+        
+        // Feedback visual
+        const btn = document.getElementById('btn-kaz-copy');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> <span>Copiado!</span>';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
+    },
+
     closeKazIaResult: () => {
         document.getElementById('modal-kaz-ia-result').classList.add('hidden');
         document.getElementById('modal-kaz-ia-result').classList.remove('flex');
     },
 
-    // --- MODAL DE HISTÓRICO (LÓGICA SEM ÍNDICE DO FIREBASE) ---
+    // --- MODAL DE HISTÓRICO (usando Cloud Function) ---
     openKazIaHistory: async () => {
         const modal = document.getElementById('modal-kaz-ia-history');
         const listEl = document.getElementById('kaz-ia-history-list');
@@ -5609,44 +5614,38 @@ window.profAPI = {
         listEl.innerHTML = '<div class="text-center text-amber-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Buscando planos...</div>';
         
         try {
-            // Busca TODOS os planos e filtra/ordena via JavaScript (Bypassa o erro de Index do Firebase)
-            const snap = await getDocs(collection(db, "planos_aula_ia"));
-            listEl.innerHTML = '';
-            
-            const planosArr = [];
-            snap.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.professorUid === auth.currentUser.uid) {
-                    planosArr.push({ id: docSnap.id, ...data });
-                }
+            const listarPlanosFn = httpsCallable(functions, 'listarPlanos');
+            const result = await listarPlanosFn({
+                escolaId: state.filters.school || null,
+                turmaId: state.filters.classId || null,
+                disciplinaId: state.filters.disciplineId || null,
+                trimestre: state.filters.quarter || null
             });
 
-            if (planosArr.length === 0) {
+            const { planos } = result.data;
+            listEl.innerHTML = '';
+
+            if (!planos || planos.length === 0) {
                 msgEl.classList.remove('hidden');
+                msgEl.textContent = 'Nenhum plano salvo ainda. Gere um plano e clique em "Salvar nos Modelos".';
                 return;
             }
             msgEl.classList.add('hidden');
-            
-            // Ordenação local (mais recentes primeiro)
-            planosArr.sort((a, b) => {
-                const tA = a.dataCriacao ? a.dataCriacao.seconds : 0;
-                const tB = b.dataCriacao ? b.dataCriacao.seconds : 0;
-                return tB - tA; 
-            });
 
-            planosArr.forEach(p => {
-                const dataFormatada = p.dataCriacao?.toDate().toLocaleDateString('pt-BR') || 'Sem data';
+            planos.forEach(p => {
+                const dataFormatada = p.dataCriacao ? new Date(p.dataCriacao).toLocaleDateString('pt-BR') : 'Sem data';
+                const escolaInfo = p.escolaNome ? `${p.escolaNome} | ` : '';
                 
                 listEl.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 group hover:border-amber-500/50 transition-colors">
                         <div class="flex-grow overflow-hidden">
                             <h4 class="text-amber-400 font-bold text-sm truncate" title="${escapeHTML(p.titulo || '')}">${escapeHTML(p.titulo || 'Plano sem título')}</h4>
                             <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-1 truncate">
-                                ${escapeHTML(p.turmaNome)} | ${escapeHTML(p.disciplinaNome)} | ${p.tipoPlano} | ${dataFormatada}
+                                ${escolaInfo}${escapeHTML(p.turmaNome)} | ${escapeHTML(p.disciplinaNome)} | ${p.tipoPlano} | ${dataFormatada}
                             </div>
                         </div>
                         <div class="flex gap-2 shrink-0">
-                            <button type="button" onclick='window.profAPI.loadPlanToPreview(${JSON.stringify(p.conteudoHtml).replace(/"/g, '&quot;')}, false)' class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors font-bold" title="Visualizar Plano">
+                            <button type="button" onclick="window.profAPI.loadPlanToPreview('${p.id}')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors font-bold" title="Visualizar Plano">
                                 <i class="fas fa-eye mr-1"></i> Ver Plano
                             </button>
                             <button type="button" onclick="window.profAPI.deletePlan('${p.id}')" class="bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs transition-colors" title="Excluir Permanentemente">
@@ -5658,7 +5657,8 @@ window.profAPI = {
             });
             
         } catch (e) {
-            listEl.innerHTML = `<div class="text-red-500 font-bold py-4">Erro: ${e.message}</div>`;
+            console.error('Erro ao listar planos:', e);
+            listEl.innerHTML = `<div class="text-red-500 font-bold py-4">Erro: ${e.message || 'Erro ao buscar planos'}</div>`;
         }
     },
 
@@ -5667,17 +5667,28 @@ window.profAPI = {
         document.getElementById('modal-kaz-ia-history').classList.remove('flex');
     },
 
-    loadPlanToPreview: (htmlContent) => {
-        window.profAPI.openKazIaResult(htmlContent, false);
-        window.profAPI.closeKazIaHistory();
+    loadPlanToPreview: async (planoId) => {
+        try {
+            const buscarPlanoFn = httpsCallable(functions, 'buscarPlano');
+            const result = await buscarPlanoFn({ planoId });
+            
+            const { plano } = result.data;
+            window.profAPI.openKazIaResult(plano.conteudo, false);
+            window.profAPI.closeKazIaHistory();
+        } catch (e) {
+            alert('Erro ao carregar plano: ' + (e.message || 'Erro desconhecido'));
+        }
     },
 
     deletePlan: async (id) => {
         if(!confirm("Excluir plano do histórico permanentemente?")) return;
         try {
-            await deleteDoc(doc(db, "planos_aula_ia", id));
+            const deletarPlanoFn = httpsCallable(functions, 'deletarPlano');
+            await deletarPlanoFn({ planoId: id });
             window.profAPI.openKazIaHistory(); 
-        } catch (e) { alert("Erro ao excluir."); }
+        } catch (e) { 
+            alert("Erro ao excluir: " + (e.message || 'Erro desconhecido')); 
+        }
     },
 
     // --- MODAL DE FONTES (RAG) ---
@@ -5815,111 +5826,89 @@ window.profAPI = {
         } catch (e) { alert("Erro ao excluir."); }
     },
 
-    // --- GERAÇÃO COM GEMINI E SALVAMENTO ---
+    // --- GERAÇÃO COM GEMINI VIA CLOUD FUNCTION ---
     generatePlanWithIA: async () => {
-        const apiKey = document.getElementById('kaz-ia-apikey').value.trim();
         const modeloId = document.getElementById('kaz-ia-model').value;
         const tipo = document.getElementById('kaz-ia-tipo').value;
         const aulas = document.getElementById('kaz-ia-aulas').value;
         const promptText = document.getElementById('kaz-ia-prompt').value.trim();
-        const { classId, disciplineId } = state.filters;
+        const modeloPlanejamento = document.getElementById('kaz-ia-modelo-planejamento').value.trim();
+        const { classId, disciplineId, quarter, school } = state.filters;
 
-        if(!apiKey) return alert("Insira sua Chave de API do Gemini para prosseguir.");
         if(!promptText) return alert("Preencha o Assunto Central para guiar a IA.");
+        if(!classId || !disciplineId) return alert("Selecione Turma e Disciplina no menu superior.");
 
         const btn = document.getElementById('btn-generate-plan');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Lendo PDFs e Gerando Plano...';
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Conectando ao servidor...';
         btn.disabled = true;
 
         try {
-            localStorage.setItem('kaz_gemini_key', apiKey);
-            await updateDoc(doc(db, 'users', auth.currentUser.uid), { geminiApiKey: apiKey });
-
             const turmaName = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
             const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
+            const escolaNome = document.getElementById('prof-filter-school')?.options[document.getElementById('prof-filter-school')?.selectedIndex]?.text || school;
 
-            // 1. Monta o Prompt textual
-            const promptFinal = `
-Atue como um Especialista Pedagógico Sênior. Você está recebendo documentos PDF em anexo com as Diretrizes Curriculares e Modelos.
-
-CONTEXTO:
-- Tipo: Plano ${tipo.toUpperCase()}
-- Disciplina: ${discName}
-- Turma/Série: ${turmaName}
-- Carga Horária: ${aulas} aulas
-- Assunto Central: "${promptText}"
-
-INSTRUÇÕES DE SAÍDA:
-1. Retorne APENAS CÓDIGO HTML PURO. Não use a crase \`\`\`html no início ou no fim.
-2. Use fontes serifadas (font-family: serif; color: #1e293b;).
-3. Maximize a estruturação visual com títulos (<h2>, <h3>) e tabelas (<table> com bordas simples <th style="border: 1px solid #ccc; padding: 8px;">).
-4. O plano DEVE cruzar o assunto com as Habilidades da BNCC contidas nos PDFs em anexo.
-5. Crie cronogramas e metodologias detalhadas, além de rubricas de avaliação estruturadas em tabela.
-`;
-
-            // 2. Constrói o Array "Parts" para a API do Gemini
-            const partsArray = [{ text: promptFinal }];
-
-            // 3. Lê os PDFs salvos no Firebase e anexa ao payload
-            const snapFontes = await getDocs(query(collection(db, "base_pedagogica")));
-            snapFontes.forEach(docSnap => {
-                const data = docSnap.data();
-                if (data.tipo === 'pdf' && data.base64) {
-                    
-                    // Validação: Gemini 1.0 Pro não suporta arquivos
-                    if (modeloId === 'gemini-pro') {
-                        throw new Error("O modelo 'Gemini 1.0 Pro' não possui suporte para ler os PDFs anexados. Por favor, altere o seletor para o 'Gemini 1.5 Flash' ou '1.5 Pro'.");
-                    }
-
-                    partsArray.push({
-                        inlineData: {
-                            mimeType: "application/pdf",
-                            data: data.base64
-                        }
-                    });
-                    partsArray.push({ text: `O documento PDF anexado acima refere-se a: ${data.titulo}. Baseie-se fortemente nele.` });
-                }
-            });
-
-            // 4. Dispara o fetch para a API oficial do Google
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modeloId}:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: partsArray }]
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error?.message || "Erro na API do Gemini.");
-            }
-
-            const data = await response.json();
+            // Chama a Cloud Function
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-lg"></i> Lendo PDFs da BNCC e planos existentes...';
             
-            let htmlGerado = data.candidates[0].content.parts[0].text;
-            htmlGerado = htmlGerado.replace(/^```html\n?/, '').replace(/\n?```$/, '');
+            const gerarPlano = httpsCallable(functions, 'gerarPlanoIA');
+            const result = await gerarPlano({
+                tipo,
+                disciplina: discName,
+                disciplinaId: disciplineId,
+                turma: turmaName,
+                turmaId: classId,
+                escola: escolaNome,
+                escolaId: school,
+                aulasSemanais: parseInt(aulas),
+                assunto: promptText,
+                trimestre: quarter,
+                modelo: modeloId,
+                modeloPlanejamento: modeloPlanejamento || null
+            });
+
+            const { texto, fontesUsadas, planosExistentes } = result.data;
+
+            if (!texto) {
+                throw new Error("A IA não retornou conteúdo válido. Tente novamente.");
+            }
 
             window.profAPI.currentGeneratedPlan = {
                 tipoPlano: tipo,
                 aulasSemanais: aulas,
                 assuntoBase: promptText,
-                conteudoHtml: htmlGerado,
+                conteudoTextual: texto,
                 turmaId: classId,
                 turmaNome: turmaName,
                 disciplinaId: disciplineId,
-                disciplinaNome: discName
+                disciplinaNome: discName,
+                escolaId: school,
+                escolaNome: escolaNome,
+                trimestre: quarter,
+                fontesUsadas: fontesUsadas || [],
+                planosExistentes: planosExistentes || 0
             };
 
-            window.profAPI.openKazIaResult(htmlGerado, true);
-
-            btn.innerHTML = '<i class="fas fa-magic text-lg"></i> Gerar Plano com Inteligência Artificial';
-            btn.disabled = false;
+            window.profAPI.openKazIaResult(texto, true);
 
         } catch (e) {
-            console.error(e);
-            alert("Falha na geração: " + e.message);
-            btn.innerHTML = '<i class="fas fa-magic text-lg"></i> Gerar Plano com Inteligência Artificial';
+            console.error('Erro na geração:', e);
+            let msg = e.message || 'Erro desconhecido';
+            
+            // Mensagens mais amigáveis para erros comuns
+            if (msg.includes('unauthenticated')) {
+                msg = 'Sua sessão expirou. Faça login novamente.';
+            } else if (msg.includes('quota') || msg.includes('rate limit')) {
+                msg = 'Cota de uso da IA excedida. Tente novamente em alguns minutos.';
+            } else if (msg.includes('invalid-argument')) {
+                msg = 'Dados inválidos. Verifique se todos os campos estão preenchidos.';
+            } else if (msg.includes('permission-denied')) {
+                msg = 'Sem permissão para usar a Kaz IA. Contate o administrador.';
+            }
+            
+            alert("Falha na geração: " + msg);
+        } finally {
+            btn.innerHTML = originalBtnText;
             btn.disabled = false;
         }
     },
@@ -5935,25 +5924,134 @@ INSTRUÇÕES DE SAÍDA:
             let titulo = window.profAPI.currentGeneratedPlan.assuntoBase.substring(0, 35);
             if (window.profAPI.currentGeneratedPlan.assuntoBase.length > 35) titulo += "...";
 
-            const payload = {
-                ...window.profAPI.currentGeneratedPlan,
+            const salvarPlanoFn = httpsCallable(functions, 'salvarPlano');
+            const result = await salvarPlanoFn({
                 titulo: titulo,
-                professorUid: auth.currentUser.uid,
-                dataCriacao: serverTimestamp()
-            };
-
-            await addDoc(collection(db, "planos_aula_ia"), payload);
+                conteudo: window.profAPI.currentGeneratedPlan.conteudoTextual,
+                tipoPlano: window.profAPI.currentGeneratedPlan.tipoPlano,
+                disciplinaId: window.profAPI.currentGeneratedPlan.disciplinaId,
+                disciplinaNome: window.profAPI.currentGeneratedPlan.disciplinaNome,
+                turmaId: window.profAPI.currentGeneratedPlan.turmaId,
+                turmaNome: window.profAPI.currentGeneratedPlan.turmaNome,
+                escolaId: window.profAPI.currentGeneratedPlan.escolaId,
+                escolaNome: window.profAPI.currentGeneratedPlan.escolaNome,
+                trimestre: window.profAPI.currentGeneratedPlan.trimestre,
+                aulasSemanais: window.profAPI.currentGeneratedPlan.aulasSemanais,
+                assuntoBase: window.profAPI.currentGeneratedPlan.assuntoBase
+            });
             
-            btnSave.innerHTML = '<i class="fas fa-check mr-1"></i> Salvo no Firebase!';
+            btnSave.innerHTML = '<i class="fas fa-check mr-1"></i> Salvo nos Modelos!';
             btnSave.classList.replace('bg-green-600', 'bg-blue-600');
             setTimeout(() => {
                 btnSave.classList.add('hidden'); 
             }, 3000);
 
         } catch(e) {
-            alert("Erro ao salvar histórico: " + e.message);
-            btnSave.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Plano';
+            alert("Erro ao salvar: " + (e.message || 'Erro desconhecido'));
+            btnSave.innerHTML = '<i class="fas fa-save mr-1"></i> Salvar nos Modelos';
             btnSave.disabled = false;
+        }
+    },
+
+    // --- MODELOS DE PLANEJAMENTO ---
+    openKazIaModelos: async () => {
+        const modal = document.getElementById('modal-kaz-ia-modelos');
+        const listEl = document.getElementById('kaz-ia-modelos-list');
+        const msgEl = document.getElementById('kaz-ia-modelos-msg');
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        listEl.innerHTML = '<div class="text-center text-slate-500 py-4"><i class="fas fa-spinner fa-spin"></i></div>';
+        
+        try {
+            const listarModelosFn = httpsCallable(functions, 'listarModelosPlanejamento');
+            const result = await listarModelosFn({
+                escolaId: state.filters.school || null
+            });
+
+            const { modelos } = result.data;
+            listEl.innerHTML = '';
+
+            if (!modelos || modelos.length === 0) {
+                msgEl.classList.remove('hidden');
+                msgEl.textContent = 'Nenhum modelo de planejamento cadastrado.';
+                return;
+            }
+            msgEl.classList.add('hidden');
+
+            modelos.forEach(m => {
+                const dataFormatada = m.dataCriacao ? new Date(m.dataCriacao).toLocaleDateString('pt-BR') : 'Sem data';
+                
+                listEl.insertAdjacentHTML('beforeend', `
+                    <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <i class="fas fa-file-alt text-indigo-400"></i>
+                            <div class="overflow-hidden">
+                                <div class="text-xs font-bold text-slate-300 truncate">${escapeHTML(m.nomeModelo)}</div>
+                                <div class="text-[10px] text-slate-500 truncate">${escapeHTML(m.escolaNome)} | ${dataFormatada}</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                            <button type="button" onclick="window.profAPI.loadModeloToEditor('${m.id}')" class="text-blue-400 hover:text-white p-1 transition-colors" title="Usar este modelo">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </div>
+                    </div>
+                `);
+            });
+        } catch (e) {
+            console.error('Erro ao listar modelos:', e);
+            listEl.innerHTML = `<div class="text-red-500 text-xs">Erro: ${e.message || 'Erro ao buscar modelos'}</div>`;
+        }
+    },
+
+    closeKazIaModelos: () => {
+        document.getElementById('modal-kaz-ia-modelos').classList.add('hidden');
+        document.getElementById('modal-kaz-ia-modelos').classList.remove('flex');
+    },
+
+    loadModeloToEditor: async (modeloId) => {
+        try {
+            const buscarModeloFn = httpsCallable(functions, 'buscarModeloPlanejamento');
+            const result = await buscarModeloFn({ modeloId });
+            
+            const { modelo } = result.data;
+            document.getElementById('kaz-ia-modelo-planejamento').value = modelo.conteudo;
+            window.profAPI.closeKazIaModelos();
+            
+            // Feedback visual
+            const textarea = document.getElementById('kaz-ia-modelo-planejamento');
+            textarea.focus();
+            textarea.classList.add('ring-2', 'ring-indigo-500');
+            setTimeout(() => textarea.classList.remove('ring-2', 'ring-indigo-500'), 2000);
+            
+        } catch (e) {
+            alert('Erro ao carregar modelo: ' + (e.message || 'Erro desconhecido'));
+        }
+    },
+
+    saveModeloPlanejamento: async () => {
+        const nomeModelo = prompt('Nome do modelo (ex: "Modelo Escola X - Plano Diário"):');
+        if (!nomeModelo) return;
+        
+        const conteudo = document.getElementById('kaz-ia-modelo-planejamento').value.trim();
+        if (!conteudo) return alert('Cole ou digite o modelo de planejamento primeiro.');
+        
+        const { school } = state.filters;
+        const escolaNome = document.getElementById('prof-filter-school')?.options[document.getElementById('prof-filter-school')?.selectedIndex]?.text || school;
+        
+        try {
+            const salvarModeloFn = httpsCallable(functions, 'salvarModeloPlanejamento');
+            await salvarModeloFn({
+                escolaId: school,
+                escolaNome: escolaNome,
+                nomeModelo: nomeModelo,
+                conteudo: conteudo
+            });
+            
+            alert('Modelo de planejamento salvo com sucesso!');
+        } catch (e) {
+            alert('Erro ao salvar modelo: ' + (e.message || 'Erro desconhecido'));
         }
     },
 

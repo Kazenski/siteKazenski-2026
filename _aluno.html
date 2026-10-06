@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harness - Abas do Aluno Tech</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1791159194">
+<style>
+  body { background:#0f172a; color:#e2e8f0; font-family:'Inter',sans-serif; margin:0; }
+  .harness-nav { position:sticky; top:0; z-index:50; display:flex; gap:.4rem; flex-wrap:wrap;
+                  padding:.6rem 1rem; background:#020617; border-bottom:1px solid #1e293b; }
+  .aluno-tab-btn { padding:.4rem .8rem; border-radius:.5rem; font-size:.75rem; font-weight:700;
+                    background:#1e293b; color:#94a3b8; border:1px solid #334155; cursor:pointer; }
+  .aluno-tab-btn.active { background:#1d4ed8; color:#fff; border-color:#3b82f6; }
+  .wrap { padding:1rem; }
+</style>
+</head>
+<body>
+  <div class="harness-nav"><button class="aluno-tab-btn active" data-tab="geral">Geral</button>
+<button class="aluno-tab-btn" data-tab="caderno">Caderno</button>
+<button class="aluno-tab-btn" data-tab="kanban">Kanban</button>
+<button class="aluno-tab-btn" data-tab="horario">Horario</button>
+<button class="aluno-tab-btn" data-tab="calendario">Calendario</button>
+<button class="aluno-tab-btn" data-tab="mochila">Mochila</button>
+<button class="aluno-tab-btn" data-tab="tcg">Tcg</button></div>
+  <div id="harness-body"><div class="wrap" data-wrap="geral" style="display:block">
+                        <div id="atab-geral" class="aluno-tab-content active">
+
+                            <!-- ======================= INDICORES ======================= -->
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--emerald">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Presença Global</span>
+                                        <span class="kz-kpi__value text-emerald-400" id="al-freq-perc">100%</span>
+                                        <span class="kz-kpi__hint" id="al-freq-total">0 Faltas</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--blue">
+                                        <i class="fas fa-graduation-cap"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Média Geral</span>
+                                        <span class="kz-kpi__value text-blue-400" id="al-kpi-media">---</span>
+                                        <span class="kz-kpi__hint" id="al-kpi-discs">0 disciplinas</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--violet">
+                                        <i class="fas fa-clipboard-check"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Avaliações 360º</span>
+                                        <span class="kz-kpi__value text-violet-400" id="al-kpi-eval">0</span>
+                                        <span class="kz-kpi__hint">registros recebidos</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-kpi">
+                                    <div class="kz-kpi__icon kz-kpi__icon--amber">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="kz-kpi__body">
+                                        <span class="kz-kpi__label">Atividades Extras</span>
+                                        <span class="kz-kpi__value text-amber-400" id="al-kpi-extras">0</span>
+                                        <span class="kz-kpi__hint">lançamentos</span>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- ======================= PAINÉIS ======================= -->
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                                <div class="kz-panel col-span-1 flex flex-col self-start w-full">
+                                    <h3 class="kz-panel__title text-emerald-400"><i class="fas fa-chart-area"></i>
+                                        Frequência por Aula</h3>
+                                    <div class="h-52 w-full"><canvas id="al-chart-freq"></canvas></div>
+                                </div>
+
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-blue-400"><i class="fas fa-bullhorn"></i>
+                                        Mural de Avisos</h3>
+                                    <div id="al-avisos-list"
+                                        class="space-y-3 overflow-y-auto custom-scroll pr-2 max-h-[260px]"></div>
+                                </div>
+
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-blue-400"><i class="fas fa-file-invoice"></i>
+                                        Boletim Escolar</h3>
+
+                                    <div class="overflow-x-auto custom-scroll w-full px-2 md:px-6 pb-4">
+                                        <table
+                                            class="w-full text-sm table-fixed min-w-[850px] mx-auto border-collapse border border-slate-700">
+                                            <thead>
+                                                <tr class="bg-slate-900/60">
+                                                    <th rowspan="2"
+                                                        class="w-[28%] text-left pl-4 py-3 border border-slate-700 text-blue-500 uppercase tracking-widest text-[10px]">
+                                                        Disciplina</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        1º Trimestre</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        2º Trimestre</th>
+                                                    <th colspan="4"
+                                                        class="w-[18%] border border-slate-700 text-blue-500 py-2 uppercase tracking-widest text-[10px]">
+                                                        3º Trimestre</th>
+                                                    <th rowspan="2"
+                                                        class="w-[18%] border border-slate-700 p-0 overflow-hidden bg-slate-900/80">
+                                                        <select id="al-sel-media-foco"
+                                                            class="w-full h-full bg-transparent text-blue-500 font-black uppercase tracking-tighter text-[10px] text-center cursor-pointer outline-none hover:bg-slate-800 transition-colors py-7">
+                                                            <option value="1">Média 1º Tri</option>
+                                                            <option value="2">Média 2º Tri</option>
+                                                            <option value="3">Média 3º Tri</option>
+                                                            <option value="geral">Média Geral</option>
+                                                        </select>
+                                                    </th>
+                                                </tr>
+                                                <tr class="text-[10px] text-slate-400 bg-slate-900/30">
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N1</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N2</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N3</th>
+                                                    <th class="border border-slate-700 py-1.5 w-[4.5%]">N4</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="al-boletim-body"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="kz-panel col-span-1 flex flex-col">
+                                    <div class="kz-panel__head">
+                                        <h3 class="kz-panel__title text-amber-400"><i class="fas fa-star"></i>
+                                            Pontos Extras</h3>
+                                        <select id="al-sel-extras-disc" class="kz-select"></select>
+                                    </div>
+                                    <div id="al-extras-matrix" class="flex-grow flex items-center justify-center">
+                                        <span class="text-slate-500 text-xs italic">Carregando matriz de
+                                            atividades...</span>
+                                    </div>
+                                </div>
+
+                                <div class="kz-panel col-span-1 lg:col-span-2 flex flex-col">
+                                    <h3 class="kz-panel__title text-violet-400"><i
+                                            class="fas fa-users-viewfinder"></i> Avaliação 360º</h3>
+                                    <div id="al-eval-360-content"
+                                        class="kz-empty flex-grow flex items-center justify-center">
+                                        Nenhuma avaliação pendente no momento.
+                                    </div>
+                                </div>
+
+                                <div class="col-span-1 lg:col-span-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    <div class="kz-panel">
+                                        <h4 class="kz-panel__subtitle">Dispersão de Notas</h4>
+                                        <div class="h-64"><canvas id="al-chart-scatter"></canvas></div>
+                                    </div>
+                                    <div class="kz-panel">
+                                        <div class="kz-panel__head">
+                                            <h4 class="kz-panel__subtitle">Evolução</h4>
+                                            <select id="al-sel-evol" class="kz-select"></select>
+                                        </div>
+                                        <div class="h-64"><canvas id="al-chart-evol"></canvas></div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="caderno" style="display:none">
+                        <div id="atab-caderno" class="aluno-tab-content h-full">
+                            <div class="flex gap-4 h-[calc(100vh-350px)] min-h-[550px] w-full">
+
+                                <!-- SIDEBAR: Notebooks & Tags -->
+                                <div
+                                    class="w-56 bg-slate-900/95 rounded-2xl border border-slate-700 flex flex-col shadow-xl overflow-hidden shrink-0">
+                                    
+                                    <!-- Header -->
+                                    <div class="p-4 border-b border-slate-700 bg-slate-950/50 flex flex-col gap-3 shrink-0">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                                                <i class="fas fa-book"></i> Cadernos
+                                            </h3>
+                                            <button id="btn-new-notebook" class="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-colors shadow-lg" title="Novo Caderno" aria-label="Novo Caderno">
+                                                <i class="fas fa-plus text-sm"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Search notebooks -->
+                                        <div class="relative">
+                                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                                            <input type="text" id="al-notebook-search" placeholder="Buscar cadernos..."
+                                                class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
+                                        </div>
+                                    </div>
+
+                                    <!-- Notebooks List -->
+                                    <div class="p-2 border-b border-slate-700/50 bg-slate-900/20 shrink-0">
+                                        <h4 class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2 px-1">Meus Cadernos</h4>
+                                        <div id="al-notebook-list" class="flex-grow overflow-y-auto custom-scroll p-1 flex flex-col gap-1">
+                                            <!-- Rendered by JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Tags Filter -->
+                                    <div class="p-2 border-b border-slate-700/50 bg-slate-900/20 shrink-0">
+                                        <h4 class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-2 px-1">Tags</h4>
+                                        <div id="al-tags-filter" class="flex-grow overflow-y-auto custom-scroll p-1 flex flex-col gap-1">
+                                            <!-- Rendered by JS -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Quick Filters -->
+                                    <div class="p-3 border-t border-slate-700/50 shrink-0">
+                                        <div class="flex flex-col gap-1.5">
+                                            <button id="btn-filter-all" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/30 transition-colors flex items-center gap-2">
+                                                <i class="fas fa-inbox"></i> <span>Todas as Notas</span>
+                                            </button>
+                                            <button id="btn-filter-pinned" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-amber-400 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/30 transition-colors flex items-center gap-2">
+                                                <i class="fas fa-thumbtack"></i> <span>Fixadas</span>
+                                            </button>
+                                            <button id="btn-filter-recent" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30 transition-colors flex items-center gap-2">
+                                                <i class="fas fa-clock"></i> <span>Recentes</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- NOTES LIST PANEL -->
+                                <div class="w-64 bg-slate-900/95 rounded-2xl border border-slate-700 flex flex-col shadow-xl overflow-hidden shrink-0">
+                                    <!-- Header -->
+                                    <div class="p-4 border-b border-slate-700 bg-slate-950/50 flex flex-col gap-3 shrink-0">
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-blue-400 font-cinzel font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                                                <i class="fas fa-list"></i> Anotações
+                                            </h3>
+                                            <button id="btn-new-note" class="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-transform hover:scale-105 shadow-lg" title="Nova Anotação" aria-label="Nova Anotação">
+                                                <i class="fas fa-plus text-xs"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Search Notes -->
+                                        <div class="relative">
+                                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
+                                            <input type="text" id="al-note-search" placeholder="Pesquisar notas..."
+                                                class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 transition-colors">
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes List -->
+                                    <div id="al-notes-list"
+                                        class="flex-grow overflow-y-auto custom-scroll p-2 flex flex-col gap-2 bg-slate-900/30">
+                                    </div>
+
+                                    <!-- Pagination -->
+                                    <div id="notes-pagination"
+                                        class="hidden justify-center items-center gap-4 py-2 border-t border-slate-700 bg-slate-800/50 shrink-0">
+                                        <button id="btn-prev-page"
+                                            class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i
+                                                class="fas fa-chevron-left text-[8px]"></i></button>
+                                        <span id="page-indicator"
+                                            class="text-slate-400 font-bold text-[10px] uppercase">1 / 1</span>
+                                        <button id="btn-next-page"
+                                            class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center"><i
+                                                class="fas fa-chevron-right text-[8px]"></i></button>
+                                    </div>
+                                </div>
+
+                                <!-- NOTE EDITOR PANEL -->
+                                <div class="flex-1 bg-slate-900/95 rounded-2xl border border-slate-700 flex flex-col shadow-xl overflow-hidden relative">
+
+                                    <!-- Empty State -->
+                                    <div id="al-note-empty-state"
+                                        class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 bg-slate-900/80 z-10">
+                                        <div class="w-24 h-24 rounded-full bg-slate-800 flex items-center justify-center mb-4">
+                                            <i class="fas fa-book-open text-4xl opacity-30"></i>
+                                        </div>
+                                        <p class="font-cinzel tracking-widest text-sm uppercase mb-2">Caderno Digital</p>
+                                        <p class="text-slate-500 text-xs text-center px-8">Selecione uma nota na lista ou crie uma nova para começar</p>
+                                        <button id="btn-new-note-empty" class="mt-6 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-lg transition-colors flex items-center gap-2">
+                                            <i class="fas fa-plus"></i> Nova Nota
+                                        </button>
+                                    </div>
+
+                                    <!-- Active Note State -->
+                                    <div id="al-note-active-state"
+                                        class="flex-col h-full flex opacity-0 pointer-events-none transition-opacity duration-300">
+                                        <input type="hidden" id="al-note-active-id">
+
+                                        <!-- Header Bar -->
+                                        <div class="px-4 py-3 border-b border-slate-700 bg-slate-900/50 flex flex-wrap justify-between items-center gap-4 shrink-0 transition-all duration-300"
+                                            id="al-note-header-bar">
+                                            
+                                            <!-- Left: Colors & Title -->
+                                            <div class="flex items-center gap-3 flex-1 min-w-0">
+                                                <!-- Color Palette -->
+                                                <div id="al-note-colors" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                                                    <!-- Color dots rendered by JS -->
+                                                </div>
+                                                <!-- Title Input -->
+                                                <input type="text" id="al-note-active-title" placeholder="Título da Nota"
+                                                    class="flex-1 min-w-0 bg-transparent text-white font-cinzel font-black text-2xl outline-none border-b-2 border-transparent focus:border-slate-700 pb-1 transition-colors placeholder-slate-600">
+                                            </div>
+
+                                            <!-- Right: Meta & Actions -->
+                                            <div class="flex items-center gap-2 flex-wrap ml-auto">
+                                                <!-- Tags Input -->
+                                                <div class="relative hidden sm:block">
+                                                    <i class="fas fa-hashtag text-slate-500 text-sm absolute left-3 top-1/2 -translate-y-1/2"></i>
+                                                    <input type="text" id="al-note-active-tags" placeholder="Tags (vírgula)"
+                                                        class="bg-slate-900 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white outline-none placeholder-slate-600 w-48 focus:border-blue-500 transition-colors">
+                                                </div>
+
+                                                <!-- Pin -->
+                                                <button id="btn-note-pin" class="w-9 h-9 flex items-center justify-center bg-slate-900/50 border border-slate-700 hover:border-blue-500 text-slate-400 hover:text-blue-400 rounded-lg transition-all" title="Fixar no topo" aria-label="Fixar nota">
+                                                    <i class="fas fa-thumbtack text-xs"></i>
+                                                </button>
+                                                <!-- Share -->
+                                                <button id="btn-note-share" class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2">
+                                                    <i class="fas fa-share-alt"></i> Compartilhar
+                                                </button>
+                                                <!-- More Menu -->
+                                                <div class="relative">
+                                                    <button id="btn-note-more" class="w-9 h-9 flex items-center justify-center bg-slate-900/50 border border-slate-700 hover:border-slate-600 text-slate-400 hover:text-slate-200 rounded-lg transition-all" title="Mais opções" aria-label="Mais opções">
+                                                        <i class="fas fa-ellipsis-v text-xs"></i>
+                                                    </button>
+                                                    <div id="al-note-more-menu" class="absolute right-0 top-full mt-2 w-40 bg-slate-900 border border-slate-700 rounded-xl shadow-xl opacity-0 invisible transition-all duration-200 z-20 py-1">
+                                                        <button class="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-2" onclick="window.alunoAPI.duplicateNote()">
+                                                            <i class="fas fa-copy"></i> Duplicar
+                                                        </button>
+                                                        <button class="w-full text-left px-3 py-2 text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-2" onclick="window.alunoAPI.exportNote()">
+                                                            <i class="fas fa-download"></i> Exportar
+                                                        </button>
+                                                        <hr class="border-slate-700 my-1">
+                                                        <button class="w-full text-left px-3 py-2 text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-2" onclick="window.alunoAPI.deleteActiveNote()">
+                                                            <i class="fas fa-trash"></i> Excluir
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Toolbar -->
+                                        <div id="al-note-toolbar" class="px-4 py-2 border-b border-slate-700/50 bg-slate-900/30 flex flex-wrap items-center gap-1.5 shrink-0">
+                                            <div class="flex items-center gap-1 border-r border-slate-700/50 pr-2 mr-1">
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Negrito (Ctrl+B)" data-format="bold"><i class="fas fa-bold text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Itálico (Ctrl+I)" data-format="italic"><i class="fas fa-italic text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Sublinhado (Ctrl+U)" data-format="underline"><i class="fas fa-underline text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Tachado" data-format="strikeThrough"><i class="fas fa-strikethrough text-xs"></i></button>
+                                            </div>
+                                            <div class="flex items-center gap-1 border-r border-slate-700/50 pr-2 mr-1">
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Lista com marcadores" data-format="insertUnorderedList"><i class="fas fa-list-ul text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Lista numerada" data-format="insertOrderedList"><i class="fas fa-list-ol text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Citação" data-format="blockquote"><i class="fas fa-quote-left text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Código" data-format="code"><i class="fas fa-code text-xs"></i></button>
+                                            </div>
+                                            <div class="flex items-center gap-1 border-r border-slate-700/50 pr-2 mr-1">
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Link" data-format="createLink"><i class="fas fa-link text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Imagem" data-format="insertImage"><i class="fas fa-image text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Tabela" data-format="insertTable"><i class="fas fa-table text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Linha horizontal" data-format="insertHorizontalRule"><i class="fas fa-minus text-xs"></i></button>
+                                            </div>
+                                            <div class="flex items-center gap-1 border-r border-slate-700/50 pr-2 mr-1">
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Desfazer (Ctrl+Z)" onclick="document.execCommand('undo')"><i class="fas fa-undo text-xs"></i></button>
+                                                <button class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors" title="Refazer (Ctrl+Y)" onclick="document.execCommand('redo')"><i class="fas fa-redo text-xs"></i></button>
+                                            </div>
+                                            <div class="flex items-center gap-1 ml-auto">
+                                                <select id="al-note-font-size" class="bg-slate-800 border border-slate-700 text-slate-300 text-[10px] rounded-lg px-2 py-1 outline-none focus:border-blue-500" title="Tamanho da fonte">
+                                                    <option value="0.85rem">Pequeno</option>
+                                                    <option value="1rem" selected>Normal</option>
+                                                    <option value="1.25rem">Grande</option>
+                                                    <option value="1.5rem">Muito Grande</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Editor Area -->
+                                        <div class="flex-1 p-6 overflow-y-auto custom-scroll flex flex-col">
+                                            <input type="text" id="al-note-active-title" placeholder="Título da Nota"
+                                                class="w-full bg-transparent text-white font-cinzel font-black text-2xl outline-none border-b-2 border-transparent focus:border-slate-700 pb-2 mb-4 transition-colors placeholder-slate-600">
+
+                                            <!-- Tags Row -->
+                                            <div class="flex items-center gap-2 mb-4 border-b border-slate-700/50 pb-3">
+                                                <i class="fas fa-hashtag text-slate-500 text-sm shrink-0"></i>
+                                                <input type="text" id="al-note-active-tags" placeholder="Tags (separadas por vírgula)"
+                                                    class="w-full bg-transparent text-blue-400 text-sm font-bold outline-none placeholder-slate-600">
+                                            </div>
+
+                                            <!-- Editor -->
+                                            <div id="al-note-editor" contenteditable="true"
+                                                placeholder="Comece a digitar suas anotações aqui..."
+                                                class="w-full flex-grow bg-transparent text-slate-300 text-base outline-none resize-none leading-relaxed min-h-[300px]"
+                                                data-placeholder="Comece a digitar suas anotações aqui..."></div>
+                                        </div>
+
+                                        <!-- Footer -->
+                                        <div class="p-4 border-t border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <div class="flex items-center gap-3 text-[10px] text-slate-500">
+                                                <span id="al-note-word-count" class="flex items-center gap-1"><i class="fas fa-font"></i> <span>0</span> palavras</span>
+                                                <span id="al-note-char-count" class="flex items-center gap-1"><i class="fas fa-font"></i> <span>0</span> caracteres</span>
+                                                <span id="al-note-read-time" class="flex items-center gap-1"><i class="fas fa-clock"></i> <span>0</span> min leitura</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <button id="btn-note-share" class="text-indigo-400 hover:text-indigo-300 hover:bg-indigo-400/10 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-2">
+                                                    <i class="fas fa-share-alt"></i> Compartilhar
+                                                </button>
+                                                <button id="btn-note-delete" class="text-red-400 hover:text-red-300 hover:bg-red-400/10 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-2">
+                                                    <i class="fas fa-trash"></i> Excluir
+                                                </button>
+                                                <button id="btn-note-save"
+                                                    class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold shadow-[0_0_15px_rgba(37,99,235,0.3)] transition-all flex items-center gap-2">
+                                                    <i class="fas fa-check"></i> Salvar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div id="al-note-approval-state"
+                                        class="hidden h-full flex-col overflow-hidden bg-slate-950/20">
+                                        <div
+                                            class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/20 shrink-0">
+                                            <h3 class="text-amber-500 font-bold uppercase tracking-widest text-sm">
+                                                <i class="fas fa-user-check mr-2"></i> Aprovações Pendentes
+                                            </h3>
+                                        </div>
+                                        <div id="approval-list"
+                                            class="flex-grow overflow-y-auto p-6 custom-scroll flex flex-col gap-4">
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="kanban" style="display:none">
+                        <div id="atab-kanban" class="aluno-tab-content w-full">
+                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                                <div class="flex justify-end mb-6 shrink-0">
+                                    <button id="btn-toggle-kanban-form"
+                                        class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow-lg shadow-purple-900/50 transition-transform hover:scale-105 flex items-center gap-2">
+                                        <i class="fas fa-plus"></i> Nova Tarefa
+                                    </button>
+                                </div>
+                                <div id="al-kanban-form"
+                                    class="hidden bg-slate-800 p-6 rounded-2xl border-l-4 border-purple-500 shadow-lg mb-6 fade-in shrink-0">
+                                    <input type="hidden" id="al-kanban-id">
+                                    <input type="text" id="al-kanban-title" placeholder="O que precisa ser feito?"
+                                        class="bg-transparent border-b border-slate-700 w-full text-white text-xl font-bold outline-none pb-2 mb-4 focus:border-purple-500 transition-colors">
+                                    <textarea id="al-kanban-body"
+                                        placeholder="Adicione detalhes, links ou observações..."
+                                        class="bg-slate-900 border border-slate-700 p-4 rounded-xl w-full text-slate-300 min-h-[100px] outline-none mb-4 focus:border-purple-500 transition-colors"></textarea>
+                                    <div class="flex justify-end gap-3">
+                                        <button
+                                            onclick="document.getElementById('al-kanban-form').classList.add('hidden')"
+                                            class="text-slate-400 hover:text-white font-bold px-4 py-2 transition-colors">Cancelar</button>
+                                        <button id="btn-save-kanban"
+                                            class="bg-green-600 hover:bg-green-500 text-white px-8 py-2 rounded-xl font-bold shadow-lg transition-colors">Salvar
+                                            Tarefa</button>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow min-h-0">
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'a_fazer')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span class="font-cinzel font-bold tracking-widest text-blue-400">A
+                                                FAZER</span><i class="fas fa-clipboard-list text-slate-600"></i>
+                                        </div>
+                                        <div id="al-col-todo"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)"
+                                        ondrop="window.drop(event, 'em_progresso')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span class="font-cinzel font-bold tracking-widest text-amber-400">EM
+                                                EXECUÇÃO</span><i class="fas fa-spinner text-slate-600"></i>
+                                        </div>
+                                        <div id="al-col-doing"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-lg h-full"
+                                        ondragover="window.allowDrop(event)" ondrop="window.drop(event, 'concluido')">
+                                        <div
+                                            class="p-4 border-b border-slate-700 bg-slate-900/50 flex justify-between items-center shrink-0">
+                                            <span
+                                                class="font-cinzel font-bold tracking-widest text-green-400">CONCLUÍDO</span><i
+                                                class="fas fa-check-circle text-slate-600"></i>
+                                        </div>
+                                        <div id="al-col-done"
+                                            class="flex-grow p-4 overflow-y-auto custom-scroll space-y-4 bg-slate-900/20">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="horario" style="display:none">
+                        <div id="atab-horario" class="aluno-tab-content w-full">
+                            <div class="flex flex-col h-[calc(100vh-280px)] min-h-[600px] pb-6">
+                                <div
+                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 overflow-x-auto shadow-xl flex-grow flex flex-col min-h-0">
+                                    <table class="horario-tabela w-full min-w-[900px] h-full flex-grow">
+                                        <thead class="shrink-0">
+                                            <tr>
+                                                <th data-dia-id="segunda-feira">SEG</th>
+                                                <th data-dia-id="terca-feira">TER</th>
+                                                <th data-dia-id="quarta-feira">QUA</th>
+                                                <th data-dia-id="quinta-feira">QUI</th>
+                                                <th data-dia-id="sexta-feira">SEX</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="h-full">
+                                            <tr class="h-full">
+                                                <td id="cell-segunda-feira" class="align-top"></td>
+                                                <td id="cell-terca-feira" class="align-top"></td>
+                                                <td id="cell-quarta-feira" class="align-top"></td>
+                                                <td id="cell-quinta-feira" class="align-top"></td>
+                                                <td id="cell-sexta-feira" class="align-top"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <p id="al-horario-msg" class="text-center text-slate-500 mt-6 italic shrink-0">
+                                        Carregando grade horária...</p>
+                                </div>
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="calendario" style="display:none">
+                        <div id="atab-calendario" class="aluno-tab-content h-full">
+                            <div class="min-h-[calc(100vh-350px)] flex flex-col pb-6">
+                                <div
+                                    class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-lg relative overflow-hidden flex-grow flex flex-col">
+                                    <div
+                                        class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 relative z-10 shrink-0">
+                                        <div
+                                            class="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-lg border border-slate-700">
+                                            <button id="btn-cal-prev"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-left"></i></button>
+                                            <span id="al-cal-month"
+                                                class="font-bold text-white uppercase font-cinzel text-lg min-w-[150px] text-center tracking-widest">---</span>
+                                            <button id="btn-cal-next"
+                                                class="p-2 px-4 hover:bg-blue-600 rounded text-slate-300 hover:text-white transition-colors"><i
+                                                    class="fas fa-chevron-right"></i></button>
+                                        </div>
+                                        <div class="flex items-center gap-4">
+                                            <div class="flex bg-slate-900/50 rounded-lg border border-slate-700 p-1">
+                                                <button id="btn-view-month"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold bg-blue-600 text-white transition-colors">Mês</button>
+                                                <button id="btn-view-week"
+                                                    class="px-4 py-1.5 rounded text-sm font-bold text-slate-400 hover:text-white transition-colors">Semana</button>
+                                            </div>
+                                            <button id="al-btn-add-evt"
+                                                class="hidden bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-lg transition-transform hover:scale-105"><i
+                                                    class="fas fa-plus mr-2"></i> Evento</button>
+                                        </div>
+                                    </div>
+                                    <div id="cal-header-row"
+                                        class="grid grid-cols-5 bg-slate-900/80 rounded-t-xl border border-slate-700 border-b-0 shrink-0">
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Segunda</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Terça</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quarta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Quinta</div>
+                                        <div
+                                            class="p-4 text-center font-bold text-blue-500 text-[10px] uppercase tracking-widest">
+                                            Sexta</div>
+                                    </div>
+                                    <div id="al-cal-grid"
+                                        class="calendar-grid rounded-b-xl overflow-hidden shadow-inner flex-grow grid auto-rows-[minmax(120px,1fr)]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="mochila" style="display:none">
+                        <div id="atab-mochila" class="aluno-tab-content h-full flex-col fade-in w-full">
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[calc(100vh-350px)] pb-6">
+                                <div
+                                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3
+                                        class="text-blue-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+                                        <i class="fas fa-scroll mr-2 text-blue-500"></i> Mochila Pedagógica
+                                        (Consumíveis)
+                                    </h3>
+                                    <div id="al-mochila-itens"
+                                        class="space-y-3 overflow-y-auto custom-scroll flex-grow pr-1 max-h-[450px]">
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="bg-slate-800 p-6 rounded-2xl border border-slate-700 flex flex-col shadow-lg">
+                                    <h3
+                                        class="text-purple-400 font-cinzel font-bold text-lg mb-4 border-b border-slate-700 pb-2">
+                                        <i class="fas fa-palette mr-2 text-purple-500"></i> Galeria de Estilos (Skins &
+                                        Temas)
+                                    </h3>
+                                    <div id="al-mochila-estilos"
+                                        class="space-y-3 overflow-y-auto custom-scroll flex-grow pr-1 max-h-[450px]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+</div>
+<div class="wrap" data-wrap="tcg" style="display:none">
+                        <div id="atab-tcg" class="aluno-tab-content hidden h-full fade-in w-full">
+                            <div
+                                class="bg-slate-800 p-6 rounded-2xl border border-slate-700 mb-6 shrink-0 shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div>
+                                    <h2 class="text-lg text-indigo-400 font-cinzel font-bold mb-1"><i
+                                            class="fas fa-layer-group mr-2"></i> Coleção TCG</h2>
+                                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Resgate
+                                        cartas com base no seu desempenho escolar.</p>
+                                </div>
+                                <div
+                                    class="bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-inner flex items-center gap-3">
+                                    <span
+                                        class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Progresso:</span>
+                                    <span class="text-indigo-400 font-black text-lg"><span
+                                            id="tcg-unlocked-count">0</span><span
+                                            class="text-slate-500 text-sm">/</span><span id="tcg-total-count"
+                                            class="text-slate-500 text-sm">0</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Grid de Cartas -->
+                            <div id="tcg-collection-grid"
+                                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 custom-scroll pb-6">
+                                <!-- Cartas injetadas automaticamente pelo JS -->
+                            </div>
+                        </div>
+</div></div>
+<script>
+  //Qsso substitui setupTabsNavigation: nao depende de Firebase.
+  document.querySelector('.harness-nav').addEventListener('click', (e) => {
+    const btn = e.target.closest('.aluno-tab-btn');
+    if (!btn) return;
+    const alvo = btn.dataset.tab;
+    document.querySelectorAll('.aluno-tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('.wrap').forEach(w => {
+      const visivel = (w.dataset.wrap === alvo);
+      w.style.display = visivel ? 'block' : 'none';
+      // .aluno-tab-content usa display:none + .active para aparecer
+      const inner = w.querySelector('.aluno-tab-content');
+      if (inner) inner.classList.toggle('active', visivel);
+    });
+    window.dispatchEvent(new Event('resize'));
+  });
+  const inicial = new URLSearchParams(location.search).get('tab');
+  if (inicial) {
+    const b = document.querySelector('.aluno-tab-btn[data-tab="' + inicial + '"]');
+    if (b) b.click();
+  }
+</script>
+</body>
+</html>

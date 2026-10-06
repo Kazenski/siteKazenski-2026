@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>boot do professorTech</title>
+</head>
+<body>
+<!-- o modulo mapeia o DOM no boot, entao a pagina precisa existir; nao precisa
+     ser o index.html inteiro, porque este harness so mede a avaliacao -->
+<div id="professor-container"></div>
+
+<script>
+window.__ERROS__ = [];
+const registar = (tipo, texto) => window.__ERROS__.push({ tipo, texto: String(texto) });
+window.addEventListener('error', (e) => registar('error', e.message), true);
+window.addEventListener('unhandledrejection', (e) => registar(
+    'rejection', (e.reason && e.reason.message) || e.reason));
+for (const m of ['error', 'warn']) {
+    const orig = console[m].bind(console);
+    console[m] = (...a) => { registar('console.' + m, a.map(String).join(' ')); orig(...a); };
+}
+window.__IGNORAVEIS__ = ["invalid-api-key","api-key-not-valid","operation-not-allowed","auth/","Firebase","permission-denied","unauthenticated","Failed to fetch","net::ERR","ERR_","CORS","NetworkError"];
+</script>
+
+<script type="module">
+const piso = 125;
+const ignorar = (t) => window.__IGNORAVEIS__.some((p) => t.includes(p));
+let lancou = null;
+
+try {
+    // query na URL = instancia nova do modulo, sem o cache do navegador
+    await import('./js/professorTech/professorTech.js?boot=' + Date.now());
+} catch (e) {
+    lancou = ((e && e.message) || e);
+}
+
+// da um tick para o import resolver e o profAPI ser publicado
+await new Promise((r) => setTimeout(r, 0));
+
+const obtido = window.profAPI ? Object.keys(window.profAPI).length : 0;
+const erros = lancou
+    ? [{ tipo: 'import', texto: lancou }]
+    : window.__ERROS__.filter((e) => !ignorar(e.texto));
+
+window.__RESULTADO__ = {
+    ok: obtido >= piso && erros.length === 0,
+    piso,
+    obtido,
+    profAPI: typeof window.profAPI,
+    erros
+};
+</script>
+</body>
+</html>
