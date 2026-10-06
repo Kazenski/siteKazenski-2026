@@ -864,7 +864,18 @@ async function abrirDashboardPesquisa(pesquisaId) {
             const r = d.data();
             return { colegio_nome: r.colegio_nome, colegio_id: r.colegio_id, ...(r.respostas || {}) };
         });
-        const perguntas = await getPerguntas(pesquisaId);
+        const perguntasInicial = await getPerguntas(pesquisaId);
+        let perguntas = perguntasInicial;
+
+        // Auto-reparo: pesquisa legada de Convivência sem perguntas migradas
+        const ehConvivencia = tabelaAlvo === 'respostas_pesquisa' || /conviv[eê]ncia/i.test(String(titulo || ''));
+        if (ehConvivencia && (!perguntas || perguntas.length === 0)) {
+            try {
+                const mod = await import('./seedPesquisas.js');
+                await mod.seedPerguntasConvivenciaParaPesquisa(pesquisaId);
+                perguntas = await getPerguntas(pesquisaId);
+            } catch (e) { console.warn('Auto-reparo de perguntas de Convivência falhou:', e); }
+        }
 
         window.pesquisaRespostasAtuais = respostas;
         window.pesquisaPerguntasAtuais = perguntas;

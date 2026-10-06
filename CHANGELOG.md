@@ -9,8 +9,9 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 Restauração das perguntas da pesquisa Diagnóstico de Convivência Digital no Firebase e ajuste do tratamento de Sim/Não no formulário.
 
 ### Corrigido
-- **Diagnóstico de Convivência Digital sem perguntas**: as perguntas dessa pesquisa viviam na tabela legada do Supabase e não foram migradas para `pesquisas/{id}/perguntas`. O botão "Importar/Atualizar Catálogo" agora detecta a pesquisa legada (tabela alvo `respostas_pesquisa` ou título com "convivência") e recria as 10 perguntas com os mesmos campos (`serie`, `idade`, `genero`, `tempo_tela`, `presenciou_bullying`, `foi_vitima`, `ambiente_risco`, `sabe_pedir_ajuda`, `motivo_frequencia`, `jogos_mais_usado`), tipos e opções vistos no painel antigo.
+- **Diagnóstico de Convivência Digital sem perguntas (2ª tentativa)**: caso o import em lote não tenha sido executado no perfil correto, o módulo agora também faz **auto-reparo** — ao abrir o dashboard de uma pesquisa legada de Convivência com perguntas vazias, ele recria as 10 perguntas na subcoleção e já renderiza os gráficos.
 - **Boleanos `Sim/Não` no formulário**: `presenciou_bullying` agora também vira `true`/`false` no envio (antes só `foi_vitima` e `sabe_pedir_ajuda`), com tratamento para "Não tenho certeza" permanecer texto.
+- **Opções da pergunta de `serie`** ajustadas para as séries completas ("6º Série" … "3ª Série EM") e enumerações mais fiéis ao painel antigo.
 
 ### Verificado
 - Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js` e `js/pesquisasTech/seedPesquisas.js`.
