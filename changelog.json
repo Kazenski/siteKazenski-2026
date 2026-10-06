@@ -1,8 +1,71 @@
 {
-  "geradoEm": "2026-10-06T19:47:46+00:00",
-  "versaoAtual": "1.7.8",
-  "totalEntradas": 23,
+  "geradoEm": "2026-10-06T19:56:03+00:00",
+  "versaoAtual": "1.7.9",
+  "totalEntradas": 24,
   "entradas": [
+    {
+      "versao": "1.7.9",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Dashboard Analítico mais limpo: uma pergunta por linha (ocupa a tela toda), um gráfico por pergunta e um quadro de destaques no lugar dos formatos repetidos (pizza/rosca mostrando o mesmo dado).",
+      "arquivos": [
+        "js/pesquisasTech/pesquisasTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Layout das perguntas**: agora uma pergunta por bloco em largura total da tela, com gráfico grande (mín. 360px) + resumo abaixo (Top 3 respostas com %)."
+                ],
+                [
+                  "li",
+                  "**Removidos formatos redundantes**: cada pergunta categórica gera apenas Colunas; cada pergunta numérica gera Colunas de frequência + chips de Média/Mediana/Mín/Máx. Antes cada pergunta tinha 3 formatos misturados (colunas+pizza+rosca ou bar+scatter+linha), o que poluía a leitura."
+                ],
+                [
+                  "li",
+                  "**Texto-livre** mantém a lista de respostas (limitado a 12)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.8",
       "data": "2026-10-06",

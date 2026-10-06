@@ -969,14 +969,14 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             </div>
             <div class="bg-indigo-900/20 border border-indigo-500/30 p-8 rounded-2xl shadow-xl flex flex-col justify-center">
                 <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle mr-2"></i> Diagnóstico</h4>
-                <p class="text-slate-400 text-xs leading-relaxed">Cada pergunta aparece com gráficos em formatos diferentes (colunas, pizza, rosca, dispersão e linha) lado a lado para facilitar a leitura.</p>
+                <p class="text-slate-400 text-xs leading-relaxed">Cada pergunta aparece em um bloco inteiro da tela, com um único gráfico detalhado (colunas) e um resumo com as principais respostas ou média/mediana.</p>
             </div>
         </div>`;
 
     if (perguntas.length === 0) {
         html += '<p class="text-slate-500 italic p-6 bg-slate-900 rounded-xl border border-slate-700">Esta pesquisa ainda não possui perguntas cadastradas.</p>';
     } else {
-        html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-14">';
+        html += '<div class="grid grid-cols-1 gap-12">';
         perguntas.forEach((p, idx) => {
             const t = tipoPergunta(p);
             html += `
@@ -984,14 +984,10 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
                     <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4"><i class="fas fa-chart-bar mr-2"></i> ${p.label_texto}</h4>
                     ${t === 'text'
                     ? `<div id="lista-respostas-${idx}" class="text-sm text-slate-300 space-y-3 max-h-64 overflow-y-auto custom-scroll"></div>`
-                    : `<div class="grid grid-cols-1 ${t === 'cat' ? 'md:grid-cols-3' : 'lg:grid-cols-3'} gap-8">
-                             <div class="relative min-h-[220px]"><canvas id="chart-q-bar-${idx}"></canvas></div>
-                             ${t === 'cat'
-                            ? `<div class="relative min-h-[220px]"><canvas id="chart-q-pie-${idx}"></canvas></div>
-                                <div class="relative min-h-[220px]"><canvas id="chart-q-dough-${idx}"></canvas></div>`
-                            : `<div class="relative min-h-[160px]"><canvas id="chart-q-scatter-${idx}"></canvas></div>
-                                <div class="relative min-h-[160px]"><canvas id="chart-q-line-${idx}"></canvas></div>`}
-                           </div>`}
+                    : `<div class="flex flex-col gap-6">
+                          <div class="relative min-h-[360px]"><canvas id="chart-q-single-${idx}"></canvas></div>
+                          <div id="detalhes-q-${idx}"></div>
+                       </div>`}
                 </div>`;
         });
         html += '</div>';
@@ -1023,56 +1019,52 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             const cont = contagem(valsCategoria(respostas, chave));
             const labels = Object.keys(cont);
             const data = Object.values(cont);
-            // Rotaciona formatos por questão: cada pergunta usa 3 tipos distintos
-            const trio = idx % 3 === 0 ? ['bar', 'pie', 'doughnut']
-                       : idx % 3 === 1 ? ['horizBar', 'polarArea', 'pie']
-                       : ['polarArea', 'bar', 'doughnut'];
-            const ids = [`chart-q-bar-${idx}`, `chart-q-pie-${idx}`, `chart-q-dough-${idx}`];
-            trio.forEach((tp, k) => {
-                const el = document.getElementById(ids[k]);
-                if (!el) return;
-                let cfg;
-                if (tp === 'horizBar') {
-                    cfg = { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
-                            options: { indexAxis: 'y', plugins: { legend: { display: false }, title: { display: true, text: 'Barras Horizontais' } } } };
-                } else if (tp === 'polarArea') {
-                    cfg = { type: 'polarArea', data: { labels, datasets: [{ data, backgroundColor: PALETA.map(c => c + '99') }] },
-                            options: { plugins: { title: { display: true, text: 'Área Polar' } } } };
-                } else if (tp === 'doughnut') {
-                    cfg = { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: PALETA }] }, options: { plugins: { title: { display: true, text: 'Rosca' } } } };
-                } else if (tp === 'pie') {
-                    cfg = { type: 'pie', data: { labels, datasets: [{ data, backgroundColor: PALETA }] }, options: { plugins: { title: { display: true, text: 'Pizza' } } } };
-                } else {
-                    cfg = { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
-                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas' } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } } };
-                }
-                window.chartInstances[`q${idx}k${k}`] = new Chart(el.getContext('2d'), cfg);
-            });
+            const total = data.reduce((a, b) => a + b, 0) || 1;
+            const el = document.getElementById(`chart-q-single-${idx}`);
+            if (el) {
+                window.chartInstances[`q${idx}s`] = new Chart(el.getContext('2d'), {
+                    type: 'bar',
+                    data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
+                    options: {
+                        plugins: { legend: { display: false }, title: { display: true, text: 'Respostas por opção (colunas)' } },
+                        scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } }
+                    }
+                });
+            }
+            const det = document.getElementById(`detalhes-q-${idx}`);
+            if (det) {
+                const top = labels
+                    .map((l, i) => ({ l, v: data[i] }))
+                    .sort((a, b) => b.v - a.v)
+                    .slice(0, 3)
+                    .map(x => `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 mr-2 mb-2 text-xs"><b class="text-indigo-300">${x.l}</b>: ${x.v} (${((x.v / total) * 100).toFixed(1)}%)</span>`)
+                    .join('');
+                det.innerHTML = `<p class="text-slate-500 text-[10px] uppercase tracking-widest mb-2">Principais respostas</p>${top || '<p class="text-slate-600 italic">Sem dados ainda.</p>'}`;
+            }
         } else {
             const vals = valsNumericos(respostas, chave);
             const cont = contagem(vals.map(String));
             const labels = Object.keys(cont).sort((a, b) => Number(a) - Number(b));
-            // Rotaciona formatos numéricos: cada pergunta usa 3 tipos distintos
-            const trio = idx % 3 === 0 ? ['bar', 'scatter', 'line']
-                       : idx % 3 === 1 ? ['line', 'bar', 'scatter']
-                       : ['scatter', 'line', 'bar'];
-            const ids = [`chart-q-bar-${idx}`, `chart-q-scatter-${idx}`, `chart-q-line-${idx}`];
-            trio.forEach((tp, k) => {
-                const el = document.getElementById(ids[k]);
-                if (!el) return;
-                let cfg;
-                if (tp === 'scatter') {
-                    cfg = { type: 'scatter', data: { datasets: [{ label: p.label_texto, data: vals.map((v, i) => ({ x: i + 1, y: v })), backgroundColor: '#10b98199' }] },
-                            options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } }, plugins: { title: { display: true, text: 'Dispersão' } } } };
-                } else if (tp === 'line') {
-                    cfg = { type: 'line', data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
-                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Linha (evolução)' } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } } };
-                } else {
-                    cfg = { type: 'bar', data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
-                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas (frequência)' } } } };
-                }
-                window.chartInstances[`qn${idx}k${k}`] = new Chart(el.getContext('2d'), cfg);
-            });
+            const el = document.getElementById(`chart-q-single-${idx}`);
+            if (el) {
+                window.chartInstances[`qn${idx}s`] = new Chart(el.getContext('2d'), {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
+                    options: { plugins: { legend: { display: false }, title: { display: true, text: 'Frequência por valor (colunas)' } } }
+                });
+            }
+            const det = document.getElementById(`detalhes-q-${idx}`);
+            if (det) {
+                const m = media(vals), md = mediana(vals);
+                const min = vals.length ? Math.min(...vals) : '-', max = vals.length ? Math.max(...vals) : '-';
+                det.innerHTML = `
+                    <div class="flex flex-wrap gap-3">
+                        <span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">Média: <b class="text-emerald-300">${m ? m.toFixed(1) : '-'}</b></span>
+                        <span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">Mediana: <b class="text-white">${md ? md.toFixed(1) : '-'}</b></span>
+                        <span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">Mín: <b class="text-amber-300">${min}</b></span>
+                        <span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs">Máx: <b class="text-red-300">${max}</b></span>
+                    </div>`;
+            }
         }
     });
 

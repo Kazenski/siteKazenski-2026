@@ -4,6 +4,23 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.9] — 2026-10-06
+### Escopo
+Dashboard Analítico mais limpo: uma pergunta por linha (ocupa a tela toda), um gráfico por pergunta e um quadro de destaques no lugar dos formatos repetidos (pizza/rosca mostrando o mesmo dado).
+
+### Alterado
+- **Layout das perguntas**: agora uma pergunta por bloco em largura total da tela, com gráfico grande (mín. 360px) + resumo abaixo (Top 3 respostas com %).
+- **Removidos formatos redundantes**: cada pergunta categórica gera apenas Colunas; cada pergunta numérica gera Colunas de frequência + chips de Média/Mediana/Mín/Máx. Antes cada pergunta tinha 3 formatos misturados (colunas+pizza+rosca ou bar+scatter+linha), o que poluía a leitura.
+- **Texto-livre** mantém a lista de respostas (limitado a 12).
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.8] — 2026-10-06
 ### Escopo
 Restauração das perguntas da pesquisa Diagnóstico de Convivência Digital no Firebase e ajuste do tratamento de Sim/Não no formulário.
