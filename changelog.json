@@ -1,8 +1,68 @@
 {
   "geradoEm": "2026-10-06T00:00:00+00:00",
-  "versaoAtual": "1.7.3",
-  "totalEntradas": 18,
+  "versaoAtual": "1.7.4",
+  "totalEntradas": 19,
   "entradas": [
+    {
+      "versao": "1.7.4",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Troca da credencial do Gemini para uma chave de autenticação dedicada: a Gemini API não aceita chaves padrão compartilhadas (erro are blocked mesmo com a API ativada). A chave antiga (Kazenski API 2026) segue intacta para os outros apps.",
+      "arquivos": [
+        "KAZ_IA_SETUP.md",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "Credencial da Kaz IA",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Criada chave de autenticação separada vinculada a conta de serviço (exigência do Google para a Gemini API) e gravada no Secret GEMINI_API_KEY; redeploy da gerarPlanoIA para assumir a nova versão do secret. Nenhum código alterado (configuração + redeploy)."
+                ]
+              ]
+            },
+            {
+              "titulo": "Guia de setup atualizado",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "KAZ_IA_SETUP.md agora documenta o fluxo correto de criação da chave dedicada. Arquivos: KAZ_IA_SETUP.md."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Functions)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.3",
       "data": "2026-10-06",

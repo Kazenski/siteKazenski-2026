@@ -14,12 +14,18 @@ A Kaz IA foi reestruturada para usar **Firebase Cloud Functions**, o que traz:
 
 ## Passo a Passo para Configurar
 
-### 1. Obter uma API Key do Google Gemini
+### 1. Obter uma chave de autenticação do Gemini (dedicada)
 
-1. Acesse: https://aistudio.google.com/app/apikey
-2. Faça login com sua conta Google
-3. Clique em **"Create API Key"**
-4. Copie a chave gerada (começa com `AIza...`)
+A `Gemini API` **não aceita chaves de API padrão compartilhadas**: o Google exige
+uma credencial separada vinculada a uma conta de serviço. Não mexa na sua chave
+atual — crie uma nova:
+
+1. Acesse o Google Cloud Console no **projeto da chave** (ex: `kazenski`)
+2. Vá em **APIs e serviços → Biblioteca**, busque **Gemini API** e clique em **Ativar**
+3. Vá em **APIs e serviços → Credenciais → Criar credenciais → Chave de API**
+4. Conclua a **vinculação a uma conta de serviço** (o console oferece essa opção
+   ao selecionar a Gemini API — use a conta padrão do projeto)
+5. Copie o valor da nova chave (ela é usada **só no servidor**, nunca no navegador)
 
 ### 2. Configurar a Chave no Firebase
 

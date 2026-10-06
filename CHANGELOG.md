@@ -4,6 +4,22 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.4] — 2026-10-06
+### Escopo
+Troca da credencial do Gemini para uma chave de autenticação dedicada: a `Gemini API` não aceita chaves padrão compartilhadas (erro `are blocked` mesmo com a API ativada). A chave antiga (`Kazenski API 2026`) segue intacta para os outros apps.
+
+### Alterado
+- **Credencial da Kaz IA**: criada chave de autenticação separada vinculada a conta de serviço (exigência do Google para a Gemini API) e gravada no Secret `GEMINI_API_KEY`; redeploy da `gerarPlanoIA` para assumir a nova versão do secret. Arquivos: nenhum código alterado (configuração + redeploy).
+- **Guia de setup** atualizado com o fluxo correto de criação da chave dedicada. Arquivos: `KAZ_IA_SETUP.md`.
+
+### Verificado
+- Deploy concluído com sucesso no Firebase (Functions).
+
+### Arquivos tocados
+- KAZ_IA_SETUP.md
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.3] — 2026-10-06
 ### Escopo
 Tratamento do erro `Requests to this API generativelanguage.googleapis.com ... are blocked`: a chave do Gemini não lista a Generative Language API nas "Restrições de API". A correção é adicionar a API à lista, sem tocar nas restrições de sites.
