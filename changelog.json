@@ -1,8 +1,73 @@
 {
   "geradoEm": "2026-10-06T00:00:00+00:00",
-  "versaoAtual": "1.7.1",
-  "totalEntradas": 16,
+  "versaoAtual": "1.7.2",
+  "totalEntradas": 17,
   "entradas": [
+    {
+      "versao": "1.7.2",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Contorno do bloqueio Requests from referer <empty> are blocked sem alterar as restrições da chave do Gemini (compartilhada com outros apps): a Cloud Function agora envia o Referer de um domínio já permitido na chave.",
+      "arquivos": [
+        "functions/index.js",
+        "js/professorTech/professorTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "Chamada ao Gemini bloqueada por restrição de sites, sem mexer nas credenciais",
+              "nivel": "CRÍTICO",
+              "linhas": [
+                [
+                  "p",
+                  "A gerarPlanoIA passou a enviar o cabeçalho Referer: https://kazenski-a1bb2.web.app/ (domínio já presente na lista de sites permitidos da chave), que é o que o Google valida na restrição de sites. Nenhuma alteração foi feita nas restrições da chave, que segue protegendo os outros apps. Arquivos: functions/index.js."
+                ]
+              ]
+            },
+            {
+              "titulo": "Mensagens de erro ajustadas",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Se o bloqueio persistir, o site orienta a conferir se o domínio segue na lista de permitidos, em vez de pedir para remover restrições. Arquivos: functions/index.js, js/professorTech/professorTech.js."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe da functions/index.js validada (node --check)."
+                ],
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Functions + Hosting)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.1",
       "data": "2026-10-06",

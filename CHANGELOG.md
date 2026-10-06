@@ -4,6 +4,24 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.2] — 2026-10-06
+### Escopo
+Contorno do bloqueio `Requests from referer <empty> are blocked` sem alterar as restrições da chave do Gemini (compartilhada com outros apps): a Cloud Function agora envia o `Referer` de um domínio já permitido na chave.
+
+### Corrigido
+- **Chamada ao Gemini bloqueada por restrição de sites, sem mexer nas credenciais**: a `gerarPlanoIA` passou a enviar o cabeçalho `Referer: https://kazenski-a1bb2.web.app/` (domínio já presente na lista de sites permitidos da chave), que é o que o Google valida na restrição de sites. Nenhuma alteração foi feita nas restrições da chave, que segue protegendo os outros apps. Arquivos: `functions/index.js`.
+- Mensagens de erro ajustadas: se o bloqueio persistir, o site orienta a conferir se o domínio segue na lista de permitidos, em vez de pedir para remover restrições. Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`.
+
+### Verificado
+- Sintaxe da `functions/index.js` validada (`node --check`).
+- Deploy concluído com sucesso no Firebase (Functions + Hosting).
+
+### Arquivos tocados
+- functions/index.js
+- js/professorTech/professorTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.1] — 2026-10-06
 ### Escopo
 Correções na Kaz IA após os primeiros testes em produção: crash no `initKazIA` por elemento inexistente, erro `Requests from referer <empty> are blocked` na chamada ao Gemini e suporte a PDFs pesados da BNCC via URL pública do GitHub (sem o limite de 1MB do Firestore).

@@ -5942,7 +5942,7 @@ window.profAPI = {
             } else if (msg.includes('permission-denied')) {
                 msg = 'Sem permissão para usar a Kaz IA. Contate o administrador.';
             } else if (/referer/i.test(msg)) {
-                msg = 'A chave do Gemini está com restrição de site/HTTP e o servidor foi bloqueado. No Google Cloud Console > APIs e serviços > Credenciais > sua chave, coloque "Restrições de aplicativo: Nenhuma" e salve. Depois tente gerar de novo.';
+                msg = 'A chave do Gemini recusou a chamada. Verifique se o domínio https://kazenski-a1bb2.web.app/* está na lista de sites permitidos da chave.';
             } else if (/internal/i.test(msg)) {
                 msg = 'Erro interno do servidor: ' + msg;
             }

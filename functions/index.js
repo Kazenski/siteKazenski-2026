@@ -51,6 +51,12 @@ exports.atualizarRankingVotoDeletado = onDocumentDeleted('votacoes/{votacaoId}/v
 
 const MODELOS_VALIDOS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'];
 
+// A chave do Gemini usada aqui tem restrição de sites (HTTP referrers) porque
+// é compartilhada com outros apps — e NÃO deve ser alterada. Como o domínio
+// abaixo já está na lista de sites permitidos da chave, a Cloud Function envia
+// esse Referer no cabeçalho da chamada server-to-server e o Google aceita.
+const REFERER_PERMITIDO = 'https://kazenski-a1bb2.web.app/';
+
 /**
  * Busca planos existentes da mesma disciplina para contexto
  * Usa query simples + filtro/ordenação em JS para não exigir índice composto.
@@ -651,12 +657,16 @@ exports.gerarPlanoIA = onCall({
 
         partsArray.unshift({ text: prompt });
 
-        // 4. Chama a API do Gemini
+        // 4. Chama a API do Gemini enviando o Referer de um site permitido
+        // (a chave tem restrição de sites e a chamada sai do servidor).
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${geminiApiKey.value()}`;
 
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Referer': REFERER_PERMITIDO
+            },
             body: JSON.stringify({
                 contents: [{ parts: partsArray }],
                 generationConfig: {
@@ -671,10 +681,11 @@ exports.gerarPlanoIA = onCall({
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             const msgApi = errData.error?.message || 'Erro na API do Gemini.';
-            // Erro clássico quando a chave tem restrição de "referenciador HTTP":
-            // a chamada sai do servidor (sem referer) e é bloqueada.
+            // Se mesmo enviando o Referer permitido o Google bloquear, a causa
+            // provável é a chave ter perdido o domínio na lista de sites ou
+            // a cota ter estourado — orienta sem pedir para remover restrições.
             if (/referer/i.test(msgApi)) {
-                throw new HttpsError('internal', 'A chave do Gemini está bloqueada por restrição de referenciador HTTP. No Google Cloud Console > Credenciais > sua chave GEMINI, defina "Restrições de aplicativo" como "Nenhuma" (chamadas server-to-server não enviam referer) e tente de novo. Detalhe: ' + msgApi);
+                throw new HttpsError('internal', 'A chave do Gemini recusou a chamada do servidor. Confira se https://kazenski-a1bb2.web.app/* continua na lista de sites permitidos da chave (Google Cloud Console > Credenciais). Detalhe: ' + msgApi);
             }
             throw new HttpsError('internal', msgApi);
         }
