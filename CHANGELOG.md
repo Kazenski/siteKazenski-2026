@@ -4,6 +4,42 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.1] — 2026-10-06
+### Escopo
+Correções na Kaz IA após os primeiros testes em produção: crash no `initKazIA` por elemento inexistente, erro `Requests from referer <empty> are blocked` na chamada ao Gemini e suporte a PDFs pesados da BNCC via URL pública do GitHub (sem o limite de 1MB do Firestore).
+
+### Corrigido
+
+#### Crash `Cannot read properties of null (reading 'classList')` no `initKazIA`
+A função tentava manipular os elementos `kaz-ia-config-panel` e `kaz-ia-context-display`, que não existem no HTML atual. Agora todos os acessos têm guarda de nulo e a função só exibe a mensagem de aviso quando turma/disciplina não estão selecionadas. Arquivos: `js/professorTech/professorTech.js`.
+
+#### Erro `Requests from referer <empty> are blocked` ao gerar plano
+Esse erro vem da API do Gemini quando a chave tem **restrição de aplicativo por referenciador HTTP**: a chamada sai do servidor (Cloud Function, sem referer) e é bloqueada. A Cloud Function agora detecta esse caso e retorna instrução direta; o frontend exibe mensagem orientando a remover a restrição. **Ação necessária no Google Cloud Console > APIs e serviços > Credenciais > chave do Gemini: definir "Restrições de aplicativo" como "Nenhuma"** (chamadas server-to-server não enviam referer). Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`.
+
+#### Consultas que exigiam índice composto no Firestore
+`listarPlanos`, `listarModelosPlanejamento` e `buscarPlanosExistentes` usavam `where + orderBy` combinados, que falham sem índice composto criado. Agora usam query simples com filtro e ordenação em JS, sem necessidade de criar índices. Arquivos: `functions/index.js`.
+
+#### Campo `conteuido` (typo) nos modelos de planejamento
+Registros antigos foram salvos com o campo `conteuido` em vez de `conteudo`. As funções agora gravam os dois campos e leem com fallback (`conteudo || conteuido`), então modelos antigos continuam abrindo normalmente. Arquivos: `functions/index.js`.
+
+### Adicionado
+- **Fontes da base de conhecimento em 3 tipos**: `pdf` (anexo até 1MB), `url` (link público, ex: PDF no GitHub, sem limite — baixado no servidor na hora de gerar) e `texto` (trecho colado). O modal de Fontes ganhou seletor de tipo com campos condicionais, e a lista mostra ícone e detalhe por tipo. Arquivos: `index.html`, `js/professorTech/professorTech.js`, `functions/index.js`.
+- **Pasta `docs/bncc/`** no repositório com guia de como hospedar os PDFs da BNCC/BNCC Digital no GitHub e cadastrar a URL raw como fonte da IA. Arquivos: `docs/bncc/README.md`, `docs/bncc/.gitkeep`.
+- Mensagem de erro específica para bloqueio por referer no frontend, com passo a passo da correção. Arquivos: `js/professorTech/professorTech.js`.
+
+### Verificado
+- Deploy concluído com sucesso no Firebase (Hosting + Functions, 10 funções atualizadas).
+- `conteudoHtml` não possui mais nenhuma referência no frontend — saída 100% textual.
+
+### Arquivos tocados
+- functions/index.js
+- js/professorTech/professorTech.js
+- index.html
+- docs/bncc/README.md
+- docs/bncc/.gitkeep
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.0] — 2026-10-06
 ### Escopo
 Reestruturação completa da Kaz IA (Gerador de Planos com Inteligência Artificial). A aba foi migrada de uma arquitetura frontend direta para uma arquitetura baseada em Cloud Functions, trazendo segurança, modelos de IA atualizados, saída em formato textual, sistema de modelos de planejamento por escola e histórico inteligente que consulta planos existentes antes de gerar novos.

@@ -53,40 +53,54 @@ const MODELOS_VALIDOS = ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-pro
 
 /**
  * Busca planos existentes da mesma disciplina para contexto
+ * Usa query simples + filtro/ordenação em JS para não exigir índice composto.
  */
 async function buscarPlanosExistentes(db, disciplinaId, turmaId, limit = 5) {
     try {
-        let query = db.collection('planos_aula_ia')
+        if (!disciplinaId) return [];
+        const snap = await db.collection('planos_aula_ia')
             .where('disciplinaId', '==', disciplinaId)
-            .orderBy('dataCriacao', 'desc')
-            .limit(limit);
-
-        if (turmaId) {
-            query = db.collection('planos_aula_ia')
-                .where('disciplinaId', '==', disciplinaId)
-                .where('turmaId', '==', turmaId)
-                .orderBy('dataCriacao', 'desc')
-                .limit(limit);
-        }
-
-        const snap = await query.get();
+            .limit(50)
+            .get();
         const planos = [];
         snap.forEach(doc => {
             const data = doc.data();
+            if (turmaId && data.turmaId && data.turmaId !== turmaId) return;
             planos.push({
                 id: doc.id,
                 titulo: data.titulo,
                 tipoPlano: data.tipoPlano,
                 assuntoBase: data.assuntoBase,
                 conteudo: data.conteudoTextual || data.conteudoHtml,
-                dataCriacao: data.dataCriacao?.toDate?.()?.toISOString() || null
+                dataCriacao: data.dataCriacao?.toDate?.()?.toISOString() || null,
+                _ts: data.dataCriacao?.toMillis?.() || 0
             });
         });
-        return planos;
+        planos.sort((a, b) => b._ts - a._ts);
+        return planos.slice(0, limit).map(({ _ts, ...resto }) => resto);
     } catch (e) {
         console.warn('Erro ao buscar planos existentes:', e);
         return [];
     }
+}
+
+/**
+ * Baixa um documento remoto (ex: raw do GitHub) e devolve como texto ou base64.
+ * Limita o tamanho para não estourar o payload do Gemini (máx ~4MB por parte).
+ */
+async function buscarFonteRemota(url, maxBytes = 4 * 1024 * 1024) {
+    const resp = await fetch(url, {
+        headers: { 'User-Agent': 'KazIA/1.0 (+firebase-functions)' }
+    });
+    if (!resp.ok) {
+        throw new Error(`Falha ao baixar ${url}: HTTP ${resp.status}`);
+    }
+    const buf = Buffer.from(await resp.arrayBuffer());
+    if (buf.length > maxBytes) {
+        throw new Error(`Documento remoto excede o limite (${Math.round(buf.length / 1024 / 1024)}MB > ${Math.round(maxBytes / 1024 / 1024)}MB): ${url}`);
+    }
+    const contentType = (resp.headers.get('content-type') || '').toLowerCase();
+    return { buf, contentType };
 }
 
 /**
@@ -252,29 +266,21 @@ exports.listarPlanos = onCall({
     const db = getFirestore();
 
     try {
-        let query = db.collection('planos_aula_ia')
+        // Query simples (sem orderBy composto) + filtro/ordenação em JS
+        // para não exigir índice composto no Firestore.
+        const snap = await db.collection('planos_aula_ia')
             .where('professorUid', '==', request.auth.uid)
-            .orderBy('dataCriacao', 'desc')
-            .limit(50);
-
-        // Aplica filtros adicionais se fornecidos
-        if (escolaId) {
-            query = db.collection('planos_aula_ia')
-                .where('professorUid', '==', request.auth.uid)
-                .where('escolaId', '==', escolaId)
-                .orderBy('dataCriacao', 'desc')
-                .limit(50);
-        }
-
-        const snap = await query.get();
+            .limit(100)
+            .get();
         const planos = [];
 
         snap.forEach(doc => {
             const data = doc.data();
-            // Filtra por turma, disciplina e trimestre no cliente (para evitar índices compostos)
+            // Filtra por escola, turma, disciplina e trimestre no servidor (JS)
+            if (escolaId && data.escolaId !== escolaId) return;
             if (turmaId && data.turmaId !== turmaId) return;
             if (disciplinaId && data.disciplinaId !== disciplinaId) return;
-            if (trimestre && data.trimestre !== trimestre) return;
+            if (trimestre && String(data.trimestre) !== String(trimestre)) return;
 
             planos.push({
                 id: doc.id,
@@ -284,15 +290,19 @@ exports.listarPlanos = onCall({
                 turmaNome: data.turmaNome,
                 escolaNome: data.escolaNome,
                 trimestre: data.trimestre,
+                _ts: data.dataCriacao?.toMillis?.() || 0,
                 dataCriacao: data.dataCriacao?.toDate?.()?.toISOString() || null,
-                conteudoPreview: (data.conteudoTextual || '').substring(0, 200)
+                conteudoPreview: (data.conteudoTextual || data.conteudoHtml || '').substring(0, 200)
             });
         });
 
+        planos.sort((a, b) => b._ts - a._ts);
+        const top = planos.slice(0, 50).map(({ _ts, ...resto }) => resto);
+
         return {
             sucesso: true,
-            planos: planos,
-            total: planos.length
+            planos: top,
+            total: top.length
         };
 
     } catch (error) {
@@ -427,7 +437,8 @@ exports.salvarModeloPlanejamento = onCall({
             escolaId,
             escolaNome,
             nomeModelo,
-            conteuido: conteudo,
+            conteudo: conteudo,
+            conteuido: conteudo, // compat: registros antigos usavam esse campo
             professorUid: request.auth.uid,
             dataCriacao: FieldValue.serverTimestamp(),
             atualizadoEm: FieldValue.serverTimestamp()
@@ -463,37 +474,33 @@ exports.listarModelosPlanejamento = onCall({
     const db = getFirestore();
 
     try {
-        let query = db.collection('modelos_planejamento')
+        // Query simples + filtro/ordenação em JS (sem índice composto).
+        const snap = await db.collection('modelos_planejamento')
             .where('professorUid', '==', request.auth.uid)
-            .orderBy('dataCriacao', 'desc')
-            .limit(20);
-
-        if (escolaId) {
-            query = db.collection('modelos_planejamento')
-                .where('professorUid', '==', request.auth.uid)
-                .where('escolaId', '==', escolaId)
-                .orderBy('dataCriacao', 'desc')
-                .limit(20);
-        }
-
-        const snap = await query.get();
+            .limit(50)
+            .get();
         const modelos = [];
 
         snap.forEach(doc => {
             const data = doc.data();
+            if (escolaId && data.escolaId !== escolaId) return;
             modelos.push({
                 id: doc.id,
                 escolaNome: data.escolaNome,
                 nomeModelo: data.nomeModelo,
-                conteudoPreview: (data.conteuido || '').substring(0, 200),
+                conteudoPreview: (data.conteudo || data.conteuido || '').substring(0, 200),
+                _ts: data.dataCriacao?.toMillis?.() || 0,
                 dataCriacao: data.dataCriacao?.toDate?.()?.toISOString() || null
             });
         });
 
+        modelos.sort((a, b) => b._ts - a._ts);
+        const top = modelos.slice(0, 20).map(({ _ts, ...resto }) => resto);
+
         return {
             sucesso: true,
-            modelos: modelos,
-            total: modelos.length
+            modelos: top,
+            total: top.length
         };
 
     } catch (error) {
@@ -540,7 +547,7 @@ exports.buscarModeloPlanejamento = onCall({
                 id: docSnap.id,
                 escolaNome: data.escolaNome,
                 nomeModelo: data.nomeModelo,
-                conteudo: data.conteuido,
+                conteudo: data.conteudo || data.conteuido,
                 dataCriacao: data.dataCriacao?.toDate?.()?.toISOString() || null
             }
         };
@@ -578,14 +585,21 @@ exports.gerarPlanoIA = onCall({
     const db = getFirestore();
 
     try {
-        // 1. Busca os PDFs da base pedagógica
-        const fontesSnap = await db.collection('base_pedagogica').where('tipo', '==', 'pdf').get();
+        // 1. Busca as fontes da base pedagógica (pdf | texto | url)
+        //    - pdf: base64 salvo no Firestore (limite 1MB por doc)
+        //    - texto: conteúdo colado direto no Firestore (sem limite prático)
+        //    - url: link público (ex: raw do GitHub) baixado aqui no servidor,
+        //      então o PDF pode ter qualquer tamanho no GitHub — só o trecho
+        //      baixado precisa respeitar o limite de ~4MB por fonte.
+        const fontesSnap = await db.collection('base_pedagogica').limit(50).get();
         const fontes = [];
         const partsArray = [];
 
-        fontesSnap.forEach(docSnap => {
+        for (const docSnap of fontesSnap.docs) {
             const data = docSnap.data();
-            if (data.base64) {
+            const tipoFonte = data.tipo || 'pdf';
+
+            if (tipoFonte === 'pdf' && data.base64) {
                 fontes.push({ titulo: data.titulo });
                 partsArray.push({
                     inlineData: {
@@ -596,8 +610,27 @@ exports.gerarPlanoIA = onCall({
                 partsArray.push({
                     text: `O documento PDF anexado acima refere-se a: ${data.titulo}. Use como base para o planejamento.`
                 });
+            } else if (tipoFonte === 'texto' && data.conteudo) {
+                fontes.push({ titulo: data.titulo });
+                partsArray.push({
+                    text: `DOCUMENTO DE REFERÊNCIA "${data.titulo}" (texto integral):\n\n${String(data.conteudo).substring(0, 60000)}`
+                });
+            } else if (tipoFonte === 'url' && data.url) {
+                try {
+                    const { buf, contentType } = await buscarFonteRemota(data.url);
+                    fontes.push({ titulo: data.titulo });
+                    const isPdf = data.url.toLowerCase().includes('.pdf') || contentType.includes('pdf');
+                    if (isPdf) {
+                        partsArray.push({ inlineData: { mimeType: 'application/pdf', data: buf.toString('base64') } });
+                        partsArray.push({ text: `O documento PDF anexado acima (via URL ${data.url}) refere-se a: ${data.titulo}. Use como base para o planejamento.` });
+                    } else {
+                        partsArray.push({ text: `DOCUMENTO DE REFERÊNCIA "${data.titulo}" (baixado de ${data.url}):\n\n${buf.toString('utf-8').substring(0, 60000)}` });
+                    }
+                } catch (eUrl) {
+                    console.warn(`Fonte URL ignorada (${data.titulo}):`, eUrl.message);
+                }
             }
-        });
+        }
 
         // 2. Busca planos existentes da mesma disciplina
         const planosExistentes = await buscarPlanosExistentes(db, disciplinaId, turmaId, 5);
@@ -637,7 +670,13 @@ exports.gerarPlanoIA = onCall({
 
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
-            throw new HttpsError('internal', errData.error?.message || 'Erro na API do Gemini.');
+            const msgApi = errData.error?.message || 'Erro na API do Gemini.';
+            // Erro clássico quando a chave tem restrição de "referenciador HTTP":
+            // a chamada sai do servidor (sem referer) e é bloqueada.
+            if (/referer/i.test(msgApi)) {
+                throw new HttpsError('internal', 'A chave do Gemini está bloqueada por restrição de referenciador HTTP. No Google Cloud Console > Credenciais > sua chave GEMINI, defina "Restrições de aplicativo" como "Nenhuma" (chamadas server-to-server não enviam referer) e tente de novo. Detalhe: ' + msgApi);
+            }
+            throw new HttpsError('internal', msgApi);
         }
 
         const data = await response.json();

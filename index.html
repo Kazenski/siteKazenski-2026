@@ -4871,7 +4871,20 @@
                             placeholder="Título (Ex: BNCC Ensino Médio - Tecnologia)"
                             class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-lg p-3 outline-none focus:border-indigo-500">
 
-                        <div class="flex items-center gap-4 bg-slate-900 border border-slate-600 p-4 rounded-lg">
+                        <div>
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 pl-1">Tipo
+                                de Fonte</label>
+                            <select id="kaz-ia-source-tipo" onchange="window.profAPI.toggleKazIaSourceTipo()"
+                                class="w-full bg-slate-900 border border-slate-600 text-white text-sm font-bold rounded-lg p-3 outline-none focus:border-indigo-500">
+                                <option value="pdf">PDF anexado (máx 1MB no banco)</option>
+                                <option value="url">Link público (ex: PDF no GitHub — sem limite)</option>
+                                <option value="texto">Texto colado (trecho da BNCC)</option>
+                            </select>
+                            <p class="text-[9px] text-slate-500 mt-1 pl-1">Para PDFs pesados, suba no GitHub (pasta docs/bncc) e cadastre aqui a URL raw.</p>
+                        </div>
+
+                        <div id="kaz-ia-source-pdf-wrap" class="flex items-center gap-4 bg-slate-900 border border-slate-600 p-4 rounded-lg">
                             <i class="fas fa-file-pdf text-3xl text-red-500"></i>
                             <div class="flex-grow">
                                 <label
@@ -4882,12 +4895,31 @@
                             </div>
                         </div>
 
+                        <div id="kaz-ia-source-url-wrap" class="hidden flex-col gap-2 bg-slate-900 border border-slate-600 p-4 rounded-lg">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">URL pública
+                                do documento *</label>
+                            <input type="url" id="kaz-ia-source-url"
+                                placeholder="https://raw.githubusercontent.com/seu-usuario/seu-repo/main/docs/bncc/BNCC.pdf"
+                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500">
+                            <p class="text-[9px] text-slate-500">Use a URL raw (raw.githubusercontent.com). A IA baixa o arquivo no servidor na hora de gerar o plano.</p>
+                        </div>
+
+                        <div id="kaz-ia-source-texto-wrap" class="hidden flex-col gap-2 bg-slate-900 border border-slate-600 p-4 rounded-lg">
+                            <label
+                                class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Texto de
+                                referência *</label>
+                            <textarea id="kaz-ia-source-texto" rows="5"
+                                class="w-full bg-slate-800 border border-slate-600 text-white text-sm rounded-lg p-3 outline-none focus:border-indigo-500 custom-scroll"
+                                placeholder="Cole aqui o trecho da BNCC / BNCC Digital que a IA deve usar..."></textarea>
+                        </div>
+
                         <div class="flex justify-end gap-3 mt-2">
                             <button onclick="window.profAPI.resetKazIaSourceForm()"
                                 class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-lg transition-colors">Cancelar</button>
                             <button id="btn-save-rag" onclick="window.profAPI.saveKazIaSource()"
                                 class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-2.5 rounded-lg shadow-lg transition-colors"><i
-                                    class="fas fa-save mr-2"></i> Salvar Base em PDF</button>
+                                    class="fas fa-save mr-2"></i> Salvar Fonte</button>
                         </div>
                     </div>
 

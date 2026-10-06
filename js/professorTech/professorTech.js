@@ -5544,21 +5544,20 @@ window.profAPI = {
         const { school, classId, disciplineId, quarter } = state.filters;
         
         const msgEl = document.getElementById('kaz-ia-msg');
-        const panelEl = document.getElementById('kaz-ia-config-panel');
         const contextDisplay = document.getElementById('kaz-ia-context-display');
 
         if (!classId || !disciplineId) {
-            msgEl.classList.remove('hidden');
-            panelEl.classList.add('opacity-50', 'pointer-events-none');
+            if (msgEl) msgEl.classList.remove('hidden');
             return;
         }
 
-        msgEl.classList.add('hidden');
-        panelEl.classList.remove('opacity-50', 'pointer-events-none');
+        if (msgEl) msgEl.classList.add('hidden');
 
         const discName = state.cache.disciplinesMap.get(disciplineId) || disciplineId;
         const className = document.getElementById('prof-filter-class').options[document.getElementById('prof-filter-class').selectedIndex]?.text || classId;
-        contextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
+        if (contextDisplay) {
+            contextDisplay.innerHTML = `Planejando para: <b class="text-white">${className}</b> | <b class="text-white">${discName}</b> | ${quarter}º Trimestre`;
+        }
 
         // Sincroniza o trimestre com o filtro global
         const trimestreSelect = document.getElementById('kaz-ia-trimestre');
@@ -5718,11 +5717,18 @@ window.profAPI = {
                 const f = docSnap.data();
                 window.profAPI.cacheSourcesKazIa.push({ id: docSnap.id, ...f });
 
+                const tipoF = f.tipo || 'pdf';
+                const icone = tipoF === 'url' ? '<i class="fas fa-link text-sky-400"></i>' : tipoF === 'texto' ? '<i class="fas fa-align-left text-emerald-400"></i>' : '<i class="fas fa-file-pdf text-red-500"></i>';
+                const detalhe = tipoF === 'url' ? (f.url || '') : tipoF === 'texto' ? 'texto colado' : 'PDF anexado';
+
                 listEl.insertAdjacentHTML('beforeend', `
                     <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg flex justify-between items-center group transition-colors hover:border-indigo-500/50">
                         <div class="flex items-center gap-3 overflow-hidden">
-                            <i class="fas fa-file-pdf text-red-500"></i>
-                            <span class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo)}">${escapeHTML(f.titulo)}</span>
+                            ${icone}
+                            <div class="overflow-hidden">
+                                <div class="text-xs font-bold text-slate-300 truncate" title="${escapeHTML(f.titulo || '')}">${escapeHTML(f.titulo || 'Sem título')}</div>
+                                <div class="text-[10px] text-slate-500 truncate">${escapeHTML(detalhe)}</div>
+                            </div>
                         </div>
                         <div class="flex gap-2 shrink-0">
                             <button type="button" onclick="window.profAPI.editKazIaSource('${docSnap.id}')" class="text-blue-400 hover:text-white p-1 transition-colors"><i class="fas fa-edit"></i></button>
@@ -5744,7 +5750,25 @@ window.profAPI = {
     resetKazIaSourceForm: () => {
         document.getElementById('kaz-ia-source-id').value = '';
         document.getElementById('kaz-ia-source-title').value = '';
-        document.getElementById('kaz-ia-source-pdf').value = '';
+        const pdf = document.getElementById('kaz-ia-source-pdf');
+        if (pdf) pdf.value = '';
+        const url = document.getElementById('kaz-ia-source-url');
+        if (url) url.value = '';
+        const txt = document.getElementById('kaz-ia-source-texto');
+        if (txt) txt.value = '';
+        const tipo = document.getElementById('kaz-ia-source-tipo');
+        if (tipo) tipo.value = 'pdf';
+        window.profAPI.toggleKazIaSourceTipo();
+    },
+
+    toggleKazIaSourceTipo: () => {
+        const tipo = document.getElementById('kaz-ia-source-tipo')?.value || 'pdf';
+        const pdfW = document.getElementById('kaz-ia-source-pdf-wrap');
+        const urlW = document.getElementById('kaz-ia-source-url-wrap');
+        const txtW = document.getElementById('kaz-ia-source-texto-wrap');
+        if (pdfW) pdfW.classList.toggle('hidden', tipo !== 'pdf');
+        if (urlW) { urlW.classList.toggle('hidden', tipo !== 'url'); urlW.classList.toggle('flex', tipo === 'url'); }
+        if (txtW) { txtW.classList.toggle('hidden', tipo !== 'texto'); txtW.classList.toggle('flex', tipo === 'texto'); }
     },
 
     editKazIaSource: (id) => {
@@ -5752,41 +5776,54 @@ window.profAPI = {
         if(!source) return;
 
         document.getElementById('kaz-ia-source-id').value = source.id;
-        document.getElementById('kaz-ia-source-title').value = source.titulo;
+        document.getElementById('kaz-ia-source-title').value = source.titulo || '';
+        const tipoSel = document.getElementById('kaz-ia-source-tipo');
+        if (tipoSel) tipoSel.value = source.tipo || 'pdf';
+        const urlInput = document.getElementById('kaz-ia-source-url');
+        if (urlInput) urlInput.value = source.url || '';
+        const txtInput = document.getElementById('kaz-ia-source-texto');
+        if (txtInput) txtInput.value = source.conteudo || '';
+        window.profAPI.toggleKazIaSourceTipo();
         document.getElementById('kaz-ia-source-title').focus();
     },
 
     saveKazIaSource: async () => {
         const id = document.getElementById('kaz-ia-source-id').value;
         const titulo = document.getElementById('kaz-ia-source-title').value.trim();
+        const tipo = document.getElementById('kaz-ia-source-tipo')?.value || 'pdf';
         const fileInput = document.getElementById('kaz-ia-source-pdf');
+        const urlVal = document.getElementById('kaz-ia-source-url')?.value.trim() || '';
+        const textoVal = document.getElementById('kaz-ia-source-texto')?.value.trim() || '';
         
         if(!titulo) return alert("Preencha o título da fonte.");
-        
-        // Se for um novo documento, o PDF é obrigatório
-        if(!id && (!fileInput.files || fileInput.files.length === 0)) {
-            return alert("Por favor, anexe o arquivo PDF da base.");
+        if(tipo === 'url' && !urlVal) return alert("Cole a URL pública do documento (ex: raw do GitHub).");
+        if(tipo === 'texto' && !textoVal) return alert("Cole o texto de referência.");
+        if(tipo === 'pdf' && !id && (!fileInput.files || fileInput.files.length === 0)) {
+            return alert("Anexe o PDF ou troque o tipo para 'Link público' ou 'Texto colado'.");
         }
 
         const btn = document.getElementById('btn-save-rag');
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Convertendo e Salvando...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
         btn.disabled = true;
 
         try {
             const payload = {
                 titulo, 
-                tipo: 'pdf',
+                tipo,
                 atualizadoPor: auth.currentUser.uid,
                 dataAtualizacao: serverTimestamp()
             };
 
+            if (tipo === 'url') payload.url = urlVal;
+            if (tipo === 'texto') payload.conteudo = textoVal;
+
             // Se o professor selecionou um arquivo, processa o Base64
-            if (fileInput.files && fileInput.files.length > 0) {
+            if (tipo === 'pdf' && fileInput.files && fileInput.files.length > 0) {
                 const file = fileInput.files[0];
                 
                 // Trava de segurança: Firestore não aceita docs > 1MB
                 if (file.size > 1048576) {
-                    throw new Error("O PDF excedeu o limite de 1MB do banco de dados. Extraia apenas as páginas da sua disciplina e tente novamente.");
+                    throw new Error("O PDF excedeu o limite de 1MB do banco de dados. Suba o arquivo no GitHub (docs/bncc) e cadastre como 'Link público' em vez de anexo.");
                 }
                 
                 const base64Data = await new Promise((resolve, reject) => {
@@ -5809,17 +5846,17 @@ window.profAPI = {
             
             window.profAPI.resetKazIaSourceForm();
             window.profAPI.openKazIaSources(); 
-            alert("Base Pedagógica salva com sucesso!");
+            alert("Fonte salva com sucesso!");
         } catch (e) {
             alert("Erro: " + e.message);
         } finally {
-            btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Base em PDF';
+            btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Fonte';
             btn.disabled = false;
         }
     },
 
     deleteKazIaSource: async (id) => {
-        if(!confirm("Remover esta fonte em PDF da base de conhecimento da IA?")) return;
+        if(!confirm("Remover esta fonte da base de conhecimento da IA?")) return;
         try {
             await deleteDoc(doc(db, "base_pedagogica", id));
             window.profAPI.openKazIaSources(); 
@@ -5904,6 +5941,10 @@ window.profAPI = {
                 msg = 'Dados inválidos. Verifique se todos os campos estão preenchidos.';
             } else if (msg.includes('permission-denied')) {
                 msg = 'Sem permissão para usar a Kaz IA. Contate o administrador.';
+            } else if (/referer/i.test(msg)) {
+                msg = 'A chave do Gemini está com restrição de site/HTTP e o servidor foi bloqueado. No Google Cloud Console > APIs e serviços > Credenciais > sua chave, coloque "Restrições de aplicativo: Nenhuma" e salve. Depois tente gerar de novo.';
+            } else if (/internal/i.test(msg)) {
+                msg = 'Erro interno do servidor: ' + msg;
             }
             
             alert("Falha na geração: " + msg);
