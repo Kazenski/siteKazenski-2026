@@ -4,6 +4,22 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.8.1] — 2026-10-06
+### Escopo
+Ajuste de proporção: gráficos voltaram a dois por linha (largura de painel compartilhada), como na referência do Convivência Digital, em vez de ocupar a tela inteira.
+
+### Alterado
+- **Visão Geral**: perguntas voltaram a `grid lg:grid-cols-2` com `min-h` de 320px por gráfico e padding de 32px, mantendo um gráfico por pergunta + quadro de destaques.
+- **Análises Cruzadas**: cruzamentos agora em `grid lg:grid-cols-2` com `min-h` de 320px.
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.8.0] — 2026-10-06
 ### Escopo
 Dashboard mais analítico: variedade real de tipos de gráfico por pergunta e nova seção "Análises Cruzadas" cruzando perguntas do mesmo formulário.

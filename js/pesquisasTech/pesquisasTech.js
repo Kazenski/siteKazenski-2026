@@ -976,16 +976,16 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
     if (perguntas.length === 0) {
         html += '<p class="text-slate-500 italic p-6 bg-slate-900 rounded-xl border border-slate-700">Esta pesquisa ainda não possui perguntas cadastradas.</p>';
     } else {
-        html += '<div class="grid grid-cols-1 gap-12">';
+        html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">';
         perguntas.forEach((p, idx) => {
             const t = tipoPergunta(p);
             html += `
-                <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col">
+                <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-3xl shadow-xl w-full flex flex-col">
                     <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4"><i class="fas fa-chart-bar mr-2"></i> ${p.label_texto}</h4>
                     ${t === 'text'
                     ? `<div id="lista-respostas-${idx}" class="text-sm text-slate-300 space-y-3 max-h-64 overflow-y-auto custom-scroll"></div>`
                     : `<div class="flex flex-col gap-6">
-                          <div class="relative min-h-[360px]"><canvas id="chart-q-single-${idx}"></canvas></div>
+                          <div class="relative min-h-[320px]"><canvas id="chart-q-single-${idx}"></canvas></div>
                           <div id="detalhes-q-${idx}"></div>
                        </div>`}
                 </div>`;
@@ -1140,13 +1140,14 @@ function renderAnalisesCruzadas(respostas, perguntas) {
         return;
     }
 
+    html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-12">';
     pares.forEach(([pa, pb], i) => {
         html += `
-            <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col mb-10">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-3xl shadow-xl w-full flex flex-col mb-12">
                 <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4">
                     <i class="fas fa-layer-group mr-2"></i> ${pa.label_texto} × ${pb.label_texto}
                 </h4>
-                <div class="relative min-h-[360px]"><canvas id="chart-cruz-${i}"></canvas></div>
+                <div class="relative min-h-[320px]"><canvas id="chart-cruz-${i}"></canvas></div>
             </div>`;
     });
 
@@ -1155,13 +1156,14 @@ function renderAnalisesCruzadas(respostas, perguntas) {
         const paNum = nums[0];
         const pc = cat[Math.min(1, cat.length - 1)];
         html += `
-            <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col mb-10">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-3xl shadow-xl w-full flex flex-col mb-12">
                 <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4">
                     <i class="fas fa-layer-group mr-2"></i> Média de "${paNum.label_texto}" por "${pc.label_texto}"
                 </h4>
-                <div class="relative min-h-[360px]"><canvas id="chart-cruz-media"></canvas></div>
+                <div class="relative min-h-[320px]"><canvas id="chart-cruz-media"></canvas></div>
             </div>`;
     }
+    html += '</div>';
 
     container.innerHTML = html;
 

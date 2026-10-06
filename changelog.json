@@ -1,8 +1,67 @@
 {
-  "geradoEm": "2026-10-06T20:01:14+00:00",
-  "versaoAtual": "1.8.0",
-  "totalEntradas": 25,
+  "geradoEm": "2026-10-06T20:07:06+00:00",
+  "versaoAtual": "1.8.1",
+  "totalEntradas": 26,
   "entradas": [
+    {
+      "versao": "1.8.1",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Ajuste de proporção: gráficos voltaram a dois por linha (largura de painel compartilhada), como na referência do Convivência Digital, em vez de ocupar a tela inteira.",
+      "arquivos": [
+        "js/pesquisasTech/pesquisasTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Visão Geral**: perguntas voltaram a `grid lg:grid-cols-2` com `min-h` de 320px por gráfico e padding de 32px, mantendo um gráfico por pergunta + quadro de destaques."
+                ],
+                [
+                  "li",
+                  "**Análises Cruzadas**: cruzamentos agora em `grid lg:grid-cols-2` com `min-h` de 320px."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.8.0",
       "data": "2026-10-06",
