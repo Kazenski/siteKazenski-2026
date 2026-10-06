@@ -4,6 +4,29 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.7] — 2026-10-06
+### Escopo
+Refino do módulo Pesquisas Tech: remoção das abas Cruzamentos/Estatísticas, editor de colégios no Gestão, gráficos com mais variedade de tipos e espaçamentos mais amplos entre os blocos.
+
+### Adicionado
+- **Editor de Colégios no Gestão**: card "Instituições (Opções do Seletor)" com adicionar/renomear/excluir (excluir só Admin). O seletor de instituição do formulário público usa essa coleção; antes não havia UI para editar.
+- **Rotação de formatos de gráfico**: cada pergunta categórica usa um trio diferente entre Colunas, Barras Horizontais, Pizza, Rosca e Área Polar (varia por índice da pergunta); cada pergunta numérica rotaciona entre Colunas, Dispersão e Linha. Assim toda pesquisa tem, no conjunto, múltiplos tipos de gráfico.
+
+### Alterado
+- **Dashboard analítico**: removidas as abas "Cruzamentos" e "Estatísticas"; apenas "Visão Geral" permanece.
+- **Espaçamentos mais organizados**: cards de KPI com padding maior, gaps entre cartões de gráficos de 40→56, padding interno dos cartões de pergunta de 8→10, barra de filtros com mais respiro.
+
+### Corrigido
+- Quando não há respostas numéricas/categóricas, as mensagens vazias são centradas e legíveis (já garantido pelo layout anterior, agora com mais espaçamento).
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js` e `js/pesquisasTech/seedPesquisas.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.6] — 2026-10-06
 ### Escopo
 Reformulação do módulo "Pesquisas Tech": pesquisas agora abertas para o público geral responder (sem login), catálogo oficial com as 5 novas pesquisas, gestão limitada a Admin/Moderador (exclusão só Admin), mais variedade de gráficos e correção dos cruzamentos.

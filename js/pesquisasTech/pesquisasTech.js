@@ -75,6 +75,17 @@ export async function renderPesquisasTechTab() {
                 ${isGestor ? `
                 <div id="crud-pesquisas" class="hidden flex-col gap-6 fade-in">
 
+                    <!-- INSTITUIÇÕES / SELETOR DE COLÉGIO -->
+                    <div class="bg-slate-800 p-8 rounded-2xl border-l-4 border-teal-500 shadow-xl shrink-0 mt-4">
+                        <h3 class="text-teal-400 font-cinzel font-bold text-xl mb-2"><i class="fas fa-school mr-2"></i> Instituições (Opções do Seletor)</h3>
+                        <p class="text-slate-400 text-xs mb-5">Aqui você cadastra as opções que aparecem no seletor de instituição das respostas. Vale para todas as pesquisas.</p>
+                        <form id="form-colegio-crud" class="flex flex-col md:flex-row gap-3 mb-6">
+                            <input type="text" id="novo-colegio-nome" required placeholder="Nome da instituição (ex: Colégio Kazenski Matriz)" class="flex-grow bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-teal-500 outline-none">
+                            <button type="submit" class="px-8 py-3 bg-teal-600 hover:bg-teal-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Adicionar</button>
+                        </form>
+                        <div id="lista-colegios-crud" class="space-y-3 max-h-64 overflow-y-auto custom-scroll pr-2"></div>
+                    </div>
+
                     <!-- IMPORTAR CATÁLOGO OFICIAL (criado apenas via IA/local) -->
                     <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-sky-500 shadow-xl shrink-0">
                         <h3 class="text-sky-400 font-cinzel font-bold text-xl mb-2"><i class="fas fa-layer-group mr-2"></i> Catálogo Oficial de Pesquisas</h3>
@@ -157,6 +168,8 @@ export async function renderPesquisasTechTab() {
         document.getElementById('form-pesquisa-crud').addEventListener('submit', salvarPesquisaFirebase);
         window.canDeletePesquisa = canDelete;
         document.getElementById('btn-migrar-supabase').addEventListener('click', executarMigracao);
+        document.getElementById('form-colegio-crud').addEventListener('submit', salvarColegioCrud);
+        carregarListaColegiosCrud();
         document.getElementById('btn-importar-catalogo').addEventListener('click', async () => {
             const log = document.getElementById('log-importacao');
             log.classList.remove('hidden');
@@ -521,6 +534,62 @@ window.excluirPergunta = async function (pesquisaId, perguntaId) {
 };
 
 // =========================================================
+// CRUD DE COLÉGIOS (opções do seletor da instituição)
+// =========================================================
+async function carregarListaColegiosCrud() {
+    const cont = document.getElementById('lista-colegios-crud');
+    if (!cont) return;
+    try {
+        const snap = await getDocs(query(collection(db, COL_COLEGIOS), orderBy('nome', 'asc')));
+        cont.innerHTML = '';
+        if (snap.empty) { cont.innerHTML = '<p class="text-slate-500 italic text-sm">Nenhuma instituição cadastrada.</p>'; return; }
+        snap.docs.forEach(d => {
+            const c = d.data();
+            const btnExcluir = window.userRoles?.Admin
+                ? `<button onclick="window.excluirColegio('${d.id}')" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash"></i></button>` : '';
+            const btnEditar = `<button onclick="window.editarColegio('${d.id}','${(c.nome || '').replace(/'/g, "\\'")}')" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors" title="Renomear"><i class="fas fa-pen"></i></button>`;
+            cont.innerHTML += `
+                <div class="flex items-center justify-between bg-slate-900 p-4 rounded-xl border border-slate-700">
+                    <span class="text-white font-bold"><i class="fas fa-school text-teal-500 mr-2"></i>${c.nome || ''}</span>
+                    <div class="flex gap-2">${btnEditar}${btnExcluir}</div>
+                </div>`;
+        });
+    } catch (e) {
+        console.error(e);
+        cont.innerHTML = '<p class="text-red-400 text-sm">Erro ao carregar instituições.</p>';
+    }
+}
+
+async function salvarColegioCrud(e) {
+    e.preventDefault();
+    const nome = document.getElementById('novo-colegio-nome').value.trim();
+    if (!nome) return;
+    try {
+        await addDoc(collection(db, COL_COLEGIOS), { nome });
+        document.getElementById('novo-colegio-nome').value = '';
+        await carregarListaColegiosCrud();
+    } catch (e) { console.error(e); alert('Erro ao cadastrar instituição.'); }
+}
+
+window.excluirColegio = async function (id) {
+    if (!(window.userRoles?.Admin)) { alert('Apenas Admin pode excluir.'); return; }
+    if (!confirm('Excluir esta instituição? Respostas antigas continuam registradas.')) return;
+    try {
+        await deleteDoc(doc(db, COL_COLEGIOS, id));
+        await carregarListaColegiosCrud();
+    } catch (e) { console.error(e); alert('Erro ao excluir.'); }
+};
+
+window.editarColegio = async function (id, nomeAtual) {
+    const novoNome = prompt('Novo nome da instituição:', nomeAtual);
+    if (!novoNome || !novoNome.trim()) return;
+    try {
+        await updateDoc(doc(db, COL_COLEGIOS, id), { nome: novoNome.trim() });
+        await carregarListaColegiosCrud();
+    } catch (e) { console.error(e); alert('Erro ao renomear.'); }
+};
+
+// =========================================================
 // MIGRAÇÃO SUPABASE -> FIREBASE
 // =========================================================
 async function executarMigracao() {
@@ -806,15 +875,13 @@ async function abrirDashboardPesquisa(pesquisaId) {
 
         content.innerHTML = `
             <!-- FILTRO POR COLÉGIO -->
-            <div class="bg-slate-800/60 border border-slate-700 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="bg-slate-800/60 border border-slate-700 p-6 rounded-2xl flex flex-col md:flex-row gap-5 items-center justify-between mb-6">
                 <span class="text-slate-400 text-xs font-bold uppercase tracking-widest"><i class="fas fa-filter mr-2 text-indigo-400"></i>Filtros</span>
                 <select id="dash-filtro-colegio" class="bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-sm outline-none focus:border-indigo-500">
                     <option value="">Todos os colégios</option>
                 </select>
-                <div class="flex gap-2 flex-wrap" id="dash-tabs">
+                <div class="flex gap-2 flex-wrap items-center" id="dash-tabs">
                     <button data-tab="visao" class="dash-tab px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest bg-indigo-600 text-white">Visão Geral</button>
-                    <button data-tab="cruzamento" class="dash-tab px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 border border-slate-700">Cruzamentos</button>
-                    <button data-tab="estatisticas" class="dash-tab px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest bg-slate-800 text-slate-400 border border-slate-700">Estatísticas</button>
                 </div>
             </div>
             <div id="dash-corpo"></div>`;
@@ -829,9 +896,7 @@ async function abrirDashboardPesquisa(pesquisaId) {
             const filme = selFiltro.value;
             const filtradas = filme ? respostas.filter(r => r.colegio_nome === filme) : respostas;
             window.destruirGraficos();
-            if (abaAtual === 'visao') renderVisaoGeral(filtradas, perguntas, tabelaAlvo);
-            else if (abaAtual === 'cruzamento') renderCruzamentos(filtradas, perguntas);
-            else renderEstatisticas(filtradas, perguntas);
+            renderVisaoGeral(filtradas, perguntas, tabelaAlvo);
         };
         selFiltro.addEventListener('change', renderAba);
         document.querySelectorAll('.dash-tab').forEach(btn => {
@@ -878,37 +943,37 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
     const corpo = document.getElementById('dash-corpo');
     const colegiosUnicos = new Set(respostas.map(r => r.colegio_nome).filter(Boolean)).size;
     let html = `
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
-            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-6">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                 <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
                 <div class="text-4xl font-black text-indigo-400">${respostas.length}</div>
             </div>
-            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                 <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Colégios Participantes</h4>
                 <div class="text-4xl font-black text-emerald-400">${colegiosUnicos}</div>
             </div>
-            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                 <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Perguntas</h4>
                 <div class="text-4xl font-black text-amber-400">${perguntas.length}</div>
             </div>
-            <div class="bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
+            <div class="bg-indigo-900/20 border border-indigo-500/30 p-8 rounded-2xl shadow-xl flex flex-col justify-center">
                 <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle mr-2"></i> Diagnóstico</h4>
-                <p class="text-slate-400 text-xs leading-relaxed">Use a aba <b>Cruzamentos</b> para cruzar duas perguntas e <b>Estatísticas</b> para média, mediana e dispersão.</p>
+                <p class="text-slate-400 text-xs leading-relaxed">Cada pergunta aparece com gráficos em formatos diferentes (colunas, pizza, rosca, dispersão e linha) lado a lado para facilitar a leitura.</p>
             </div>
         </div>`;
 
     if (perguntas.length === 0) {
         html += '<p class="text-slate-500 italic p-6 bg-slate-900 rounded-xl border border-slate-700">Esta pesquisa ainda não possui perguntas cadastradas.</p>';
     } else {
-        html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-10">';
+        html += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-14">';
         perguntas.forEach((p, idx) => {
             const t = tipoPergunta(p);
             html += `
-                <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl w-full flex flex-col">
-                    <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-6 border-b border-slate-700 pb-3"><i class="fas fa-chart-bar mr-2"></i> ${p.label_texto}</h4>
+                <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col">
+                    <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4"><i class="fas fa-chart-bar mr-2"></i> ${p.label_texto}</h4>
                     ${t === 'text'
-                    ? `<div id="lista-respostas-${idx}" class="text-sm text-slate-300 space-y-2 max-h-64 overflow-y-auto custom-scroll"></div>`
-                    : `<div class="grid grid-cols-1 ${t === 'cat' ? 'md:grid-cols-3' : 'lg:grid-cols-3'} gap-4">
+                    ? `<div id="lista-respostas-${idx}" class="text-sm text-slate-300 space-y-3 max-h-64 overflow-y-auto custom-scroll"></div>`
+                    : `<div class="grid grid-cols-1 ${t === 'cat' ? 'md:grid-cols-3' : 'lg:grid-cols-3'} gap-8">
                              <div class="relative min-h-[220px]"><canvas id="chart-q-bar-${idx}"></canvas></div>
                              ${t === 'cat'
                             ? `<div class="relative min-h-[220px]"><canvas id="chart-q-pie-${idx}"></canvas></div>
@@ -947,41 +1012,55 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             const cont = contagem(valsCategoria(respostas, chave));
             const labels = Object.keys(cont);
             const data = Object.values(cont);
-            window.chartInstances[`qbar${idx}`] = new Chart(document.getElementById(`chart-q-bar-${idx}`).getContext('2d'), {
-                type: 'bar',
-                data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
-                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas — respostas por categoria' } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } }
-            });
-            window.chartInstances[`qpie${idx}`] = new Chart(document.getElementById(`chart-q-pie-${idx}`).getContext('2d'), {
-                type: 'pie',
-                data: { labels, datasets: [{ data, backgroundColor: PALETA }] },
-                options: { plugins: { title: { display: true, text: 'Pizza' } } }
-            });
-            window.chartInstances[`qdough${idx}`] = new Chart(document.getElementById(`chart-q-dough-${idx}`).getContext('2d'), {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: PALETA }] },
-                options: { plugins: { title: { display: true, text: 'Rosca' } } }
+            // Rotaciona formatos por questão: cada pergunta usa 3 tipos distintos
+            const trio = idx % 3 === 0 ? ['bar', 'pie', 'doughnut']
+                       : idx % 3 === 1 ? ['horizBar', 'polarArea', 'pie']
+                       : ['polarArea', 'bar', 'doughnut'];
+            const ids = [`chart-q-bar-${idx}`, `chart-q-pie-${idx}`, `chart-q-dough-${idx}`];
+            trio.forEach((tp, k) => {
+                const el = document.getElementById(ids[k]);
+                if (!el) return;
+                let cfg;
+                if (tp === 'horizBar') {
+                    cfg = { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
+                            options: { indexAxis: 'y', plugins: { legend: { display: false }, title: { display: true, text: 'Barras Horizontais' } } } };
+                } else if (tp === 'polarArea') {
+                    cfg = { type: 'polarArea', data: { labels, datasets: [{ data, backgroundColor: PALETA.map(c => c + '99') }] },
+                            options: { plugins: { title: { display: true, text: 'Área Polar' } } } };
+                } else if (tp === 'doughnut') {
+                    cfg = { type: 'doughnut', data: { labels, datasets: [{ data, backgroundColor: PALETA }] }, options: { plugins: { title: { display: true, text: 'Rosca' } } } };
+                } else if (tp === 'pie') {
+                    cfg = { type: 'pie', data: { labels, datasets: [{ data, backgroundColor: PALETA }] }, options: { plugins: { title: { display: true, text: 'Pizza' } } } };
+                } else {
+                    cfg = { type: 'bar', data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
+                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas' } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } } };
+                }
+                window.chartInstances[`q${idx}k${k}`] = new Chart(el.getContext('2d'), cfg);
             });
         } else {
             const vals = valsNumericos(respostas, chave);
             const cont = contagem(vals.map(String));
             const labels = Object.keys(cont).sort((a, b) => Number(a) - Number(b));
-            window.chartInstances[`qbar${idx}`] = new Chart(document.getElementById(`chart-q-bar-${idx}`).getContext('2d'), {
-                type: 'bar',
-                data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
-                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Frequência por valor (colunas)' } } }
-            });
-            // Dispersão simples: índice da resposta × valor
-            window.chartInstances[`qsc${idx}`] = new Chart(document.getElementById(`chart-q-scatter-${idx}`).getContext('2d'), {
-                type: 'scatter',
-                data: { datasets: [{ label: p.label_texto, data: vals.map((v, i) => ({ x: i + 1, y: v })), backgroundColor: '#10b98199' }] },
-                options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } }, plugins: { title: { display: true, text: 'Dispersão das respostas' } } }
-            });
-            // Linha: evolução das respostas
-            window.chartInstances[`qline${idx}`] = new Chart(document.getElementById(`chart-q-line-${idx}`).getContext('2d'), {
-                type: 'line',
-                data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
-                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Evolução das respostas' } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } }
+            // Rotaciona formatos numéricos: cada pergunta usa 3 tipos distintos
+            const trio = idx % 3 === 0 ? ['bar', 'scatter', 'line']
+                       : idx % 3 === 1 ? ['line', 'bar', 'scatter']
+                       : ['scatter', 'line', 'bar'];
+            const ids = [`chart-q-bar-${idx}`, `chart-q-scatter-${idx}`, `chart-q-line-${idx}`];
+            trio.forEach((tp, k) => {
+                const el = document.getElementById(ids[k]);
+                if (!el) return;
+                let cfg;
+                if (tp === 'scatter') {
+                    cfg = { type: 'scatter', data: { datasets: [{ label: p.label_texto, data: vals.map((v, i) => ({ x: i + 1, y: v })), backgroundColor: '#10b98199' }] },
+                            options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } }, plugins: { title: { display: true, text: 'Dispersão' } } } };
+                } else if (tp === 'line') {
+                    cfg = { type: 'line', data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
+                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Linha (evolução)' } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } } };
+                } else {
+                    cfg = { type: 'bar', data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
+                            options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas (frequência)' } } } };
+                }
+                window.chartInstances[`qn${idx}k${k}`] = new Chart(el.getContext('2d'), cfg);
             });
         }
     });
