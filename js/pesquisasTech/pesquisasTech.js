@@ -998,6 +998,9 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
         html += `<div id="legacy-convivencia" class="mt-10"></div>`;
     }
 
+    // Análises cruzadas (útil para a maioria das pesquisas, comum entre perguntas)
+    html += `<div id="analises-cruzadas" class="mt-16 w-full"></div>`;
+
     corpo.innerHTML = html;
 
     // Renderiza gráficos por pergunta
@@ -1022,7 +1025,12 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             const total = data.reduce((a, b) => a + b, 0) || 1;
             const el = document.getElementById(`chart-q-single-${idx}`);
             if (el) {
-                window.chartInstances[`q${idx}s`] = new Chart(el.getContext('2d'), {
+                const poucosItens = labels.length > 0 && labels.length <= 5;
+                window.chartInstances[`q${idx}s`] = new Chart(el.getContext('2d'), poucosItens ? {
+                    type: 'pie',
+                    data: { labels, datasets: [{ data, backgroundColor: PALETA }] },
+                    options: { plugins: { title: { display: true, text: 'Pizza — proporção das respostas' } } }
+                } : {
                     type: 'bar',
                     data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
                     options: {
@@ -1047,10 +1055,15 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             const labels = Object.keys(cont).sort((a, b) => Number(a) - Number(b));
             const el = document.getElementById(`chart-q-single-${idx}`);
             if (el) {
-                window.chartInstances[`qn${idx}s`] = new Chart(el.getContext('2d'), {
+                const poucosValores = labels.length > 0 && labels.length <= 8;
+                window.chartInstances[`qn${idx}s`] = new Chart(el.getContext('2d'), poucosValores ? {
                     type: 'bar',
                     data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
                     options: { plugins: { legend: { display: false }, title: { display: true, text: 'Frequência por valor (colunas)' } } }
+                } : {
+                    type: 'line',
+                    data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
+                    options: { plugins: { legend: { display: false }, title: { display: true, text: 'Distribuição ao longo das respostas (linha)' } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } }
                 });
             }
             const det = document.getElementById(`detalhes-q-${idx}`);
@@ -1070,6 +1083,142 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
 
     if (tabelaAlvo === 'respostas_pesquisa') {
         renderizarGraficosConvivencia(respostas);
+    }
+
+    renderAnalisesCruzadas(respostas, perguntas);
+}
+
+// ---------------- Análises Cruzadas sugeridas ----------------
+function renderAnalisesCruzadas(respostas, perguntas) {
+    const container = document.getElementById('analises-cruzadas');
+    if (!container) return;
+
+    const cat = perguntas.filter(p => tipoPergunta(p) === 'cat');
+    const nums = perguntas.filter(p => tipoPergunta(p) === 'num');
+
+    // Pares sugeridos por campos conhecidos (pesquisas do catálogo)
+    const paresCurados = [
+        ['estrutura_prompt', 'validacao_codigo'],
+        ['prompting_avancado', 'tutor_vs_gerador'],
+        ['ia_no_editor', 'seguranca_prompt'],
+        ['excel_busca_avancada', 'excel_tabela_dinamica'],
+        ['atalhos_windows', 'cmd_rede_ping'],
+        ['devtools_navegador', 'regex'],
+        ['sindrome_impostor', 'gestao_frustracao'],
+        ['burnout', 'dificuldade_foco'],
+        ['reuso_senhas', 'higiene_wifi'],
+        ['vazamento_credenciais', 'phishing'],
+        ['shadow_it', 'licencas_opensource'],
+        ['git_basico', 'git_conflito'],
+        ['pair_programming', 'autodidatismo'],
+        ['subarea_carreira', 'portfolio_github'],
+        ['presenciou_bullying', 'ambiente_risco'],
+        ['foi_vitima', 'rede_apoio'],
+    ];
+    let pares = [];
+    for (const [a, b] of paresCurados) {
+        const pa = cat.find(p => p.campo_chave === a);
+        const pb = cat.find(p => p.campo_chave === b);
+        if (pa && pb) pares.push([pa, pb]);
+    }
+    // Fallback: primeiros pares cat×cat disponíveis
+    if (pares.length < 3 && cat.length >= 2) {
+        for (let i = 0; i < cat.length - 1 && pares.length < 3; i++) {
+            if (!pares.some(([x]) => x === cat[i])) pares.push([cat[i], cat[i + 1]]);
+        }
+    }
+    pares = pares.slice(0, 3);
+
+    let html = `
+        <h3 class="text-xl font-cinzel font-bold text-indigo-300 border-l-4 border-indigo-500 pl-4 mb-6">
+            <i class="fas fa-random mr-2"></i> Análises Cruzadas
+        </h3>
+        <p class="text-slate-400 text-sm mb-8">Cruzamentos entre perguntas que costumam revelar padrões: barras empilhadas para duas perguntas categóricas e médias por categoria quando há uma pergunta numérica.</p>`;
+
+    if (pares.length === 0 && !(nums.length >= 1 && cat.length >= 1)) {
+        container.innerHTML = html + '<p class="text-slate-500 italic p-6 bg-slate-900 rounded-xl border border-slate-700">Sem perguntas suficientes para análises cruzadas.</p>';
+        return;
+    }
+
+    pares.forEach(([pa, pb], i) => {
+        html += `
+            <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col mb-10">
+                <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4">
+                    <i class="fas fa-layer-group mr-2"></i> ${pa.label_texto} × ${pb.label_texto}
+                </h4>
+                <div class="relative min-h-[360px]"><canvas id="chart-cruz-${i}"></canvas></div>
+            </div>`;
+    });
+
+    // Média de pergunta numérica por categoria
+    if (nums.length >= 1 && cat.length >= 1) {
+        const paNum = nums[0];
+        const pc = cat[Math.min(1, cat.length - 1)];
+        html += `
+            <div class="bg-slate-800/90 border border-slate-700/80 p-10 rounded-3xl shadow-xl w-full flex flex-col mb-10">
+                <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-widest mb-8 border-b border-slate-700 pb-4">
+                    <i class="fas fa-layer-group mr-2"></i> Média de "${paNum.label_texto}" por "${pc.label_texto}"
+                </h4>
+                <div class="relative min-h-[360px]"><canvas id="chart-cruz-media"></canvas></div>
+            </div>`;
+    }
+
+    container.innerHTML = html;
+
+    // Renderiza pares cat×cat em barras empilhadas
+    pares.forEach(([pa, pb], i) => {
+        const matriz = {};
+        const catsY = new Set();
+        respostas.forEach(r => {
+            let vx = r[pa.campo_chave], vy = r[pb.campo_chave];
+            if (vx === undefined || vy === undefined || vx === '' || vy === '') return;
+            vx = vx === true ? 'Sim' : vx === false ? 'Não' : String(vx);
+            vy = vy === true ? 'Sim' : vy === false ? 'Não' : String(vy);
+            matriz[vx] = matriz[vx] || {};
+            matriz[vx][vy] = (matriz[vx][vy] || 0) + 1;
+            catsY.add(vy);
+        });
+        const labelsX = Object.keys(matriz);
+        const categoriasY = [...catsY];
+        const datasets = categoriasY.map((cy, k) => ({
+            label: cy.length > 40 ? cy.slice(0, 37) + '...' : cy,
+            data: labelsX.map(cx => matriz[cx]?.[cy] || 0),
+            backgroundColor: PALETA[k % PALETA.length],
+            borderRadius: 4
+        }));
+        const el = document.getElementById(`chart-cruz-${i}`);
+        if (el && labelsX.length > 0) {
+            window.chartInstances[`cruzS${i}`] = new Chart(el.getContext('2d'), {
+                type: 'bar',
+                data: { labels: labelsX, datasets },
+                options: { scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Nº de respostas' } } } }
+            });
+        }
+    });
+
+    // Renderiza média cat×num
+    if (nums.length >= 1 && cat.length >= 1) {
+        const paNum = nums[0];
+        const pc = cat[Math.min(1, cat.length - 1)];
+        const grupos = {};
+        respostas.forEach(r => {
+            const catVal = r[pc.campo_chave];
+            const v = Number(r[paNum.campo_chave]);
+            if (catVal === undefined || catVal === '' || isNaN(v)) return;
+            const chave = catVal === true ? 'Sim' : catVal === false ? 'Não' : String(catVal);
+            (grupos[chave] = grupos[chave] || []).push(v);
+        });
+        const labels = Object.keys(grupos);
+        const el = document.getElementById('chart-cruz-media');
+        if (el && labels.length > 0) {
+            window.chartInstances['cruzMedia'] = new Chart(el.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels.map(l => l.length > 40 ? l.slice(0, 37) + '...' : l),
+                    datasets: [{ label: `Média de ${paNum.label_texto}`, data: labels.map(l => media(grupos[l])), backgroundColor: '#10b981', borderRadius: 6 }]
+                }
+            });
+        }
     }
 }
 

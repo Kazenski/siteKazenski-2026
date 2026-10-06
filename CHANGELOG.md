@@ -4,6 +4,23 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.8.0] — 2026-10-06
+### Escopo
+Dashboard mais analítico: variedade real de tipos de gráfico por pergunta e nova seção "Análises Cruzadas" cruzando perguntas do mesmo formulário.
+
+### Alterado
+- **Tipo de gráfico principal agora varia por pergunta**: perguntas categóricas com até 5 opções usam **Pizza**; com mais, **Colunas**. Perguntas numéricas com intervalos curtos (até 8 valores distintos) usam **Colunas de frequência**; com muitos valores, **Linha de evolução**. Evita o excesso de formatos repetidos (pizza/rosca) dentro da mesma pergunta.
+- **Nova seção "Análises Cruzadas"** no Visão Geral com até 3 cruzamentos cat×cat (barras empilhadas) sugeridos por pares curados de cada pesquisa (ex.: estrutura_prompt × validacao_codigo, reuso_senhas × higiene_wifi, git_basico × git_conflito, foi_vitima × ambiente_risco) + um gráfico de **Média** da primeira pergunta numérica por categoria. Colunas, pizza, linha e barras empilhadas variam pelos blocos.
+- **Convivência Digital**: além do bloco clássico, também participa das análises cruzadas sugeridas (presenciou_bullying × ambiente_risco, foi_vitima × rede_apoio) quando aplicável.
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.9] — 2026-10-06
 ### Escopo
 Dashboard Analítico mais limpo: uma pergunta por linha (ocupa a tela toda), um gráfico por pergunta e um quadro de destaques no lugar dos formatos repetidos (pizza/rosca mostrando o mesmo dado).

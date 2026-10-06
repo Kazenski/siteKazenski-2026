@@ -1,8 +1,71 @@
 {
-  "geradoEm": "2026-10-06T19:56:03+00:00",
-  "versaoAtual": "1.7.9",
-  "totalEntradas": 24,
+  "geradoEm": "2026-10-06T20:01:14+00:00",
+  "versaoAtual": "1.8.0",
+  "totalEntradas": 25,
   "entradas": [
+    {
+      "versao": "1.8.0",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Dashboard mais analítico: variedade real de tipos de gráfico por pergunta e nova seção \"Análises Cruzadas\" cruzando perguntas do mesmo formulário.",
+      "arquivos": [
+        "js/pesquisasTech/pesquisasTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Tipo de gráfico principal agora varia por pergunta**: perguntas categóricas com até 5 opções usam **Pizza**; com mais, **Colunas**. Perguntas numéricas com intervalos curtos (até 8 valores distintos) usam **Colunas de frequência**; com muitos valores, **Linha de evolução**. Evita o excesso de formatos repetidos (pizza/rosca) dentro da mesma pergunta."
+                ],
+                [
+                  "li",
+                  "**Nova seção \"Análises Cruzadas\"** no Visão Geral com até 3 cruzamentos cat×cat (barras empilhadas) sugeridos por pares curados de cada pesquisa (ex.: estrutura_prompt × validacao_codigo, reuso_senhas × higiene_wifi, git_basico × git_conflito, foi_vitima × ambiente_risco) + um gráfico de **Média** da primeira pergunta numérica por categoria. Colunas, pizza, linha e barras empilhadas variam pelos blocos."
+                ],
+                [
+                  "li",
+                  "**Convivência Digital**: além do bloco clássico, também participa das análises cruzadas sugeridas (presenciou_bullying × ambiente_risco, foi_vitima × rede_apoio) quando aplicável."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.9",
       "data": "2026-10-06",
