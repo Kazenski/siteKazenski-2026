@@ -176,7 +176,7 @@ export async function renderPesquisasTechTab() {
             log.textContent = 'Importando catálogo oficial...\n';
             try {
                 const r = await seedPesquisasTecnologicas();
-                log.textContent += `✅ Catálogo pronto: ${r.criadas} criadas, ${r.atualizadas} atualizadas.\n`;
+                log.textContent += `✅ Catálogo pronto: ${r.criadas} criadas, ${r.atualizadas} atualizadas, Convivência: ${r.convivenciaAtualizada} pesquisa(s) com perguntas restauradas.\n`;
                 await carregarListaPesquisasDB();
             } catch (e) {
                 console.error(e);
@@ -764,8 +764,8 @@ async function renderizarFormularioPesquisa(pesquisaId) {
                 const listaOpcoes = p.opcoes ? p.opcoes.split(',').map(o => o.trim()) : [];
                 listaOpcoes.forEach(opText => {
                     let valor = opText;
-                    if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda') {
-                        valor = opText.toLowerCase() === 'sim' ? 'true' : 'false';
+                    if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda' || p.campo_chave === 'presenciou_bullying') {
+                        valor = opText.toLowerCase() === 'sim' ? 'true' : (opText.toLowerCase() === 'não' || opText.toLowerCase() === 'nao' ? 'false' : opText);
                     }
                     optionsHtml += `<option value="${valor}">${opText}</option>`;
                 });
@@ -809,7 +809,7 @@ async function renderizarFormularioPesquisa(pesquisaId) {
             // Tipagem
             perguntas.forEach(p => {
                 if (p.tipo_sql === 'INT' && dadosBrutos[p.campo_chave] !== undefined) dadosBrutos[p.campo_chave] = parseInt(dadosBrutos[p.campo_chave]);
-                if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda') {
+                if (p.campo_chave === 'foi_vitima' || p.campo_chave === 'sabe_pedir_ajuda' || p.campo_chave === 'presenciou_bullying') {
                     if (dadosBrutos[p.campo_chave] === 'true') dadosBrutos[p.campo_chave] = true;
                     else if (dadosBrutos[p.campo_chave] === 'false') dadosBrutos[p.campo_chave] = false;
                 }

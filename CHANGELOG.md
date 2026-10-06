@@ -4,6 +4,23 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.8] — 2026-10-06
+### Escopo
+Restauração das perguntas da pesquisa Diagnóstico de Convivência Digital no Firebase e ajuste do tratamento de Sim/Não no formulário.
+
+### Corrigido
+- **Diagnóstico de Convivência Digital sem perguntas**: as perguntas dessa pesquisa viviam na tabela legada do Supabase e não foram migradas para `pesquisas/{id}/perguntas`. O botão "Importar/Atualizar Catálogo" agora detecta a pesquisa legada (tabela alvo `respostas_pesquisa` ou título com "convivência") e recria as 10 perguntas com os mesmos campos (`serie`, `idade`, `genero`, `tempo_tela`, `presenciou_bullying`, `foi_vitima`, `ambiente_risco`, `sabe_pedir_ajuda`, `motivo_frequencia`, `jogos_mais_usado`), tipos e opções vistos no painel antigo.
+- **Boleanos `Sim/Não` no formulário**: `presenciou_bullying` agora também vira `true`/`false` no envio (antes só `foi_vitima` e `sabe_pedir_ajuda`), com tratamento para "Não tenho certeza" permanecer texto.
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js` e `js/pesquisasTech/seedPesquisas.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- js/pesquisasTech/seedPesquisas.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.7] — 2026-10-06
 ### Escopo
 Refino do módulo Pesquisas Tech: remoção das abas Cruzamentos/Estatísticas, editor de colégios no Gestão, gráficos com mais variedade de tipos e espaçamentos mais amplos entre os blocos.

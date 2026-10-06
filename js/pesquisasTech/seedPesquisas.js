@@ -5,7 +5,7 @@
 // pelo gestor, via aba "Pesquisas Tech → Gestão → Catálogo".
 // =========================================================
 import { db } from '../core/firebase.js';
-import { doc, getDoc, setDoc, serverTimestamp, writeBatch, collection } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, getDocs, setDoc, collection, query, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const COL_PESQUISAS = 'pesquisas';
 
@@ -145,5 +145,51 @@ export async function seedPesquisasTecnologicas() {
         });
         await batch.commit();
     }
-    return { criadas, atualizadas, puladas };
+
+    // ---------------------------------------------------------
+    // DIAGNÓSTICO DE CONVIVÊNCIA DIGITAL (pesquisa herdada do
+    // Supabase com tabela legada 'respostas_pesquisa').
+    // As perguntas desse formulário não estavam na subcoleção
+    // 'perguntas' no Firebase — este bloco as recria usando os
+    // mesmos campos/tipos vistos no painel antigo.
+    // ---------------------------------------------------------
+    const perguntasConvivencia = [
+        { label_texto: 'Em qual série você estuda?', campo_chave: 'serie', tipo_sql: 'VARCHAR', opcoes: '6º Ano, 7º Ano, 8º Ano, 9º Ano, 1ª Série EM, 2ª Série EM, 3ª Série EM' },
+        { label_texto: 'Qual a sua idade? (apenas número)', campo_chave: 'idade', tipo_sql: 'INT', tamanho_max: 2, opcoes: '' },
+        { label_texto: 'Com que gênero você se identifica?', campo_chave: 'genero', tipo_sql: 'VARCHAR', opcoes: 'Feminino, Masculino, Outro, Prefiro não informar' },
+        { label_texto: 'Em média, quantas horas por dia você passa no celular/redes sociais online?', campo_chave: 'tempo_tela', tipo_sql: 'VARCHAR', opcoes: 'Menos de 1h, 1h a 3h, 3h a 5h, Mais de 5h' },
+        { label_texto: 'Você já presenciou algum episódio de cyberbullying na escola?', campo_chave: 'presenciou_bullying', tipo_sql: 'VARCHAR', opcoes: 'Sim, Não, Não tenho certeza' },
+        { label_texto: 'Você já foi vítima de ofensas/zoação em redes/exposição virtual?', campo_chave: 'foi_vitima', tipo_sql: 'VARCHAR', opcoes: 'Sim, Não' },
+        { label_texto: 'Em qual ambiente digital ocorrem mais casos de denúncias?', campo_chave: 'ambiente_risco', tipo_sql: 'VARCHAR', opcoes: 'Instagram, TikTok, WhatsApp, Facebook, Jogos Online, Outros' },
+        { label_texto: 'Se enfrenta violência digital hoje, saberia a quem pedir ajuda na escola?', campo_chave: 'sabe_pedir_ajuda', tipo_sql: 'VARCHAR', opcoes: 'Sim, Não' },
+        { label_texto: 'Qual você acredita ser o motivo mais frequente para o cyberbullying?', campo_chave: 'motivo_frequencia', tipo_sql: 'VARCHAR', opcoes: 'Aparência física, Opiniões pessoais, Condição financeira, Orientação/Identidade, Ação/brincadeira "para se autovalorizar", Outro' },
+        { label_texto: 'Qual jogo(s) você mais utiliza?', campo_chave: 'jogos_mais_usado', tipo_sql: 'VARCHAR', opcoes: 'Free Fire, Valorant, LOL, Roblox, Minecraft, Outro/Nenhum' },
+    ];
+    let convivenciaAtualizada = 0;
+    try {
+        const snapPesq = await getDocs(query(collection(db, COL_PESQUISAS)));
+        for (const d of snapPesq.docs) {
+            const p = d.data() || {};
+            const ehConvivencia = p.tabela_respostas_alvo === 'respostas_pesquisa'
+                || /conviv[eê]ncia/i.test(String(p.titulo || ''));
+            if (!ehConvivencia) continue;
+            const batch2 = writeBatch(db);
+            perguntasConvivencia.forEach((q, i) => {
+                batch2.set(doc(collection(db, COL_PESQUISAS, d.id, 'perguntas'), `q${i + 1}`), {
+                    label_texto: q.label_texto,
+                    campo_chave: q.campo_chave,
+                    tipo_sql: q.tipo_sql,
+                    tamanho_max: q.tamanho_max || 100,
+                    opcoes: q.opcoes || '',
+                    ordem: i + 1,
+                }, { merge: true });
+            });
+            await batch2.commit();
+            convivenciaAtualizada++;
+        }
+    } catch (e) {
+        console.error('Erro ao recriar perguntas de Convivência:', e);
+    }
+
+    return { criadas, atualizadas, puladas, convivenciaAtualizada };
 }
