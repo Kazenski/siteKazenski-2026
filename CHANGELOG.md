@@ -4,6 +4,23 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.3] — 2026-10-06
+### Escopo
+Tratamento do erro `Requests to this API generativelanguage.googleapis.com ... are blocked`: a chave do Gemini não lista a Generative Language API nas "Restrições de API". A correção é adicionar a API à lista, sem tocar nas restrições de sites.
+
+### Corrigido
+- **Detecção do bloqueio por restrição de API**: a `gerarPlanoIA` agora identifica a mensagem `are blocked` e retorna orientação direta; o frontend exibe instrução em português em vez do texto técnico do Google. Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`.
+
+### Verificado
+- Sintaxe da `functions/index.js` validada (`node --check`).
+- Deploy concluído com sucesso no Firebase (Functions + Hosting).
+
+### Arquivos tocados
+- functions/index.js
+- js/professorTech/professorTech.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.2] — 2026-10-06
 ### Escopo
 Contorno do bloqueio `Requests from referer <empty> are blocked` sem alterar as restrições da chave do Gemini (compartilhada com outros apps): a Cloud Function agora envia o `Referer` de um domínio já permitido na chave.

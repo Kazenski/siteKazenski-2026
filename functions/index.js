@@ -681,6 +681,11 @@ exports.gerarPlanoIA = onCall({
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
             const msgApi = errData.error?.message || 'Erro na API do Gemini.';
+            // Chave com "Restrições de API" que não inclui a Generative Language API.
+            // Não mexe nas restrições de sites: basta adicionar a API à lista permitida.
+            if (/are blocked/i.test(msgApi)) {
+                throw new HttpsError('internal', 'A chave do Gemini não tem permissão para a Generative Language API. No Google Cloud Console > Credenciais > sua chave, em Restrições de API, adicione Generative Language API à lista (as restrições de sites ficam como estão). Confira também se a API está ativada em APIs e serviços > Biblioteca. Detalhe: ' + msgApi);
+            }
             // Se mesmo enviando o Referer permitido o Google bloquear, a causa
             // provável é a chave ter perdido o domínio na lista de sites ou
             // a cota ter estourado — orienta sem pedir para remover restrições.

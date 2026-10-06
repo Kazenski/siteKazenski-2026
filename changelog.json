@@ -1,8 +1,63 @@
 {
   "geradoEm": "2026-10-06T00:00:00+00:00",
-  "versaoAtual": "1.7.2",
-  "totalEntradas": 17,
+  "versaoAtual": "1.7.3",
+  "totalEntradas": 18,
   "entradas": [
+    {
+      "versao": "1.7.3",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Tratamento do erro Requests to this API generativelanguage.googleapis.com ... are blocked: a chave do Gemini não lista a Generative Language API nas Restrições de API. A correção é adicionar a API à lista, sem tocar nas restrições de sites.",
+      "arquivos": [
+        "functions/index.js",
+        "js/professorTech/professorTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "Detecção do bloqueio por restrição de API",
+              "nivel": null,
+              "linhas": [
+                [
+                  "p",
+                  "A gerarPlanoIA agora identifica a mensagem are blocked e retorna orientação direta; o frontend exibe instrução em português em vez do texto técnico do Google. Arquivos: functions/index.js, js/professorTech/professorTech.js."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe da functions/index.js validada (node --check)."
+                ],
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Functions + Hosting)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.2",
       "data": "2026-10-06",
