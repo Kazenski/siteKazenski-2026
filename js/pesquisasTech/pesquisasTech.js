@@ -5,6 +5,7 @@ import {
     query, orderBy, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { aprovar } from '../core/moderacao.js';
+import { seedPesquisasTecnologicas } from './seedPesquisas.js';
 
 // Supabase é mantido APENAS para a migração única dos dados antigos.
 const SUPABASE_URL = 'https://dmwbvydkogpnhmprezew.supabase.co';
@@ -38,8 +39,8 @@ export async function renderPesquisasTechTab() {
     const container = document.getElementById('pesquisas-tech-content');
     if (!container) return;
 
-    const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
-    const canDelete = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+    const isGestor = window.userRoles?.Admin || window.userRoles?.Moderador;
+    const canDelete = window.userRoles?.Admin;
 
     container.innerHTML = `
         <div class="h-full flex flex-col w-full mx-auto pb-20">
@@ -74,37 +75,47 @@ export async function renderPesquisasTechTab() {
                 ${isGestor ? `
                 <div id="crud-pesquisas" class="hidden flex-col gap-6 fade-in">
 
-                    <!-- CRIAR NOVA PESQUISA -->
-                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-indigo-500 shadow-xl shrink-0">
-                        <h3 class="text-indigo-400 font-cinzel font-bold text-xl mb-6" id="form-crud-title">
-                            <i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa
+                    <!-- IMPORTAR CATÁLOGO OFICIAL (criado apenas via IA/local) -->
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-sky-500 shadow-xl shrink-0">
+                        <h3 class="text-sky-400 font-cinzel font-bold text-xl mb-2"><i class="fas fa-layer-group mr-2"></i> Catálogo Oficial de Pesquisas</h3>
+                        <p class="text-slate-400 text-xs mb-4">Novas pesquisas são cadastradas apenas pelo gestor via assistente (IA). Este botão (re)importa o catálogo oficial tech no Firestore, de forma idempotente — não apaga respostas de pesquisas clonadas.</p>
+                        <button id="btn-importar-catalogo" class="px-6 py-2.5 bg-sky-600/20 text-sky-300 border border-sky-500/40 hover:bg-sky-600 hover:text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">
+                            <i class="fas fa-cloud-download-alt mr-2"></i> Importar / Atualizar Catálogo
+                        </button>
+                        <pre id="log-importacao" class="hidden mt-4 bg-slate-950 text-emerald-400 text-xs p-4 rounded-xl overflow-x-auto whitespace-pre-wrap"></pre>
+                    </div>
+
+                    <!-- EDITAR PESQUISA -->
+                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-amber-500 shadow-xl shrink-0">
+                        <h3 class="text-amber-400 font-cinzel font-bold text-xl mb-4" id="form-crud-title">
+                            <i class="fas fa-edit mr-2"></i> Editar Pesquisa
                         </h3>
                         <form id="form-pesquisa-crud" class="space-y-4">
-                            <input type="hidden" id="crud-id">
+                            <input type="hidden" id="crud-id" required>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Título da Pesquisa</label>
-                                    <input type="text" id="crud-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                    <input type="text" id="crud-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none">
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Período / Referência</label>
-                                    <input type="text" id="crud-data" required placeholder="Ex: Q1 2026 ou Março 2026" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                    <input type="text" id="crud-data" required placeholder="Ex: Q1 2026 ou Março 2026" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none">
                                 </div>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</label>
-                                <select id="crud-status" class="w-full md:w-1/2 bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none">
+                                <select id="crud-status" class="w-full md:w-1/2 bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none">
                                     <option value="Aberta">Aberta (Coletando)</option>
                                     <option value="Fechada">Fechada (Apenas Dashboard)</option>
                                 </select>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Descrição</label>
-                                <textarea id="crud-descricao" required rows="2" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-indigo-500 outline-none custom-scroll"></textarea>
+                                <textarea id="crud-descricao" required rows="2" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-amber-500 outline-none custom-scroll"></textarea>
                             </div>
                             <div class="flex justify-end gap-3 pt-2 border-t border-slate-700">
                                 <button type="button" onclick="limparFormPesquisa()" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors">Limpar</button>
-                                <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar Pesquisa</button>
+                                <button type="submit" class="px-8 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Salvar Alterações</button>
                             </div>
                         </form>
                     </div>
@@ -133,50 +144,6 @@ export async function renderPesquisasTechTab() {
                         <pre id="log-migracao" class="hidden mt-4 bg-slate-950 text-emerald-400 text-xs p-4 rounded-xl overflow-x-auto max-h-64 custom-scroll whitespace-pre-wrap"></pre>
                     </div>
 
-                    <!-- CONSTRUTOR DE PERGUNTAS -->
-                    <div class="bg-slate-800 p-6 rounded-2xl border-l-4 border-emerald-500 shadow-xl mt-8">
-                        <h3 class="text-emerald-400 font-cinzel font-bold text-xl mb-6">
-                            <i class="fas fa-database mr-2"></i> Construtor de Perguntas
-                        </h3>
-                        <h4 id="perg-pesquisa-titulo" class="text-sm text-slate-400 mb-6 font-bold bg-slate-900 p-3 rounded-lg border border-slate-700">
-                            Selecione uma pesquisa na tabela acima para gerenciar suas perguntas.
-                        </h4>
-                        <form id="form-pergunta-crud" class="space-y-4">
-                            <input type="hidden" id="perg-pesquisa-id">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Enunciado Completo da Pergunta</label>
-                                <input type="text" id="perg-enunciado" required placeholder="Ex: Qual o aplicativo que você mais utiliza?" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                            </div>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Campo Chave</label>
-                                    <input type="text" id="perg-chave" required placeholder="ex: app_mais_usado" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none font-mono text-sm">
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tipo de Dado</label>
-                                    <select id="perg-tipo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                                        <option value="VARCHAR">Lista de Opções</option>
-                                        <option value="INT">Número Inteiro</option>
-                                        <option value="BOOLEAN">Sim/Não</option>
-                                        <option value="TEXT">Texto Livre</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tamanho Máximo</label>
-                                    <input type="number" id="perg-tamanho" value="100" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Opções de Resposta (separadas por vírgula)</label>
-                                <textarea id="perg-opcoes" rows="2" placeholder="Ex: WhatsApp, Instagram, TikTok" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none custom-scroll"></textarea>
-                            </div>
-                            <div class="flex justify-end pt-2">
-                                <button type="submit" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-emerald-900/50">Adicionar Pergunta</button>
-                            </div>
-                        </form>
-                        <div id="lista-perguntas-container" class="mt-6 space-y-3 max-h-80 overflow-y-auto custom-scroll pr-2"></div>
-                    </div>
-
                 </div>` : ''}
             </div>
         </div>
@@ -188,11 +155,21 @@ export async function renderPesquisasTechTab() {
     if (isGestor) {
         document.getElementById('btn-toggle-crud').addEventListener('click', toggleCrudMode);
         document.getElementById('form-pesquisa-crud').addEventListener('submit', salvarPesquisaFirebase);
-        const formPergunta = document.getElementById('form-pergunta-crud');
-        if (formPergunta) formPergunta.addEventListener('submit', window.salvarNovaPergunta);
         window.canDeletePesquisa = canDelete;
-        window.carregarEditorPerguntas(null);
         document.getElementById('btn-migrar-supabase').addEventListener('click', executarMigracao);
+        document.getElementById('btn-importar-catalogo').addEventListener('click', async () => {
+            const log = document.getElementById('log-importacao');
+            log.classList.remove('hidden');
+            log.textContent = 'Importando catálogo oficial...\n';
+            try {
+                const r = await seedPesquisasTecnologicas();
+                log.textContent += `✅ Catálogo pronto: ${r.criadas} criadas, ${r.atualizadas} atualizadas.\n`;
+                await carregarListaPesquisasDB();
+            } catch (e) {
+                console.error(e);
+                log.textContent += `❌ Erro: ${e.message}\n`;
+            }
+        });
     }
 }
 
@@ -221,11 +198,14 @@ async function carregarListaPesquisasDB() {
                 const isGestor = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
 
                 let botoesAcaoHtml = '';
+                const podeVerDashboard = isGestor;
                 if (isFechada) {
-                    botoesAcaoHtml = `<button onclick="window.abrirDashboardPesquisa('${pesquisa.id}')"
-                        class="bg-indigo-600 hover:bg-indigo-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
-                        <i class="fas fa-chart-bar"></i> Ver Resultados Dashboard
-                    </button>`;
+                    botoesAcaoHtml = podeVerDashboard
+                        ? `<button onclick="window.abrirDashboardPesquisa('${pesquisa.id}')"
+                            class="bg-indigo-600 hover:bg-indigo-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2">
+                            <i class="fas fa-chart-bar"></i> Ver Resultados Dashboard
+                        </button>`
+                        : `<p class="text-center text-slate-500 text-xs uppercase tracking-widest py-2 border border-slate-700 rounded-xl"><i class="fas fa-lock mr-2"></i> Pesquisa encerrada</p>`;
                 } else {
                     botoesAcaoHtml = `<button onclick="window.renderizarFormularioPesquisa('${pesquisa.id}')"
                         class="bg-emerald-600 hover:bg-emerald-500 w-full text-white font-bold text-xs uppercase tracking-widest py-3.5 rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 mb-2">
@@ -251,7 +231,7 @@ async function carregarListaPesquisasDB() {
                     </div>`;
 
                 if (tbodyCrud) {
-                    const podeDeletar = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+                    const podeDeletar = window.userRoles?.Admin;
                     const btnExcluir = podeDeletar
                         ? `<button onclick="window.excluirPesquisa('${pesquisa.id}')" title="Excluir" class="text-red-400 hover:text-red-300 bg-red-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-trash"></i></button>`
                         : '';
@@ -261,7 +241,8 @@ async function carregarListaPesquisasDB() {
                             <td class="p-4 text-center"><span class="${badgeCor} px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest">${pesquisa.status}</span></td>
                             <td class="p-4 text-center text-slate-500 font-mono text-[10px]">pesquisas/${pesquisa.id}</td>
                             <td class="p-4 text-right flex justify-end gap-2">
-                                <button onclick="window.duplicarPesquisa('${pesquisa.id}')" title="Duplicar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
+                                <button onclick="window.alternarStatusPesquisa('${pesquisa.id}')" title="Habilitar/Pausar" class="text-amber-400 hover:text-amber-300 bg-amber-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas ${pesquisa.status === 'Aberta' ? 'fa-pause' : 'fa-play'}"></i></button>
+                                <button onclick="window.duplicarPesquisa('${pesquisa.id}')" title="Duplicar/Clonar Pesquisa" class="text-emerald-400 hover:text-emerald-300 bg-emerald-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-copy"></i></button>
                                 <button onclick="window.editarPesquisa('${pesquisa.id}')" title="Editar" class="text-indigo-400 hover:text-indigo-300 bg-indigo-400/10 px-3 py-1.5 rounded-lg transition-colors"><i class="fas fa-edit"></i></button>
                                 ${btnExcluir}
                             </td>
@@ -302,10 +283,7 @@ function toggleCrudMode() {
 window.limparFormPesquisa = function () {
     document.getElementById('form-pesquisa-crud').reset();
     document.getElementById('crud-id').value = '';
-    document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Criar Nova Pesquisa';
-    document.getElementById('perg-pesquisa-id').value = '';
-    document.getElementById('perg-pesquisa-titulo').innerHTML = 'Selecione uma pesquisa na tabela acima para gerenciar suas perguntas.';
-    window.carregarEditorPerguntas(null);
+    document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-edit mr-2"></i> Editar Pesquisa';
 };
 
 window.editarPesquisa = function (id) {
@@ -318,9 +296,6 @@ window.editarPesquisa = function (id) {
     document.getElementById('crud-descricao').value = pesquisa.descricao;
 
     document.getElementById('form-crud-title').innerHTML = '<i class="fas fa-edit mr-2 text-amber-500"></i> Editando Pesquisa';
-    document.getElementById('perg-pesquisa-id').value = pesquisa.id;
-    document.getElementById('perg-pesquisa-titulo').innerHTML = `Gerenciando perguntas da pesquisa: <strong class="text-emerald-400">${pesquisa.titulo}</strong>`;
-    window.carregarEditorPerguntas(pesquisa.id);
     document.getElementById('crud-pesquisas').scrollIntoView({ behavior: 'smooth' });
 };
 
@@ -353,7 +328,7 @@ async function salvarPesquisaFirebase(e) {
 }
 
 window.excluirPesquisa = async function (id) {
-    const podeDeletar = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao;
+    const podeDeletar = window.userRoles?.Admin;
     if (!podeDeletar) { alert("Acesso Negado: Você não tem permissão para excluir."); return; }
 
     if (confirm("Atenção: Deseja realmente excluir esta pesquisa e todas as suas perguntas/respostas?")) {
@@ -373,6 +348,16 @@ window.excluirPesquisa = async function (id) {
             alert("Erro ao excluir a pesquisa.");
         }
     }
+};
+
+window.alternarStatusPesquisa = async function (id) {
+    const pesquisa = window._pesquisasCache.find(p => p.id === id);
+    if (!pesquisa) return;
+    const novo = pesquisa.status === 'Aberta' ? 'Fechada' : 'Aberta';
+    try {
+        await updateDoc(doc(db, COL_PESQUISAS, id), { status: novo });
+        await carregarListaPesquisasDB();
+    } catch (e) { console.error(e); alert('Erro ao alterar status.'); }
 };
 
 window.duplicarPesquisa = async function (id) {
@@ -891,15 +876,24 @@ function tipoPergunta(p) {
 // ---------------- Aba: Visão Geral (1 pergunta por gráfico) ----------------
 function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
     const corpo = document.getElementById('dash-corpo');
+    const colegiosUnicos = new Set(respostas.map(r => r.colegio_nome).filter(Boolean)).size;
     let html = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
-            <div class="bg-slate-800/90 border border-slate-700/80 p-8 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-4">
+            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
                 <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Total de Respostas</h4>
-                <div class="text-5xl font-black text-indigo-400">${respostas.length}</div>
+                <div class="text-4xl font-black text-indigo-400">${respostas.length}</div>
             </div>
-            <div class="md:col-span-2 bg-indigo-900/20 border border-indigo-500/30 p-8 rounded-2xl shadow-xl flex flex-col justify-center">
-                <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle mr-2"></i> Diagnóstico Ativo</h4>
-                <p class="text-slate-400 text-sm leading-relaxed">Cada pergunta gera gráficos próprios abaixo. Use a aba <b>Cruzamentos</b> para cruzar duas perguntas e <b>Estatísticas</b> para média, mediana e dispersão.</p>
+            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Colégios Participantes</h4>
+                <div class="text-4xl font-black text-emerald-400">${colegiosUnicos}</div>
+            </div>
+            <div class="bg-slate-800/90 border border-slate-700/80 p-6 rounded-2xl shadow-xl flex flex-col justify-center text-center">
+                <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Perguntas</h4>
+                <div class="text-4xl font-black text-amber-400">${perguntas.length}</div>
+            </div>
+            <div class="bg-indigo-900/20 border border-indigo-500/30 p-6 rounded-2xl shadow-xl flex flex-col justify-center">
+                <h4 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2"><i class="fas fa-info-circle mr-2"></i> Diagnóstico</h4>
+                <p class="text-slate-400 text-xs leading-relaxed">Use a aba <b>Cruzamentos</b> para cruzar duas perguntas e <b>Estatísticas</b> para média, mediana e dispersão.</p>
             </div>
         </div>`;
 
@@ -956,15 +950,17 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             window.chartInstances[`qbar${idx}`] = new Chart(document.getElementById(`chart-q-bar-${idx}`).getContext('2d'), {
                 type: 'bar',
                 data: { labels, datasets: [{ data, backgroundColor: PALETA, borderRadius: 6 }] },
-                options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } }
+                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Colunas — respostas por categoria' } }, scales: { x: { ticks: { autoSkip: false, maxRotation: 45 } } } }
             });
             window.chartInstances[`qpie${idx}`] = new Chart(document.getElementById(`chart-q-pie-${idx}`).getContext('2d'), {
                 type: 'pie',
-                data: { labels, datasets: [{ data, backgroundColor: PALETA }] }
+                data: { labels, datasets: [{ data, backgroundColor: PALETA }] },
+                options: { plugins: { title: { display: true, text: 'Pizza' } } }
             });
             window.chartInstances[`qdough${idx}`] = new Chart(document.getElementById(`chart-q-dough-${idx}`).getContext('2d'), {
                 type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: PALETA }] }
+                data: { labels, datasets: [{ data, backgroundColor: PALETA }] },
+                options: { plugins: { title: { display: true, text: 'Rosca' } } }
             });
         } else {
             const vals = valsNumericos(respostas, chave);
@@ -973,19 +969,19 @@ function renderVisaoGeral(respostas, perguntas, tabelaAlvo) {
             window.chartInstances[`qbar${idx}`] = new Chart(document.getElementById(`chart-q-bar-${idx}`).getContext('2d'), {
                 type: 'bar',
                 data: { labels, datasets: [{ label: 'Frequência', data: labels.map(l => cont[l]), backgroundColor: '#6366f1', borderRadius: 6 }] },
-                options: { plugins: { legend: { display: false } } }
+                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Frequência por valor (colunas)' } } }
             });
             // Dispersão simples: índice da resposta × valor
             window.chartInstances[`qsc${idx}`] = new Chart(document.getElementById(`chart-q-scatter-${idx}`).getContext('2d'), {
                 type: 'scatter',
                 data: { datasets: [{ label: p.label_texto, data: vals.map((v, i) => ({ x: i + 1, y: v })), backgroundColor: '#10b98199' }] },
-                options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } } }
+                options: { scales: { x: { title: { display: true, text: 'Nº da resposta' } }, y: { title: { display: true, text: p.label_texto } } }, plugins: { title: { display: true, text: 'Dispersão das respostas' } } }
             });
             // Linha: evolução das respostas
             window.chartInstances[`qline${idx}`] = new Chart(document.getElementById(`chart-q-line-${idx}`).getContext('2d'), {
                 type: 'line',
                 data: { labels: vals.map((_, i) => i + 1), datasets: [{ label: 'Valor', data: vals, borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.3 }] },
-                options: { plugins: { legend: { display: false } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } }
+                options: { plugins: { legend: { display: false }, title: { display: true, text: 'Evolução das respostas' } }, scales: { x: { title: { display: true, text: 'Nº da resposta' } } } }
             });
         }
     });
@@ -1028,11 +1024,22 @@ function renderCruzamentos(respostas, perguntas) {
 
     const atualizar = () => {
         window.destruirGraficos();
-        const px = perguntas[document.getElementById('cruz-x').value];
-        const py = perguntas[document.getElementById('cruz-y').value];
+        const ix = parseInt(document.getElementById('cruz-x').value);
+        let iy = parseInt(document.getElementById('cruz-y').value);
+        if (ix === iy && perguntas.length > 1) {
+            iy = (ix + 1) % perguntas.length;
+            document.getElementById('cruz-y').value = String(iy);
+        }
+        const px = perguntas[ix];
+        const py = perguntas[iy];
         if (!px || !py) return;
         const medida = document.getElementById('cruz-medida').value;
-        desenharCruzamento(respostas, px, py, medida);
+        try {
+            desenharCruzamento(respostas, px, py, medida);
+        } catch (e) {
+            console.error('Erro no cruzamento:', e);
+            document.getElementById('tabela-cruzamento').innerHTML = '<p class="text-amber-400 text-sm bg-slate-900 p-4 rounded-xl border border-slate-800">Não foi possível cruzar estas perguntas (dados insuficientes ou incompatíveis).</p>';
+        }
     };
     ['cruz-x', 'cruz-y', 'cruz-medida'].forEach(id => document.getElementById(id).addEventListener('change', atualizar));
     if (perguntas.length >= 2) {
@@ -1043,8 +1050,11 @@ function renderCruzamentos(respostas, perguntas) {
 
 function desenharCruzamento(respostas, px, py, medida) {
     const tx = tipoPergunta(px), ty = tipoPergunta(py);
-    const ctx = document.getElementById('chart-cruzamento').getContext('2d');
+    const canvas = document.getElementById('chart-cruzamento');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const tabelaDiv = document.getElementById('tabela-cruzamento');
+    const tipoCat = (t) => t === 'cat' || t === 'text';
 
     // Num × Num -> dispersão com linha de tendência
     if (tx === 'num' && ty === 'num') {
@@ -1086,9 +1096,10 @@ function desenharCruzamento(respostas, px, py, medida) {
             const chave = (cat === true ? 'Sim' : cat === false ? 'Não' : String(cat));
             (grupos[chave] = grupos[chave] || []).push(v);
         });
-        const labels = Object.keys(grupos);
-        const medias = labels.map(l => media(grupos[l]));
-        const medianas = labels.map(l => mediana(grupos[l]));
+        const labels = Object.keys(grupos).map(l => l.length > 40 ? l.slice(0, 37) + '...' : l);
+        const keysOrig = Object.keys(grupos);
+        const medias = keysOrig.map(l => media(grupos[l]));
+        const medianas = keysOrig.map(l => mediana(grupos[l]));
         window.chartInstances['cruz'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1112,9 +1123,10 @@ function desenharCruzamento(respostas, px, py, medida) {
             const chave = (cat === true ? 'Sim' : cat === false ? 'Não' : String(cat));
             (grupos[chave] = grupos[chave] || []).push(v);
         });
-        const labels = Object.keys(grupos);
-        const medias = labels.map(l => media(grupos[l]));
-        const medianas = labels.map(l => mediana(grupos[l]));
+        const keysOrig = Object.keys(grupos);
+        const labels = keysOrig.map(l => l.length > 40 ? l.slice(0, 37) + '...' : l);
+        const medias = keysOrig.map(l => media(grupos[l]));
+        const medianas = keysOrig.map(l => mediana(grupos[l]));
         window.chartInstances['cruz'] = new Chart(ctx, {
             type: 'bar',
             data: {
@@ -1141,27 +1153,43 @@ function desenharCruzamento(respostas, px, py, medida) {
         matriz[vx][vy] = (matriz[vx][vy] || 0) + 1;
     });
     const categoriasY = [...catsY];
-    const labelsX = [...catsX];
-    const datasets = categoriasY.map((cy, i) => ({
-        label: cy,
+    // Limita categorias para evitar gráficos ilegíveis (Top 8 mais frequentes)
+    const freqX = {}, freqY = {};
+    respostas.forEach(r => {
+        let vx = r[px.campo_chave], vy = r[py.campo_chave];
+        if (vx === undefined || vy === undefined || vx === '' || vy === '') return;
+        vx = vx === true ? 'Sim' : vx === false ? 'Não' : String(vx);
+        vy = vy === true ? 'Sim' : vy === false ? 'Não' : String(vy);
+        freqX[vx] = (freqX[vx] || 0) + 1; freqY[vy] = (freqY[vy] || 0) + 1;
+    });
+    const chop = (o) => Object.fromEntries(Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 8));
+    const freqXTop = chop(freqX), freqYTop = chop(freqY);
+    const labelsX = Object.keys(freqXTop);
+    const categoriasYTop = Object.keys(freqYTop);
+    if (labelsX.length === 0 || categoriasYTop.length === 0) {
+        tabelaDiv.innerHTML = '<p class="text-amber-400 text-sm bg-slate-900 p-4 rounded-xl border border-slate-800">Sem respostas em comum entre as duas perguntas.</p>';
+        return;
+    }
+    const datasets = categoriasYTop.map((cy, i) => ({
+        label: cy.length > 40 ? cy.slice(0, 37) + '...' : cy,
         data: labelsX.map(cx => matriz[cx]?.[cy] || 0),
         backgroundColor: PALETA[i % PALETA.length],
         borderRadius: 4
     }));
     window.chartInstances['cruz'] = new Chart(ctx, {
         type: 'bar',
-        data: { labels: labelsX, datasets },
+        data: { labels: labelsX.map(l => l.length > 40 ? l.slice(0, 37) + '...' : l), datasets },
         options: { scales: { x: { stacked: true }, y: { stacked: true, title: { display: true, text: 'Nº de respostas' } } } }
     });
 
     // Tabela de contingência
     let th = `<table class="w-full text-sm border-collapse bg-slate-900/60 rounded-xl overflow-hidden"><thead><tr class="bg-slate-800 text-slate-400 text-[10px] uppercase tracking-widest"><th class="p-3 text-left">${px.label_texto} \\ ${py.label_texto}</th>`;
-    categoriasY.forEach(cy => th += `<th class="p-3 text-center">${cy}</th>`);
+    categoriasYTop.forEach(cy => th += `<th class="p-3 text-center">${cy}</th>`);
     th += `<th class="p-3 text-center">Total</th></tr></thead><tbody class="divide-y divide-slate-800">`;
     labelsX.forEach(cx => {
         let total = 0;
         let row = `<tr><td class="p-3 text-white font-bold">${cx}</td>`;
-        categoriasY.forEach(cy => {
+        categoriasYTop.forEach(cy => {
             const v = matriz[cx]?.[cy] || 0;
             total += v;
             const intensidade = Math.min(0.7, v / Math.max(1, respostas.length) * 3);

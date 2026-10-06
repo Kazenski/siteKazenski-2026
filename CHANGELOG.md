@@ -4,6 +4,34 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.6] — 2026-10-06
+### Escopo
+Reformulação do módulo "Pesquisas Tech": pesquisas agora abertas para o público geral responder (sem login), catálogo oficial com as 5 novas pesquisas, gestão limitada a Admin/Moderador (exclusão só Admin), mais variedade de gráficos e correção dos cruzamentos.
+
+### Adicionado
+- **Catálogo oficial de pesquisas seed** (`js/pesquisasTech/seedPesquisas.js`): as 5 pesquisas (Proficiência e Pensamento Crítico no Uso de IA, Alfabetização e Fluência Digital, Saúde Mental e Carga Cognitiva, Ética/Propriedade Intelectual/Segurança Corporativa, Soft Skills/Versionamento/Mercado), cada uma com 10 perguntas adaptadas para perguntas fechadas de múltipla escolha + escalas numéricas (mais gráficos possíveis). Import idempotente via botão "Importar/Atualizar Catálogo" na Gestão.
+- **Botão liga/desliga status** na tabela da Gestão para habilitar/pausar pesquisas rapidamente.
+- **KPIs no dashboard**: Total de Respostas, Colégios Participantes, Perguntas e cartão de diagnóstico.
+
+### Alterado
+- **Pesquisas Tech agora pública**: menu visível para Visitantes e usuários logados; o formulário de resposta de pesquisas Abertas aparece para todos; resultados/dashboards ficam restritos a Admin/Moderador.
+- **Gestão de pesquisa**: removido o formulário de "Criar Nova Pesquisa" e o Construtor de Perguntas da UI — novas pesquisas entram apenas via catálogo/IA (aqui). Edição de metadados, duplicação (clonar p/ outro colégio), habilitar/pausar e exclusão (só Admin) permanecem.
+- **Permissão de exclusão** reduzida para Admin (antes Admin/Professor/Coordenação/Moderador na tabela deletava perguntas; agora centralizado no Admin).
+- **Gráficos mais variados**: cada pergunta categórica gera Colunas + Pizza + Rosca (com títulos); perguntas numéricas geram Colunas + Dispersão + Linha (com títulos); estatísticas mostram Média × Mediana e dispersão.
+
+### Corrigido
+- **Cruzamentos de dados**: tratavam só categóricas/numéricas e quebravam com perguntas de texto; agora textos viram categorias, limite Top 8 categorias, rótulos truncados a 40 chars, evita seleção duplicada de X e Y, e exibe mensagem clara quando não há dados suficientes em vez de gráfico vazio.
+
+### Verificado
+- Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`, `js/pesquisasTech/seedPesquisas.js` e `js/main.js`.
+
+### Arquivos tocados
+- js/pesquisasTech/pesquisasTech.js
+- js/pesquisasTech/seedPesquisas.js
+- js/main.js
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.5] — 2026-10-06
 ### Escopo
 Fluxo de fontes da base de conhecimento sem sair do planejamento: botão "Ler arquivo da pasta" + botão "Registrar no GitHub" (publica em `docs/bncc/` via Cloud Function e cadastra a fonte automaticamente, sem copiar link manualmente).

@@ -1,54 +1,89 @@
 {
-  "geradoEm": "2026-10-06T00:00:00+00:00",
-  "versaoAtual": "1.7.5",
-  "totalEntradas": 20,
+  "geradoEm": "2026-10-06T19:01:48+00:00",
+  "versaoAtual": "1.7.6",
+  "totalEntradas": 21,
   "entradas": [
     {
-      "versao": "1.7.5",
+      "versao": "1.7.6",
       "data": "2026-10-06",
       "autor": "",
-      "escopo": "Fluxo de fontes da base de conhecimento sem sair do planejamento: botão Ler arquivo da pasta + botão Registrar no GitHub (publica em docs/bncc/ via Cloud Function e cadastra a fonte automaticamente, sem copiar link manualmente).",
+      "escopo": "Reformulação do módulo \"Pesquisas Tech\": pesquisas agora abertas para o público geral responder (sem login), catálogo oficial com as 5 novas pesquisas, gestão limitada a Admin/Moderador (exclusão só Admin), mais variedade de gráficos e correção dos cruzamentos.",
       "arquivos": [
-        "functions/index.js",
-        "js/professorTech/professorTech.js",
-        "index.html",
-        "KAZ_IA_SETUP.md",
-        "docs/bncc/README.md",
+        "js/pesquisasTech/pesquisasTech.js",
+        "js/pesquisasTech/seedPesquisas.js",
+        "js/main.js",
         "CHANGELOG.md",
         "changelog.json"
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Adicionado",
           "chave": "adicionado",
           "blocos": [
             {
-              "titulo": "Cloud Function publicarFonteGitHub",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "Recebe o arquivo, publica/atualiza em docs/bncc/ do repo via GitHub API e devolve a URL raw. Token guardado só no servidor (Secret GITHUB_TOKEN), com validação de nome, extensão (PDF/TXT/MD) e tamanho (envio direto até 7MB). Arquivos: functions/index.js."
+                  "**Catálogo oficial de pesquisas seed** (`js/pesquisasTech/seedPesquisas.js`): as 5 pesquisas (Proficiência e Pensamento Crítico no Uso de IA, Alfabetização e Fluência Digital, Saúde Mental e Carga Cognitiva, Ética/Propriedade Intelectual/Segurança Corporativa, Soft Skills/Versionamento/Mercado), cada uma com 10 perguntas adaptadas para perguntas fechadas de múltipla escolha + escalas numéricas (mais gráficos possíveis). Import idempotente via botão \"Importar/Atualizar Catálogo\" na Gestão."
+                ],
+                [
+                  "li",
+                  "**Botão liga/desliga status** na tabela da Gestão para habilitar/pausar pesquisas rapidamente."
+                ],
+                [
+                  "li",
+                  "**KPIs no dashboard**: Total de Respostas, Colégios Participantes, Perguntas e cartão de diagnóstico."
                 ]
               ]
-            },
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
             {
-              "titulo": "Botões no modal de Fontes",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "Ler arquivo da pasta (lê PDF/TXT/MD do computador, sugere o título, libera o botão do GitHub) e Registrar no GitHub (publica e cadastra a fonte como URL automaticamente), além de bloco colapsável de Configuração do GitHub (owner/repo/branch salvos no navegador). Arquivos: index.html, js/professorTech/professorTech.js."
+                  "**Pesquisas Tech agora pública**: menu visível para Visitantes e usuários logados; o formulário de resposta de pesquisas Abertas aparece para todos; resultados/dashboards ficam restritos a Admin/Moderador."
+                ],
+                [
+                  "li",
+                  "**Gestão de pesquisa**: removido o formulário de \"Criar Nova Pesquisa\" e o Construtor de Perguntas da UI — novas pesquisas entram apenas via catálogo/IA (aqui). Edição de metadados, duplicação (clonar p/ outro colégio), habilitar/pausar e exclusão (só Admin) permanecem."
+                ],
+                [
+                  "li",
+                  "**Permissão de exclusão** reduzida para Admin (antes Admin/Professor/Coordenação/Moderador na tabela deletava perguntas; agora centralizado no Admin)."
+                ],
+                [
+                  "li",
+                  "**Gráficos mais variados**: cada pergunta categórica gera Colunas + Pizza + Rosca (com títulos); perguntas numéricas geram Colunas + Dispersão + Linha (com títulos); estatísticas mostram Média × Mediana e dispersão."
                 ]
               ]
-            },
+            }
+          ]
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
             {
-              "titulo": "Guia de setup com token do GitHub",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "Passo a passo do token fine-grained (Contents Read/Write só no repo do site). Arquivos: KAZ_IA_SETUP.md, docs/bncc/README.md."
+                  "**Cruzamentos de dados**: tratavam só categóricas/numéricas e quebravam com perguntas de texto; agora textos viram categorias, limite Top 8 categorias, rótulos truncados a 40 chars, evita seleção duplicada de X e Y, e exibe mensagem clara quando não há dados suficientes em vez de gráfico vazio."
                 ]
               ]
             }
@@ -64,11 +99,78 @@
               "linhas": [
                 [
                   "li",
-                  "Sintaxe da functions/index.js validada (node --check)."
+                  "Sintaxe com `node --check` OK em `js/pesquisasTech/pesquisasTech.js`, `js/pesquisasTech/seedPesquisas.js` e `js/main.js`."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
+    {
+      "versao": "1.7.5",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Fluxo de fontes da base de conhecimento sem sair do planejamento: botão \"Ler arquivo da pasta\" + botão \"Registrar no GitHub\" (publica em `docs/bncc/` via Cloud Function e cadastra a fonte automaticamente, sem copiar link manualmente).",
+      "arquivos": [
+        "functions/index.js",
+        "js/professorTech/professorTech.js",
+        "index.html",
+        "KAZ_IA_SETUP.md",
+        "docs/bncc/README.md",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Cloud Function `publicarFonteGitHub`**: recebe o arquivo, publica/atualiza em `docs/bncc/` do repo via GitHub API e devolve a URL raw. Token guardado só no servidor (Secret `GITHUB_TOKEN`), com validação de nome, extensão (PDF/TXT/MD) e tamanho (envio direto até 7MB). Arquivos: `functions/index.js`."
                 ],
                 [
                   "li",
-                  "Deploy concluído com sucesso no Firebase (Functions + Hosting, função publicarFonteGitHub criada)."
+                  "**Botões no modal de Fontes**: \"Ler arquivo da pasta\" (lê PDF/TXT/MD do computador, sugere o título, libera o botão do GitHub) e \"Registrar no GitHub\" (publica e cadastra a fonte como URL automaticamente), além de bloco colapsável de Configuração do GitHub (owner/repo/branch salvos no navegador). Arquivos: `index.html`, `js/professorTech/professorTech.js`."
+                ],
+                [
+                  "li",
+                  "**Guia de setup** com o passo a passo do token do GitHub (fine-grained, Contents Read/Write só no repo do site). Arquivos: `KAZ_IA_SETUP.md`, `docs/bncc/README.md`."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe da `functions/index.js` validada (`node --check`)."
+                ],
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Functions + Hosting, função `publicarFonteGitHub` criada)."
                 ]
               ]
             }
@@ -85,7 +187,7 @@
       "versao": "1.7.4",
       "data": "2026-10-06",
       "autor": "",
-      "escopo": "Troca da credencial do Gemini para uma chave de autenticação dedicada: a Gemini API não aceita chaves padrão compartilhadas (erro are blocked mesmo com a API ativada). A chave antiga (Kazenski API 2026) segue intacta para os outros apps.",
+      "escopo": "Troca da credencial do Gemini para uma chave de autenticação dedicada: a `Gemini API` não aceita chaves padrão compartilhadas (erro `are blocked` mesmo com a API ativada). A chave antiga (`Kazenski API 2026`) segue intacta para os outros apps.",
       "arquivos": [
         "KAZ_IA_SETUP.md",
         "CHANGELOG.md",
@@ -93,26 +195,25 @@
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Alterado",
           "chave": "alterado",
           "blocos": [
             {
-              "titulo": "Credencial da Kaz IA",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "Criada chave de autenticação separada vinculada a conta de serviço (exigência do Google para a Gemini API) e gravada no Secret GEMINI_API_KEY; redeploy da gerarPlanoIA para assumir a nova versão do secret. Nenhum código alterado (configuração + redeploy)."
-                ]
-              ]
-            },
-            {
-              "titulo": "Guia de setup atualizado",
-              "nivel": null,
-              "linhas": [
+                  "**Credencial da Kaz IA**: criada chave de autenticação separada vinculada a conta de serviço (exigência do Google para a Gemini API) e gravada no Secret `GEMINI_API_KEY`; redeploy da `gerarPlanoIA` para assumir a nova versão do secret. Arquivos: nenhum código alterado (configuração + redeploy)."
+                ],
                 [
                   "li",
-                  "KAZ_IA_SETUP.md agora documenta o fluxo correto de criação da chave dedicada. Arquivos: KAZ_IA_SETUP.md."
+                  "**Guia de setup** atualizado com o fluxo correto de criação da chave dedicada. Arquivos: `KAZ_IA_SETUP.md`."
                 ]
               ]
             }
@@ -145,7 +246,7 @@
       "versao": "1.7.3",
       "data": "2026-10-06",
       "autor": "",
-      "escopo": "Tratamento do erro Requests to this API generativelanguage.googleapis.com ... are blocked: a chave do Gemini não lista a Generative Language API nas Restrições de API. A correção é adicionar a API à lista, sem tocar nas restrições de sites.",
+      "escopo": "Tratamento do erro `Requests to this API generativelanguage.googleapis.com ... are blocked`: a chave do Gemini não lista a Generative Language API nas \"Restrições de API\". A correção é adicionar a API à lista, sem tocar nas restrições de sites.",
       "arquivos": [
         "functions/index.js",
         "js/professorTech/professorTech.js",
@@ -154,16 +255,21 @@
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Corrigido",
           "chave": "corrigido",
           "blocos": [
             {
-              "titulo": "Detecção do bloqueio por restrição de API",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
-                  "p",
-                  "A gerarPlanoIA agora identifica a mensagem are blocked e retorna orientação direta; o frontend exibe instrução em português em vez do texto técnico do Google. Arquivos: functions/index.js, js/professorTech/professorTech.js."
+                  "li",
+                  "**Detecção do bloqueio por restrição de API**: a `gerarPlanoIA` agora identifica a mensagem `are blocked` e retorna orientação direta; o frontend exibe instrução em português em vez do texto técnico do Google. Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -179,7 +285,7 @@
               "linhas": [
                 [
                   "li",
-                  "Sintaxe da functions/index.js validada (node --check)."
+                  "Sintaxe da `functions/index.js` validada (`node --check`)."
                 ],
                 [
                   "li",
@@ -200,7 +306,7 @@
       "versao": "1.7.2",
       "data": "2026-10-06",
       "autor": "",
-      "escopo": "Contorno do bloqueio Requests from referer <empty> are blocked sem alterar as restrições da chave do Gemini (compartilhada com outros apps): a Cloud Function agora envia o Referer de um domínio já permitido na chave.",
+      "escopo": "Contorno do bloqueio `Requests from referer <empty> are blocked` sem alterar as restrições da chave do Gemini (compartilhada com outros apps): a Cloud Function agora envia o `Referer` de um domínio já permitido na chave.",
       "arquivos": [
         "functions/index.js",
         "js/professorTech/professorTech.js",
@@ -209,26 +315,25 @@
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Corrigido",
           "chave": "corrigido",
           "blocos": [
             {
-              "titulo": "Chamada ao Gemini bloqueada por restrição de sites, sem mexer nas credenciais",
-              "nivel": "CRÍTICO",
-              "linhas": [
-                [
-                  "p",
-                  "A gerarPlanoIA passou a enviar o cabeçalho Referer: https://kazenski-a1bb2.web.app/ (domínio já presente na lista de sites permitidos da chave), que é o que o Google valida na restrição de sites. Nenhuma alteração foi feita nas restrições da chave, que segue protegendo os outros apps. Arquivos: functions/index.js."
-                ]
-              ]
-            },
-            {
-              "titulo": "Mensagens de erro ajustadas",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "Se o bloqueio persistir, o site orienta a conferir se o domínio segue na lista de permitidos, em vez de pedir para remover restrições. Arquivos: functions/index.js, js/professorTech/professorTech.js."
+                  "**Chamada ao Gemini bloqueada por restrição de sites, sem mexer nas credenciais**: a `gerarPlanoIA` passou a enviar o cabeçalho `Referer: https://kazenski-a1bb2.web.app/` (domínio já presente na lista de sites permitidos da chave), que é o que o Google valida na restrição de sites. Nenhuma alteração foi feita nas restrições da chave, que segue protegendo os outros apps. Arquivos: `functions/index.js`."
+                ],
+                [
+                  "li",
+                  "Mensagens de erro ajustadas: se o bloqueio persistir, o site orienta a conferir se o domínio segue na lista de permitidos, em vez de pedir para remover restrições. Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -244,7 +349,7 @@
               "linhas": [
                 [
                   "li",
-                  "Sintaxe da functions/index.js validada (node --check)."
+                  "Sintaxe da `functions/index.js` validada (`node --check`)."
                 ],
                 [
                   "li",
@@ -265,7 +370,7 @@
       "versao": "1.7.1",
       "data": "2026-10-06",
       "autor": "",
-      "escopo": "Correções na Kaz IA após os primeiros testes em produção: crash no initKazIA por elemento inexistente, erro Requests from referer <empty> are blocked na chamada ao Gemini e suporte a PDFs pesados da BNCC via URL pública do GitHub (sem o limite de 1MB do Firestore).",
+      "escopo": "Correções na Kaz IA após os primeiros testes em produção: crash no `initKazIA` por elemento inexistente, erro `Requests from referer <empty> are blocked` na chamada ao Gemini e suporte a PDFs pesados da BNCC via URL pública do GitHub (sem o limite de 1MB do Firestore).",
       "arquivos": [
         "functions/index.js",
         "js/professorTech/professorTech.js",
@@ -277,26 +382,31 @@
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Corrigido",
           "chave": "corrigido",
           "blocos": [
             {
               "titulo": "Crash Cannot read properties of null (reading 'classList') no initKazIA",
-              "nivel": "CRÍTICO",
+              "nivel": null,
               "linhas": [
                 [
                   "p",
-                  "A função tentava manipular os elementos kaz-ia-config-panel e kaz-ia-context-display, que não existem no HTML atual. Agora todos os acessos têm guarda de nulo e a função só exibe a mensagem de aviso quando turma/disciplina não estão selecionadas. Arquivos: js/professorTech/professorTech.js."
+                  "A função tentava manipular os elementos `kaz-ia-config-panel` e `kaz-ia-context-display`, que não existem no HTML atual. Agora todos os acessos têm guarda de nulo e a função só exibe a mensagem de aviso quando turma/disciplina não estão selecionadas. Arquivos: `js/professorTech/professorTech.js`."
                 ]
               ]
             },
             {
               "titulo": "Erro Requests from referer <empty> are blocked ao gerar plano",
-              "nivel": "CRÍTICO",
+              "nivel": null,
               "linhas": [
                 [
                   "p",
-                  "Esse erro vem da API do Gemini quando a chave tem restrição de aplicativo por referenciador HTTP: a chamada sai do servidor (Cloud Function, sem referer) e é bloqueada. A Cloud Function agora detecta esse caso e retorna instrução direta; o frontend exibe mensagem orientando a remover a restrição. Ação necessária no Google Cloud Console > APIs e serviços > Credenciais > chave do Gemini: definir Restrições de aplicativo como Nenhuma. Arquivos: functions/index.js, js/professorTech/professorTech.js."
+                  "Esse erro vem da API do Gemini quando a chave tem **restrição de aplicativo por referenciador HTTP**: a chamada sai do servidor (Cloud Function, sem referer) e é bloqueada. A Cloud Function agora detecta esse caso e retorna instrução direta; o frontend exibe mensagem orientando a remover a restrição. **Ação necessária no Google Cloud Console > APIs e serviços > Credenciais > chave do Gemini: definir \"Restrições de aplicativo\" como \"Nenhuma\"** (chamadas server-to-server não enviam referer). Arquivos: `functions/index.js`, `js/professorTech/professorTech.js`."
                 ]
               ]
             },
@@ -305,8 +415,8 @@
               "nivel": null,
               "linhas": [
                 [
-                  "li",
-                  "listarPlanos, listarModelosPlanejamento e buscarPlanosExistentes usavam where + orderBy combinados, que falham sem índice composto criado. Agora usam query simples com filtro e ordenação em JS, sem necessidade de criar índices. Arquivos: functions/index.js."
+                  "p",
+                  "`listarPlanos`, `listarModelosPlanejamento` e `buscarPlanosExistentes` usavam `where + orderBy` combinados, que falham sem índice composto criado. Agora usam query simples com filtro e ordenação em JS, sem necessidade de criar índices. Arquivos: `functions/index.js`."
                 ]
               ]
             },
@@ -315,8 +425,8 @@
               "nivel": null,
               "linhas": [
                 [
-                  "li",
-                  "Registros antigos foram salvos com o campo conteuido em vez de conteudo. As funções agora gravam os dois campos e leem com fallback (conteudo || conteuido), então modelos antigos continuam abrindo normalmente. Arquivos: functions/index.js."
+                  "p",
+                  "Registros antigos foram salvos com o campo `conteuido` em vez de `conteudo`. As funções agora gravam os dois campos e leem com fallback (`conteudo || conteuido`), então modelos antigos continuam abrindo normalmente. Arquivos: `functions/index.js`."
                 ]
               ]
             }
@@ -327,22 +437,20 @@
           "chave": "adicionado",
           "blocos": [
             {
-              "titulo": "Fontes da base de conhecimento em 3 tipos",
+              "titulo": "",
               "nivel": null,
               "linhas": [
                 [
                   "li",
-                  "pdf (anexo até 1MB), url (link público, ex: PDF no GitHub, sem limite — baixado no servidor na hora de gerar) e texto (trecho colado). O modal de Fontes ganhou seletor de tipo com campos condicionais, e a lista mostra ícone e detalhe por tipo. Arquivos: index.html, js/professorTech/professorTech.js, functions/index.js."
-                ]
-              ]
-            },
-            {
-              "titulo": "Pasta docs/bncc/ no repositório",
-              "nivel": null,
-              "linhas": [
+                  "**Fontes da base de conhecimento em 3 tipos**: `pdf` (anexo até 1MB), `url` (link público, ex: PDF no GitHub, sem limite — baixado no servidor na hora de gerar) e `texto` (trecho colado). O modal de Fontes ganhou seletor de tipo com campos condicionais, e a lista mostra ícone e detalhe por tipo. Arquivos: `index.html`, `js/professorTech/professorTech.js`, `functions/index.js`."
+                ],
                 [
                   "li",
-                  "Guia de como hospedar os PDFs da BNCC/BNCC Digital no GitHub e cadastrar a URL raw como fonte da IA. Arquivos: docs/bncc/README.md, docs/bncc/.gitkeep."
+                  "**Pasta `docs/bncc/`** no repositório com guia de como hospedar os PDFs da BNCC/BNCC Digital no GitHub e cadastrar a URL raw como fonte da IA. Arquivos: `docs/bncc/README.md`, `docs/bncc/.gitkeep`."
+                ],
+                [
+                  "li",
+                  "Mensagem de erro específica para bloqueio por referer no frontend, com passo a passo da correção. Arquivos: `js/professorTech/professorTech.js`."
                 ]
               ]
             }
@@ -362,7 +470,7 @@
                 ],
                 [
                   "li",
-                  "conteudoHtml não possui mais nenhuma referência no frontend — saída 100% textual."
+                  "`conteudoHtml` não possui mais nenhuma referência no frontend — saída 100% textual."
                 ]
               ]
             }
@@ -393,6 +501,11 @@
       ],
       "secoes": [
         {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
           "titulo": "Adicionado",
           "chave": "adicionado",
           "blocos": [
@@ -402,7 +515,39 @@
               "linhas": [
                 [
                   "li",
-                  "**8 novas Cloud Functions** para gerenciar todo o ciclo de vida dos planos: gerarPlanoIA, salvarPlano, listarPlanos, buscarPlano, deletarPlano, salvarModeloPlanejamento, listarModelosPlanejamento, buscarModeloPlanejamento"
+                  "**8 novas Cloud Functions** para gerenciar todo o ciclo de vida dos planos:"
+                ],
+                [
+                  "li",
+                  "`gerarPlanoIA`: Gera planos com IA, consultando planos existentes e PDFs da BNCC"
+                ],
+                [
+                  "li",
+                  "`salvarPlano`: Salva planos gerados no Firestore com organização por escola/turma/disciplina/trimestre"
+                ],
+                [
+                  "li",
+                  "`listarPlanos`: Lista planos com filtros por escola, turma, disciplina e trimestre"
+                ],
+                [
+                  "li",
+                  "`buscarPlano`: Busca um plano específico pelo ID"
+                ],
+                [
+                  "li",
+                  "`deletarPlano`: Exclui um plano"
+                ],
+                [
+                  "li",
+                  "`salvarModeloPlanejamento`: Salva modelos de planejamento das escolas"
+                ],
+                [
+                  "li",
+                  "`listarModelosPlanejamento`: Lista os modelos salvos"
+                ],
+                [
+                  "li",
+                  "`buscarModeloPlanejamento`: Busca um modelo específico"
                 ]
               ]
             },
@@ -416,7 +561,7 @@
                 ],
                 [
                   "li",
-                  "Botão **Copiar** para copiar o plano gerado com um clique"
+                  "Botão **\"Copiar\"** para copiar o plano gerado com um clique"
                 ],
                 [
                   "li",
@@ -430,11 +575,11 @@
               "linhas": [
                 [
                   "li",
-                  "Novo campo **Modelo de Planejamento da Escola** no formulário"
+                  "Novo campo **\"Modelo de Planejamento da Escola\"** no formulário"
                 ],
                 [
                   "li",
-                  "Botão **Modelos** para salvar e reutilizar modelos de cada escola"
+                  "Botão **\"Modelos\"** para salvar e reutilizar modelos de cada escola"
                 ],
                 [
                   "li",
@@ -460,7 +605,7 @@
                 ],
                 [
                   "li",
-                  "Botão **Meus Planos** para visualizar todos os planos gerados"
+                  "Botão **\"Meus Planos\"** para visualizar todos os planos gerados"
                 ],
                 [
                   "li",
@@ -468,7 +613,7 @@
                 ],
                 [
                   "li",
-                  "Botão **Salvar nos Modelos** para salvar qualquer plano gerado"
+                  "Botão **\"Salvar nos Modelos\"** para salvar qualquer plano gerado"
                 ]
               ]
             },
@@ -520,11 +665,19 @@
           "blocos": [
             {
               "titulo": "Segurança da API Key",
-              "nivel": "CRÍTICO",
+              "nivel": null,
               "linhas": [
                 [
-                  "p",
-                  "**Antes**: Chave da API do Gemini exposta no frontend (visível no DevTools). **Agora**: Chave protegida via Firebase Secrets no servidor. Eliminado o campo de API Key da interface (não é mais necessário)."
+                  "li",
+                  "**Antes**: Chave da API do Gemini exposta no frontend (visível no DevTools)"
+                ],
+                [
+                  "li",
+                  "**Agora**: Chave protegida via Firebase Secrets no servidor"
+                ],
+                [
+                  "li",
+                  "Eliminado o campo de API Key da interface (não é mais necessário)"
                 ]
               ]
             },
@@ -538,7 +691,7 @@
                 ],
                 [
                   "li",
-                  "Feedback em tempo real durante a geração (Conectando..., Lendo PDFs...)"
+                  "Feedback em tempo real durante a geração (\"Conectando...\", \"Lendo PDFs...\")"
                 ],
                 [
                   "li",
