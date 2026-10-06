@@ -5759,6 +5759,15 @@ window.profAPI = {
         const tipo = document.getElementById('kaz-ia-source-tipo');
         if (tipo) tipo.value = 'pdf';
         window.profAPI.toggleKazIaSourceTipo();
+        window.profAPI.arquivoPendenteKazIa = null;
+        const info = document.getElementById('kaz-ia-arquivo-info');
+        if (info) info.classList.add('hidden');
+        const btnGh = document.getElementById('btn-kaz-github');
+        if (btnGh) {
+            btnGh.disabled = true;
+            btnGh.className = 'bg-slate-700 text-slate-500 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed';
+            btnGh.innerHTML = '<i class="fab fa-github"></i> Registrar no GitHub';
+        }
     },
 
     toggleKazIaSourceTipo: () => {
@@ -5861,6 +5870,126 @@ window.profAPI = {
             await deleteDoc(doc(db, "base_pedagogica", id));
             window.profAPI.openKazIaSources(); 
         } catch (e) { alert("Erro ao excluir."); }
+    },
+
+    // --- LER ARQUIVO DA PASTA + REGISTRAR NO GITHUB ---
+    arquivoPendenteKazIa: null,
+
+    getGitHubCfgKazIa: () => {
+        try {
+            const cfg = JSON.parse(localStorage.getItem('kaz_github_cfg') || '{}');
+            const owner = document.getElementById('kaz-ia-github-owner');
+            const repo = document.getElementById('kaz-ia-github-repo');
+            const branch = document.getElementById('kaz-ia-github-branch');
+            if (owner && !owner.value && cfg.owner) owner.value = cfg.owner;
+            if (repo && !repo.value && cfg.repo) repo.value = cfg.repo;
+            if (branch && !branch.value && cfg.branch) branch.value = cfg.branch;
+            return {
+                owner: (owner?.value || cfg.owner || '').trim(),
+                repo: (repo?.value || cfg.repo || '').trim(),
+                branch: (branch?.value || cfg.branch || 'main').trim() || 'main'
+            };
+        } catch (e) {
+            return { owner: '', repo: '', branch: 'main' };
+        }
+    },
+
+    lerArquivoPastaKazIa: async (input) => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (!['pdf', 'txt', 'md', 'markdown'].includes(ext)) {
+            alert('Tipo não suportado. Use PDF, TXT ou MD.');
+            input.value = '';
+            return;
+        }
+        if (file.size > 7 * 1024 * 1024) {
+            alert(`Arquivo com ${(file.size / 1024 / 1024).toFixed(1)}MB excede o limite de envio direto (7MB). Extraia as páginas da sua disciplina e tente de novo.`);
+            input.value = '';
+            return;
+        }
+        try {
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(String(e.target.result).split(',')[1]);
+                reader.onerror = () => reject(new Error('Falha ao ler o arquivo.'));
+                reader.readAsDataURL(file);
+            });
+            window.profAPI.arquivoPendenteKazIa = { nome: file.name, base64, tamanho: file.size };
+
+            const info = document.getElementById('kaz-ia-arquivo-info');
+            if (info) {
+                info.classList.remove('hidden');
+                info.innerHTML = `<i class="fas fa-file text-indigo-400 mr-2"></i><b class="text-white">${escapeHTML(file.name)}</b> (${(file.size / 1024).toFixed(0)} KB) — pronto para registrar no GitHub.`;
+            }
+            const btnGh = document.getElementById('btn-kaz-github');
+            if (btnGh) {
+                btnGh.disabled = false;
+                btnGh.className = 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg shadow-lg transition-colors flex items-center gap-2';
+            }
+            // Sugere o título e o tipo conforme o arquivo
+            const tituloInput = document.getElementById('kaz-ia-source-title');
+            if (tituloInput && !tituloInput.value.trim()) {
+                tituloInput.value = file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+            }
+            window.profAPI.getGitHubCfgKazIa();
+        } catch (e) {
+            alert('Erro ao ler arquivo: ' + e.message);
+        } finally {
+            input.value = '';
+        }
+    },
+
+    registrarGitHubKazIa: async () => {
+        const pendente = window.profAPI.arquivoPendenteKazIa;
+        if (!pendente) return alert('Clique em "Ler arquivo da pasta" primeiro.');
+        const cfg = window.profAPI.getGitHubCfgKazIa();
+        if (!cfg.owner || !cfg.repo) return alert('Preencha Owner e Repositório na Configuração do GitHub.');
+        try {
+            localStorage.setItem('kaz_github_cfg', JSON.stringify(cfg));
+        } catch (e) {}
+
+        const tituloEl = document.getElementById('kaz-ia-source-title');
+        const titulo = (tituloEl?.value || '').trim() || pendente.nome.replace(/\.[^.]+$/, '');
+
+        const btn = document.getElementById('btn-kaz-github');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publicando...'; btn.disabled = true; }
+
+        try {
+            const publicarFn = httpsCallable(functions, 'publicarFonteGitHub');
+            const result = await publicarFn({
+                owner: cfg.owner,
+                repo: cfg.repo,
+                branch: cfg.branch,
+                nomeArquivo: pendente.nome,
+                base64: pendente.base64
+            });
+
+            const { rawUrl } = result.data;
+
+            // Cadastra a fonte automaticamente como URL (sem copiar link manualmente)
+            await addDoc(collection(db, 'base_pedagogica'), {
+                titulo,
+                tipo: 'url',
+                url: rawUrl,
+                criadoPor: auth.currentUser.uid,
+                atualizadoPor: auth.currentUser.uid,
+                dataCriacao: serverTimestamp(),
+                dataAtualizacao: serverTimestamp()
+            });
+
+            window.profAPI.arquivoPendenteKazIa = null;
+            const info = document.getElementById('kaz-ia-arquivo-info');
+            if (info) info.classList.add('hidden');
+            window.profAPI.resetKazIaSourceForm();
+            window.profAPI.openKazIaSources();
+            alert('Arquivo publicado no GitHub e fonte cadastrada com sucesso!');
+        } catch (e) {
+            console.error('Erro ao registrar no GitHub:', e);
+            alert('Falha ao publicar: ' + (e.message || 'Erro desconhecido'));
+            if (btn) { btn.innerHTML = original; btn.disabled = false; }
+        }
     },
 
     // --- GERAÇÃO COM GEMINI VIA CLOUD FUNCTION ---

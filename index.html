@@ -4881,7 +4881,33 @@
                                 <option value="url">Link público (ex: PDF no GitHub — sem limite)</option>
                                 <option value="texto">Texto colado (trecho da BNCC)</option>
                             </select>
-                            <p class="text-[9px] text-slate-500 mt-1 pl-1">Para PDFs pesados, suba no GitHub (pasta docs/bncc) e cadastre aqui a URL raw.</p>
+                            <p class="text-[9px] text-slate-500 mt-1 pl-1">Para PDFs pesados, use os botões abaixo: leia o arquivo da pasta e registre no GitHub sem sair daqui.</p>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" onclick="document.getElementById('kaz-ia-arquivo-pasta').click()"
+                                class="bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2"><i
+                                    class="fas fa-folder-open"></i> Ler arquivo da pasta</button>
+                            <button type="button" id="btn-kaz-github" onclick="window.profAPI.registrarGitHubKazIa()" disabled
+                                class="bg-slate-700 text-slate-500 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"><i
+                                    class="fab fa-github"></i> Registrar no GitHub</button>
+                            <input type="file" id="kaz-ia-arquivo-pasta" accept=".pdf,.txt,.md,.markdown" class="hidden" onchange="window.profAPI.lerArquivoPastaKazIa(this)">
+                        </div>
+                        <div id="kaz-ia-arquivo-info" class="hidden text-xs text-slate-400 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2"></div>
+
+                        <div class="bg-slate-900 border border-slate-600 p-4 rounded-lg">
+                            <button type="button" onclick="document.getElementById('kaz-ia-github-cfg').classList.toggle('hidden')"
+                                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i
+                                    class="fab fa-github"></i> Configuração do GitHub <i class="fas fa-chevron-down text-[8px]"></i></button>
+                            <div id="kaz-ia-github-cfg" class="hidden mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <input type="text" id="kaz-ia-github-owner" placeholder="Owner (ex: Kazenski)"
+                                    class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2.5 outline-none focus:border-indigo-500">
+                                <input type="text" id="kaz-ia-github-repo" placeholder="Repositório (ex: siteKazenski-2026)"
+                                    class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2.5 outline-none focus:border-indigo-500">
+                                <input type="text" id="kaz-ia-github-branch" placeholder="Branch (padrão: main)"
+                                    class="bg-slate-800 border border-slate-600 text-white text-xs rounded-lg p-2.5 outline-none focus:border-indigo-500">
+                            </div>
+                            <p class="text-[9px] text-slate-500 mt-2">O arquivo é publicado em <span class="font-mono">docs/bncc/</span> e a fonte é cadastrada automaticamente com o link. Limite de envio direto: 7MB.</p>
                         </div>
 
                         <div id="kaz-ia-source-pdf-wrap" class="flex items-center gap-4 bg-slate-900 border border-slate-600 p-4 rounded-lg">

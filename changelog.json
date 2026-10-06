@@ -1,8 +1,86 @@
 {
   "geradoEm": "2026-10-06T00:00:00+00:00",
-  "versaoAtual": "1.7.4",
-  "totalEntradas": 19,
+  "versaoAtual": "1.7.5",
+  "totalEntradas": 20,
   "entradas": [
+    {
+      "versao": "1.7.5",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Fluxo de fontes da base de conhecimento sem sair do planejamento: botão Ler arquivo da pasta + botão Registrar no GitHub (publica em docs/bncc/ via Cloud Function e cadastra a fonte automaticamente, sem copiar link manualmente).",
+      "arquivos": [
+        "functions/index.js",
+        "js/professorTech/professorTech.js",
+        "index.html",
+        "KAZ_IA_SETUP.md",
+        "docs/bncc/README.md",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "Cloud Function publicarFonteGitHub",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Recebe o arquivo, publica/atualiza em docs/bncc/ do repo via GitHub API e devolve a URL raw. Token guardado só no servidor (Secret GITHUB_TOKEN), com validação de nome, extensão (PDF/TXT/MD) e tamanho (envio direto até 7MB). Arquivos: functions/index.js."
+                ]
+              ]
+            },
+            {
+              "titulo": "Botões no modal de Fontes",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Ler arquivo da pasta (lê PDF/TXT/MD do computador, sugere o título, libera o botão do GitHub) e Registrar no GitHub (publica e cadastra a fonte como URL automaticamente), além de bloco colapsável de Configuração do GitHub (owner/repo/branch salvos no navegador). Arquivos: index.html, js/professorTech/professorTech.js."
+                ]
+              ]
+            },
+            {
+              "titulo": "Guia de setup com token do GitHub",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Passo a passo do token fine-grained (Contents Read/Write só no repo do site). Arquivos: KAZ_IA_SETUP.md, docs/bncc/README.md."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe da functions/index.js validada (node --check)."
+                ],
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Functions + Hosting, função publicarFonteGitHub criada)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.7.4",
       "data": "2026-10-06",

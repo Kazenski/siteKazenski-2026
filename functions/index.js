@@ -9,6 +9,11 @@ initializeApp();
 // Chave da API do Gemini - configure com: firebase functions:secrets:set GEMINI_API_KEY
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 
+// Token do GitHub (PAT com permissão Contents: leitura e escrita no repo)
+// configure com: firebase functions:secrets:set GITHUB_TOKEN
+// Usado para publicar os PDFs da base de conhecimento em docs/bncc sem sair do site.
+const githubToken = defineSecret('GITHUB_TOKEN');
+
 /**
  * Recalcula o ranking da votação sempre que um voto é criado ou removido.
  * Escreve em votacoes/{votacaoId}/ranking/atual — único documento que os
@@ -717,5 +722,117 @@ exports.gerarPlanoIA = onCall({
         console.error('Erro na geração do plano:', error);
         if (error instanceof HttpsError) throw error;
         throw new HttpsError('internal', error.message || 'Erro interno ao gerar plano.');
+    }
+});
+
+// ==========================================
+// KAZ IA - Publicar fonte no GitHub
+// ==========================================
+
+// Limite do envio direto via callable (payload máx ~10MB; base64 infla ~33%).
+// Arquivos maiores devem ser divididos/extraídos antes do envio.
+const GITHUB_MAX_BYTES = 7 * 1024 * 1024;
+const GITHUB_DIR_PADRAO = 'docs/bncc';
+const GITHUB_EXT_PERMITIDAS = ['pdf', 'txt', 'md', 'markdown'];
+
+function sanitizarNomeArquivo(nome) {
+    const base = String(nome || 'documento.pdf').split(/[\\/]/).pop();
+    const semAcento = base.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const limpo = semAcento.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-+/g, '-').replace(/^[-.]+|[-.]+$/g, '');
+    return (limpo || 'documento.pdf').substring(0, 120);
+}
+
+function validarIdentificadorGitHub(valor, campo) {
+    if (!/^[A-Za-z0-9_.-]+$/.test(String(valor || ''))) {
+        throw new HttpsError('invalid-argument', `${campo} inválido para o GitHub.`);
+    }
+}
+
+/**
+ * Recebe um arquivo (base64), publica em docs/bncc do repo via GitHub API
+ * e devolve a URL raw. O token fica só no servidor (Secret GITHUB_TOKEN).
+ */
+exports.publicarFonteGitHub = onCall({
+    secrets: [githubToken],
+    timeoutSeconds: 120,
+    memory: '512MB'
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Usuário não autenticado.');
+    }
+
+    const { owner, repo, branch, nomeArquivo, base64 } = request.data || {};
+    const branchFinal = String(branch || 'main');
+
+    validarIdentificadorGitHub(owner, 'Owner');
+    validarIdentificadorGitHub(repo, 'Repositório');
+    validarIdentificadorGitHub(branchFinal, 'Branch');
+
+    const nomeLimpo = sanitizarNomeArquivo(nomeArquivo);
+    const ext = nomeLimpo.split('.').pop().toLowerCase();
+    if (!GITHUB_EXT_PERMITIDAS.includes(ext)) {
+        throw new HttpsError('invalid-argument', 'Tipo de arquivo não permitido. Use PDF, TXT ou MD.');
+    }
+    if (!base64 || typeof base64 !== 'string') {
+        throw new HttpsError('invalid-argument', 'Arquivo vazio. Leia o arquivo da pasta primeiro.');
+    }
+
+    const tamanho = Buffer.byteLength(base64, 'utf8');
+    // base64 tem ~33% de overhead: valida o tamanho real aproximado
+    const tamanhoReal = Math.floor(tamanho * 0.75);
+    if (tamanhoReal > GITHUB_MAX_BYTES) {
+        throw new HttpsError('invalid-argument', `Arquivo muito grande (${(tamanhoReal / 1024 / 1024).toFixed(1)}MB). O envio direto aceita até 7MB — extraia as páginas da sua disciplina e tente de novo.`);
+    }
+
+    const path = `${GITHUB_DIR_PADRAO}/${nomeLimpo}`;
+    const headers = {
+        'Authorization': `Bearer ${githubToken.value()}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'KazIA/1.0 (+firebase-functions)',
+        'Content-Type': 'application/json'
+    };
+
+    try {
+        // Verifica se o arquivo já existe (para atualizar em vez de duplicar)
+        let sha = null;
+        const getResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}?ref=${encodeURIComponent(branchFinal)}`, { headers });
+        if (getResp.ok) {
+            const getData = await getResp.json();
+            sha = getData.sha || null;
+        } else if (getResp.status !== 404) {
+            const errGet = await getResp.json().catch(() => ({}));
+            throw new HttpsError('internal', errGet.message || `GitHub retornou HTTP ${getResp.status} ao verificar o arquivo. Confira owner/repo/branch e a permissão do token.`);
+        }
+
+        const putResp = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}`, {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify({
+                message: `Kaz IA: adiciona base de conhecimento ${nomeLimpo}`,
+                content: base64.replace(/^data:[^,]+,/, ''),
+                branch: branchFinal,
+                ...(sha ? { sha } : {})
+            })
+        });
+
+        if (!putResp.ok) {
+            const errPut = await putResp.json().catch(() => ({}));
+            throw new HttpsError('internal', errPut.message || `GitHub retornou HTTP ${putResp.status} ao publicar. Confira o token e as permissões de Contents no repositório.`);
+        }
+
+        const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branchFinal}/${path}`;
+
+        return {
+            sucesso: true,
+            rawUrl,
+            path,
+            atualizado: Boolean(sha)
+        };
+
+    } catch (error) {
+        console.error('Erro ao publicar no GitHub:', error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', error.message || 'Erro interno ao publicar no GitHub.');
     }
 });

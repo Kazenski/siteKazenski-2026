@@ -44,6 +44,22 @@ firebase functions:secrets:set GEMINI_API_KEY
 
 Quando solicitado, cole a chave que você copiou no passo 1.
 
+### 2b. Configurar o token do GitHub (para o botão "Registrar no GitHub")
+
+O botão publica os PDFs em `docs/bncc/` do repositório via API, com o token
+guardado só no servidor:
+
+1. No GitHub, acesse **Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens** e gere um token com permissão **Contents: Read and write**
+   apenas no repositório do site
+2. No terminal, na pasta do projeto:
+```bash
+firebase.cmd functions:secrets:set GITHUB_TOKEN
+```
+3. Cole o token quando solicitado
+4. No site, no modal de Fontes, abra **Configuração do GitHub** e preencha
+   Owner, Repositório e Branch (ficam salvos no navegador)
+
 ### 3. Fazer Deploy da Cloud Function
 
 ```bash

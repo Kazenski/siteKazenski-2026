@@ -4,6 +4,28 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.5] — 2026-10-06
+### Escopo
+Fluxo de fontes da base de conhecimento sem sair do planejamento: botão "Ler arquivo da pasta" + botão "Registrar no GitHub" (publica em `docs/bncc/` via Cloud Function e cadastra a fonte automaticamente, sem copiar link manualmente).
+
+### Adicionado
+- **Cloud Function `publicarFonteGitHub`**: recebe o arquivo, publica/atualiza em `docs/bncc/` do repo via GitHub API e devolve a URL raw. Token guardado só no servidor (Secret `GITHUB_TOKEN`), com validação de nome, extensão (PDF/TXT/MD) e tamanho (envio direto até 7MB). Arquivos: `functions/index.js`.
+- **Botões no modal de Fontes**: "Ler arquivo da pasta" (lê PDF/TXT/MD do computador, sugere o título, libera o botão do GitHub) e "Registrar no GitHub" (publica e cadastra a fonte como URL automaticamente), além de bloco colapsável de Configuração do GitHub (owner/repo/branch salvos no navegador). Arquivos: `index.html`, `js/professorTech/professorTech.js`.
+- **Guia de setup** com o passo a passo do token do GitHub (fine-grained, Contents Read/Write só no repo do site). Arquivos: `KAZ_IA_SETUP.md`, `docs/bncc/README.md`.
+
+### Verificado
+- Sintaxe da `functions/index.js` validada (`node --check`).
+- Deploy concluído com sucesso no Firebase (Functions + Hosting, função `publicarFonteGitHub` criada).
+
+### Arquivos tocados
+- functions/index.js
+- js/professorTech/professorTech.js
+- index.html
+- KAZ_IA_SETUP.md
+- docs/bncc/README.md
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.7.4] — 2026-10-06
 ### Escopo
 Troca da credencial do Gemini para uma chave de autenticação dedicada: a `Gemini API` não aceita chaves padrão compartilhadas (erro `are blocked` mesmo com a API ativada). A chave antiga (`Kazenski API 2026`) segue intacta para os outros apps.
