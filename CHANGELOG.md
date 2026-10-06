@@ -4,6 +4,81 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.7.0] — 2026-10-06
+### Escopo
+Reestruturação completa da Kaz IA (Gerador de Planos com Inteligência Artificial). A aba foi migrada de uma arquitetura frontend direta para uma arquitetura baseada em Cloud Functions, trazendo segurança, modelos de IA atualizados, saída em formato textual, sistema de modelos de planejamento por escola e histórico inteligente que consulta planos existentes antes de gerar novos.
+
+### Adicionado
+
+#### Arquitetura Cloud Functions
+- **8 novas Cloud Functions** para gerenciar todo o ciclo de vida dos planos:
+  - `gerarPlanoIA`: Gera planos com IA, consultando planos existentes e PDFs da BNCC
+  - `salvarPlano`: Salva planos gerados no Firestore com organização por escola/turma/disciplina/trimestre
+  - `listarPlanos`: Lista planos com filtros por escola, turma, disciplina e trimestre
+  - `buscarPlano`: Busca um plano específico pelo ID
+  - `deletarPlano`: Exclui um plano
+  - `salvarModeloPlanejamento`: Salva modelos de planejamento das escolas
+  - `listarModelosPlanejamento`: Lista os modelos salvos
+  - `buscarModeloPlanejamento`: Busca um modelo específico
+
+#### Saída em Formato Textual
+- Planos agora são gerados em **Markdown puro** (não HTML), permitindo copiar e colar diretamente no modelo da escola
+- Botão **"Copiar"** para copiar o plano gerado com um clique
+- Texto formatado com títulos, tabelas e listas para fácil leitura e transposição
+
+#### Modelos de Planejamento por Escola
+- Novo campo **"Modelo de Planejamento da Escola"** no formulário
+- Botão **"Modelos"** para salvar e reutilizar modelos de cada escola
+- A IA adapta a saída ao modelo da escola quando fornecido
+- Modelos salvos podem ser carregados com um clique
+
+#### Histórico Inteligente
+- A IA agora **consulta planos existentes** da mesma disciplina antes de gerar novos
+- Evita repetição de conteúdo e mantém progressão pedagógica
+- Botão **"Meus Planos"** para visualizar todos os planos gerados
+- Planos organizados por escola, turma, disciplina e trimestre
+- Botão **"Salvar nos Modelos"** para salvar qualquer plano gerado
+
+#### Modelos de IA Atualizados
+- **Gemini 2.0 Flash**: Rápido e econômico
+- **Gemini 2.5 Flash**: Recomendado (equilíbrio entre velocidade e qualidade)
+- **Gemini 1.5 Pro**: Mais detalhado e complexo
+
+#### Prompt Otimizado para BNCC
+- Instruções específicas para citar códigos da BNCC (ex: EF09MA12, EM13CHSA01)
+- Contextualização com Diretrizes Curriculares de Santa Catarina
+- Estrutura de saída detalhada por tipo de plano (diário, mensal, anual)
+- Integração com PDFs da BNCC anexados na base de conhecimento
+
+### Corrigido
+
+#### Segurança da API Key
+- **Antes**: Chave da API do Gemini exposta no frontend (visível no DevTools)
+- **Agora**: Chave protegida via Firebase Secrets no servidor
+- Eliminado o campo de API Key da interface (não é mais necessário)
+
+#### Tratamento de Erros
+- Mensagens de erro mais claras e específicas
+- Feedback em tempo real durante a geração ("Conectando...", "Lendo PDFs...")
+- Tratamento de erros comuns: cota excedida, sessão expirada, sem permissão
+
+### Verificado
+- Deploy concluído com sucesso no Firebase (Hosting + Functions)
+- Todas as 8 Cloud Functions criadas e funcionando
+- Interface atualizada com novos campos e botões
+- Saída em formato textual funcionando corretamente
+
+### Arquivos tocados
+- functions/index.js
+- js/professorTech/professorTech.js
+- index.html
+- KAZ_IA_SETUP.md
+- firebase.json
+- .firebaserc
+- .gitignore
+- CHANGELOG.md
+- changelog.json
+
 ## [v1.6.8] — 2026-10-04
 ### Escopo
 Correção do bug que fazia o Kanban aparecer em todas as sub-abas do Aluno Tech (e o texto `id="atab-kanban" class="aluno-tab-content w-full">` ser desenhado na tela), devolução de cada aba ao seu conteúdo original, modernização da Visão Geral do Aluno Tech — que até aqui só tinha sido modernizada dentro do Caderno Digital — e ação de verdade nos filtros "Fixadas" e "Recentes" do Caderno.

@@ -1,8 +1,216 @@
 {
-  "geradoEm": "2026-10-05T00:24:19+00:00",
-  "versaoAtual": "1.6.8",
-  "totalEntradas": 14,
+  "geradoEm": "2026-10-06T00:00:00+00:00",
+  "versaoAtual": "1.7.0",
+  "totalEntradas": 15,
   "entradas": [
+    {
+      "versao": "1.7.0",
+      "data": "2026-10-06",
+      "autor": "",
+      "escopo": "Reestruturação completa da Kaz IA (Gerador de Planos com Inteligência Artificial). A aba foi migrada de uma arquitetura frontend direta para uma arquitetura baseada em Cloud Functions, trazendo segurança, modelos de IA atualizados, saída em formato textual, sistema de modelos de planejamento por escola e histórico inteligente que consulta planos existentes antes de gerar novos.",
+      "arquivos": [
+        "functions/index.js",
+        "js/professorTech/professorTech.js",
+        "index.html",
+        "KAZ_IA_SETUP.md",
+        "firebase.json",
+        ".firebaserc",
+        ".gitignore",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "Arquitetura Cloud Functions",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**8 novas Cloud Functions** para gerenciar todo o ciclo de vida dos planos: gerarPlanoIA, salvarPlano, listarPlanos, buscarPlano, deletarPlano, salvarModeloPlanejamento, listarModelosPlanejamento, buscarModeloPlanejamento"
+                ]
+              ]
+            },
+            {
+              "titulo": "Saída em Formato Textual",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Planos agora são gerados em **Markdown puro** (não HTML), permitindo copiar e colar diretamente no modelo da escola"
+                ],
+                [
+                  "li",
+                  "Botão **Copiar** para copiar o plano gerado com um clique"
+                ],
+                [
+                  "li",
+                  "Texto formatado com títulos, tabelas e listas para fácil leitura e transposição"
+                ]
+              ]
+            },
+            {
+              "titulo": "Modelos de Planejamento por Escola",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Novo campo **Modelo de Planejamento da Escola** no formulário"
+                ],
+                [
+                  "li",
+                  "Botão **Modelos** para salvar e reutilizar modelos de cada escola"
+                ],
+                [
+                  "li",
+                  "A IA adapta a saída ao modelo da escola quando fornecido"
+                ],
+                [
+                  "li",
+                  "Modelos salvos podem ser carregados com um clique"
+                ]
+              ]
+            },
+            {
+              "titulo": "Histórico Inteligente",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "A IA agora **consulta planos existentes** da mesma disciplina antes de gerar novos"
+                ],
+                [
+                  "li",
+                  "Evita repetição de conteúdo e mantém progressão pedagógica"
+                ],
+                [
+                  "li",
+                  "Botão **Meus Planos** para visualizar todos os planos gerados"
+                ],
+                [
+                  "li",
+                  "Planos organizados por escola, turma, disciplina e trimestre"
+                ],
+                [
+                  "li",
+                  "Botão **Salvar nos Modelos** para salvar qualquer plano gerado"
+                ]
+              ]
+            },
+            {
+              "titulo": "Modelos de IA Atualizados",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Gemini 2.0 Flash**: Rápido e econômico"
+                ],
+                [
+                  "li",
+                  "**Gemini 2.5 Flash**: Recomendado (equilíbrio entre velocidade e qualidade)"
+                ],
+                [
+                  "li",
+                  "**Gemini 1.5 Pro**: Mais detalhado e complexo"
+                ]
+              ]
+            },
+            {
+              "titulo": "Prompt Otimizado para BNCC",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Instruções específicas para citar códigos da BNCC (ex: EF09MA12, EM13CHSA01)"
+                ],
+                [
+                  "li",
+                  "Contextualização com Diretrizes Curriculares de Santa Catarina"
+                ],
+                [
+                  "li",
+                  "Estrutura de saída detalhada por tipo de plano (diário, mensal, anual)"
+                ],
+                [
+                  "li",
+                  "Integração com PDFs da BNCC anexados na base de conhecimento"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "Segurança da API Key",
+              "nivel": "CRÍTICO",
+              "linhas": [
+                [
+                  "p",
+                  "**Antes**: Chave da API do Gemini exposta no frontend (visível no DevTools). **Agora**: Chave protegida via Firebase Secrets no servidor. Eliminado o campo de API Key da interface (não é mais necessário)."
+                ]
+              ]
+            },
+            {
+              "titulo": "Tratamento de Erros",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Mensagens de erro mais claras e específicas"
+                ],
+                [
+                  "li",
+                  "Feedback em tempo real durante a geração (Conectando..., Lendo PDFs...)"
+                ],
+                [
+                  "li",
+                  "Tratamento de erros comuns: cota excedida, sessão expirada, sem permissão"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Deploy concluído com sucesso no Firebase (Hosting + Functions)"
+                ],
+                [
+                  "li",
+                  "Todas as 8 Cloud Functions criadas e funcionando"
+                ],
+                [
+                  "li",
+                  "Interface atualizada com novos campos e botões"
+                ],
+                [
+                  "li",
+                  "Saída em formato textual funcionando corretamente"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        }
+      ]
+    },
     {
       "versao": "1.6.8",
       "data": "2026-10-04",
