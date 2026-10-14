@@ -697,7 +697,7 @@ function mensagemDominio(email) {
     </p>`;
 }
 
-function renderLoginTab() {
+async function renderLoginTab() {
     const container = document.getElementById('login-content');
     if (!container) return;
 
