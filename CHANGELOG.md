@@ -4,6 +4,32 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.8.3] — 2026-10-14
+### Escopo
+**Modo de manutenção apenas manual** + correções no aviso de versão diferente na barra superior.
+
+### Adicionado
+- **Aviso visual na barra superior** para Admin/Moderador quando `changelog.json` ≠ versão registrada no Firestore:
+  - Barra amarela fixa no topo: *"Versão diferente da produção detectada: site roda vX.Y.Z, mas última registrada é vA.B.C. [Registrar versão e ajustar]"*
+  - Botão "Ir para Atualizações" leva direto ao painel
+- **Painel de Atualizações atualizado**: aviso claro *"A manutenção NÃO liga mais automática — use o switch ou 'Salvar textos' para registrar a versão"*
+- **Registro de versão ao salvar textos**: clicar em "Salvar textos" grava `versaoDeploy` no Firestore e remove o aviso
+
+### Alterado
+- **Removido gatilho automático de manutenção**: antes, Admin/Moderador logar com versão diferente ativava manutenção para todos; agora **só ativa manualmente** pelo switch
+- **Correção visual da barra**: removidos `style` inline bloqueados por DOMPurify; novas classes CSS (`.kz-mntbar__dot--warn`, `.kz-mntbar__link`, `.kz-mntbar__btn--warn`)
+
+### Arquivos tocados
+- js/manutencao/manutencao.js
+- style.css
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Build OK, deploy OK
+- Aviso some após "Salvar textos" (versão registrada)
+- Manutenção só liga via switch manual
+
 ## [v1.8.2] — 2026-10-14
 ### Escopo
 Implementação do **One-Tap Sign-In (Google Identity Services)**: login sem popup, reaproveitando a sessão Google ativa no navegador.

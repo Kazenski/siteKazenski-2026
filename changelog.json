@@ -1,8 +1,100 @@
 {
-  "geradoEm": "2026-10-14T12:00:00+00:00",
-  "versaoAtual": "1.8.2",
-  "totalEntradas": 27,
+  "geradoEm": "2026-10-14T14:00:00+00:00",
+  "versaoAtual": "1.8.3",
+  "totalEntradas": 28,
   "entradas": [
+    {
+      "versao": "1.8.3",
+      "data": "2026-10-14",
+      "autor": "",
+      "escopo": "Modo de manutenção apenas manual + correções no aviso de versão diferente na barra superior.",
+      "arquivos": [
+        "js/manutencao/manutencao.js",
+        "style.css",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Aviso visual na barra superior** para Admin/Moderador quando `changelog.json` ≠ versão registrada no Firestore: barra amarela fixa no topo com link \"Registrar versão e ajustar\" e botão \"Ir para Atualizações\"."
+                ],
+                [
+                  "li",
+                  "**Painel de Atualizações atualizado**: aviso claro \"A manutenção NÃO liga mais automática — use o switch ou 'Salvar textos' para registrar a versão\"."
+                ],
+                [
+                  "li",
+                  "**Registro de versão ao salvar textos**: clicar em \"Salvar textos\" grava `versaoDeploy` no Firestore e remove o aviso."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Removido gatilho automático de manutenção**: antes, Admin/Moderador logar com versão diferente ativava manutenção para todos; agora só ativa manualmente pelo switch."
+                ],
+                [
+                  "li",
+                  "**Correção visual da barra**: removidos `style` inline bloqueados por DOMPurify; novas classes CSS (`.kz-mntbar__dot--warn`, `.kz-mntbar__link`, `.kz-mntbar__btn--warn`)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Build OK, deploy OK"
+                ],
+                [
+                  "li",
+                  "Aviso some após \"Salvar textos\" (versão registrada)"
+                ],
+                [
+                  "li",
+                  "Manutenção só liga via switch manual"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.8.2",
       "data": "2026-10-14",
