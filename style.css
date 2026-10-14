@@ -2661,6 +2661,24 @@ body.kz-locked { overflow: hidden; }
 .kz-mntbar__btn--off:hover { background: #15803d; }
 .kz-mntbar__btn:focus-visible { outline: 2px solid #fde68a; outline-offset: 2px; }
 
+/* Variações para aviso de versão diferente (deploy novo) */
+.kz-mntbar__dot--warn {
+    background: #f59e0b;
+    animation: kz-mnt-pulse 1.5s infinite;
+}
+.kz-mntbar__link {
+    color: #fcd34d;
+    text-decoration: underline;
+    font-weight: 700;
+    cursor: pointer;
+}
+.kz-mntbar__link:hover { color: #fde68a; }
+.kz-mntbar__btn--warn {
+    border-color: rgba(245,158,11,.6);
+    background: rgba(120,53,15,.5);
+}
+.kz-mntbar__btn--warn:hover { background: #78350f; }
+
 /* Botão flutuante de saída do preview (criado via JS) */
 .kz-mntbar__sair {
     position: fixed;

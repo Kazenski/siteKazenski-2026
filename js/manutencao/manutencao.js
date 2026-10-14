@@ -383,10 +383,10 @@ function montarBarra() {
         `;
     } else if (deployNovo) {
         // APENAS versão diferente detectada — MANUTENÇÃO DESLIGADA
-        aviso = `<span class="kz-mntbar__label"><span class="kz-mntbar__dot" style="background:#f59e0b"></span> <strong>Versão diferente da produção detectada:</strong> site roda v${escapeHTML(v)}, mas última registrada é v${escapeHTML(String(registrada))}. <a href="#" data-mnt-act="goto" style="color:#fcd34d;text-decoration:underline;font-weight:600">Registrar versão e ajustar</a></span>`;
+        aviso = `<span class="kz-mntbar__label"><span class="kz-mntbar__dot kz-mntbar__dot--warn"></span> <strong>Versão diferente da produção detectada:</strong> site roda v${escapeHTML(v)}, mas última registrada é v${escapeHTML(String(registrada))}. <span class="kz-mntbar__link" data-mnt-act="goto">Registrar versão e ajustar</span></span>`;
 
         botoes = `
-            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--primary" data-mnt-act="goto">
+            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--warn" data-mnt-act="goto">
                 <i class="fas fa-code-branch"></i> Ir para Atualizações
             </button>
         `;
