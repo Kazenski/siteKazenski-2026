@@ -1,8 +1,90 @@
 {
-  "geradoEm": "2026-10-06T20:07:06+00:00",
-  "versaoAtual": "1.8.1",
-  "totalEntradas": 26,
+  "geradoEm": "2026-10-14T12:00:00+00:00",
+  "versaoAtual": "1.8.2",
+  "totalEntradas": 27,
   "entradas": [
+    {
+      "versao": "1.8.2",
+      "data": "2026-10-14",
+      "autor": "",
+      "escopo": "Implementação do One-Tap Sign-In (Google Identity Services): login sem popup, reaproveitando a sessão Google ativa no navegador.",
+      "arquivos": [
+        "js/auth/oneTap.js",
+        "js/main.js",
+        "index.html",
+        ".github/workflows/deploy.yml",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Novo módulo `js/auth/oneTap.js`**: inicializa o GIS, renderiza widget One-Tap e botão \"Continuar com Google\" estilizado."
+                ],
+                [
+                  "li",
+                  "**Integração no `renderLoginTab()`**: chama `iniciarOneTap()` ao abrir a tela de login; se o usuário já está logado no Google, o widget aparece automaticamente (1 clique para entrar)."
+                ],
+                [
+                  "li",
+                  "**Cancelamento no logout**: `cancelarOneTap()` limpa o estado do GIS ao sair."
+                ],
+                [
+                  "li",
+                  "**Suporte a contas sem cadastro**: usuários novos recebem `role: 'Pendente'` e `origemCadastro: 'google-one-tap'`; erro amigável orienta a contatar o admin."
+                ],
+                [
+                  "li",
+                  "**CI/CD**: placeholder `__GOOGLE_CLIENT_ID__` substituído pelo secret `GOOGLE_CLIENT_ID` no deploy."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe dos novos arquivos OK (`node --check js/auth/oneTap.js`)"
+                ],
+                [
+                  "li",
+                  "Integração com `onAuthStateChanged` existente mantida"
+                ],
+                [
+                  "li",
+                  "Fallback para popup (`signInWithPopup`) preservado no botão original"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.8.1",
       "data": "2026-10-06",

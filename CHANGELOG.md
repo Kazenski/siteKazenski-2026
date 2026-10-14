@@ -4,6 +4,30 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.8.2] — 2026-10-14
+### Escopo
+Implementação do **One-Tap Sign-In (Google Identity Services)**: login sem popup, reaproveitando a sessão Google ativa no navegador.
+
+### Adicionado
+- **Novo módulo `js/auth/oneTap.js`**: inicializa o GIS, renderiza widget One-Tap e botão "Continuar com Google" estilizado.
+- **Integração no `renderLoginTab()`**: chama `iniciarOneTap()` ao abrir a tela de login; se o usuário já está logado no Google, o widget aparece automaticamente (1 clique para entrar).
+- **Cancelamento no logout**: `cancelarOneTap()` limpa o estado do GIS ao sair.
+- **Suporte a contas sem cadastro**: usuários novos recebem `role: 'Pendente'` e `origemCadastro: 'google-one-tap'`; erro amigável orienta a contatar o admin.
+- **CI/CD**: placeholder `__GOOGLE_CLIENT_ID__` substituído pelo secret `GOOGLE_CLIENT_ID` no deploy.
+
+### Arquivos tocados
+- js/auth/oneTap.js (novo)
+- js/main.js
+- index.html
+- .github/workflows/deploy.yml
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Sintaxe dos novos arquivos OK (`node --check js/auth/oneTap.js`)
+- Integração com `onAuthStateChanged` existente mantida
+- Fallback para popup (`signInWithPopup`) preservado no botão original
+
 ## [v1.8.1] — 2026-10-06
 ### Escopo
 Ajuste de proporção: gráficos voltaram a dois por linha (largura de painel compartilhada), como na referência do Convivência Digital, em vez de ocupar a tela inteira.

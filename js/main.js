@@ -23,6 +23,7 @@ import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
 import { lojaAuraAPI } from './conteudos/lojaAura.js';
 import { iniciarConsentimento, forcarConsentimento } from './auth/consentimento.js';
 import { renderMigrarContaTab } from './auth/migracaoConta.js';
+import { iniciarOneTap, cancelarOneTap } from './auth/oneTap.js';
 
 // ============================================================================
 // HIERARQUIA DE PERMISSÕES (Baseado nos booleanos exatos do Firebase)
@@ -725,6 +726,9 @@ function renderLoginTab() {
                 <span>Entrar com Google</span>
             </button>
 
+            <!-- Container para o botão One-Tap do GIS (renderizado pelo Google Identity Services) -->
+            <div id="gis_one_tap_button" class="mt-3"></div>
+
             <div id="google-error" class="hidden mt-4 bg-amber-500/10 border border-amber-500/50 text-amber-300 text-xs p-3 rounded-lg text-center font-bold leading-relaxed"></div>
 
             ${mensagemDominio()}
@@ -946,6 +950,22 @@ function renderLoginTab() {
             }
         }
     });
+
+    // ---------- One-Tap Sign-In (Google Identity Services) ----------
+    // Inicializa o One-Tap após renderizar a tela de login
+    // Se o usuário já estiver logado no Google, o widget aparecerá automaticamente
+    await iniciarOneTap(
+        (user) => {
+            console.log('[One-Tap] Login bem-sucedido:', user.email);
+        },
+        (msg) => {
+            const googleError = document.getElementById('google-error');
+            if (googleError) {
+                googleError.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i> ${msg}`;
+                googleError.classList.remove('hidden');
+            }
+        }
+    );
 }
 
 // ============================================================================
@@ -974,6 +994,7 @@ window.logout = async function (isAuto = false) {
 
             localStorage.setItem('kazenski_active_tab', 'inicio');
             await signOut(auth);
+            cancelarOneTap(); // Cancela o One-Tap ao fazer logout
             if (isAuto === true) alert(msg);
             window.manutencaoAPI?.fecharPausa();
             window.showTab('inicio');

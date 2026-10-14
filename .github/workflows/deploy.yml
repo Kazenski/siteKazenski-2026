@@ -24,6 +24,7 @@ jobs:
           sed -i "s|__VITE_FIREBASE_STORAGE_BUCKET__|${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}|g" js/core/firebase.js
           sed -i "s|__VITE_FIREBASE_MESSAGING_SENDER_ID__|${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}|g" js/core/firebase.js
           sed -i "s|__VITE_FIREBASE_APP_ID__|${{ secrets.VITE_FIREBASE_APP_ID }}|g" js/core/firebase.js
+          sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.GOOGLE_CLIENT_ID }}|g" js/auth/oneTap.js
 
       - uses: actions/upload-pages-artifact@v3
         with:
