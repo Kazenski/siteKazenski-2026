@@ -248,7 +248,7 @@ function aplicarEstado() {
     const overlay = $('#kz-mantencao');
     const barra = $('#kz-mntbar');
     const mostrarOverlay = overlayVisivel();
-    const mostrarBarra = estado.ativa && estado.staff;
+    const mostrarBarra = (estado.ativa || estado.deployNovoDetectado) && estado.staff;
     const travado = mostrarOverlay && !estado.pausaLogin;
 
     body.classList.toggle('kz-locked', travado);
@@ -358,21 +358,45 @@ function montarBarra() {
     const barra = $('#kz-mntbar');
     if (!barra) return;
     const v = estado.versaoDeploy;
-    const aviso = avisadoNovoDeploy
-        ? `<span class="kz-mntbar__label"><span class="kz-mntbar__dot"></span> Manutenção ligada automaticamente — deploy v${escapeHTML(v)}</span>`
-        : `<span class="kz-mntbar__label"><span class="kz-mntbar__dot"></span> Modo manutenção ativo — você tem acesso normal</span>`;
+    const registrada = estado.config?.versaoDeploy || 'nenhuma';
+    const modoManutencao = estado.ativa;
+    const deployNovo = estado.deployNovoDetectado && !estado.ativa;
+
+    let aviso, botoes;
+
+    if (modoManutencao) {
+        // Manutenção ATIVA
+        aviso = avisadoNovoDeploy
+            ? `<span class="kz-mntbar__label"><span class="kz-mntbar__dot"></span> Manutenção ligada automaticamente — deploy v${escapeHTML(v)} (registrado: v${escapeHTML(String(registrada))})</span>`
+            : `<span class="kz-mntbar__label"><span class="kz-mntbar__dot"></span> Modo manutenção ativo — você tem acesso normal</span>`;
+
+        botoes = `
+            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--off" data-mnt-act="off">
+                <i class="fas fa-lock-open"></i> Encerrar manutenção
+            </button>
+            <button type="button" class="kz-mntbar__btn" data-mnt-act="preview">
+                <i class="fas fa-eye"></i> Ver como visitante
+            </button>
+            <button type="button" class="kz-mntbar__btn" data-mnt-act="goto">
+                <i class="fas fa-list-ul"></i> Atualizações
+            </button>
+        `;
+    } else if (deployNovo) {
+        // APENAS versão diferente detectada — MANUTENÇÃO DESLIGADA
+        aviso = `<span class="kz-mntbar__label"><span class="kz-mntbar__dot" style="background:#f59e0b"></span> <strong>Versão diferente da produção detectada:</strong> site roda v${escapeHTML(v)}, mas última registrada é v${escapeHTML(String(registrada))}. <a href="#" data-mnt-act="goto" style="color:#fcd34d;text-decoration:underline;font-weight:600">Registrar versão e ajustar</a></span>`;
+
+        botoes = `
+            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--primary" data-mnt-act="goto">
+                <i class="fas fa-code-branch"></i> Ir para Atualizações
+            </button>
+        `;
+    } else {
+        return; // não deve acontecer, mas segurança
+    }
 
     barra.innerHTML = sanitizar(`
         ${aviso}
-        <button type="button" class="kz-mntbar__btn kz-mntbar__btn--off" data-mnt-act="off">
-            <i class="fas fa-lock-open"></i> Encerrar manutenção
-        </button>
-        <button type="button" class="kz-mntbar__btn" data-mnt-act="preview">
-            <i class="fas fa-eye"></i> Ver como visitante
-        </button>
-        <button type="button" class="kz-mntbar__btn" data-mnt-act="goto">
-            <i class="fas fa-list-ul"></i> Atualizações
-        </button>
+        ${botoes}
     `);
 }
 
@@ -550,7 +574,8 @@ function renderPainelAdmin(slot) {
             <strong>Deploy novo detectado:</strong> o site no ar está na versão
             <strong>v${escapeHTML(estado.versaoDeploy)}</strong>, mas a última versão registrada aqui é
             <strong>${cfg.versaoDeploy ? 'v' + escapeHTML(String(cfg.versaoDeploy)) : 'nenhuma'}</strong>.
-            A manutenção é <strong>ligada automaticamente</strong> assim que você abrir o site.
+            A manutenção <strong>NÃO liga mais automática</strong> — use o switch acima ou clique em "Salvar textos"
+            para registrar a versão e remover este aviso.
         </div>` : ''}
 
         <label class="kz-switch">
@@ -589,9 +614,8 @@ function renderPainelAdmin(slot) {
         <p class="kz-adm__hint">
             O que já está no ar (v${escapeHTML(estado.versaoDeploy || '—')}) vem do arquivo
             <code>changelog.json</code>, gerado de <code>CHANGELOG.md</code> pelo script
-            <code>python tools/build_changelog.py</code>. Depois do deploy, a primeira pessoa
-            Admin/Moderador que abrir o site registra a nova versão e fecha a manutenção
-            para todo mundo — é esse o gatilho automático.
+            <code>python tools/build_changelog.py</code>. Após deploy, Admin/Moderador vê aviso na barra
+            superior e no painel — a manutenção é <strong>ativada apenas manualmente</strong> (switch acima).
         </p>
     `);
 
@@ -624,7 +648,11 @@ async function acaoAdmin(acao) {
                 atualizadoEm: serverTimestamp(),
                 atualizadoPor: estado.nome || estado.email || 'Admin',
             });
-            dizer('Textos salvos.');
+            // Versão registrada — limpa o aviso de deploy novo
+            estado.deployNovoDetectado = false;
+            avisadoNovoDeploy = false;
+            dizer('Textos salvos e versão registrada.');
+            if (estado.renderizado) renderFeed();
         }
         else if (acao === 'preview') {
             if (estado.previewStaff) return;
@@ -671,20 +699,22 @@ export async function definirManutencao(ativa, extra = {}) {
 }
 
 /**
- * Registra a versão que está no ar. É o "gatilho automático": quando um
- * usuário privileged detecta que o `changelog.json` é mais novo do que a
- * versão registrada, a manutenção é ligada na hora.
+ * Verifica se há deploy novo (versão local ≠ versão registrada).
+ * NÃO ativa manutenção automaticamente — apenas notifica o staff.
+ * A ativação agora é SOMENTE manual pelo painel de Atualizações.
  */
-async function sincronizarDeployDetectado() {
+async function verificarDeployNovo() {
     if (!estado.staff) return;
     if (!estado.versaoDeploy || !estado.verificado) return;
 
     const registrada = estado.config?.versaoDeploy;
     if (String(registrada || '') === String(estado.versaoDeploy)) return;
 
-    console.info(`[Manutenção] Deploy v${estado.versaoDeploy} detectado (registrado: ${registrada || 'nenhum'}). Fechando o site.`);
-    await definirManutencao(true);
-    avisadoNovoDeploy = true;
+    console.info(`[Manutenção] Deploy v${estado.versaoDeploy} detectado (registrado: ${registrada || 'nenhum'}). Notificando staff — ativação MANUAL necessária.`);
+    // NÃO chama mais definirManutencao(true) automaticamente
+    // Apenas define flag para UI mostrar aviso
+    estado.deployNovoDetectado = true;
+    if (estado.renderizado) renderFeed();
 }
 
 // ============================================================================
@@ -703,7 +733,7 @@ function observarManutencao() {
             estado.ativa = estado.config?.ativa === true;
 
             aplicarEstado();
-            sincronizarDeployDetectado();
+            verificarDeployNovo();
         },
         (err) => {
             estado.erroLeitura = true;
@@ -746,7 +776,7 @@ export function aplicarPermissoes(roles, info = {}) {
     try { sessionStorage.removeItem(CHAVE_PAUSA); } catch { /* ignora */ }
 
     if (estado.staff) {
-        if (estado.verificado) sincronizarDeployDetectado();
+        if (estado.verificado) verificarDeployNovo();
         else observarManutencao();
     }
 
