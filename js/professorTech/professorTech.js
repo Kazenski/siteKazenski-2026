@@ -7397,14 +7397,10 @@ window.profAPI.loadContasPendentes = async () => {
         tumSnap.forEach(d => { tumOpts += `<option value="${escapeHTML(d.data().identificador)}">${escapeHTML(d.data().nomeExibicao)}</option>`; });
         discSnap.forEach(d => { discOpts += `<option value="${escapeHTML(d.data().identificador)}">${escapeHTML(d.data().nomeExibicao)}</option>`; });
 
-        if (!pends.length) {
-            list.innerHTML = '<div class="text-center text-slate-500 italic p-10">Nenhuma conta pendente.</div>';
-            if (msg) msg.textContent = 'Nenhuma conta pendente encontrada.';
-            return;
-        }
         if (msg) msg.textContent = `${pends.length} conta(s) pendente(s).`;
 
-        list.innerHTML = pends.map(p => `
+        const pendentesHtml = pends.length
+            ? pends.map(p => `
             <div class="bg-slate-950/60 border border-slate-700 rounded-xl p-4 mb-4">
                 <div class="flex flex-wrap items-center gap-2 mb-3">
                     <span class="font-bold text-slate-200">${escapeHTML(p.nome || '-')}</span>
@@ -7429,7 +7425,49 @@ window.profAPI.loadContasPendentes = async () => {
                     <button onclick="window.profAPI.aprovarConta('${p.id}')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg">Aprovar e vincular</button>
                     <button onclick="window.profAPI.rejeitarConta('${p.id}')" class="bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white font-bold text-xs uppercase tracking-widest px-5 py-2 rounded-lg border border-red-900/40">Rejeitar</button>
                 </div>
-            </div>`).join('');
+            </div>`).join('')
+            : '<div class="text-center text-slate-500 italic p-6">Nenhuma conta pendente.</div>';
+
+        // Alunos já ativos da turma selecionada (edição de nome exibido)
+        const classId = state.filters.classId;
+        let alunosHtml = '';
+        if (classId) {
+            try {
+                const qAlunos = query(collection(db, 'users'), where('turma', '==', classId), where('Aluno', '==', true), orderBy('nome'));
+                const snapAlunos = await getDocs(qAlunos);
+                const alunos = [];
+                snapAlunos.forEach(d => alunos.push({ id: d.id, ...d.data() }));
+                if (alunos.length) {
+                    alunosHtml = `
+                        <div class="mt-6">
+                            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-widest mb-3">
+                                <i class="fas fa-users mr-2"></i> Alunos da turma selecionada (${escapeHTML(classId)}) — nome exibido
+                            </h3>
+                            ${alunos.map(a => `
+                                <div class="bg-slate-950/60 border border-slate-700 rounded-xl p-3 mb-2 flex flex-col md:flex-row gap-2 items-center">
+                                    <span class="text-[10px] text-slate-500 font-mono w-full md:w-40 truncate">${escapeHTML(a.id)}</span>
+                                    <input id="aluno-nome-${a.id}" value="${escapeHTML(a.nome || '')}"
+                                        class="flex-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white text-sm">
+                                    <button onclick="window.profAPI.salvarNomeAluno('${a.id}')"
+                                        class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-lg">
+                                        Salvar nome
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    alunosHtml = `<div class="mt-6 text-center text-slate-500 italic p-4">Nenhum aluno ativo na turma selecionada.</div>`;
+                }
+            } catch (e) {
+                console.error(e);
+                alunosHtml = `<div class="mt-6 text-center text-red-400 p-4">Erro ao carregar alunos da turma.</div>`;
+            }
+        } else {
+            alunosHtml = `<div class="mt-6 text-center text-slate-500 italic p-4">Selecione uma turma nos filtros para editar nomes dos alunos.</div>`;
+        }
+
+        list.innerHTML = pendentesHtml + alunosHtml;
     } catch (e) {
         console.error(e);
         list.innerHTML = `<div class="text-red-400 font-bold p-6">Erro: ${escapeHTML(e.message)}</div>`;
@@ -7464,5 +7502,20 @@ window.profAPI.rejeitarConta = async (uid) => {
         window.profAPI.loadContasPendentes();
     } catch (e) {
         alert('Erro ao rejeitar: ' + e.message);
+    }
+};
+
+window.profAPI.salvarNomeAluno = async (uid) => {
+    const input = document.getElementById(`aluno-nome-${uid}`);
+    const nome = input?.value?.trim();
+    if (!nome) return alert('Informe um nome.');
+    try {
+        await updateDoc(doc(db, 'users', uid), { nome });
+        alert('Nome atualizado com sucesso.');
+        // Atualiza o cache local se a turma estiver carregada
+        const st = (state.cache.students || []).find(s => s.id === uid);
+        if (st) st.nome = nome;
+    } catch (e) {
+        alert('Erro ao salvar nome: ' + e.message);
     }
 };
