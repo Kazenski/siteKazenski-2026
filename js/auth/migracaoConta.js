@@ -1,7 +1,12 @@
 import { auth, db } from '../core/firebase.js';
 import {
   linkWithPopup,
+  linkWithRedirect,
+  getRedirectResult,
+  onAuthStateChanged,
   GoogleAuthProvider,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
   fetchSignInMethodsForEmail,
   reauthenticateWithPopup,
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
@@ -14,6 +19,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const provider = new GoogleAuthProvider();
+// Permite que o aluno escolha a conta Google correta (evita vincular a conta errada)
+// e evita forçar a tela de consentimento a cada tentativa.
+try { provider.setCustomParameters({ prompt: 'select_account' }); } catch (e) { /* ignora */ }
 
 let currentUserData = null;
 let currentUser = null;
@@ -156,7 +164,15 @@ export async function renderMigrarContaTab() {
   const linkedEmailEl = container.querySelector("#linked-email");
   const btnGoHome = container.querySelector("#btn-go-home");
 
-  btnGoHome.addEventListener("click", () => window.showTab("inicio"));
+  btnGoHome.addEventListener("click", async () => {
+    const u = auth.currentUser;
+    if (u && typeof window.forcarConsentimento === "function") {
+      const ok = await window.forcarConsentimento(u, () => window.showTab("inicio"));
+      if (ok) window.showTab("inicio");
+    } else {
+      window.showTab("inicio");
+    }
+  });
 
   btnLink.addEventListener("click", async () => {
     if (!auth.currentUser) {
@@ -176,7 +192,32 @@ export async function renderMigrarContaTab() {
     btnLink.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i><span>Vinculando...</span>';
 
     try {
-      const result = await linkWithPopup(auth.currentUser, provider);
+      let result = null;
+      // Tenta vincular; se a sessão for antiga, o Firebase exige reautenticação recente.
+      try {
+        result = await linkWithPopup(auth.currentUser, provider);
+      } catch (e) {
+        if (e?.code === 'auth/requires-recent-login') {
+          // Reautentica com a senha atual (o aluno já está logado com email/senha)
+          // e tenta novamente, sem exigir que ele saia e volte.
+          const senha = window.prompt('Por segurança, digite sua senha novamente para concluir a vinculação com o Google:');
+          if (!senha) throw e;
+          const cred = EmailAuthProvider.credential(auth.currentUser.email, senha);
+          await reauthenticateWithCredential(auth.currentUser, cred);
+          result = await linkWithPopup(auth.currentUser, provider);
+        } else if (e?.code === 'auth/popup-blocked') {
+          // Fallback para redirect em ambientes que bloqueiam popup (celular/navegador escolar).
+          try {
+            sessionStorage.setItem('kz_migrando_google', '1');
+            sessionStorage.setItem('kz_mig_firstName', firstName);
+            sessionStorage.setItem('kz_mig_lastName', lastName);
+          } catch { /* ignora */ }
+          await linkWithRedirect(auth.currentUser, provider);
+          return; // a página será recarregada; o processamento ocorre no load
+        } else {
+          throw e;
+        }
+      }
       const googleUser = result.user || auth.currentUser;
       const googleEmail = googleUser.providerData.find((p) => p.providerId === "google.com")?.email || googleUser.email;
 
@@ -219,6 +260,12 @@ export async function renderMigrarContaTab() {
         text = "Popup fechado pelo usuário. Você pode tentar novamente.";
       } else if (error.code === "auth/popup-blocked") {
         text = "Popup bloqueado pelo navegador. Permita popups para este site ou tente novamente.";
+      } else if (error.code === "auth/requires-recent-login") {
+        text = "Por segurança, sua sessão expirou. Saia e entre novamente com e-mail e senha e conclua a migração imediatamente.";
+      } else if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+        text = "Senha incorreta. Tente novamente.";
+      } else if (error.code === "auth/network-request-failed") {
+        text = "Falha de conexão. Verifique sua internet e tente novamente.";
       }
       msg.innerHTML = `<span class="text-amber-400"><i class="fas fa-exclamation-triangle mr-1"></i> ${escapeHtml(text)}</span>`;
       btnLink.disabled = false;
@@ -226,3 +273,55 @@ export async function renderMigrarContaTab() {
     }
   });
 }
+
+// ============================================================================
+//  TRATAMENTO DE RETORNO DO FLUXO DE REDIRECT (celulares/navegadores que
+//  bloqueiam popup). Se o aluno iniciou a vinculação por redirect, ao voltar
+//  para o site concluímos a gravação dos dados de migração.
+// ============================================================================
+let redirectTratado = false;
+onAuthStateChanged(auth, async (user) => {
+  if (!user || redirectTratado) return;
+  let flag = null;
+  try { flag = sessionStorage.getItem('kz_migrando_google'); } catch { return; }
+  if (flag !== '1') return;
+
+  // Evita processar duas vezes
+  redirectTratado = true;
+  try { sessionStorage.removeItem('kz_migrando_google'); } catch { /* ignora */ }
+
+  const firstName = (() => { try { return sessionStorage.getItem('kz_mig_firstName') || ''; } catch { return ''; } })();
+  const lastName = (() => { try { return sessionStorage.getItem('kz_mig_lastName') || ''; } catch { return ''; } })();
+
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    const data = snap.exists() ? snap.data() : {};
+    if (data.migratedToGoogle !== true && user.providerData?.some((p) => p.providerId === 'google.com')) {
+      const fullName = `${firstName} ${lastName}`.trim() || user.displayName || user.email.split('@')[0];
+      const googleEmail = user.providerData.find((p) => p.providerId === 'google.com')?.email || user.email;
+      await setDoc(doc(db, 'users', user.uid), {
+        nome: fullName,
+        firstName: firstName || data.firstName || '',
+        lastName: lastName || data.lastName || '',
+        fullName,
+        googleEmail: googleEmail ? googleEmail.toLowerCase() : null,
+        migratedToGoogle: true,
+        migrationMethod: 'link-redirect',
+        googleLinkedAt: serverTimestamp(),
+        linkedProviders: ['password', 'google.com'],
+        authEmailFake: data.authEmailFake || null,
+        nameVerifiedAt: serverTimestamp(),
+      }, { merge: true });
+    }
+  } catch (e) {
+    console.error('[Migração redirect] Falha ao gravar dados:', e);
+  } finally {
+    try { sessionStorage.removeItem('kz_mig_firstName'); sessionStorage.removeItem('kz_mig_lastName'); } catch { /* ignora */ }
+  }
+
+  if (typeof window.forcarConsentimento === 'function') {
+    await window.forcarConsentimento(user, () => window.showTab('inicio'));
+  } else {
+    window.showTab('inicio');
+  }
+});

@@ -32,7 +32,7 @@
 
 import { auth, db } from '../core/firebase.js';
 import {
-    doc, getDoc, updateDoc, serverTimestamp
+    doc, getDoc, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // ============================================================================
@@ -151,35 +151,55 @@ export async function registrarAceite(user, aceitos) {
     const agoraISO = new Date().toISOString();
     const carimbo = { acceptedAt: serverTimestamp(), acceptedFrom: 'web', viaMobile: ehCelular() };
 
-    const patch = {
-        consent: {
-            termos: aceitos.termos ? { version: CONSENTIMENTO_VERSIONS.termos, ...carimbo } : undefined,
-            lgpd: aceitos.lgpd ? { version: CONSENTIMENTO_VERSIONS.lgpd, ...carimbo } : undefined,
-            eca: aceitos.eca ? { version: CONSENTIMENTO_VERSIONS.eca, ...carimbo } : undefined,
-        },
-    };
-
-    // Remove chaves `undefined` para não sobrescrever Docs já aceitos.
-    Object.keys(patch.consent).forEach((k) => { if (patch.consent[k] === undefined) delete patch.consent[k]; });
-
     const ref = doc(db, 'users', user.uid);
-    await updateDoc(ref, patch);
+
+    // Usa notação com ponto (dot-notation) para gravar cada documento de
+    // consentimento de forma independente, sem substituir o objeto inteiro
+    // `consent` (preserva aceites anteriores caso o usuário aceite apenas
+    // parte dos documentos) e cria o documento caso ainda não exista.
+    const patch = {};
+    if (aceitos.termos) patch['consent.termos'] = { version: CONSENTIMENTO_VERSIONS.termos, ...carimbo };
+    if (aceitos.lgpd) patch['consent.lgpd'] = { version: CONSENTIMENTO_VERSIONS.lgpd, ...carimbo };
+    if (aceitos.eca) patch['consent.eca'] = { version: CONSENTIMENTO_VERSIONS.eca, ...carimbo };
+
+    if (Object.keys(patch).length > 0) {
+        await setDoc(ref, patch, { merge: true });
+
+        // Verifica persistência: relê o documento para garantir que o aceite
+        // foi realmente gravado (evita "tela que reaparece" por falha silenciosa).
+        const snap = await getDoc(ref);
+        const consent = snap.exists() ? (snap.data()?.consent || null) : null;
+        if (aceitos.termos && consent?.termos?.version !== CONSENTIMENTO_VERSIONS.termos) {
+            throw new Error('consent-not-persisted:termos');
+        }
+        if (aceitos.lgpd && consent?.lgpd?.version !== CONSENTIMENTO_VERSIONS.lgpd) {
+            throw new Error('consent-not-persisted:lgpd');
+        }
+        if (aceitos.eca && consent?.eca?.version !== CONSENTIMENTO_VERSIONS.eca) {
+            throw new Error('consent-not-persisted:eca');
+        }
+    }
 
     // Histórico append-only em coleção separada (nunca perde o anterior).
     const { addDoc, collection } = await import(
         "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"
     );
-    await addDoc(collection(db, 'logs_consentimento'), {
-        uid: user.uid,
-        email: user.email || null,
-        nome: (aceitos._nome || null),
-        documentos: Object.keys(aceitos).filter((k) => k !== '_nome' && aceitos[k]),
-        versoes: CONSENTIMENTO_VERSIONS,
-        de: agoraISO,
-        para: new Date().toISOString(),
-        origem: 'web',
-        viaMobile: ehCelular(),
-    });
+    try {
+        await addDoc(collection(db, 'logs_consentimento'), {
+            uid: user.uid,
+            email: user.email || null,
+            nome: (aceitos._nome || null),
+            documentos: Object.keys(aceitos).filter((k) => k !== '_nome' && aceitos[k]),
+            versoes: CONSENTIMENTO_VERSIONS,
+            de: agoraISO,
+            para: new Date().toISOString(),
+            origem: 'web',
+            viaMobile: ehCelular(),
+        });
+    } catch (e) {
+        // Log é best-effort: não pode impedir o aceite de ser considerado válido.
+        console.warn('[Consentimento] Falha ao gravar log (best-effort):', e);
+    }
 
     limparCacheConsentimento();
 }
@@ -356,6 +376,7 @@ export async function abrirCentralTermos() {
 export function iniciarConsentimento() {
     // Expõe globalmente para o botão do header e para o router.
     window.abrirCentralTermos = abrirCentralTermos;
+    window.forcarConsentimento = forcarConsentimento;
     window.CONSENTIMENTO_VERSIONS = CONSENTIMENTO_VERSIONS;
     window.DATA_LIMITE_EMAIL_SENHA = DATA_LIMITE_EMAIL_SENHA;
 }
