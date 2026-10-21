@@ -1,28 +1,4 @@
-import { auth, db, rtdb } from './core/firebase.js';
-import {
-    onAuthStateChanged, signOut, signInWithEmailAndPassword,
-    signInWithPopup, GoogleAuthProvider, linkWithPopup
-} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc, collection, addDoc, updateDoc, getDocs, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-import { renderConexaoAlunoTab } from './conexaoAluno/conexaoAluno.js';
-import { renderProjetosTab } from './projetos/projetos.js';
-import { renderAvaliacoesTab } from './avaliacoesDigitais/avaliacoesDigitais.js';
-
-// IMPORTAÇÃO DOS RENDERIZADORES DE PÁGINA
-import { renderInicioTab } from './inicio/inicio.js';
-import { renderAlunoTechTab } from './alunoTech/perfilTech.js';
-import { renderConteudosTab } from './conteudos/conteudosAula.js';
-import { iniciarManutencao, renderAtualizacoesTab, aplicarPermissoes } from './manutencao/manutencao.js';
-import { iniciarModeracao } from './core/moderacao.js';
-import { renderProfessorTab } from './professorTech/professorTech.js';
-import { renderPesquisasTechTab } from './pesquisasTech/pesquisasTech.js';
-import { renderVotacaoTab } from './votacao/votacao.js';
-import './atualizacoes/atualizacoes.js';
-import { gestaoAuraAPI } from './conteudos/gestaoAura.js';
-import { lojaAuraAPI } from './conteudos/lojaAura.js';
-import { iniciarConsentimento, forcarConsentimento } from './auth/consentimento.js';
-import { renderMigrarContaTab } from './auth/migracaoConta.js';
+67676767
 import { iniciarOneTap, cancelarOneTap } from './auth/oneTap.js';
 
 // ============================================================================
