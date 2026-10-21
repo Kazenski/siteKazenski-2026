@@ -224,23 +224,25 @@ export async function renderMigrarContaTab() {
       const fullName = `${firstName} ${lastName}`.trim();
 
       const userRef = doc(db, "users", googleUser.uid);
-      await setDoc(
-        userRef,
-        {
-          nome: fullName,
-          firstName,
-          lastName,
-          fullName,
-          googleEmail: googleEmail ? googleEmail.toLowerCase() : null,
-          migratedToGoogle: true,
-          migrationMethod: "link-while-logged",
-          googleLinkedAt: serverTimestamp(),
-          linkedProviders: ["password", "google.com"],
-          authEmailFake: currentUser.email || null,
-          nameVerifiedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Preserva o nome oficial definido pelo professor (se existir). O aluno
+      // apenas sugere um nome preferido; não sobrescreve o nome da chamada.
+      const existingSnap = await getDoc(userRef);
+      const existingNome = existingSnap.exists() ? (existingSnap.data()?.nome || '') : '';
+      const patch = {
+        firstName,
+        lastName,
+        fullName,
+        nomePreferido: fullName,
+        googleEmail: googleEmail ? googleEmail.toLowerCase() : null,
+        migratedToGoogle: true,
+        migrationMethod: "link-while-logged",
+        googleLinkedAt: serverTimestamp(),
+        linkedProviders: ["password", "google.com"],
+        authEmailFake: currentUser.email || null,
+        nameVerifiedAt: serverTimestamp(),
+      };
+      if (!existingNome) patch.nome = fullName;
+      await setDoc(userRef, patch, { merge: true });
 
       msg.innerHTML = "";
       linkedEmailEl.textContent = googleEmail || "-";
@@ -299,11 +301,11 @@ onAuthStateChanged(auth, async (user) => {
     if (data.migratedToGoogle !== true && user.providerData?.some((p) => p.providerId === 'google.com')) {
       const fullName = `${firstName} ${lastName}`.trim() || user.displayName || user.email.split('@')[0];
       const googleEmail = user.providerData.find((p) => p.providerId === 'google.com')?.email || user.email;
-      await setDoc(doc(db, 'users', user.uid), {
-        nome: fullName,
+      const patch = {
         firstName: firstName || data.firstName || '',
         lastName: lastName || data.lastName || '',
         fullName,
+        nomePreferido: fullName,
         googleEmail: googleEmail ? googleEmail.toLowerCase() : null,
         migratedToGoogle: true,
         migrationMethod: 'link-redirect',
@@ -311,7 +313,9 @@ onAuthStateChanged(auth, async (user) => {
         linkedProviders: ['password', 'google.com'],
         authEmailFake: data.authEmailFake || null,
         nameVerifiedAt: serverTimestamp(),
-      }, { merge: true });
+      };
+      if (!data?.nome) patch.nome = fullName;
+      await setDoc(doc(db, 'users', user.uid), patch, { merge: true });
     }
   } catch (e) {
     console.error('[Migração redirect] Falha ao gravar dados:', e);
