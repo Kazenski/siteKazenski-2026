@@ -325,7 +325,7 @@ window.votacaoAPI = {
             b.innerHTML = ehEste ? '<i class="fas fa-pause"></i> Pausar' : '<i class="fas fa-play"></i> Ouvir prévia';
         });
         // Re-renderiza para marcar o botão correto
-        if (votacaoAtual) renderPaginaVotacao(votacaoAtual, auth.currentUser);
+        // Re-render da votação ativa não é mais necessária (multi-votação).
     },
     togglePlayAtual() {
         const a = getAudio();
@@ -337,7 +337,7 @@ window.votacaoAPI = {
         a.pause();
         currentPlayingMusicaId = null;
         document.getElementById('mini-player')?.classList.add('hidden');
-        if (votacaoAtual) renderPaginaVotacao(votacaoAtual, auth.currentUser);
+        // Re-render da votação ativa não é mais necessária (multi-votação).
     },
     async votar(votacaoId, musicaId) {
         const u = auth.currentUser;
@@ -411,7 +411,7 @@ window.votacaoModAPI = {
         const votacoes = votacoesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const isAdmin = window.userRoles?.Admin === true;
 
-        host.innerHTML = `
+        body.innerHTML = `
             <div class="bg-slate-900 border ${ativa ? 'border-emerald-500/50' : 'border-slate-700'} rounded-2xl p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h4 class="text-white font-bold">Status da página de votação</h4>
