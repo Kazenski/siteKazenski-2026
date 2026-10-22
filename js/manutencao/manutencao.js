@@ -71,7 +71,9 @@ const NIVEL_CLASSE = {
 
 const estado = {
     // permissões (preenchidas por `aplicarPermissoes`, vindas do main.js)
-    staff: false,
+    staff: false,            // Admin/Moderador
+    professor: false,         // Professor/Coordenação
+    exempt: false,           // não bloqueado pela manutenção (staff + professor)
     rolesSalvos: null,       // cópia das permissões, para sair do preview
     logado: false,
     uid: null,
@@ -235,12 +237,12 @@ function semver(v) {
 
 /** O site está bloqueado para este usuário? */
 function bloqueado() {
-    return estado.ativa && !estado.staff && !estado.pausaLogin;
+    return estado.ativa && !estado.exempt && !estado.pausaLogin;
 }
 
 /** Deve existir overlay visível agora? */
 function overlayVisivel() {
-    return estado.ativa && !estado.staff;
+    return estado.ativa && !estado.exempt;
 }
 
 function aplicarEstado() {
@@ -248,7 +250,7 @@ function aplicarEstado() {
     const overlay = $('#kz-mantencao');
     const barra = $('#kz-mntbar');
     const mostrarOverlay = overlayVisivel();
-    const mostrarBarra = (estado.ativa || estado.deployNovoDetectado) && estado.staff;
+    const mostrarBarra = (estado.ativa || estado.deployNovoDetectado) && (estado.staff || estado.professor);
     const travado = mostrarOverlay && !estado.pausaLogin;
 
     body.classList.toggle('kz-locked', travado);
@@ -704,7 +706,7 @@ export async function definirManutencao(ativa, extra = {}) {
  * A ativação agora é SOMENTE manual pelo painel de Atualizações.
  */
 async function verificarDeployNovo() {
-    if (!estado.staff) return;
+    if (!estado.staff && !estado.professor) return;
     if (!estado.versaoDeploy || !estado.verificado) return;
 
     const registrada = estado.config?.versaoDeploy;
@@ -765,6 +767,8 @@ function observarManutencao() {
  */
 export function aplicarPermissoes(roles, info = {}) {
     estado.staff = !!(roles?.Admin || roles?.Moderador);
+    estado.professor = !!(roles?.Professor || roles?.Coordenacao);
+    estado.exempt = estado.staff || estado.professor;
     estado.rolesSalvos = roles ? { ...roles } : null;
     estado.logado = !!info?.logado;
     estado.uid = info?.uid || null;
@@ -775,7 +779,7 @@ export function aplicarPermissoes(roles, info = {}) {
     estado.pausaLogin = false;
     try { sessionStorage.removeItem(CHAVE_PAUSA); } catch { /* ignora */ }
 
-    if (estado.staff) {
+    if (estado.staff || estado.professor) {
         if (estado.verificado) verificarDeployNovo();
         else observarManutencao();
     }
@@ -790,7 +794,7 @@ export function aplicarPermissoes(roles, info = {}) {
  * enquanto o site está fechado — aí o overlay volta imediatamente.
  */
 export function bloqueiaNavegacao(tabId) {
-    if (!estado.ativa || estado.staff) return false;
+    if (!estado.ativa || estado.exempt) return false;
     if (tabId === 'login') {
         // Permite entrar para verificar se é Admin/Moderador.
         estado.pausaLogin = true;

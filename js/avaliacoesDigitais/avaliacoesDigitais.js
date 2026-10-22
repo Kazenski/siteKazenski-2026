@@ -17,7 +17,7 @@ export async function renderAvaliacoesTab() {
             const snap = await getDoc(doc(db, "users", auth.currentUser.uid));
             if (snap.exists()) {
                 currentUser = { uid: snap.id, ...snap.data() };
-                isStaff = currentUser.Admin === true || currentUser.Professor === true || currentUser.Coordenacao === true;
+                isStaff = currentUser.Admin === true || currentUser.Admin === "true" || currentUser.Professor === true || currentUser.Professor === "true" || currentUser.Coordenacao === true || currentUser.Coordenacao === "true";
             }
         } catch (e) {
             console.error("Erro ao buscar usuário em Avaliações:", e);
