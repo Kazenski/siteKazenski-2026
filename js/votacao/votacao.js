@@ -413,15 +413,15 @@ window.votacaoModAPI = {
                 <div class="space-y-4">
                     <input id="vt-titulo" placeholder="Ex: Música Tema do Técnico 2027" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-amber-500">
                     <input id="vt-busca" placeholder="Buscar música..." class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 outline-none focus:border-amber-500">
-                    <div id="vt-lista-musicas" class="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-72 overflow-y-auto custom-scroll">
+                    <div id="vt-lista-musicas" class="grid grid-cols-3 md:grid-cols-6 gap-2 max-h-72 overflow-y-auto custom-scroll">
                         ${musicas.map(m => `
-                            <label class="cursor-pointer bg-slate-900 border border-slate-700 rounded-xl p-3 flex flex-col gap-2 hover:border-amber-500/50 transition-colors voto-item">
+                            <label class="cursor-pointer bg-slate-900 border border-slate-700 rounded-lg p-2 flex flex-col gap-1.5 hover:border-amber-500/50 transition-colors voto-item">
                                 <input type="checkbox" value="${m.id}" class="accent-amber-500">
-                                <div class="w-full aspect-square rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
-                                    <i class="fas fa-music text-2xl text-slate-500"></i>
+                                <div class="w-full aspect-square rounded-md bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center">
+                                    ${m.albumArtUrl ? `<img src="${escapeHTML(m.albumArtUrl)}" class="w-full h-full object-cover">` : `<i class="fas fa-music text-lg text-slate-500"></i>`}
                                 </div>
-                                <span class="text-white text-xs font-bold truncate">${m.titulo}</span>
-                                <span class="text-slate-500 text-[10px] truncate">${m.artista || ''}</span>
+                                <span class="text-white text-[10px] font-bold truncate">${escapeHTML(m.titulo)}</span>
+                                <span class="text-slate-500 text-[9px] truncate">${escapeHTML(m.artista || '')}</span>
                             </label>`).join('')}
                     </div>
                     <button id="btn-criar-votacao" class="px-8 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black uppercase tracking-widest transition-transform hover:scale-105">Criar votação</button>
