@@ -385,10 +385,13 @@ function montarBarra() {
         `;
     } else if (deployNovo) {
         // APENAS versão diferente detectada — MANUTENÇÃO DESLIGADA
-        aviso = `<span class="kz-mntbar__label"><span class="kz-mntbar__dot kz-mntbar__dot--warn"></span> <strong>Versão diferente da produção detectada:</strong> site roda v${escapeHTML(v)}, mas última registrada é v${escapeHTML(String(registrada))}. <span class="kz-mntbar__link" data-mnt-act="goto">Registrar versão e ajustar</span></span>`;
+        aviso = `<span class="kz-mntbar__label"><span class="kz-mntbar__dot kz-mntbar__dot--warn"></span> <strong>Versão diferente da produção detectada:</strong> site roda v${escapeHTML(v)}, mas última registrada é ${registrada ? 'v' + escapeHTML(String(registrada)) : 'nenhuma'}. <span class="kz-mntbar__link" data-mnt-act="goto">Registrar versão e ajustar</span></span>`;
 
         botoes = `
-            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--warn" data-mnt-act="goto">
+            <button type="button" class="kz-mntbar__btn kz-mntbar__btn--warn" data-mnt-act="registrar">
+                <i class="fas fa-check"></i> Registrar v${escapeHTML(v)}
+            </button>
+            <button type="button" class="kz-mntbar__btn" data-mnt-act="goto">
                 <i class="fas fa-code-branch"></i> Ir para Atualizações
             </button>
         `;
@@ -576,8 +579,13 @@ function renderPainelAdmin(slot) {
             <strong>Deploy novo detectado:</strong> o site no ar está na versão
             <strong>v${escapeHTML(estado.versaoDeploy)}</strong>, mas a última versão registrada aqui é
             <strong>${cfg.versaoDeploy ? 'v' + escapeHTML(String(cfg.versaoDeploy)) : 'nenhuma'}</strong>.
-            A manutenção <strong>NÃO liga mais automática</strong> — use o switch acima ou clique em "Salvar textos"
-            para registrar a versão e remover este aviso.
+            A manutenção <strong>NÃO liga mais automática</strong> — clique em "Registrar versão atual" para
+            sincronizar com o changelog e remover este aviso, ou use "Salvar textos" para também atualizar os textos.
+            <div style="margin-top:.5rem">
+                <button type="button" class="kz-btn kz-btn--accent" data-adm-act="registrar">
+                    <i class="fas fa-check"></i> Registrar versão atual (v${escapeHTML(estado.versaoDeploy)})
+                </button>
+            </div>
         </div>` : ''}
 
         <label class="kz-switch">
@@ -641,7 +649,11 @@ async function acaoAdmin(acao) {
     };
 
     try {
-        if (acao === 'salvar') {
+        if (acao === 'registrar') {
+            await registrarVersaoAtual();
+            dizer('Versão registrada com sucesso.');
+        }
+        else if (acao === 'salvar') {
             await updateDoc(REF_MANUTENCAO, {
                 titulo: $('#kz-adm-titulo')?.value.trim() || 'Site em manutenção',
                 previsao: $('#kz-adm-previsao')?.value.trim() || '',
@@ -717,6 +729,24 @@ async function verificarDeployNovo() {
     // Apenas define flag para UI mostrar aviso
     estado.deployNovoDetectado = true;
     if (estado.renderizado) renderFeed();
+}
+
+/** Registra a versão atual (changelog.json) no Firestore, dispensando o aviso. */
+async function registrarVersaoAtual() {
+    try {
+        await setDoc(REF_MANUTENCAO, {
+            versaoDeploy: estado.versaoDeploy || null,
+            atualizadoEm: serverTimestamp(),
+            atualizadoPor: estado.nome || estado.email || 'Admin',
+        }, { merge: true });
+        estado.deployNovoDetectado = false;
+        avisadoNovoDeploy = false;
+        aplicarEstado();
+        if (estado.renderizado) renderFeed();
+    } catch (e) {
+        console.error('[Manutenção] Falha ao registrar versão:', e);
+        alert('Falha ao registrar versão: ' + e.message);
+    }
 }
 
 // ============================================================================
@@ -854,6 +884,8 @@ function ligarEventosCapa() {
             if (acao === 'off') {
                 await definirManutencao(false);
                 avisadoNovoDeploy = false;
+            } else if (acao === 'registrar') {
+                await registrarVersaoAtual();
             } else if (acao === 'preview') {
                 if (estado.previewStaff) return;      // já está no preview
                 estado.previewStaff = true;
