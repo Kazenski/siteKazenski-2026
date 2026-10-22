@@ -1,4 +1,5 @@
 import { auth, db, storage } from '../core/firebase.js';
+import { escapeHTML } from '../core/utils.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
     collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, updateDoc,
