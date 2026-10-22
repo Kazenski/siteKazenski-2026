@@ -14,12 +14,11 @@ import {
 //   votacoes/{id}/votos/{uid}      -> { musicaId, nome, turma, criadoEm }
 // ============================================================================
 
-let votosCache = { totalVotos: 0, contagem: {} }; // vem do ranking calculado pela Cloud Function
 let musicasCache = [];
-let votacaoAtual = null;
-let meuVoto = null;
-let unsubVotos = null;
-let unsubVotosFallback = null;
+let votacoesCache = [];          // todas as votações cadastradas
+let meusVotos = {};              // { [votacaoId]: { musicaId, nome, turma, ... } | null }
+let rankings = {};               // { [votacaoId]: { totalVotos, contagem } }
+let unsubsVotos = {};            // { [votacaoId]: unsub }
 let unsubMusicas = null;
 
 // Mini player compartilhado
@@ -46,16 +45,13 @@ async function carregarMusicas() {
     return musicasCache;
 }
 
-async function carregarVotacaoAtiva() {
+async function carregarVotacoes() {
     try {
-        const cfg = await getDoc(doc(db, 'config', 'votacao'));
-        const votacaoId = cfg.exists() ? cfg.data().votacaoId : null;
-        if (!votacaoId) return null;
-        const v = await getDoc(doc(db, 'votacoes', votacaoId));
-        return v.exists() ? { id: v.id, ...v.data() } : null;
+        const snap = await getDocs(query(collection(db, 'votacoes'), orderBy('criadoEm', 'desc')));
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (e) {
-        console.error('Erro ao buscar votação ativa:', e);
-        return null;
+        console.error('Erro ao buscar votações:', e);
+        return [];
     }
 }
 
@@ -75,31 +71,57 @@ export async function renderVotacaoTab() {
             <div id="votacao-body" class="text-center text-slate-500 py-20"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
         </div>`;
 
-    // Parar player anterior ao sair
     const body = document.getElementById('votacao-body');
 
     try {
-        const [musicas, votacao] = await Promise.all([carregarMusicas(), carregarVotacaoAtiva()]);
-        votacaoAtual = votacao;
+        const [musicas, votacoes] = await Promise.all([carregarMusicas(), carregarVotacoes()]);
+        musicasCache = musicas;
+        votacoesCache = votacoes;
 
-        if (!votacao) {
-            body.innerHTML = `<div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-12"><i class="fas fa-music text-4xl text-slate-700 mb-4"></i><p>Nenhuma votação ativa no momento. Volte em breve!</p></div>`;
+        if (!votacoes.length) {
+            body.innerHTML = `<div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-12"><i class="fas fa-music text-4xl text-slate-700 mb-4"></i><p>Nenhuma votação disponível no momento. Volte em breve!</p></div>`;
             return;
         }
 
         const usuario = auth.currentUser;
 
+        meusVotos = {};
+        rankings = {};
         if (usuario) {
-            const meu = await getDoc(doc(db, 'votacoes', votacao.id, 'votos', usuario.uid));
-            meuVoto = meu.exists() ? meu.data() : null;
+            await Promise.all(votacoes.map(async (v) => {
+                try {
+                    const meu = await getDoc(doc(db, 'votacoes', v.id, 'votos', usuario.uid));
+                    meusVotos[v.id] = meu.exists() ? meu.data() : null;
+                } catch (e) { meusVotos[v.id] = null; }
+            }));
         }
 
-        // Live do ranking em tempo real (direto da subcoleção de votos)
-        if (unsubVotos) unsubVotos();
-        if (unsubVotosFallback) unsubVotosFallback();
-        iniciarLiveRanking(votacao, usuario);
+        Object.values(unsubsVotos).forEach(u => { try { u(); } catch {} });
+        unsubsVotos = {};
+        votacoes.forEach(v => iniciarLiveRanking(v, usuario));
 
-        renderPaginaVotacao(votacao, usuario);
+        // Seletor de votações
+        const opcoes = votacoes.map(v => `<option value="${v.id}">${escapeHTML(v.titulo)}</option>`).join('');
+        body.innerHTML = `
+            <div class="mb-6 flex flex-col md:flex-row items-center justify-center gap-3">
+                <label class="text-slate-400 text-xs uppercase tracking-widest font-bold">Votação:</label>
+                <select id="votacao-seletor" class="bg-slate-900 border border-slate-700 text-white rounded-xl px-4 py-2 text-sm focus:border-amber-500 outline-none">
+                    ${opcoes}
+                </select>
+            </div>
+            <div id="votacao-detalhe"></div>`;
+
+        const seletor = document.getElementById('votacao-seletor');
+        const detalhe = document.getElementById('votacao-detalhe');
+
+        const mostrar = (id) => {
+            const v = votacoes.find(x => x.id === id);
+            if (!v) return;
+            renderVotacaoCard(v, auth.currentUser || usuario, detalhe);
+        };
+
+        seletor.addEventListener('change', (e) => mostrar(e.target.value));
+        mostrar(votacoes[0].id);
     } catch (err) {
         console.error(err);
         body.innerHTML = '<p class="text-red-400">Erro ao carregar a votação.</p>';
@@ -112,11 +134,10 @@ export async function renderVotacaoTab() {
  * Se houver restrição, tenta ler o ranking consolidado.
  */
 function iniciarLiveRanking(votacao, usuario) {
-    if (unsubVotos) { unsubVotos(); unsubVotos = null; }
-    if (unsubVotosFallback) { unsubVotosFallback(); unsubVotosFallback = null; }
+    if (unsubsVotos[votacao.id]) { try { unsubsVotos[votacao.id](); } catch {} delete unsubsVotos[votacao.id]; }
 
     try {
-        unsubVotosFallback = onSnapshot(collection(db, 'votacoes', votacao.id, 'votos'), (snap) => {
+        unsubsVotos[votacao.id] = onSnapshot(collection(db, 'votacoes', votacao.id, 'votos'), (snap) => {
             const contagem = {};
             snap.docs.forEach(d => {
                 const mid = d.data().musicaId;
@@ -124,39 +145,28 @@ function iniciarLiveRanking(votacao, usuario) {
                     contagem[mid] = (contagem[mid] || 0) + 1;
                 }
             });
-            votosCache = { totalVotos: snap.size, contagem };
-            renderPaginaVotacao(votacao, auth.currentUser || usuario);
+            rankings[votacao.id] = { totalVotos: snap.size, contagem };
+            renderVotacaoCard(votacao, auth.currentUser || usuario);
         }, (err) => {
-            console.warn('Leitura direta da subcoleção votos indisponível, conectando ranking consolidado:', err);
-            conectarRankingConsolidado(votacao, usuario);
+            console.warn('Leitura direta da subcoleção votos indisponível:', err);
         });
     } catch (e) {
         console.warn('Erro ao iniciar listener de votos:', e);
-        conectarRankingConsolidado(votacao, usuario);
     }
 }
 
-function conectarRankingConsolidado(votacao, usuario) {
-    if (unsubVotos) { unsubVotos(); unsubVotos = null; }
-    unsubVotos = onSnapshot(doc(db, 'votacoes', votacao.id, 'ranking', 'atual'), (snap) => {
-        if (snap.exists()) {
-            const d = snap.data();
-            votosCache = { totalVotos: d.totalVotos || 0, contagem: d.contagem || {} };
-            renderPaginaVotacao(votacao, auth.currentUser || usuario);
-        }
-    }, (err) => console.warn('Ranking consolidado indisponível:', err));
-}
-
-function renderPaginaVotacao(votacao, usuario) {
-    const body = document.getElementById('votacao-body');
-    if (!body) return;
+function renderVotacaoCard(votacao, usuario, container) {
+    const host = container || document.getElementById('votacao-detalhe');
+    if (!host) return;
 
     const musicas = (votacao.musicasIds || [])
         .map(id => musicasCache.find(m => m.id === id))
         .filter(Boolean);
 
-    const totalVotos = votosCache.totalVotos || 0;
-    const contagem = votosCache.contagem || {};
+    const rankingData = rankings[votacao.id] || { totalVotos: 0, contagem: {} };
+    const totalVotos = rankingData.totalVotos || 0;
+    const contagem = rankingData.contagem || {};
+    const meuVoto = meusVotos[votacao.id] || null;
 
     const isStaff = window.userRoles?.Admin || window.userRoles?.Professor || window.userRoles?.Coordenacao || window.userRoles?.Moderador;
     
@@ -199,11 +209,11 @@ function renderPaginaVotacao(votacao, usuario) {
             </div>`;
     }
 
-    body.innerHTML = `
+    host.innerHTML = `
         <div class="text-center mb-2">
             <h3 class="text-2xl md:text-3xl font-cinzel font-bold text-amber-400">${votacao.titulo}</h3>
             <p class="text-slate-400 text-xs uppercase tracking-widest mt-1">
-                ${totalVotos} voto(s) computado(s) ${meuVoto ? '· <span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Seu voto já foi registrado</span>' : (usuario ? '· <span class="text-amber-400 font-bold"><i class="fas fa-vote-yea mr-1"></i>Escolha sua música favorita e vote!</span>' : '')}
+                ${totalVotos} voto(s) computado(s) ${meusVotos[votacao.id] ? '· <span class="text-emerald-400 font-bold"><i class="fas fa-check-circle mr-1"></i>Seu voto já foi registrado</span>' : (usuario ? '· <span class="text-amber-400 font-bold"><i class="fas fa-vote-yea mr-1"></i>Escolha sua música favorita e vote!</span>' : '')}
             </p>
         </div>
 
@@ -225,13 +235,13 @@ function renderPaginaVotacao(votacao, usuario) {
             ${musicas.map(m => {
                 const votos = contagem[m.id] || 0;
                 const pct = totalVotos ? Math.round((votos / totalVotos) * 100) : 0;
-                const ehMeuVoto = meuVoto?.musicaId === m.id;
+                const ehMeuVoto = (meusVotos[votacao.id]?.musicaId === m.id);
                 const tocando = currentPlayingMusicaId === m.id;
                 return `
                 <div class="bg-slate-900/70 border ${ehMeuVoto ? 'border-amber-500 shadow-[0_0_25px_rgba(245,158,11,0.2)]' : 'border-slate-800'} rounded-3xl p-5 flex flex-col gap-4 transition-all hover:-translate-y-1 hover:border-slate-600">
                     <div class="relative">
-                        <div class="w-full aspect-square rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
-                            <i class="fas fa-music text-5xl text-slate-500"></i>
+                        <div class="w-full aspect-square rounded-2xl bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center">
+                            ${m.albumArtUrl ? `<img src="${escapeHTML(m.albumArtUrl)}" class="w-full h-full object-cover">` : `<i class="fas fa-music text-5xl text-slate-500"></i>`}
                         </div>
                         ${ehMeuVoto ? '<span class="absolute top-3 right-3 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow"><i class="fas fa-check mr-1"></i>Seu voto</span>' : ''}
                     </div>
@@ -252,7 +262,7 @@ function renderPaginaVotacao(votacao, usuario) {
                             <div class="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-500" style="width:${pct}%"></div>
                         </div>
                     </div>` : ''}
-                    ${usuario && !meuVoto ? `<button onclick="window.votacaoAPI.votar('${votacao.id}','${m.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-amber-500/20"><i class="fas fa-check mr-1"></i>Votar</button>` : ''}
+                    ${usuario && !meusVotos[votacao.id] ? `<button onclick="window.votacaoAPI.votar('${votacao.id}','${m.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-widest py-3 rounded-xl transition-transform hover:scale-[1.02] shadow-lg shadow-amber-500/20"><i class="fas fa-check mr-1"></i>Votar</button>` : ''}
                     ${usuario && ehMeuVoto ? '<p class="text-center text-amber-400 text-xs font-black uppercase tracking-widest py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl"><i class="fas fa-check-circle mr-1"></i> Voto registrado</p>' : ''}
                 </div>`;
             }).join('')}
@@ -336,9 +346,10 @@ window.votacaoAPI = {
             // Voto é definitivo: se já existe, não permite trocar
             const existente = await getDoc(doc(db, 'votacoes', votacaoId, 'votos', u.uid));
             if (existente.exists()) {
-                meuVoto = existente.data();
+                meusVotos[votacaoId] = existente.data();
                 alert('Você já votou! Seu voto não pode ser alterado.');
-                if (votacaoAtual) renderPaginaVotacao(votacaoAtual, u);
+                const v = votacoesCache.find(x => x.id === votacaoId);
+                if (v) renderVotacaoCard(v, u, document.getElementById('votacao-detalhe'));
                 return;
             }
             const snap = await getDoc(doc(db, 'users', u.uid));
@@ -349,15 +360,17 @@ window.votacaoAPI = {
                 turma: dados.turma || '',
                 criadoEm: serverTimestamp()
             });
-            meuVoto = { musicaId, nome: dados.nome || u.displayName || 'Aluno', turma: dados.turma || '' };
+            meusVotos[votacaoId] = { musicaId, nome: dados.nome || u.displayName || 'Aluno', turma: dados.turma || '' };
             // Atualização otimista imediata para feedback visual instantâneo
-            if (!votosCache.contagem) votosCache.contagem = {};
-            votosCache.contagem[musicaId] = (votosCache.contagem[musicaId] || 0) + 1;
-            votosCache.totalVotos = (votosCache.totalVotos || 0) + 1;
+            if (!rankings[votacaoId]) rankings[votacaoId] = { totalVotos: 0, contagem: {} };
+            if (!rankings[votacaoId].contagem) rankings[votacaoId].contagem = {};
+            rankings[votacaoId].contagem[musicaId] = (rankings[votacaoId].contagem[musicaId] || 0) + 1;
+            rankings[votacaoId].totalVotos = (rankings[votacaoId].totalVotos || 0) + 1;
 
             const m = musicasCache.find(x => x.id === musicaId);
             alert(`✅ Voto registrado com sucesso em "${m?.titulo || 'Música'}"!`);
-            if (votacaoAtual) renderPaginaVotacao(votacaoAtual, u);
+            const v = votacoesCache.find(x => x.id === votacaoId);
+            if (v) renderVotacaoCard(v, u, document.getElementById('votacao-detalhe'));
         } catch (e) {
             console.error('Erro ao votar:', e);
             alert('Erro ao registrar voto: ' + (e.message || 'Verifique sua conexão ou permissões.'));
@@ -398,7 +411,7 @@ window.votacaoModAPI = {
         const votacoes = votacoesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const isAdmin = window.userRoles?.Admin === true;
 
-        body.innerHTML = `
+        host.innerHTML = `
             <div class="bg-slate-900 border ${ativa ? 'border-emerald-500/50' : 'border-slate-700'} rounded-2xl p-6 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div>
                     <h4 class="text-white font-bold">Status da página de votação</h4>
