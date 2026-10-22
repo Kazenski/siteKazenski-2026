@@ -2,6 +2,7 @@ import { db, storage, auth } from '../core/firebase.js';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, getDocs, setDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
+import { initTrabalhosAlunos } from './trabalhosAlunos.js';
 
 /* ==========================================================================
    ACERVO ACADÊMICO — redesign "Spotify" (materiais / músicas / podcasts)
@@ -100,6 +101,7 @@ export async function renderConteudosTab() {
     initMateriais();
     initMusicas();
     initPodcasts();
+    initTrabalhosAlunos();
 
     // Perfil + listas de disciplina/professor são Complementares e podem
     // demorar: não bloqueiam a renderização.
@@ -256,6 +258,7 @@ function fecharFormularios() {
     els.adminMat?.classList.add('hidden');
     els.adminMus?.classList.add('hidden');
     els.adminPod?.classList.add('hidden');
+    document.getElementById('cont-admin-trab')?.classList.add('hidden');
 }
 
 /** O dock só faz sentido quando há áudio; materiais nunca tocam nada. */

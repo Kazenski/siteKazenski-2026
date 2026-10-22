@@ -175,6 +175,8 @@
                                 role="tab" aria-selected="false"><i class="fas fa-music"></i><span>Músicas</span></button>
                             <button class="kz-seg__btn cont-tab-btn" data-target="podcasts"
                                 role="tab" aria-selected="false"><i class="fas fa-microphone"></i><span>Podcasts</span></button>
+                            <button class="kz-seg__btn cont-tab-btn" data-target="trabalhos"
+                                role="tab" aria-selected="false"><i class="fas fa-user-graduate"></i><span>Trabalhos dos Alunos</span></button>
                         </div>
                     </div>
                 </header>
@@ -418,6 +420,36 @@
                             <div id="podcast-details-view" class="kz-now__body hidden"></div>
                         </div>
                     </div>
+                </section>
+
+                <section id="ctab-trabalhos" class="cont-tab-content hidden kz-panel" role="tabpanel">
+                    <div id="cont-admin-trab" class="hidden shrink-0 max-h-[52vh] overflow-y-auto custom-scroll bg-slate-800/80 p-5 md:p-7 rounded-2xl border-l-4 border-emerald-500 shadow-lg">
+                        <h3 class="text-emerald-400 font-cinzel font-bold text-lg mb-5"><i class="fas fa-user-graduate mr-2"></i> Cadastrar Trabalho de Aluno</h3>
+                        <form id="form-trabalho-aluno" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Título</label><input type="text" id="trab-titulo" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Tipo</label><select id="trab-tipo" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"><option value="material">Material</option><option value="musica">Música</option><option value="video">Vídeo</option><option value="link">Link</option></select></div>
+                            </div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">URL (vídeo/link/arquivo)</label><input type="url" id="trab-url" required class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Nome do Aluno</label><input type="text" id="trab-aluno" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Miniatura (URL da imagem)</label><input type="url" id="trab-thumb" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-3 focus:border-emerald-500 outline-none"></div>
+                            </div>
+                            <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 pl-1">Descrição</label><textarea id="trab-descricao" class="w-full bg-slate-900 border border-slate-700 text-white rounded-xl p-4 min-h-[80px] focus:border-emerald-500 outline-none custom-scroll"></textarea></div>
+                            <div class="flex justify-end gap-3 pt-2">
+                                <button type="submit" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Cadastrar Trabalho</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="kz-toolbar">
+                        <div class="kz-search">
+                            <i class="fas fa-search kz-search__icon"></i>
+                            <input type="text" id="search-trab-input" placeholder="Buscar trabalho..." aria-label="Buscar trabalhos">
+                        </div>
+                    </div>
+
+                    <div id="trab-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 overflow-y-auto custom-scroll"></div>
                 </section>
             </div>
         </div>
