@@ -515,10 +515,10 @@ async function renderGridAvaliacoes(avaliacoes) {
         if (isStaff) {
             const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
             btnStaffHtml = `
-                <div class="flex gap-1.5 shrink-0">
-                    <button onclick="window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
-                    <button onclick="window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc} text-xs"></i></button>
-                    <button onclick="window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
+                <div class="flex gap-1.5 shrink-0" onclick="event.stopPropagation()">
+                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc} text-xs"></i></button>
+                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
                 </div>
             `;
         }
@@ -535,7 +535,7 @@ async function renderGridAvaliacoes(avaliacoes) {
         if (aval.imagemBanner) extraPt = 'pt-0';
 
         return `
-            <div class="bg-slate-800/90 border ${bordaCard} p-5 md:p-6 rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all relative overflow-hidden group ${opacidade}">
+            <div onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="bg-slate-800/90 border ${bordaCard} p-5 md:p-6 rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all relative overflow-hidden group ${opacidade} cursor-pointer">
                 ${badgeStatus}
                 
                 <div class="flex justify-between items-start gap-3 mb-4 ${extraPt}">
@@ -552,7 +552,10 @@ async function renderGridAvaliacoes(avaliacoes) {
                     <p class="${corPrazo} flex items-center gap-2"><i class="far fa-clock w-4 shrink-0"></i> <span class="font-bold">Prazo:</span> ${strPrazo}</p>
                 </div>
                 
-                <p class="text-sm text-slate-300 line-clamp-2 mb-5 leading-relaxed">${escapeHTML(descricaoFinal)}</p>
+                <p class="text-sm text-slate-300 line-clamp-2 mb-3 leading-relaxed">${escapeHTML(descricaoFinal)}</p>
+                
+                ${(aval.materiaisAnexos && aval.materiaisAnexos.length > 0) ? `<div class="flex items-center gap-1.5 text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-4"><i class="fas fa-paperclip"></i> ${aval.materiaisAnexos.length} anexo(s)</div>` : ''}
+                ${(aval.linksUteis && aval.linksUteis.length > 0) ? `<div class="flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-4"><i class="fas fa-link"></i> ${aval.linksUteis.length} link(s)</div>` : ''}
                 
                 <div class="mt-auto flex justify-end pt-4 border-t border-slate-700/50">
                     <button onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center gap-2">
