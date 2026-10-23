@@ -4139,7 +4139,7 @@ window.profAPI = {
                 ...state.evolucaoAluno,
                 alunoId: uid,
                 alunoNome: nome,
-                trimestre,
+                trimestre: trisSel,
                 dados: { porDisciplina, aulas }
             };
 
@@ -7033,7 +7033,18 @@ window.profAPI.initPainel = () => {
     }
     if (els.painelEnd && !els.painelEnd.value) els.painelEnd.value = dataParaInput(new Date());
     if (els.painelMsg) els.painelMsg.textContent =
-        'Escolha os filtros no topo (Escola é obrigatória; Turma/Disciplina e Trimestre são opcionais) e clique em Carregar.';
+        'Carregando dados do painel...';
+    // Auto-seleciona a primeira escola se nenhuma estiver selecionada
+    if (els.selSchool && !els.selSchool.value && els.selSchool.options.length > 1) {
+        els.selSchool.selectedIndex = 1;
+        if (els.selSchool.onchange) els.selSchool.onchange({ target: els.selSchool });
+    }
+    // Carrega sozinho quando houver escola
+    setTimeout(() => {
+        if (state.filters && state.filters.school) {
+            try { window.profAPI.loadPainel(); } catch (e) { console.warn(e); }
+        }
+    }, 400);
 
     // Análise dos moderadores (independente dos filtros de alunos)
     const sel = document.getElementById('modAnalisePeriodo');
@@ -7127,7 +7138,12 @@ setTimeout(() => { try { window.profAPI.refreshViewsSelect(); } catch(e){} }, 10
 // ==========================================
 // DASHBOARD UNIFICADO: consolida as 4 abas de métricas
 // ==========================================
-window.profAPI.initDashboardUnificado = () => {
+window.profAPI.initDashboardUnificado = async () => {
+    // Auto-seleciona a primeira escola se nenhuma estiver selecionada
+    if (els.selSchool && !els.selSchool.value && els.selSchool.options.length > 1) {
+        els.selSchool.selectedIndex = 1;
+        if (els.selSchool.onchange) await els.selSchool.onchange({ target: els.selSchool });
+    }
     // Garante valores padrão de período para o painel
     if (window.profAPI.initPainel) window.profAPI.initPainel();
     // Popula selects
@@ -7154,16 +7170,20 @@ window.profAPI.initDashboardUnificado = () => {
     if (dashSel) {
         dashSel.innerHTML = '<option value="">Toda a turma</option>';
         (state.cache.students || []).forEach(s => dashSel.add(new Option(s.nome, s.id)));
-        const rerender = () => {
+        const rerender = async () => {
             const uid = dashSel.value;
-            // Sincroniza Frequência Individual (ptab-analise-geral) com o aluno do topo
-            const geralSel = document.getElementById('geral-freq-student-select');
-            if (geralSel) { geralSel.value = uid; if (uid) window.profAPI.renderIndividualFreqChartGeral && window.profAPI.renderIndividualFreqChartGeral(uid); }
             syncDates();
             if (uid) {
+                // Garante o cache de frequência da turma para o gráfico individual responder ao seletor
+                if (!geralAnalysisCache || !geralAnalysisCache.faltasMap || !geralAnalysisCache.faltasMap[uid]) {
+                    try { await window.profAPI.loadGeralDashboard(); } catch (err) { console.warn(err); }
+                }
                 try { window.profAPI.loadAnaliseDashboard(uid); } catch (err) { console.warn(err); }
                 try { if (els.evolAluno) { els.evolAluno.value = uid; if (window.profAPI.loadEvolucaoAluno) window.profAPI.loadEvolucaoAluno(); } } catch (err) { console.warn(err); }
                 try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); }
+                // Sincroniza Frequência Individual com o aluno do topo
+                const geralSel = document.getElementById('geral-freq-student-select');
+                if (geralSel) { geralSel.value = uid; if (uid) window.profAPI.renderIndividualFreqChartGeral && window.profAPI.renderIndividualFreqChartGeral(uid); }
             } else {
                 try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (err) { console.warn(err); }
                 try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); }
@@ -7192,6 +7212,8 @@ window.profAPI.initDashboardUnificado = () => {
 
     // Carrega visão geral (por turma) por padrão
     try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (e) { console.warn(e); }
+    // Painel de dados carrega sozinho
+    try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (e) { console.warn(e); }
 
     // Renderiza gráficos ECharts poderosos/interativos
     try { window.profAPI.renderDashboardRankingECharts(); } catch (e) { console.warn('ECharts ranking:', e); }
@@ -7337,6 +7359,7 @@ window.profAPI.renderDashboardHeatmapECharts = async () => {
             block = document.createElement('div');
             block.id = 'dash-echarts-heatmap';
             block.className = 'kz-chart-host w-full';
+            block.style.width = '100%';
             block.innerHTML = '<h3 class="kz-section-title">Heatmap de Frequência (Alunos × Aulas)</h3><div id="dash-echarts-heatmap-canvas" style="width:100%;height:' + Math.max(320, students.length * 22 + 80) + 'px;"></div><p id="dash-echarts-heatmap-msg" class="text-xs text-slate-500 italic mt-2 hidden">Sem dados de frequência no período.</p>';
             host.appendChild(block);
         }
@@ -7424,6 +7447,12 @@ window.profAPI.renderDashboardHeatmapECharts = async () => {
             }],
             backgroundColor: 'transparent'
         });
+        // Garante que o heatmap ocupe toda a largura disponível
+        setTimeout(() => chart.resize(), 50);
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => chart.resize());
+            ro.observe(canvas);
+        }
         window.addEventListener('resize', () => chart.resize());
     } catch (e) {
         console.error('heatmap:', e);
