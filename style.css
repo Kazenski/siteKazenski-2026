@@ -2578,6 +2578,29 @@ html.theme-light .kz-upd__ver { background: linear-gradient(135deg, #3b82f6 0%, 
 html.theme-light .kz-upd__headtitle { color: #1a1410 !important; }
 html.theme-light .kz-upd__chev { color: #64748b !important; }
 
+
+html.theme-light .kz-adm { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light #kz-adm-msg { background: #ffffff !important; color: #1a1410 !important; border-color: #e8ddd6 !important; }
+
+
+html.theme-light .kz-seg { background: rgba(243,235,230,0.8) !important; border-color: #e8ddd6 !important; }
+html.theme-light .kz-seg__btn { color: #475569 !important; }
+html.theme-light .kz-seg__btn:hover { color: #1a1410 !important; background: rgba(243,235,230,0.9) !important; }
+html.theme-light .kz-seg__btn.is-active { color: #ffffff !important; background: linear-gradient(180deg, #3b82f6, #2563eb) !important; }
+
+
+html.theme-light .podium-card { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .podium-1 { background: linear-gradient(to top, #ffffff, rgba(250,204,21,0.1)) !important; }
+html.theme-light .podium-2 { background: linear-gradient(to top, #ffffff, rgba(148,163,184,0.1)) !important; }
+html.theme-light .podium-3 { background: linear-gradient(to top, #ffffff, rgba(180,83,9,0.1)) !important; }
+html.theme-light .aura-list-item { background: #ffffff !important; border-color: #e8ddd6 !important; }
+
+
+html.theme-light .custom-html-content { color: #334155 !important; }
+html.theme-light .custom-html-content h1, html.theme-light .custom-html-content h2 { color: #1d4ed8 !important; border-color: #e8ddd6 !important; }
+html.theme-light .custom-html-content h3 { color: #334155 !important; }
+html.theme-light .custom-html-content strong { color: #1a1410 !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
