@@ -1960,6 +1960,144 @@ main, .tab-content {
 .kz-exit:hover { background: #dc2626; border-color: #ef4444; color: #fff; }
 .kz-exit:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
 
+/* ============================================================ */
+/* DESIGN TOKENS INSPIRADOS NO MOVIDA ANALYTICS (Kazenski)      */
+/* ============================================================ */
+:root {
+    --kz-bg: #0f172a;
+    --kz-surface: #1e293b;
+    --kz-surface-2: #0f172a;
+    --kz-border: #334155;
+    --kz-fg: #f1f5f9;
+    --kz-fg-muted: #94a3b8;
+    --kz-accent: #f59e0b;
+    --kz-accent-soft: #451a03;
+    --kz-accent-fg: #fbbf24;
+    --kz-danger: #ef4444;
+    --kz-success: #22c55e;
+    --kz-radius: 14px;
+    --kz-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.kz-card {
+    background: var(--kz-surface);
+    border: 1px solid var(--kz-border);
+    border-radius: var(--kz-radius);
+    box-shadow: var(--kz-shadow);
+    padding: 1.25rem;
+}
+
+.kz-kpi {
+    background: var(--kz-surface);
+    border: 1px solid var(--kz-border);
+    border-radius: var(--kz-radius);
+    box-shadow: var(--kz-shadow);
+    padding: 1.25rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.kz-kpi__label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--kz-fg-muted);
+    margin-bottom: 0.5rem;
+}
+
+.kz-kpi__value {
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.kz-kpi__hint {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--kz-fg-muted);
+    margin-top: 0.5rem;
+}
+
+.kz-chart-host {
+    background: var(--kz-surface);
+    border: 1px solid var(--kz-border);
+    border-radius: var(--kz-radius);
+    box-shadow: var(--kz-shadow);
+    padding: 1rem;
+}
+
+.kz-section-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--kz-border);
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.kz-btn-ghost {
+    background: transparent;
+    border: 1px solid var(--kz-border);
+    color: var(--kz-fg-muted);
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all 0.15s ease;
+}
+.kz-btn-ghost:hover {
+    border-color: var(--kz-accent);
+    color: var(--kz-fg);
+    background: rgba(245,158,11,0.08);
+}
+
+/* ============================================================ */
+/* TEMA CLARO (toggle)                                          */
+/* ============================================================ */
+html.theme-light {
+    --kz-bg: #f7f5f3;
+    --kz-surface: #ffffff;
+    --kz-surface-2: #f3ebe6;
+    --kz-border: #e8ddd6;
+    --kz-fg: #1a1410;
+    --kz-fg-muted: #6b5e56;
+    --kz-accent: #f59e0b;
+    --kz-accent-soft: #ffe5d6;
+    --kz-accent-fg: #c43d00;
+}
+html.theme-light body {
+    background-color: #f7f5f3 !important;
+    color: #1a1410 !important;
+}
+html.theme-light .bg-slate-900,
+html.theme-light .bg-slate-950 {
+    background-color: #ffffff !important;
+    color: #1a1410 !important;
+}
+html.theme-light .bg-slate-800 {
+    background-color: #f3ebe6 !important;
+}
+html.theme-light .text-slate-200,
+html.theme-light .text-slate-300,
+html.theme-light .text-white {
+    color: #1a1410 !important;
+}
+html.theme-light .text-slate-400,
+html.theme-light .text-slate-500 {
+    color: #6b5e56 !important;
+}
+html.theme-light .border-slate-700,
+html.theme-light .border-slate-800 {
+    border-color: #e8ddd6 !important;
+}
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;

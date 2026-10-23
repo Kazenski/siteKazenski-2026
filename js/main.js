@@ -164,6 +164,24 @@ function startSessionManager(user) {
     const timerDiv = document.getElementById('session-timer');
     const countdownSpan = document.getElementById('session-countdown');
 
+    // Usuários logados com Google (validados no Firebase) não sofrem logout por inatividade
+    const isGoogleUser = user.providerData && user.providerData.some((p) => p.providerId === 'google.com');
+
+    if (isGoogleUser) {
+        // Oculta o timer de sessão para usuários Google
+        if (timerDiv) {
+            timerDiv.classList.remove('flex');
+            timerDiv.classList.add('hidden');
+        }
+        // Registra atividade (sem timeout) e mantém sessão viva
+        lastActivityUpdate = 0;
+        updateActivity();
+        window.addEventListener('mousemove', updateActivity);
+        window.addEventListener('keydown', updateActivity);
+        window.addEventListener('click', updateActivity);
+        return;
+    }
+
     if (timerDiv) {
         timerDiv.classList.remove('hidden');
         timerDiv.classList.add('flex');

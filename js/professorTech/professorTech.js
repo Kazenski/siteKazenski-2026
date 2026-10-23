@@ -15,7 +15,10 @@ let state = {
     sorteioIndividual: { pool: [], sorteados: [], winner: null },
     sorteioGrupos: { lastGroups: [], excluidos: new Set(), classId: '' },
     evolucaoAluno: { alunoId: null, alunoNome: null, trimestre: '1', dados: null, chartFaltas: null, chartNotas: null },
-    painel: { dados: null }
+    painel: { dados: null },
+    notasSort: { col: 'nome', dir: 'asc' },
+    notasPage: 1,
+    notasPageSize: 10
 };
 let els = {};
 let anotacoesCache = [];
@@ -130,6 +133,9 @@ export async function renderProfessorTab() {
     if (els.evolTrimestre) els.evolTrimestre.onchange = () => window.profAPI.loadEvolucaoAluno();
     addSafeListener('aplicar-aval', () => window.profAPI.renderAplicarAvalTable());
     addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
+
+    // Dashboard Unificado: consolida as 4 abas de métricas em uma única visão
+    addSafeListener('dashboard', () => window.profAPI.initDashboardUnificado());
     addSafeListener('avaliacoes', () => window.profAPI.loadAvaliacoesAdmin());
     addSafeListener('horario', () => window.profAPI.loadGradeHoraria());
     addSafeListener('avisos', () => window.profAPI.loadAvisosPanel());
@@ -450,8 +456,45 @@ function setupSubTabs() {
     const btns = document.querySelectorAll('.prof-subtab-btn');
     const contents = document.querySelectorAll('.prof-tab-content');
 
+    const DASHBOARD_CHILDREN = ['ptab-analise', 'ptab-evolucao', 'ptab-painel', 'ptab-analise-geral'];
+    const DASHBOARD_ORIGINAL_PARENT = document.getElementById('professor-content')?.querySelector('.min-h-full') || document.getElementById('professor-content');
+
+    function restoreDashboardChildren() {
+        DASHBOARD_CHILDREN.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.parentNode && el.parentNode.id === 'dashboard-unified-host') {
+                DASHBOARD_ORIGINAL_PARENT.appendChild(el);
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        });
+    }
+
+    function consolidateIntoDashboard() {
+        const host = document.getElementById('dashboard-unified-host');
+        if (!host) return;
+        DASHBOARD_CHILDREN.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.parentNode !== host) {
+                host.appendChild(el);
+            }
+            if (el) {
+                el.classList.remove('hidden');
+                el.classList.add('flex');
+            }
+        });
+    }
+
     btns.forEach(btn => {
         btn.addEventListener('click', () => {
+            const target = btn.getAttribute('data-target');
+
+            // Se estamos saindo do dashboard, devolve os filhos para o pai original
+            const activeBtn = document.querySelector('.prof-subtab-btn.active');
+            if (activeBtn && activeBtn.getAttribute('data-target') === 'dashboard' && target !== 'dashboard') {
+                restoreDashboardChildren();
+            }
+
             // 1. Resetar estilos dos botões
             btns.forEach(b => {
                 b.classList.remove('active', 'bg-amber-600', 'text-white');
@@ -462,18 +505,23 @@ function setupSubTabs() {
             btn.classList.add('active', 'bg-amber-600', 'text-white');
             btn.classList.remove('bg-slate-800', 'text-slate-400');
 
-            // 3. ESCONDER todas as abas (Garante que o 'hidden' seja aplicado)
+            // 3. ESCONDER todas as abas
             contents.forEach(c => {
                 c.classList.add('hidden');
                 c.classList.remove('flex');
             });
 
             // 4. MOSTRAR apenas a aba alvo
-            const targetId = `ptab-${btn.getAttribute('data-target')}`;
+            const targetId = `ptab-${target}`;
             const targetEl = document.getElementById(targetId);
             if (targetEl) {
                 targetEl.classList.remove('hidden');
                 targetEl.classList.add('flex');
+            }
+
+            // 5. Se for o dashboard, consolida os filhos
+            if (target === 'dashboard') {
+                consolidateIntoDashboard();
             }
         });
     });
@@ -608,6 +656,13 @@ async function loadMasterData() {
         renderChamadaList();
         renderNotasTable();
         renderExtrasTable();
+
+        // Indicador de sync
+        const syncEl = document.getElementById('prof-sync-indicator');
+        if (syncEl) {
+            const now = new Date();
+            syncEl.innerHTML = `<i class="fas fa-circle text-green-500 mr-1 text-[6px]"></i> Sync: ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+        }
         //window.profAPI.populateEvalStudents();
 
     } catch (e) {
@@ -737,14 +792,43 @@ function renderNotasTable() {
     els.notasBody.innerHTML = '';
     els.notasMsg.classList.add('hidden');
 
-    state.cache.students.forEach(st => {
+    // Ordenação
+    const sort = state.notasSort || { col: 'nome', dir: 'asc' };
+    const sorted = [...state.cache.students].sort((a, b) => {
+        let va, vb;
+        if (sort.col === 'nome') { va = a.nome || ''; vb = b.nome || ''; }
+        else if (sort.col === 'media') {
+            const ca = state.notasCache[a.id] || {};
+            const cb = state.notasCache[b.id] || {};
+            va = parseFloat(calcMedia(ca.n1, ca.n2, ca.n3, ca.n4)) || 0;
+            vb = parseFloat(calcMedia(cb.n1, cb.n2, cb.n3, cb.n4)) || 0;
+        } else if (['n1','n2','n3','n4'].includes(sort.col)) {
+            const ca = state.notasCache[a.id] || {};
+            const cb = state.notasCache[b.id] || {};
+            va = parseFloat(ca[sort.col]) || 0;
+            vb = parseFloat(cb[sort.col]) || 0;
+        } else { va = a[sort.col]; vb = b[sort.col]; }
+        if (typeof va === 'string') {
+            return sort.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+        }
+        return sort.dir === 'asc' ? va - vb : vb - va;
+    });
+
+    // Paginação
+    const pageSize = state.notasPageSize || 10;
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    if (state.notasPage > totalPages) state.notasPage = totalPages;
+    if (state.notasPage < 1) state.notasPage = 1;
+    const start = (state.notasPage - 1) * pageSize;
+    const pageItems = sorted.slice(start, start + pageSize);
+
+    pageItems.forEach(st => {
         const cache = state.notasCache[st.id];
         const media = calcMedia(cache.n1, cache.n2, cache.n3, cache.n4);
         const isActive = st.registroAtivo !== false;
 
         const tr = document.createElement('tr');
         tr.dataset.uid = st.id;
-        // Se inativo, fica transparente e bloqueia hover
         tr.className = `group transition-colors border-b border-slate-800 ${isActive ? 'hover:bg-slate-800/50' : 'opacity-50 grayscale'}`;
 
         let html = `
@@ -759,7 +843,6 @@ function renderNotasTable() {
             </td>
         `;
 
-        // Campos de N1 a N4
         ['n1', 'n2', 'n3', 'n4'].forEach(f => {
             const val = cache[f];
             html += `<td class="p-2">
@@ -782,7 +865,24 @@ function renderNotasTable() {
         tr.innerHTML = html;
         els.notasBody.appendChild(tr);
     });
+
+    // Atualiza info de paginação
+    const info = document.getElementById('notas-page-info');
+    if (info) info.textContent = `Página ${state.notasPage} de ${totalPages} · ${sorted.length} alunos`;
 }
+
+window.profAPI.notasPrevPage = () => { if (state.notasPage > 1) { state.notasPage--; renderNotasTable(); } };
+window.profAPI.notasNextPage = () => {
+    const pageSize = state.notasPageSize || 10;
+    const totalPages = Math.max(1, Math.ceil((state.cache.students || []).length / pageSize));
+    if (state.notasPage < totalPages) { state.notasPage++; renderNotasTable(); }
+};
+window.profAPI.setNotasPageSize = (v) => { state.notasPageSize = parseInt(v) || 10; state.notasPage = 1; renderNotasTable(); };
+window.profAPI.sortNotasBy = (col) => {
+    if (state.notasSort.col === col) state.notasSort.dir = state.notasSort.dir === 'asc' ? 'desc' : 'asc';
+    else { state.notasSort.col = col; state.notasSort.dir = 'asc'; }
+    renderNotasTable();
+};
 
 // Helpers
 function calcMedia(n1, n2, n3, n4) {
@@ -3715,6 +3815,29 @@ window.profAPI = {
         } else {
             els.kpiMinGrade.textContent = "-"; els.kpiMaxGrade.textContent = "-";
         }
+
+        // --- SCORE DO ALUNO (0-100): 40% volume + 30% conclusão + 30% evolução ---
+        try {
+            const totalNotas = allGrades.length;
+            const maxPossivel = Math.max(1, Object.keys(notas).length * 4);
+            const volume = Math.min(100, (totalNotas / maxPossivel) * 100);
+            const aprovadas = allGrades.filter(n => n >= 6).length;
+            const conclusao = totalNotas > 0 ? (aprovadas / totalNotas) * 100 : 0;
+            // evolução: compara média das primeiras notas vs últimas
+            const primeiras = allGrades.slice(0, Math.ceil(allGrades.length / 2));
+            const ultimas = allGrades.slice(Math.ceil(allGrades.length / 2));
+            const mPri = primeiras.length ? primeiras.reduce((a,b)=>a+b,0)/primeiras.length : 0;
+            const mUlt = ultimas.length ? ultimas.reduce((a,b)=>a+b,0)/ultimas.length : 0;
+            const evolucao = mUlt >= mPri ? Math.min(100, (mUlt / 10) * 100) : Math.max(0, (mUlt / 10) * 100);
+            const score = Math.round(volume * 0.4 + conclusao * 0.3 + evolucao * 0.3);
+            const elScore = document.getElementById('kpi-student-score');
+            const elGrade = document.getElementById('kpi-student-grade');
+            if (elScore) elScore.textContent = score;
+            if (elGrade) {
+                const nota = score >= 80 ? 'A' : score >= 65 ? 'B' : score >= 50 ? 'C' : 'D';
+                elGrade.textContent = 'Nota ' + nota;
+            }
+        } catch (e) { console.warn('score aluno:', e); }
 
         // --- GRÁFICO: Média por Disciplina (Barra) ---
         const labelsBar = [];
@@ -6824,6 +6947,449 @@ window.profAPI.initPainel = () => {
         sel.addEventListener('change', () => window.profAPI.renderModeradoresAnalise());
     }
     window.profAPI.renderModeradoresAnalise();
+};
+
+// ==========================================
+// TOGGLE DE TEMA CLARO/ESCURO (estilo Movida)
+// ==========================================
+window.toggleTheme = () => {
+    const html = document.documentElement;
+    const isLight = html.classList.toggle('theme-light');
+    localStorage.setItem('kz-theme', isLight ? 'light' : 'dark');
+    const btn = document.getElementById('btn-theme-toggle');
+    if (btn) btn.innerHTML = isLight ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+};
+
+// Aplica tema salvo ao carregar
+(function applySavedTheme() {
+    const saved = localStorage.getItem('kz-theme');
+    if (saved === 'light') {
+        document.documentElement.classList.add('theme-light');
+        const btn = document.getElementById('btn-theme-toggle');
+        if (btn) btn.innerHTML = '<i class="fas fa-sun"></i>';
+    }
+})();
+
+// ==========================================
+// VIEWS SALVAS (filtros) — estilo Movida
+// ==========================================
+window.profAPI.saveView = () => {
+    const view = {
+        school: state.filters.school,
+        classId: state.filters.classId,
+        disciplineId: state.filters.disciplineId,
+        quarter: state.filters.quarter,
+        date: els.inputDate ? els.inputDate.value : '',
+        ts: Date.now()
+    };
+    const views = JSON.parse(localStorage.getItem('kz-views') || '[]');
+    const name = prompt('Nome da view:');
+    if (!name) return;
+    views.push({ name, ...view });
+    localStorage.setItem('kz-views', JSON.stringify(views));
+    window.profAPI.refreshViewsSelect();
+    alert('View salva!');
+};
+
+window.profAPI.refreshViewsSelect = () => {
+    const sel = document.getElementById('prof-views-select');
+    if (!sel) return;
+    const views = JSON.parse(localStorage.getItem('kz-views') || '[]');
+    sel.innerHTML = '<option value="">Views salvas...</option>';
+    views.forEach((v, i) => sel.add(new Option(v.name, i)));
+};
+
+window.profAPI.loadView = (idx) => {
+    if (idx === '' || idx === null) return;
+    const views = JSON.parse(localStorage.getItem('kz-views') || '[]');
+    const v = views[parseInt(idx)];
+    if (!v) return;
+    if (els.selSchool) { els.selSchool.value = v.school; els.selSchool.onchange && els.selSchool.onchange({ target: els.selSchool }); }
+    state.filters.school = v.school;
+    state.filters.classId = v.classId;
+    state.filters.disciplineId = v.disciplineId;
+    state.filters.quarter = v.quarter;
+    if (els.selClass) els.selClass.value = v.classId;
+    if (els.selDisc) els.selDisc.value = v.disciplineId;
+    if (els.selQuarter) els.selQuarter.value = v.quarter;
+    if (els.inputDate) els.inputDate.value = v.date;
+    alert('View carregada. Clique em Carregar para aplicar.');
+};
+
+// Inicializa select de views ao carregar o professor
+const _origRenderProfessorTab = window.renderProfessorTab;
+// hook: refresh views after initFilters
+setTimeout(() => { try { window.profAPI.refreshViewsSelect(); } catch(e){} }, 1000);
+
+// ==========================================
+// DASHBOARD UNIFICADO: consolida as 4 abas de métricas
+// ==========================================
+window.profAPI.initDashboardUnificado = () => {
+    // Garante valores padrão de período para o painel
+    if (window.profAPI.initPainel) window.profAPI.initPainel();
+    // Popula selects
+    if (window.profAPI.populateAnaliseStudentSelect) window.profAPI.populateAnaliseStudentSelect();
+    if (window.profAPI.initEvolucaoTab) window.profAPI.initEvolucaoTab();
+
+    // Popula seletor de aluno do dashboard unificado
+    const dashSel = document.getElementById('dashboard-student-select');
+    if (dashSel) {
+        dashSel.innerHTML = '<option value="">Toda a turma</option>';
+        (state.cache.students || []).forEach(s => dashSel.add(new Option(s.nome, s.id)));
+        dashSel.onchange = (e) => {
+            const uid = e.target.value;
+            if (uid) {
+                // Métricas atreladas ao aluno selecionado
+                try { window.profAPI.loadAnaliseDashboard(uid); } catch (err) { console.warn(err); }
+                try { window.profAPI.loadEvolucaoAluno && (els.evolAluno.value = uid, window.profAPI.loadEvolucaoAluno()); } catch (err) { console.warn(err); }
+            } else {
+                // Por turma
+                try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (err) { console.warn(err); }
+            }
+        };
+    }
+
+    // Carrega visão geral (por turma) por padrão
+    try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (e) { console.warn(e); }
+
+    // Renderiza gráficos ECharts poderosos/interativos
+    try { window.profAPI.renderDashboardRankingECharts(); } catch (e) { console.warn('ECharts ranking:', e); }
+    try { window.profAPI.renderDashboardScatterECharts(); } catch (e) { console.warn('ECharts scatter:', e); }
+    try { window.profAPI.renderDashboardHeatmapECharts(); } catch (e) { console.warn('ECharts heatmap:', e); }
+    try { window.profAPI.renderDashboardDoraECharts(); } catch (e) { console.warn('ECharts dora:', e); }
+};
+
+window.profAPI.renderDashboardRankingECharts = () => {
+    const host = document.getElementById('dashboard-unified-host');
+    if (!host || typeof echarts === 'undefined') return;
+
+    // Evita duplicar o bloco
+    let block = document.getElementById('dash-echarts-ranking');
+    if (!block) {
+        block = document.createElement('div');
+        block.id = 'dash-echarts-ranking';
+        block.className = 'kz-chart-host';
+        block.innerHTML = '<h3 class="kz-section-title">Ranking de Alunos por Média (ECharts)</h3><div id="dash-echarts-ranking-canvas" style="width:100%;height:360px;"></div>';
+        host.appendChild(block);
+    }
+    const canvas = document.getElementById('dash-echarts-ranking-canvas');
+    if (!canvas) return;
+
+    const students = (state.cache && state.cache.students) || [];
+    const notasCache = state.notasCache || {};
+    const data = students.map(s => {
+        const c = notasCache[s.id];
+        let media = '-';
+        if (c) {
+            const m = calcMedia(c.n1, c.n2, c.n3, c.n4);
+            media = m === '-' ? null : parseFloat(m);
+        }
+        return { name: s.nome, value: media };
+    }).filter(d => d.value !== null)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 15);
+
+    const chart = echarts.init(canvas);
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '8%', bottom: '3%', top: '5%', containLabel: true },
+        xAxis: { type: 'value', min: 0, max: 10, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#334155' } } },
+        yAxis: { type: 'category', data: data.map(d => d.name).reverse(), axisLabel: { color: '#cbd5e1', fontSize: 10 } },
+        series: [{
+            type: 'bar',
+            data: data.map(d => d.value).reverse(),
+            itemStyle: {
+                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                    { offset: 0, color: '#f59e0b' },
+                    { offset: 1, color: '#fbbf24' }
+                ]),
+                borderRadius: [0, 6, 6, 0]
+            },
+            label: { show: true, position: 'right', color: '#f1f5f9', fontSize: 10, formatter: '{c}' },
+            emphasis: { itemStyle: { color: '#fbbf24' } }
+        }],
+        backgroundColor: 'transparent'
+    });
+
+    window.addEventListener('resize', () => chart.resize());
+};
+
+// Scatter ECharts: Notas x Faltas (estilo Movida)
+window.profAPI.renderDashboardScatterECharts = () => {
+    const host = document.getElementById('dashboard-unified-host');
+    if (!host || typeof echarts === 'undefined') return;
+
+    let block = document.getElementById('dash-echarts-scatter');
+    if (!block) {
+        block = document.createElement('div');
+        block.id = 'dash-echarts-scatter';
+        block.className = 'kz-chart-host';
+        block.innerHTML = '<h3 class="kz-section-title">Dispersão: Notas × Faltas (ECharts)</h3><div id="dash-echarts-scatter-canvas" style="width:100%;height:360px;"></div>';
+        host.appendChild(block);
+    }
+    const canvas = document.getElementById('dash-echarts-scatter-canvas');
+    if (!canvas) return;
+
+    const students = (geralAnalysisCache && geralAnalysisCache.students) || (state.cache && state.cache.students) || [];
+    const faltasMap = (geralAnalysisCache && geralAnalysisCache.faltasMap) || {};
+    const data = [];
+    students.forEach(s => {
+        const f = faltasMap[s.id];
+        const ausente = f ? (f.ausente || 0) : 0;
+        const total = f ? ((f.ausente || 0) + (f.presente || 0) + (f.justificado || 0)) : 0;
+        // média de notas do aluno (se disponível no notasCache)
+        const c = state.notasCache && state.notasCache[s.id];
+        const media = c ? parseFloat(calcMedia(c.n1, c.n2, c.n3, c.n4)) : null;
+        if (media !== null && !isNaN(media)) {
+            data.push([ausente, media, s.nome]);
+        }
+    });
+
+    const chart = echarts.init(canvas);
+    chart.setOption({
+        tooltip: {
+            trigger: 'item',
+            formatter: (p) => `${p.value[2]}<br/>Faltas: ${p.value[0]}<br/>Média: ${p.value[1]}`
+        },
+        grid: { left: '8%', right: '5%', top: '8%', bottom: '10%', containLabel: true },
+        xAxis: { type: 'value', name: 'Faltas', nameLocation: 'middle', nameGap: 25, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#334155' } } },
+        yAxis: { type: 'value', name: 'Média', min: 0, max: 10, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#334155' } } },
+        series: [{
+            type: 'scatter',
+            data: data,
+            symbolSize: 12,
+            itemStyle: { color: '#f59e0b', opacity: 0.8 },
+            emphasis: { itemStyle: { color: '#fbbf24', borderColor: '#fff', borderWidth: 1 } }
+        }],
+        backgroundColor: 'transparent'
+    });
+    window.addEventListener('resize', () => chart.resize());
+};
+
+// Heatmap ECharts: Frequência (Alunos × Datas de aula)
+window.profAPI.renderDashboardHeatmapECharts = async () => {
+    const host = document.getElementById('dashboard-unified-host');
+    if (!host || typeof echarts === 'undefined') return;
+
+    let block = document.getElementById('dash-echarts-heatmap');
+    if (!block) {
+        block = document.createElement('div');
+        block.id = 'dash-echarts-heatmap';
+        block.className = 'kz-chart-host';
+        block.innerHTML = '<h3 class="kz-section-title">Heatmap de Frequência (Alunos × Aulas)</h3><div id="dash-echarts-heatmap-canvas" style="width:100%;height:420px;"></div><p id="dash-echarts-heatmap-msg" class="text-xs text-slate-500 italic mt-2 hidden">Sem dados de frequência no período.</p>';
+        host.appendChild(block);
+    }
+    const canvas = document.getElementById('dash-echarts-heatmap-canvas');
+    const msg = document.getElementById('dash-echarts-heatmap-msg');
+    if (!canvas) return;
+
+    const { classId, disciplineId } = state.filters;
+    if (!classId) {
+        if (msg) { msg.textContent = 'Selecione a turma no topo para carregar o heatmap.'; msg.classList.remove('hidden'); }
+        return;
+    }
+
+    try {
+        const presSnap = await getDocs(query(collection(db, "presencas"), where("turma", "==", classId)));
+        const students = (state.cache && state.cache.students && state.cache.students.length)
+            ? state.cache.students
+            : await (async () => {
+                const qS = query(collection(db, "users"), where("turma", "==", classId), where("Aluno", "==", true), orderBy("nome"));
+                const snapS = await getDocs(qS);
+                const arr = [];
+                snapS.forEach(d => arr.push({ id: d.id, ...d.data() }));
+                return arr;
+            })();
+
+        // Coleta datas únicas (limitando a 30 mais recentes para legibilidade)
+        const dateSet = new Set();
+        const recordsByDate = {};
+        presSnap.forEach(d => {
+            const data = d.data();
+            const dId = data.disciplineId || data.disciplinaId;
+            if (disciplineId && dId !== disciplineId) return;
+            const ts = data.data_aula_timestamp;
+            const dateObj = ts ? (typeof ts.toDate === 'function' ? ts.toDate() : new Date(ts)) : null;
+            if (!dateObj) return;
+            const key = dateObj.toISOString().slice(0, 10);
+            dateSet.add(key);
+            if (!recordsByDate[key]) recordsByDate[key] = {};
+            if (data.registros) Object.entries(data.registros).forEach(([uid, st]) => { recordsByDate[key][uid] = st; });
+        });
+
+        const dates = [...dateSet].sort().slice(-30);
+        if (dates.length === 0 || students.length === 0) {
+            if (msg) { msg.textContent = 'Nenhuma aula registrada para o heatmap.'; msg.classList.remove('hidden'); }
+            return;
+        }
+        if (msg) msg.classList.add('hidden');
+
+        const statusVal = (s) => {
+            if (s === 'presente' || s === 'p') return 2;
+            if (s === 'justificado' || String(s).startsWith('justi')) return 1;
+            if (s === 'ausente' || s === 'falta' || s === 'f') return 0;
+            return -1;
+        };
+
+        const heatData = [];
+        students.forEach((st, yi) => {
+            dates.forEach((dt, xi) => {
+                const stt = recordsByDate[dt] ? recordsByDate[dt][st.id] : null;
+                const v = stt ? statusVal(stt) : -1;
+                if (v >= 0) heatData.push([xi, yi, v]);
+            });
+        });
+
+        const chart = echarts.init(canvas);
+        chart.setOption({
+            tooltip: {
+                position: 'top',
+                formatter: (p) => {
+                    const st = students[p.value[1]];
+                    const dt = dates[p.value[0]];
+                    const v = p.value[2];
+                    const label = v === 2 ? 'Presente' : v === 1 ? 'Justificado' : 'Falta';
+                    return `${st ? st.nome : ''}<br/>${dt}<br/>${label}`;
+                }
+            },
+            grid: { left: '18%', right: '8%', top: '8%', bottom: '18%', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: dates.map(d => d.slice(8, 10) + '/' + d.slice(5, 7)),
+                axisLabel: { color: '#94a3b8', fontSize: 9, rotate: 45 },
+                splitArea: { show: true }
+            },
+            yAxis: {
+                type: 'category',
+                data: students.map(s => (s.nome || '').substring(0, 18)),
+                axisLabel: { color: '#cbd5e1', fontSize: 9 },
+                splitArea: { show: true }
+            },
+            visualMap: {
+                min: 0, max: 2, calculable: false, orient: 'horizontal',
+                left: 'center', bottom: '0%',
+                inRange: { color: ['#ef4444', '#3b82f6', '#22c55e'] },
+                text: ['Presente', 'Falta'],
+                textStyle: { color: '#94a3b8', fontSize: 9 }
+            },
+            series: [{
+                type: 'heatmap',
+                data: heatData,
+                label: { show: false },
+                emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' } }
+            }],
+            backgroundColor: 'transparent'
+        });
+        window.addEventListener('resize', () => chart.resize());
+    } catch (e) {
+        console.error('heatmap:', e);
+        if (msg) { msg.textContent = 'Erro ao carregar heatmap: ' + e.message; msg.classList.remove('hidden'); }
+    }
+};
+
+// DORA-like para a turma + Aging/WIP
+window.profAPI.renderDashboardDoraECharts = () => {
+    const host = document.getElementById('dashboard-unified-host');
+    if (!host) return;
+
+    let block = document.getElementById('dash-dora');
+    if (!block) {
+        block = document.createElement('div');
+        block.id = 'dash-dora';
+        block.className = 'kz-card';
+        block.innerHTML = `
+            <h3 class="kz-section-title">Métricas DORA da Turma (proxy)</h3>
+            <div id="dash-dora-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
+            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Aging / WIP — Alunos com pendências ≥ 14 dias</h4>
+            <ul id="dash-dora-aging" class="space-y-1 max-h-48 overflow-y-auto custom-scroll text-xs"></ul>
+        `;
+        host.appendChild(block);
+    }
+
+    const kpisEl = document.getElementById('dash-dora-kpis');
+    const agingEl = document.getElementById('dash-dora-aging');
+    if (!kpisEl) return;
+
+    // 1. Taxa de falha (notas < 6)
+    let totalNotas = 0, falhas = 0;
+    Object.values(state.notasCache || {}).forEach(c => {
+        ['n1','n2','n3','n4'].forEach(k => {
+            const v = parseFloat(c[k]);
+            if (!isNaN(v)) { totalNotas++; if (v < 6) falhas++; }
+        });
+    });
+    const taxaFalha = totalNotas > 0 ? ((falhas / totalNotas) * 100).toFixed(1) : '0.0';
+
+    // 2. Frequência de avaliações
+    const freqAval = (typeof avaliacoesCache !== 'undefined' && avaliacoesCache) ? avaliacoesCache.length : 0;
+
+    // 3. Lead time médio (dias entre aplicação e lançamento) — se disponível
+    let leadTimes = [];
+    if (typeof avaliacoesCache !== 'undefined' && avaliacoesCache) {
+        avaliacoesCache.forEach(av => {
+            if (av.dataAplicacao && av.dataLancamento) {
+                const d1 = new Date(av.dataAplicacao);
+                const d2 = new Date(av.dataLancamento);
+                const diff = (d2 - d1) / (1000*60*60*24);
+                if (diff >= 0) leadTimes.push(diff);
+            }
+        });
+    }
+    const leadTimeMedio = leadTimes.length ? (leadTimes.reduce((a,b)=>a+b,0)/leadTimes.length).toFixed(1) : 'N/A';
+
+    // 4. MTTR (tempo para recuperar nota) — simplificado: média de dias entre nota <6 e próxima >=6 não disponível → N/A
+    const mttr = 'N/A';
+
+    kpisEl.innerHTML = `
+        <div class="kz-kpi">
+            <div class="kz-kpi__label">Taxa de Falha</div>
+            <div class="kz-kpi__value text-red-400">${taxaFalha}%</div>
+            <div class="kz-kpi__hint">Notas &lt; 6</div>
+        </div>
+        <div class="kz-kpi">
+            <div class="kz-kpi__label">Freq. Avaliações</div>
+            <div class="kz-kpi__value text-amber-400">${freqAval}</div>
+            <div class="kz-kpi__hint">No trimestre</div>
+        </div>
+        <div class="kz-kpi">
+            <div class="kz-kpi__label">Lead Time</div>
+            <div class="kz-kpi__value text-blue-400">${leadTimeMedio}${leadTimeMedio !== 'N/A' ? 'd' : ''}</div>
+            <div class="kz-kpi__hint">Aplicação → Lançamento</div>
+        </div>
+        <div class="kz-kpi">
+            <div class="kz-kpi__label">MTTR</div>
+            <div class="kz-kpi__value text-purple-400">${mttr}</div>
+            <div class="kz-kpi__hint">Recuperação de nota</div>
+        </div>
+    `;
+
+    // Aging / WIP: alunos com faltas consecutivas >= 5 ou média < 6
+    if (agingEl) {
+        const students = (state.cache && state.cache.students) || [];
+        const aging = [];
+        students.forEach(st => {
+            const c = state.notasCache && state.notasCache[st.id];
+            const media = c ? parseFloat(calcMedia(c.n1, c.n2, c.n3, c.n4)) : null;
+            // faltas consecutivas do aluno (se disponível no cache de presenças) — usar faltasMap do geral
+            const f = geralAnalysisCache && geralAnalysisCache.faltasMap ? geralAnalysisCache.faltasMap[st.id] : null;
+            const ausente = f ? (f.ausente || 0) : 0;
+            const total = f ? ((f.ausente||0)+(f.presente||0)+(f.justificado||0)) : 0;
+            const pctFalta = total > 0 ? (ausente / total) * 100 : 0;
+            if ((media !== null && media < 6) || pctFalta >= 20) {
+                aging.push({ nome: st.nome, media: media !== null ? media.toFixed(1) : '-', pctFalta: pctFalta.toFixed(0) });
+            }
+        });
+        if (aging.length === 0) {
+            agingEl.innerHTML = '<li class="text-slate-500 italic">Nenhum aluno em aging no momento.</li>';
+        } else {
+            agingEl.innerHTML = aging.map(a => `
+                <li class="flex items-center justify-between bg-slate-900/40 border border-slate-700 rounded-lg px-3 py-2">
+                    <span class="font-bold text-slate-200 truncate">${escapeHTML(a.nome)}</span>
+                    <span class="text-[10px] text-slate-400">Média: <b class="text-amber-400">${a.media}</b> · Faltas: <b class="text-red-400">${a.pctFalta}%</b></span>
+                </li>
+            `).join('');
+        }
+    }
 };
 
 window.profAPI.resetPainelPeriodo = (reRender = true) => {

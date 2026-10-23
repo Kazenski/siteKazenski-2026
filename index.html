@@ -12,6 +12,8 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- ECharts: gráficos interativos avançados (estilo Movida Analytics) -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
@@ -127,6 +129,11 @@
                 </button>
             </div>
 
+            <button id="btn-theme-toggle" onclick="window.toggleTheme()" title="Alternar tema"
+                class="w-10 h-10 flex items-center justify-center text-amber-400 hover:bg-amber-500/10 rounded-full transition-all border border-slate-700"
+                aria-label="Alternar tema claro/escuro">
+                <i class="fas fa-moon"></i>
+            </button>
             <button id="btn-login-visitor" onclick="window.showTab('login')"
                 class="hidden px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-blue-900/20">
                 Acessar Portal
@@ -2218,6 +2225,15 @@
                             class="col-span-2 md:col-span-1 xl:w-auto w-full bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-6 py-2.5 rounded-lg shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all hover:scale-105 h-[38px] uppercase tracking-widest">
                             <i class="fas fa-sync-alt mr-2"></i> Carregar
                         </button>
+                        <span id="prof-sync-indicator" class="col-span-2 md:col-span-1 xl:w-auto text-[9px] text-slate-500 uppercase tracking-widest font-bold flex items-center h-[38px]">
+                            <i class="fas fa-circle text-slate-600 mr-1 text-[6px]"></i> Sync: --
+                        </span>
+                        <div class="col-span-2 md:col-span-1 xl:w-auto w-full flex gap-2">
+                            <button onclick="window.profAPI.saveView()" class="kz-btn-ghost flex-1 h-[38px]" title="Salvar filtros atuais"><i class="fas fa-bookmark mr-1"></i> Salvar View</button>
+                            <select id="prof-views-select" onchange="window.profAPI.loadView(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 h-[38px]">
+                                <option value="">Views salvas...</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -2254,6 +2270,10 @@
                     <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 rounded-lg transition-colors whitespace-nowrap border border-emerald-900/30"
                         data-target="analise-geral"><i class="fas fa-globe mr-1"></i> Visão Geral</button>
+
+                    <button
+                        class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-cyan-400 hover:bg-cyan-900/40 hover:text-cyan-300 rounded-lg transition-colors whitespace-nowrap border border-cyan-900/30"
+                        data-target="dashboard"><i class="fas fa-chart-pie mr-1"></i> Dashboard Unificado</button>
 
                     <button
                         class="prof-subtab-btn px-4 py-2 text-[10px] md:text-xs font-bold uppercase tracking-widest bg-slate-800 text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300 rounded-lg transition-colors whitespace-nowrap border border-emerald-900/30"
@@ -2429,6 +2449,16 @@
                             </thead>
                             <tbody id="notas-table-body" class="divide-y divide-slate-800"></tbody>
                         </table>
+                    </div>
+                    <div id="notas-pagination" class="flex justify-center items-center gap-3 py-3 shrink-0">
+                        <button onclick="window.profAPI.notasPrevPage()" class="kz-btn-ghost"><i class="fas fa-chevron-left"></i></button>
+                        <span id="notas-page-info" class="text-xs text-slate-400 font-bold">Página 1</span>
+                        <select id="notas-page-size" onchange="window.profAPI.setNotasPageSize(this.value)" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-1.5">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                        </select>
+                        <button onclick="window.profAPI.notasNextPage()" class="kz-btn-ghost"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <p id="notas-msg" class="text-center text-sm mt-6 font-bold text-slate-500 italic hidden"></p>
                 </div>
@@ -3641,7 +3671,7 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 shrink-0">
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Faltas
                                     Consecutivas</div>
@@ -3651,7 +3681,7 @@
                                 </div>
                             </div>
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Menor
                                     Nota
@@ -3661,7 +3691,7 @@
                                     disciplinas</div>
                             </div>
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Maior
                                     Nota
@@ -3670,11 +3700,19 @@
                                 <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2">Em todas as
                                     disciplinas</div>
                             </div>
+                            <div
+                                class="kz-kpi">
+                                <div class="absolute top-0 left-0 w-full h-1 bg-cyan-500"></div>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Score do
+                                    Aluno</div>
+                                <div class="text-4xl font-black text-cyan-400" id="kpi-student-score">-</div>
+                                <div class="text-[9px] text-slate-500 uppercase tracking-widest mt-2" id="kpi-student-grade">Nota -</div>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-80">
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                class="kz-chart-host flex flex-col">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                     <h3 class="text-amber-500 font-cinzel font-bold text-sm title="Média das notas de cada disciplina do escopo, no trimestre escolhido.">Média por Disciplina</h3>
                                 </div>
@@ -3687,7 +3725,7 @@
                             </div>
 
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                class="kz-chart-host flex flex-col">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                     <h3 class="text-blue-400 font-cinzel font-bold text-sm">Taxa de Frequência</h3>
                                 </div>
@@ -4137,7 +4175,7 @@
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 shrink-0">
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-blue-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Média
                                     da
@@ -4147,7 +4185,7 @@
                                     Selecionada</div>
                             </div>
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Total
                                     de
@@ -4157,7 +4195,7 @@
                                     (Período)</div>
                             </div>
                             <div
-                                class="bg-slate-900/50 border border-slate-700 rounded-2xl p-6 text-center shadow-lg relative overflow-hidden">
+                                class="kz-kpi">
                                 <div class="absolute top-0 left-0 w-full h-1 bg-amber-500"></div>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Alunos
                                     em
@@ -4170,7 +4208,7 @@
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[350px]">
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                class="kz-chart-host flex flex-col">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                     <h3 class="text-blue-400 font-cinzel font-bold text-sm">Dispersão: Notas x Faltas
                                     </h3>
@@ -4184,7 +4222,7 @@
                             </div>
 
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col relative">
+                                class="kz-chart-host flex flex-col">
                                 <div
                                     class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2 gap-2">
                                     <h3 class="text-amber-500 font-cinzel font-bold text-sm">Frequência Individual</h3>
@@ -4218,6 +4256,22 @@
                         </div>
 
                     </div>
+                </div>
+
+                <div id="ptab-dashboard" class="prof-tab-content hidden h-full fade-in flex-col overflow-y-auto custom-scroll p-2">
+                    <div class="bg-slate-800/60 border border-slate-700 rounded-2xl p-4 mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg text-cyan-400 font-cinzel font-bold mb-1"><i class="fas fa-chart-pie mr-2"></i> Dashboard Unificado</h2>
+                            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Consolidação de Análise do Aluno, Evolução, Painel e Visão Geral em uma única visão.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Aluno:</label>
+                            <select id="dashboard-student-select" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 min-w-[200px]">
+                                <option value="">Toda a turma</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="dashboard-unified-host" class="flex flex-col gap-6"></div>
                 </div>
 
                 <div id="ptab-avaliacoes" class="prof-tab-content hidden h-full fade-in flex-col">
