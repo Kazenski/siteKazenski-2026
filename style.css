@@ -2602,6 +2602,79 @@ html.theme-light .custom-html-content h3 { color: #334155 !important; }
 html.theme-light .custom-html-content strong { color: #1a1410 !important; }
 
 html.theme-light .nav-item-btn.bg-slate-800\/50 { background-color: #f3ebe6 !important; }
+/* ============================================================ */
+/* TEMA CLARO — ajustes finais por página                        */
+/* ============================================================ */
+/* Cabeçalho: mesma cor em toda a faixa; sem "corte" atrás do menu */
+html.theme-light header {
+    background-color: #f7f5f3 !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid #e8ddd6 !important;
+}
+html.theme-light #mobile-menu-container { background-color: #f7f5f3 !important; }
+@media (min-width: 768px) {
+    html.theme-light #mobile-menu-container {
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
+html.theme-light .nav-item-btn { background-color: transparent !important; }
+html.theme-light .nav-item-btn.border-blue-500 {
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(26,20,16,0.06) !important;
+}
+html.theme-light #aura-container {
+    background-color: #ffffff !important;
+    border-color: #e8ddd6 !important;
+    box-shadow: none !important;
+}
+
+/* Gestão Aura: fundo claro e itens */
+html.theme-light .bg-\[\#0f172a\] { background-color: #f7f5f3 !important; }
+html.theme-light .kz-list-pane,
+html.theme-light .kz-toolbar,
+html.theme-light .kz-seg,
+html.theme-light .kz-empty,
+html.theme-light #cont-filter-fav { background-color: #ffffff !important; border-color: #e8ddd6 !important; }
+
+/* Conteúdos: lista de itens em cor clara */
+html.theme-light .kz-list-pane [class*="bg-slate-"],
+html.theme-light .kz-list-pane [class*="bg-blue-"] { background-color: #ffffff !important; }
+
+/* Atualizações: textos mais escuros */
+html.theme-light #atualizacoes-content .kz-upd__headtitle,
+html.theme-light #atualizacoes-content .kz-upd__p,
+html.theme-light #atualizacoes-content .kz-upd__li,
+html.theme-light #atualizacoes-content .kz-upd__escopo { color: #1a1410 !important; }
+html.theme-light #atualizacoes-content .kz-upd__sectitle { color: #1d4ed8 !important; }
+html.theme-light #atualizacoes-content [class*="text-slate-"],
+html.theme-light #atualizacoes-content [class*="text-sky-"],
+html.theme-light #atualizacoes-content [class*="text-blue-"] { color: #334155 !important; }
+html.theme-light #atualizacoes-content .kz-upd__body,
+html.theme-light #atualizacoes-content .kz-upd__body * { color: #334155 !important; }
+html.theme-light #atualizacoes-content .kz-upd__body strong,
+html.theme-light #atualizacoes-content .kz-upd__body h1,
+html.theme-light #atualizacoes-content .kz-upd__body h2,
+html.theme-light #atualizacoes-content .kz-upd__body h3 { color: #1a1410 !important; }
+html.theme-light #atualizacoes-content .kz-upd__body code { color: #1d4ed8 !important; }
+
+/* Projetos: textos mais escuros (lista e leitura) */
+html.theme-light #projetos-content [class*="text-slate-"],
+html.theme-light #projetos-content [class*="text-sky-"],
+html.theme-light #projetos-content [class*="text-blue-"],
+html.theme-light #projeto-detalhes-view [class*="text-slate-"] { color: #334155 !important; }
+html.theme-light #projeto-detalhes-view h2,
+html.theme-light #detalheProjTitulo { color: #1a1410 !important; }
+
+/* Aluno Tech: KPIs sem azul */
+html.theme-light .kz-kpi {
+    background-color: #ffffff !important;
+    border-color: #e8ddd6 !important;
+}
+html.theme-light .kz-kpi::before { background: linear-gradient(180deg, #94a3b8, #cbd5e1) !important; }
+html.theme-light .kz-kpi__icon--blue { background: #f1f5f9 !important; color: #475569 !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
