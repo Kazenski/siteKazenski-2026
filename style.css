@@ -2569,6 +2569,15 @@ html.theme-light .note-card { background: #ffffff !important; border-color: #e8d
 html.theme-light .page-btn { background: #ffffff !important; border-color: #e8ddd6 !important; color: #1a1410 !important; }
 html.theme-light .kz-select option { background: #ffffff !important; color: #1a1410 !important; }
 
+html.theme-light .kz-news__eyebrow { background: rgba(37,99,235,0.12) !important; color: #1d4ed8 !important; border-color: rgba(37,99,235,0.3) !important; }
+
+
+html.theme-light .kz-upd__head { background: linear-gradient(180deg, rgba(247,245,243,0.9) 0%, rgba(247,245,243,0.6) 100%) !important; border-color: #e8ddd6 !important; }
+html.theme-light .kz-upd__head:hover { background: linear-gradient(180deg, rgba(243,235,230,0.9) 0%, rgba(243,235,230,0.6) 100%) !important; }
+html.theme-light .kz-upd__ver { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important; color: #ffffff !important; }
+html.theme-light .kz-upd__headtitle { color: #1a1410 !important; }
+html.theme-light .kz-upd__chev { color: #64748b !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
