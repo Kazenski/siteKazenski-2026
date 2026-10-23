@@ -3866,23 +3866,102 @@ window.profAPI = {
         });
         window.profAPI.renderGenericChart('presence', 'doughnut', ['Presente', 'Falta', 'Justificado'], [p, f, j], 'Frequência', ['#4ade80', '#ef4444', '#f59e0b']);
 
-        // --- GRÁFICO: Evolução (Prepara Select) ---
-        els.selEvolutionDisc.innerHTML = '<option value="">Selecione a Disciplina...</option>';
+        // --- GRÁFICO: Evolução por disciplina (um gráfico para cada) ---
+        const container = document.getElementById('chart-evolution-container');
+        if (container) {
+            // limpa gráficos anteriores (mantém o header)
+            Array.from(container.querySelectorAll('.evo-chart-block')).forEach(n => n.remove());
+        }
 
-        // Listar apenas disciplinas que o aluno realmente tem vínculo ou nota lançada
         const studentObj = state.cache.students.find(s => s.id === currentStudentAnalysisData.uid);
         const studentDisciplines = studentObj?.disciplinas || {};
 
-        Object.keys(notas).forEach(discId => {
+        const discIds = Object.keys(notas).filter(discId => {
             const hasData = Object.values(notas[discId] || {}).some(t => t.nota1 || t.nota2 || t.nota3 || t.nota4);
-            if (studentDisciplines[discId] || hasData) {
-                const name = state.cache.disciplinesMap.get(discId) || discId;
-                els.selEvolutionDisc.add(new Option(name, discId));
-            }
+            return studentDisciplines[discId] || hasData;
         });
 
-        if (chartInstances['evolution']) chartInstances['evolution'].destroy();
-        els.msgEvolution.classList.remove('hidden');
+        if (discIds.length === 0) {
+            if (container) {
+                const empty = document.createElement('div');
+                empty.className = 'evo-chart-block bg-slate-800 border border-slate-700 rounded-2xl p-5 text-center text-slate-500 italic';
+                empty.textContent = 'Sem notas para evolução.';
+                container.appendChild(empty);
+            }
+        }
+
+        discIds.forEach(discId => {
+            const name = state.cache.disciplinesMap.get(discId) || discId;
+            const trimestres = notas[discId] || {};
+            const labels = [], data = [];
+            ['1','2','3'].forEach(trim => {
+                const tData = trimestres[trim] || {};
+                if (tData.nota1) { labels.push(`T${trim}-N1`); data.push(parseFloat(tData.nota1)); }
+                if (tData.nota2) { labels.push(`T${trim}-N2`); data.push(parseFloat(tData.nota2)); }
+                if (tData.nota3) { labels.push(`T${trim}-N3`); data.push(parseFloat(tData.nota3)); }
+                if (tData.nota4) { labels.push(`T${trim}-N4`); data.push(parseFloat(tData.nota4)); }
+            });
+
+            if (data.length === 0) return;
+
+            // Métricas de evolução
+            const media = (data.reduce((a,b)=>a+b,0)/data.length).toFixed(2);
+            const min = Math.min(...data).toFixed(1);
+            const max = Math.max(...data).toFixed(1);
+            const primeira = data[0], ultima = data[data.length-1];
+            const variacao = primeira ? (((ultima - primeira) / primeira) * 100).toFixed(1) : '0.0';
+            const tendencia = ultima > primeira ? 'Cresceu' : ultima < primeira ? 'Caiu' : 'Estável';
+            const corTend = ultima > primeira ? 'text-green-400' : ultima < primeira ? 'text-red-400' : 'text-slate-400';
+
+            const block = document.createElement('div');
+            block.className = 'evo-chart-block bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col';
+            block.style.height = '360px';
+            block.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 border-b border-slate-700 pb-2">
+                    <h4 class="text-purple-400 font-cinzel font-bold text-sm">${escapeHTML(name)}</h4>
+                    <div class="flex flex-wrap gap-3 text-[10px] text-slate-400">
+                        <span>Média: <b class="text-white">${media}</b></span>
+                        <span>Min: <b class="text-red-400">${min}</b></span>
+                        <span>Max: <b class="text-green-400">${max}</b></span>
+                        <span class="${corTend} font-bold">${tendencia} ${variacao}%</span>
+                    </div>
+                </div>
+                <div class="flex-grow relative w-full h-full">
+                    <canvas class="evo-canvas"></canvas>
+                </div>
+            `;
+            container.appendChild(block);
+
+            const canvas = block.querySelector('.evo-canvas');
+            const ctx = canvas.getContext('2d');
+            const id = 'evo_' + discId;
+            if (chartInstances[id]) chartInstances[id].destroy();
+            chartInstances[id] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: name,
+                        data,
+                        borderColor: '#a855f7',
+                        backgroundColor: 'rgba(168,85,247,0.15)',
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#a855f7'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { mode: 'index', intersect: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 10, ticks: { color: '#64748b' }, grid: { color: '#334155', drawBorder: false } },
+                        x: { ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { display: false } }
+                    }
+                }
+            });
+        });
 
         // --- ANÁLISE PREDITIVA (Avisos de IA) ---
         window.profAPI.runPredictiveAnalysis();
@@ -7390,6 +7469,150 @@ window.profAPI.renderDashboardDoraECharts = () => {
             `).join('');
         }
     }
+};
+
+// Exportar PDF impecável do Dashboard Unificado
+window.profAPI.exportDashboardPdf = async () => {
+    if (typeof jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+        alert('jsPDF não carregado.');
+        return;
+    }
+    const JsPDF = (typeof jsPDF !== 'undefined') ? jsPDF : jspdf.jsPDF;
+    const pdf = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const M = 12;
+
+    // Cabeçalho
+    pdf.setFillColor(15, 23, 42);
+    pdf.rect(0, 0, pageW, 22, 'F');
+    pdf.setFillColor(245, 158, 11);
+    pdf.rect(0, 22, pageW, 1.5, 'F');
+    pdf.setTextColor(245, 158, 11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.text('KAZENSKI — DASHBOARD ANALÍTICO', M, 14);
+    pdf.setTextColor(203, 213, 225);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    const sel = document.getElementById('dashboard-student-select');
+    const alunoNome = sel && sel.value ? sel.options[sel.selectedIndex].text : 'Toda a turma';
+    pdf.text(`Aluno/Escopo: ${alunoNome}   |   Gerado em: ${new Date().toLocaleString('pt-BR')}`, M, 20);
+
+    let y = 30;
+
+    // KPIs do DORA
+    const doraKpis = document.getElementById('dash-dora-kpis');
+    if (doraKpis) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text('Métricas DORA da Turma (proxy)', M, y);
+        y += 6;
+        const cards = doraKpis.querySelectorAll('.kz-kpi');
+        const cardW = (pageW - M*2) / Math.max(1, cards.length);
+        cards.forEach((c, i) => {
+            const label = c.querySelector('.kz-kpi__label')?.textContent || '';
+            const value = c.querySelector('.kz-kpi__value')?.textContent || '';
+            const hint = c.querySelector('.kz-kpi__hint')?.textContent || '';
+            const x = M + i * cardW;
+            pdf.setFillColor(243, 235, 230);
+            pdf.roundedRect(x, y, cardW - 3, 18, 2, 2, 'F');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(7);
+            pdf.setTextColor(107, 94, 86);
+            pdf.text(label.toUpperCase(), x + 2, y + 5);
+            pdf.setFontSize(12);
+            pdf.setTextColor(26, 20, 16);
+            pdf.text(value, x + 2, y + 12);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(6);
+            pdf.setTextColor(107, 94, 86);
+            pdf.text(hint, x + 2, y + 16);
+        });
+        y += 22;
+    }
+
+    // Gráficos (canvas → imagem)
+    const graphBlocks = [
+        { id: 'dash-echarts-ranking-canvas', title: 'Ranking de Alunos por Média' },
+        { id: 'dash-echarts-scatter-canvas', title: 'Dispersão: Notas × Faltas' },
+        { id: 'dash-echarts-heatmap-canvas', title: 'Heatmap de Frequência (Alunos × Aulas)' },
+    ];
+    for (const gb of graphBlocks) {
+        const canvas = document.getElementById(gb.id);
+        if (canvas) {
+            if (y + 90 > pageH - M) { pdf.addPage(); y = M; }
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(11);
+            pdf.setTextColor(30, 41, 59);
+            pdf.text(gb.title, M, y);
+            y += 4;
+            try {
+                const imgData = canvas.toDataURL('image/png');
+                const imgW = pageW - M*2;
+                const imgH = 80;
+                pdf.addImage(imgData, 'PNG', M, y, imgW, imgH);
+                y += imgH + 6;
+            } catch (e) {
+                pdf.setFontSize(9);
+                pdf.setTextColor(100, 100, 100);
+                pdf.text('(gráfico não pôde ser renderizado)', M, y);
+                y += 6;
+            }
+        }
+    }
+
+    // Gráficos de evolução (analise) - canvases
+    const evoCanvases = document.querySelectorAll('#chart-evolution-container .evo-canvas');
+    if (evoCanvases.length > 0) {
+        if (y + 30 > pageH - M) { pdf.addPage(); y = M; }
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text('Evolução de Desempenho (Trimestral) por Disciplina', M, y);
+        y += 4;
+        evoCanvases.forEach((cv) => {
+            if (y + 70 > pageH - M) { pdf.addPage(); y = M; }
+            try {
+                const imgData = cv.toDataURL('image/png');
+                const imgW = pageW - M*2;
+                const imgH = 60;
+                pdf.addImage(imgData, 'PNG', M, y, imgW, imgH);
+                y += imgH + 4;
+            } catch (e) {}
+        });
+    }
+
+    // Tabela de aging
+    const agingEl = document.getElementById('dash-dora-aging');
+    if (agingEl && agingEl.querySelectorAll('li').length > 0) {
+        if (y + 20 > pageH - M) { pdf.addPage(); y = M; }
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text('Aging / WIP — Alunos com pendências', M, y);
+        y += 6;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        agingEl.querySelectorAll('li').forEach(li => {
+            if (y + 5 > pageH - M) { pdf.addPage(); y = M; }
+            const txt = li.textContent.trim().replace(/\s+/g, ' ');
+            pdf.text(txt.substring(0, 120), M, y);
+            y += 5;
+        });
+    }
+
+    // Rodapé
+    const total = pdf.internal.getNumberOfPages();
+    for (let n = 1; n <= total; n++) {
+        pdf.setPage(n);
+        pdf.setFontSize(8);
+        pdf.setTextColor(148, 163, 184);
+        pdf.text(`Página ${n} de ${total} — Kazenski Analytics`, pageW / 2, pageH - 6, { align: 'center' });
+    }
+
+    pdf.save(`kazenski-dashboard-${new Date().toISOString().slice(0,10)}.pdf`);
 };
 
 window.profAPI.resetPainelPeriodo = (reRender = true) => {

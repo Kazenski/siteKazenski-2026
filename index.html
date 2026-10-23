@@ -805,7 +805,7 @@
                 <div class="w-full flex flex-col flex-grow relative">
 
                     <div class="w-full relative">
-                        <div class="w-full h-56 md:h-72 lg:h-80 relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat group"
+                        <div class="w-full h-56 md:h-72 lg:h-[420px] relative overflow-hidden shadow-xl cursor-pointer bg-cover bg-center bg-no-repeat group"
                             id="al-bg-cover">
                             <div
                                 class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent z-0">
@@ -3100,7 +3100,7 @@
                                         em Tempo Real</span>
 
                                     <div id="tcg-preview-card"
-                                        class="tcg-card rarity-comum w-48 h-64 sm:w-56 sm:h-80 rounded-2xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all z-10">
+                                        class="tcg-card rarity-comum w-48 h-64 sm:w-56 sm:h-[420px] rounded-2xl relative overflow-hidden bg-slate-800 shadow-2xl transition-all z-10">
                                         <img id="tcg-preview-img" src=""
                                             class="w-full h-full object-cover opacity-90 hidden">
                                         <div
@@ -3710,7 +3710,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-80">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[420px]">
                             <div
                                 class="kz-chart-host flex flex-col">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
@@ -3735,22 +3735,10 @@
                             </div>
                         </div>
 
-                        <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col relative">
-                            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-                                <h3 class="text-purple-400 font-cinzel font-bold text-sm">Evolução de Desempenho
-                                    (Trimestral)</h3>
-                                <select id="chart-evolution-disc"
-                                    onchange="window.profAPI.updateEvolutionChart(this.value)"
-                                    class="bg-slate-900 border border-slate-600 text-slate-300 text-[10px] rounded-lg p-1.5 outline-none focus:border-purple-500">
-                                    <option value="">Selecione a Disciplina...</option>
-                                </select>
-                            </div>
-                            <div class="flex-grow relative w-full h-full">
-                                <canvas id="chart-evolution"></canvas>
-                                <div id="chart-evolution-msg"
-                                    class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold backdrop-blur-sm z-10">
-                                    Selecione uma disciplina acima.</div>
+                        <div id="chart-evolution-container" class="flex flex-col gap-4">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 flex flex-col">
+                                <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-2">Evolução de Desempenho (Trimestral) — por disciplina</h3>
+                                <p class="text-[10px] text-slate-500 italic">Um gráfico por disciplina do aluno. Selecione o aluno acima.</p>
                             </div>
                         </div>
 
@@ -3843,7 +3831,7 @@
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-emerald-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">
                                     Progressão das Notas (Trimestre)</h3>
                                 <div class="flex-grow relative w-full h-full">
@@ -3855,7 +3843,7 @@
                             </div>
 
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">
                                     Dispersão das Notas</h3>
                                 <div class="flex-grow relative w-full h-full">
@@ -3868,7 +3856,7 @@
                         </div>
 
                         <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
+                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[420px] flex flex-col">
                             <h3 class="text-blue-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">
                                 Frequência por Aula no Período</h3>
                             <div class="flex-grow relative w-full h-full">
@@ -3881,7 +3869,7 @@
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
                             <div
-                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                                class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-amber-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">
                                     Média por Disciplina (Trimestre)</h3>
                                 <div class="flex-grow relative w-full h-full">
@@ -3993,14 +3981,14 @@
                         <div id="painel-kpis" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 shrink-0"></div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-emerald-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Medalhar a média de cada avaliação (N1→N4) ao longo do trimestre. A linha tracejada mostra a tendência geral.">Progressão das Notas</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-progressao"></canvas>
                                     <div id="painel-chart-progressao-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-purple-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Cada ponto é uma nota de um aluno; quanto mais longe da média, maior a variação entre os estudantes.">Dispersão Geral</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-dispersao"></canvas>
@@ -4009,7 +3997,7 @@
                             </div>
                         </div>
 
-                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[420px] flex flex-col">
                             <h3 class="text-blue-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Aula por aula: quantas presenças, faltas e justificativa houveram no período selecionado.">Frequência por Aula no Período</h3>
                             <div class="flex-grow relative w-full h-full">
                                 <canvas id="painel-chart-faltas"></canvas>
@@ -4018,14 +4006,14 @@
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-amber-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2">Média por Disciplina</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-disciplinas"></canvas>
                                     <div id="painel-chart-disciplinas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-amber-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Média geral de notas por Escola, Turma ou Disciplina, conforme os filtros usados.">Média por Grupo (Escola / Turma / Disciplina)</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-grupos"></canvas>
@@ -4035,14 +4023,14 @@
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0">
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-rose-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Em quantas faixas de nota cada aluno se encaixa (0–3, 3–5, 5–7, 7–8,5, 8,5–10).">Alunos por Faixa de Nota</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-faixas-notas"></canvas>
                                     <div id="painel-chart-faixas-notas-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl text-slate-500 text-xs uppercase tracking-widest font-bold hidden backdrop-blur-sm z-10">Sem notas.</div>
                                 </div>
                             </div>
-                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-80">
+                            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg flex flex-col h-[420px]">
                                 <h3 class="text-cyan-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Quantos alunos caem em cada faixa de frequência (≥90%, 75–90%, 50–75%, <50%).">Alunos por Faixa de Frequência</h3>
                                 <div class="flex-grow relative w-full h-full">
                                     <canvas id="painel-chart-faixas-freq"></canvas>
@@ -4062,7 +4050,7 @@
                             </details>
                         </div>
 
-                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-80 flex flex-col">
+                        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[420px] flex flex-col">
                             <h3 class="text-indigo-400 font-cinzel font-bold text-sm mb-4 border-b border-slate-700 pb-2 title="Compara a média geral de notas entre o 1º, o 2º e o 3º trimestre.">Diferenças por Trimestre</h3>
                             <div class="flex-grow relative w-full h-full">
                                 <canvas id="painel-chart-trimestre"></canvas>
@@ -4206,7 +4194,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[350px]">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 shrink-0 h-[420px]">
                             <div
                                 class="kz-chart-host flex flex-col">
                                 <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
@@ -4242,7 +4230,7 @@
                         </div>
 
                         <div
-                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[350px] flex flex-col relative">
+                            class="bg-slate-800 border border-slate-700 rounded-2xl p-5 shadow-lg shrink-0 h-[420px] flex flex-col relative">
                             <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
                                 <h3 class="text-green-400 font-cinzel font-bold text-sm">Panorama Detalhado de Notas
                                     (Trimestres)</h3>
@@ -4269,6 +4257,7 @@
                             <select id="dashboard-student-select" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 min-w-[200px]">
                                 <option value="">Toda a turma</option>
                             </select>
+                            <button onclick="window.profAPI.exportDashboardPdf()" class="kz-btn-ghost h-[34px]" title="Exportar PDF impecável"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                         </div>
                     </div>
                     <div id="dashboard-unified-host" class="flex flex-col gap-6"></div>
