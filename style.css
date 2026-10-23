@@ -2675,6 +2675,18 @@ html.theme-light .kz-kpi {
 html.theme-light .kz-kpi::before { background: linear-gradient(180deg, #94a3b8, #cbd5e1) !important; }
 html.theme-light .kz-kpi__icon--blue { background: #f1f5f9 !important; color: #475569 !important; }
 
+/* Atualizações: destaque de escopo e chips de arquivo sem azul */
+html.theme-light .kz-upd__escopo {
+    border-left-color: #f59e0b !important;
+    background: rgba(245,158,11,0.10) !important;
+    color: #1a1410 !important;
+}
+html.theme-light .kz-upd__file {
+    background: #ffffff !important;
+    border-color: #e8ddd6 !important;
+    color: #475569 !important;
+}
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
