@@ -122,8 +122,21 @@ export async function renderProfessorTab() {
     addSafeListener('sorteios', () => window.profAPI.initSorteiosTab());
     if (els.btnResetSorteio) els.btnResetSorteio.onclick = () => window.profAPI.resetSorteioIndividual();
     addSafeListener('analise', () => window.profAPI.populateAnaliseStudentSelect());
-    addSafeListener('evolucao', () => window.profAPI.initEvolucaoTab());
-    addSafeListener('painel', () => window.profAPI.initPainel());
+    addSafeListener('evolucao', () => {
+        window.profAPI.initEvolucaoTab();
+        // Carrega automaticamente o primeiro aluno (ou o selecionado) sem exigir clique
+        if (els.evolAluno && els.evolAluno.options.length > 1) {
+            if (!els.evolAluno.value) els.evolAluno.selectedIndex = 1;
+            if (els.evolAluno.value) { try { window.profAPI.loadEvolucaoAluno(); } catch (e) { console.warn(e); } }
+        }
+    });
+    addSafeListener('painel', () => {
+        window.profAPI.initPainel();
+        // Painel de dados carrega sozinho quando houver escola selecionada
+        if (state.filters && state.filters.school) {
+            try { window.profAPI.loadPainel(); } catch (e) { console.warn(e); }
+        }
+    });
     if (els.painelBtn) els.painelBtn.onclick = () => window.profAPI.loadPainel();
     if (els.painelBtnFaltas) els.painelBtnFaltas.onclick = () => window.profAPI.renderPainelFaltas();
     if (els.painelBtnPeriodo) els.painelBtnPeriodo.onclick = () => window.profAPI.resetPainelPeriodo();
