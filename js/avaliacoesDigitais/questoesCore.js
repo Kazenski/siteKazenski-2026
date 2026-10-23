@@ -1,4 +1,4 @@
-// Lógica pura das questões de prova (sem Firebase), para ser testável.
+﻿// Lógica pura das questões de prova (sem Firebase), para ser testável.
 
 export const TIPOS = {
     multipla_escolha: 'Múltipla escolha (uma correta)',
@@ -6,6 +6,8 @@ export const TIPOS = {
     verdadeiro_falso: 'Verdadeiro ou falso (lista)',
     ligar_colunas: 'Ligar colunas',
     ordenar: 'Ordenar sequência',
+    python: 'Código Python (testes automáticos)',
+    sql: 'SQL (consulta na base da prova)',
     dissertativa: 'Dissertativa (correção manual)'
 };
 
@@ -20,7 +22,11 @@ export function novaQuestao(tipo = 'multipla_escolha') {
         opcoes: [{ texto: '', correta: false }, { texto: '', correta: false }],
         afirmacoes: [{ texto: '', valor: true }],
         pares: [{ a: '', b: '' }, { a: '', b: '' }],
-        itens: ['', '']
+        itens: ['', ''],
+        codigoInicial: '',
+        sql: '',
+        consultaInicial: '',
+        testes: [{ entrada: '', saida: '', oculto: false }]
     };
 }
 
@@ -69,6 +75,16 @@ export function validarQuestoes(lista) {
 
         if (q.tipo === 'ordenar') {
             if (q.itens.filter(t => limpo(t)).length < 2) erros.push(`${n}: informe pelo menos 2 itens.`);
+        }
+
+        if (q.tipo === 'sql') {
+            if (!limpo(q.sql)) erros.push(`${n}: informe a consulta gabarito.`);
+        }
+
+        if (q.tipo === 'python') {
+            const testes = q.testes.filter(t => limpo(t.saida));
+            if (testes.length < 1) erros.push(`${n}: informe pelo menos um teste com saída esperada.`);
+            if (q.testes.some(t => limpo(t.entrada) && !limpo(t.saida))) erros.push(`${n}: há teste com entrada e sem saída esperada.`);
         }
     });
     return erros;
@@ -140,6 +156,32 @@ export function montarDocs(lista, rnd = Math.random) {
                 };
             }
 
+            case 'sql': {
+                const sql = limpo(q.sql);
+                return {
+                    id,
+                    questao: { ...base, consultaInicial: limpo(q.consultaInicial) },
+                    gabarito: { sql, ordenada: /\border\s+by\b/i.test(sql) },
+                    explicacao
+                };
+            }
+
+            case 'python': {
+                const testes = q.testes
+                    .filter(t => limpo(t.saida))
+                    .map(t => ({ entrada: t.entrada ?? '', saida: String(t.saida).trim(), oculto: !!t.oculto }));
+                return {
+                    id,
+                    questao: {
+                        ...base,
+                        codigoInicial: q.codigoInicial || '',
+                        testesVisiveis: testes.filter(t => !t.oculto).map(({ entrada, saida }) => ({ entrada, saida }))
+                    },
+                    gabarito: { testes },
+                    explicacao
+                };
+            }
+
             default:
                 return { id, questao: base, gabarito: null, explicacao };
         }
@@ -174,6 +216,16 @@ export function estadoDeQuestao(qd, gabDoc) {
         case 'ordenar':
             estado.itens = (g || []).map(id => (qd.itens || []).find(i => i.id === id)?.texto || '');
             break;
+        case 'sql':
+            estado.consultaInicial = qd.consultaInicial || '';
+            estado.sql = g?.sql || '';
+            break;
+        case 'python':
+            estado.codigoInicial = qd.codigoInicial || '';
+            estado.testes = (g?.testes || []).map(t => ({ entrada: t.entrada || '', saida: t.saida || '', oculto: !!t.oculto }));
+            if (estado.testes.length === 0) estado.testes = [{ entrada: '', saida: '', oculto: false }];
+            break;
     }
     return estado;
 }
+

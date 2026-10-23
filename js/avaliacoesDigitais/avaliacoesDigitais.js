@@ -3,12 +3,53 @@ import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, upd
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 import { validarQuestoes } from './questoesCore.js';
+import { lerCsv, nomeDaTabela } from './csvLeitor.js';
 import { iniciarEditor, limparEditor, carregarEditor, coletarQuestoes, salvarQuestoes, buscarQuestoesAluno, obterResultado, mostrarConsentimento, renderProva, renderResultado } from './questoesProva.js';
 
 let currentUser = null;
 let isStaff = false; // true se for Admin, Coordenacao ou Professor
 let avaliacoesCache = [];
 let currentAvaliacaoAbertaId = null;
+let basesNovas = [];
+let basesAtuais = [];
+
+function renderBasesCsv() {
+    const lista = document.getElementById('lista-bases-csv');
+    if (!lista) return;
+    const linhas = [
+        ...basesAtuais.filter(b => !basesNovas.some(n => n.tabela === b.tabela))
+            .map(b => ({ tabela: b.tabela, colunas: b.colunas, status: 'já enviada' })),
+        ...basesNovas.map(b => ({ tabela: b.tabela, colunas: b.colunas, status: 'nova' }))
+    ];
+    lista.innerHTML = linhas.length === 0
+        ? '<p class="italic">Nenhum CSV selecionado.</p>'
+        : linhas.map(l => `<p><span class="text-emerald-400 font-mono">${escapeHTML(l.tabela)}</span> <span class="text-slate-500">(${l.status})</span>: ${escapeHTML(l.colunas.join(', '))}</p>`).join('');
+}
+
+async function lerBasesSelecionadas(files) {
+    basesNovas = [];
+    for (const file of files) {
+        const texto = await file.text();
+        const cabecalho = lerCsv(texto)[0] || [];
+        basesNovas.push({ tabela: nomeDaTabela(file.name), colunas: cabecalho.map(c => c.trim()), texto });
+    }
+    renderBasesCsv();
+}
+
+async function enviarBasesCsv(avalId) {
+    if (basesNovas.length === 0) return;
+    const enviadas = [];
+    for (const base of basesNovas) {
+        const caminho = `avaliacoes_bases/${avalId}/${base.tabela}.csv`;
+        const arquivoRef = ref(storage, caminho);
+        await uploadBytes(arquivoRef, new Blob([base.texto], { type: 'text/csv' }));
+        enviadas.push({ tabela: base.tabela, colunas: base.colunas, caminho });
+    }
+    const mantidas = basesAtuais.filter(b => !enviadas.some(e => e.tabela === b.tabela));
+    await updateDoc(doc(db, "avaliacoes_digitais", avalId), { bases: [...mantidas, ...enviadas] });
+    basesAtuais = [...mantidas, ...enviadas];
+    basesNovas = [];
+}
 
 export async function renderAvaliacoesTab() {
     const container = document.getElementById('avaliacoes-content');
@@ -128,6 +169,12 @@ function construirEstruturaInterface(container) {
                 </div>
 
                 <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Base de dados para provas SQL (um CSV por tabela)</label>
+                    <input type="file" id="aval-csv" multiple accept=".csv,text/csv" class="w-full bg-slate-950 border border-slate-700 text-slate-400 rounded-xl p-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                    <div id="lista-bases-csv" class="mt-3 space-y-1 text-xs text-slate-400"></div>
+                </div>
+
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Questões da prova (opcional)</label>
                         <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="aval-mostrar-gabarito" class="w-4 h-4 accent-blue-500"> Mostrar gabarito após o prazo</label>
@@ -169,6 +216,9 @@ function setupEventosIniciais() {
         btnCancel.addEventListener('click', () => {
             form.reset();
             limparEditor(document.getElementById('container-editor-questoes'));
+            basesNovas = [];
+            basesAtuais = [];
+            renderBasesCsv();
             containerForm.classList.add('hidden');
         });
     }
@@ -178,6 +228,7 @@ function setupEventosIniciais() {
     }
 
     iniciarEditor(document.getElementById('container-editor-questoes'));
+    document.getElementById('aval-csv').addEventListener('change', (e) => lerBasesSelecionadas(Array.from(e.target.files)));
     
     // Injetar disciplinas ativas quando alguma turma for selecionada
     document.getElementById('container-check-turmas').addEventListener('change', async (event) => {
@@ -376,6 +427,11 @@ async function salvarAvaliacao(e) {
         alert("Corrija as questões antes de publicar:\n\n" + errosQuestoes.join("\n"));
         return;
     }
+    const temSql = questoes.some(q => q.tipo === 'sql');
+    if (temSql && basesAtuais.length === 0 && basesNovas.length === 0) {
+        alert("Esta prova tem questões SQL: envie pelo menos um CSV da base de dados.");
+        return;
+    }
 
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publicando...';
     btn.disabled = true;
@@ -436,9 +492,13 @@ async function salvarAvaliacao(e) {
         }
 
         await salvarQuestoes(avalId, questoes);
+        await enviarBasesCsv(avalId);
         
         e.target.reset();
         limparEditor(document.getElementById('container-editor-questoes'));
+        basesNovas = [];
+        basesAtuais = [];
+        renderBasesCsv();
         document.getElementById('aval-id').value = '';
         document.getElementById('containerDisciplinas').innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
         document.getElementById('container-form-aval').classList.add('hidden');
@@ -657,6 +717,9 @@ window.avaliacoesAPI = {
         
         if (aval.trimestre) document.getElementById('aval-trimestre').value = aval.trimestre;
         document.getElementById('aval-mostrar-gabarito').checked = aval.mostrarGabarito === true;
+        basesAtuais = aval.bases || [];
+        basesNovas = [];
+        renderBasesCsv();
         await carregarEditor(document.getElementById('container-editor-questoes'), aval.id);
         
         const checkNotas = document.querySelectorAll('input[name="chkNota"]');

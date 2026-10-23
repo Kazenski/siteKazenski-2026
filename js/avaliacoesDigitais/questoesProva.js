@@ -120,6 +120,33 @@ function corpoTipo(q, i) {
                 <button type="button" data-acao="add-item" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Item</button>
                 <p class="text-[10px] text-slate-500">Digite os itens na ordem correta. O aluno verá em ordem embaralhada.</p></div>`;
         }
+        case 'sql':
+            return `<div class="space-y-3">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Consulta inicial (opcional)</label>
+                <textarea data-campo="sql-inicial" rows="2" placeholder="-- consulta que já aparece para o aluno" class="${CLASSE_INPUT} font-mono">${esc(q.consultaInicial)}</textarea>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Consulta gabarito</label>
+                <textarea data-campo="sql-gabarito" rows="4" placeholder="SELECT ..." class="${CLASSE_INPUT} font-mono">${esc(q.sql)}</textarea>
+                <p class="text-[10px] text-slate-500">A nota é dada se o resultado do aluno for igual ao do gabarito (nomes das colunas não contam). Se o gabarito tiver ORDER BY, a ordem das linhas também é exigida. A base é a das tabelas CSV enviadas na avaliação.</p>
+            </div>`;
+        case 'python': {
+            const linhas = q.testes.map((t, k) => `
+                <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-2 items-start bg-slate-950/60 border border-slate-800 rounded-lg p-2">
+                    <textarea data-campo="teste-entrada" data-idx="${k}" rows="2" placeholder="Entrada (stdin)" class="${CLASSE_INPUT} font-mono">${esc(t.entrada)}</textarea>
+                    <textarea data-campo="teste-saida" data-idx="${k}" rows="2" placeholder="Saída esperada" class="${CLASSE_INPUT} font-mono">${esc(t.saida)}</textarea>
+                    <label class="flex items-center gap-1 text-[10px] text-slate-400 uppercase tracking-widest pt-2 whitespace-nowrap cursor-pointer">
+                        <input type="checkbox" data-campo="teste-oculto" data-idx="${k}" ${t.oculto ? 'checked' : ''} class="accent-amber-500 w-4 h-4"> Oculto
+                    </label>
+                    <button type="button" data-acao="rm-teste" data-idx="${k}" class="${CLASSE_BTN}"><i class="fas fa-times"></i></button>
+                </div>`).join('');
+            return `<div class="space-y-3">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Código inicial (opcional)</label>
+                <textarea data-campo="codigo-inicial" rows="3" placeholder="# código que já aparece para o aluno" class="${CLASSE_INPUT} font-mono">${esc(q.codigoInicial)}</textarea>
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Testes</label>
+                ${linhas}
+                <button type="button" data-acao="add-teste" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Teste</button>
+                <p class="text-[10px] text-slate-500">Cada teste envia a entrada ao programa do aluno e compara a saída. Testes ocultos não aparecem para o aluno. A nota é proporcional aos testes aprovados.</p>
+            </div>`;
+        }
         default:
             return `<p class="text-[10px] text-slate-500">Correção manual: você atribui a nota no painel da entrega.</p>`;
     }
@@ -142,6 +169,11 @@ function onInput(e, container) {
         case 'par-a': q.pares[idx].a = t.value; break;
         case 'par-b': q.pares[idx].b = t.value; break;
         case 'item-texto': q.itens[idx] = t.value; break;
+        case 'codigo-inicial': q.codigoInicial = t.value; break;
+        case 'sql-gabarito': q.sql = t.value; break;
+        case 'sql-inicial': q.consultaInicial = t.value; break;
+        case 'teste-entrada': q.testes[idx].entrada = t.value; break;
+        case 'teste-saida': q.testes[idx].saida = t.value; break;
     }
 }
 
@@ -162,6 +194,9 @@ function onChange(e, container) {
             break;
         case 'afirm-valor':
             q.afirmacoes[idx].valor = t.value === 'true';
+            break;
+        case 'teste-oculto':
+            q.testes[idx].oculto = t.checked;
             break;
     }
 }
@@ -184,6 +219,8 @@ function onClick(e, container) {
         case 'rm-par': q.pares.splice(idx, 1); break;
         case 'add-item': q.itens.push(''); break;
         case 'rm-item': q.itens.splice(idx, 1); break;
+        case 'add-teste': q.testes.push({ entrada: '', saida: '', oculto: false }); break;
+        case 'rm-teste': q.testes.splice(idx, 1); break;
         default: return;
     }
     renderEditor(container);
@@ -234,6 +271,35 @@ export async function obterResultado(avalId) {
     return data;
 }
 
+export async function executarSql(avaliacaoId, sql) {
+    const fn = httpsCallable(getFunctions(app), 'executarSql');
+    const { data } = await fn({ avaliacaoId, sql });
+    return data;
+}
+
+function tabelaSql(colunas, linhas) {
+    if (!colunas || colunas.length === 0) return '<p class="text-xs text-slate-400">Consulta executada sem retorno de linhas.</p>';
+    if (linhas.length === 0) return '<p class="text-xs text-slate-400">Nenhuma linha retornada.</p>';
+    const cabecalho = colunas.map(c => `<th class="px-2 py-1 text-left text-blue-400 border border-slate-700">${esc(c)}</th>`).join('');
+    const corpo = linhas.map(l => `<tr>${l.map(v => `<td class="px-2 py-1 border border-slate-800 text-slate-300">${esc(v === null ? 'NULL' : v)}</td>`).join('')}</tr>`).join('');
+    return `<table class="text-xs font-mono border-collapse"><thead><tr>${cabecalho}</tr></thead><tbody>${corpo}</tbody></table>`;
+}
+
+function blocoEsquema(bases) {
+    if (!bases || bases.length === 0) return '';
+    const tabelas = bases.map(b => `
+        <div class="text-xs font-mono"><span class="text-blue-400">${esc(b.tabela)}</span>
+        <span class="text-slate-500">(${(b.colunas || []).map(esc).join(', ')})</span></div>`).join('');
+    return `<div class="bg-slate-950/60 border border-slate-800 rounded-lg p-3 space-y-1">
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tabelas disponíveis</p>${tabelas}</div>`;
+}
+
+export async function executarPython(codigo, entrada) {
+    const fn = httpsCallable(getFunctions(app), 'executarPython');
+    const { data } = await fn({ codigo, entrada });
+    return data;
+}
+
 async function enviarProva(avalId, respostas) {
     const fn = httpsCallable(getFunctions(app), 'corrigirAvaliacao');
     const { data } = await fn({ avaliacaoId: avalId, respostas });
@@ -266,6 +332,8 @@ function estadoInicial(q) {
         case 'verdadeiro_falso':
         case 'ligar_colunas': return {};
         case 'ordenar': return (q.itens || []).map(i => i.id);
+        case 'python': return q.codigoInicial || '';
+        case 'sql': return q.consultaInicial || '';
         case 'dissertativa': return '';
         default: return null;
     }
@@ -299,6 +367,7 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
                         <span id="prova-trocas" class="text-red-400 font-bold">Saídas da aba: ${trocas}</span>
                     </div>
                 </div>
+                ${blocoEsquema(aval.bases)}
                 <div class="space-y-6">${questoes.map((q, i) => cardResposta(q, i, respostas[q.id])).join('')}</div>
                 <div class="flex justify-end pt-4 border-t border-slate-700">
                     <button type="button" id="btn-enviar-prova" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Enviar prova</button>
@@ -326,7 +395,7 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
 
     area.oninput = (e) => {
         const t = e.target;
-        if (t.dataset.tipo === 'texto') {
+        if (['texto', 'codigo', 'sql'].includes(t.dataset.tipo)) {
             respostas[t.dataset.qid] = t.value;
             salvar();
         }
@@ -337,6 +406,32 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
         if (!btn) return;
         if (btn.id === 'btn-enviar-prova') return enviar(btn);
         const acao = btn.dataset.acao;
+        if (acao === 'executar-sql') {
+            const qid = btn.dataset.qid;
+            const saidaEl = area.querySelector(`#exec-${qid}`);
+            saidaEl.innerHTML = '<p class="text-xs text-slate-400">Executando...</p>';
+            executarSql(avalId, respostas[qid] || '')
+                .then(r => {
+                    saidaEl.innerHTML = r.erro
+                        ? `<pre class="text-xs text-red-400 whitespace-pre-wrap">${esc(r.erro)}</pre>`
+                        : tabelaSql(r.colunas, r.linhas);
+                })
+                .catch(err => { saidaEl.innerHTML = `<pre class="text-xs text-red-400">${esc(err.message || 'Falha ao executar.')}</pre>`; });
+            return;
+        }
+        if (acao === 'executar') {
+            const qid = btn.dataset.qid;
+            const saidaEl = area.querySelector(`#exec-${qid}`);
+            const entrada = area.querySelector(`#entrada-${qid}`)?.value || '';
+            saidaEl.textContent = 'Executando...';
+            executarPython(respostas[qid] || '', entrada)
+                .then(r => {
+                    if (r.timeout) saidaEl.textContent = r.erro;
+                    else saidaEl.textContent = (r.saida || '') + (r.erro ? '\n' + r.erro : '') || '(sem saída)';
+                })
+                .catch(err => { saidaEl.textContent = err.message || 'Falha ao executar.'; });
+            return;
+        }
         if (acao === 'sobe' || acao === 'desce') {
             const qid = btn.dataset.qid;
             const k = Number(btn.dataset.idx);
@@ -443,6 +538,30 @@ function cardResposta(q, i, resp) {
                     </div>`;
             }).join('');
             break;
+        case 'sql':
+            corpo = `
+                <textarea data-qid="${q.id}" data-tipo="sql" rows="6" spellcheck="false" placeholder="SELECT ..." class="${CLASSE_INPUT} font-mono">${esc(resp || q.consultaInicial || '')}</textarea>
+                <div class="flex justify-end">
+                    <button type="button" data-acao="executar-sql" data-qid="${q.id}" class="${CLASSE_BTN}"><i class="fas fa-play mr-1"></i> Executar consulta</button>
+                </div>
+                <div id="exec-${q.id}" class="overflow-x-auto"></div>`;
+            break;
+        case 'python': {
+            const exemplos = (q.testesVisiveis || []).map(t => `
+                <div class="text-xs font-mono bg-slate-950/60 border border-slate-800 rounded-lg p-2 text-slate-400">
+                    <div>entrada: <span class="text-slate-300">${esc(t.entrada || '(vazia)')}</span></div>
+                    <div>saída esperada: <span class="text-emerald-400">${esc(t.saida)}</span></div>
+                </div>`).join('');
+            corpo = `
+                ${exemplos ? `<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exemplos</p>${exemplos}` : ''}
+                <textarea data-qid="${q.id}" data-tipo="codigo" rows="10" spellcheck="false" placeholder="# escreva seu programa em Python aqui" class="${CLASSE_INPUT} font-mono">${esc(resp || q.codigoInicial || '')}</textarea>
+                <div class="flex flex-wrap items-start gap-2">
+                    <textarea id="entrada-${q.id}" rows="2" placeholder="Entrada para testar (stdin)" class="${CLASSE_INPUT} font-mono md:w-1/2"></textarea>
+                    <button type="button" data-acao="executar" data-qid="${q.id}" class="${CLASSE_BTN}"><i class="fas fa-play mr-1"></i> Executar</button>
+                </div>
+                <pre id="exec-${q.id}" class="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-300 whitespace-pre-wrap min-h-[2.5rem]"></pre>`;
+            break;
+        }
         default:
             corpo = `<textarea data-qid="${q.id}" data-tipo="texto" rows="4" placeholder="Escreva sua resposta" class="${CLASSE_INPUT}">${esc(resp || '')}</textarea>`;
     }
@@ -466,6 +585,8 @@ function textoDoGabarito(q, g) {
             }).join(' | ');
         case 'ordenar':
             return (g || []).map((id, k) => `${k + 1}. ${(q.itens || []).find(i => i.id === id)?.texto ?? ''}`).join('  ');
+        case 'python':
+            return `Programa avaliado por ${(g?.testes || []).length} teste(s). Veja a explicação do professor.`;
         default:
             return 'Questão dissertativa: correção do professor.';
     }
@@ -503,7 +624,8 @@ export function renderResultado(area, res, questoes) {
         <h5 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Gabarito</h5>
         ${res.questoes.map((q, i) => {
             const d = detalhes[q.id];
-            const pts = d && d.obtidos !== undefined ? `${d.obtidos} de ${q.pontos}` : `${q.pontos} pt(s)`;
+            const testes = d && d.total !== undefined ? ` · ${d.aprovados} de ${d.total} testes` : '';
+            const pts = d && d.obtidos !== undefined ? `${d.obtidos} de ${q.pontos}${testes}` : `${q.pontos} pt(s)`;
             return `
                 <div class="bg-slate-900/80 border border-slate-700 rounded-xl p-4 space-y-2">
                     <div class="flex justify-between gap-3 text-xs font-bold uppercase tracking-widest">
