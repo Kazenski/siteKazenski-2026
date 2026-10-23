@@ -2091,7 +2091,7 @@ html.theme-light .text-white {
 }
 html.theme-light .text-slate-400,
 html.theme-light .text-slate-500 {
-    color: #6b5e56 !important;
+    color: #475569 !important;
 }
 html.theme-light .border-slate-700,
 html.theme-light .border-slate-800 {
@@ -2110,7 +2110,7 @@ html.theme-light textarea {
 /* Tabelas */
 html.theme-light table thead {
     background-color: #f3ebe6 !important;
-    color: #6b5e56 !important;
+    color: #475569 !important;
 }
 html.theme-light table tbody tr {
     border-color: #e8ddd6 !important;
@@ -2126,8 +2126,8 @@ html.theme-light .bg-slate-900\/80 {
 }
 
 /* Textos muted */
-html.theme-light .text-slate-400 { color: #6b5e56 !important; }
-html.theme-light .text-slate-500 { color: #94a3b8 !important; }
+html.theme-light .text-slate-400 { color: #475569 !important; }
+html.theme-light .text-slate-500 { color: #64748b !important; }
 
 /* Sombras mais suaves no claro */
 html.theme-light .shadow-lg,
@@ -2188,9 +2188,9 @@ html.theme-light .bg-slate-800\/80 {
 }
 
 /* Texto em blocos escuros */
-html.theme-light .text-slate-400 { color: #6b5e56 !important; }
-html.theme-light .text-slate-500 { color: #94a3b8 !important; }
-html.theme-light .text-slate-600 { color: #6b5e56 !important; }
+html.theme-light .text-slate-400 { color: #475569 !important; }
+html.theme-light .text-slate-500 { color: #64748b !important; }
+html.theme-light .text-slate-600 { color: #475569 !important; }
 
 /* Sombras */
 html.theme-light .shadow-sm,
@@ -2215,7 +2215,7 @@ html.theme-light .focus\:border-blue-500:focus {
 
 /* Tabelas */
 html.theme-light table { color: #1a1410 !important; }
-html.theme-light thead { background-color: #f3ebe6 !important; color: #6b5e56 !important; }
+html.theme-light thead { background-color: #f3ebe6 !important; color: #475569 !important; }
 html.theme-light tbody tr { border-color: #e8ddd6 !important; }
 html.theme-light tbody tr:hover { background-color: #f7f5f3 !important; }
 
@@ -2366,8 +2366,8 @@ html.theme-light .text-sky-400 { color: #0284c7 !important; }
 html.theme-light .text-slate-100 { color: #1a1410 !important; }
 html.theme-light .text-slate-200 { color: #1a1410 !important; }
 html.theme-light .text-slate-300 { color: #3d3129 !important; }
-html.theme-light .text-slate-400 { color: #6b5e56 !important; }
-html.theme-light .text-slate-50 { color: #6b5e56 !important; }
+html.theme-light .text-slate-400 { color: #475569 !important; }
+html.theme-light .text-slate-50 { color: #475569 !important; }
 html.theme-light .text-teal-400 { color: #0d9488 !important; }
 html.theme-light .text-teal-50 { color: #0d9488 !important; }
 html.theme-light .text-violet-400 { color: #7c3aed !important; }
