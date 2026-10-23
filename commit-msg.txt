@@ -1,1 +1,0 @@
-fix: evolucao por disciplina respeita trimestres selecionados
