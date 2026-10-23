@@ -2671,6 +2671,7 @@ html.theme-light #detalheProjTitulo { color: #1a1410 !important; }
 /* Aluno Tech: KPIs sem azul */
 html.theme-light .kz-kpi {
     background-color: #ffffff !important;
+    background-image: none !important;
     border-color: #e8ddd6 !important;
 }
 html.theme-light .kz-kpi::before { background: linear-gradient(180deg, #94a3b8, #cbd5e1) !important; }
@@ -2710,6 +2711,37 @@ html.theme-light .kz-eq span { background: #f59e0b !important; }
 html.theme-light #dashboard-aluno [class*="text-blue-"] { color: #334155 !important; }
 html.theme-light #dashboard-aluno .aluno-tab-btn.active { border-bottom-color: #b45309 !important; color: #1a1410 !important; }
 html.theme-light #dashboard-aluno #btn-edit-profile { background-color: #b45309 !important; }
+
+/* Horário escolar: grade clara (sem azul/cinza escuro) */
+html.theme-light .horario-tabela th {
+    background-color: #f3ebe6 !important;
+    color: #1a1410 !important;
+    border: 1px solid #e8ddd6 !important;
+}
+html.theme-light .horario-tabela th.hoje,
+html.theme-light .horario-tabela th.bg-blue-600 {
+    background-color: #f59e0b !important;
+    color: #1a1410 !important;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.35) !important;
+}
+html.theme-light .horario-tabela td {
+    background-color: #ffffff !important;
+    border: 1px solid #e8ddd6 !important;
+}
+html.theme-light .horario-tabela td:hover { background-color: #faf7f5 !important; }
+html.theme-light .horario-tabela td.hoje,
+html.theme-light .horario-tabela td.bg-blue-900\/20 {
+    background-color: #fff7ed !important;
+    border-color: #f59e0b !important;
+}
+html.theme-light .aula-card {
+    background-color: #ffffff !important;
+    border: 1px solid #e8ddd6 !important;
+    border-left: 4px solid #f59e0b !important;
+    box-shadow: 0 1px 2px rgba(26,20,16,0.06) !important;
+}
+html.theme-light .aula-card h4 { color: #1a1410 !important; }
+html.theme-light .aula-card p { color: #6b5e56 !important; }
 
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
