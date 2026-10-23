@@ -2,6 +2,8 @@ import { db, storage, auth } from '../core/firebase.js';
 import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
+import { validarQuestoes } from './questoesCore.js';
+import { iniciarEditor, limparEditor, carregarEditor, coletarQuestoes, salvarQuestoes, buscarQuestoesAluno, obterResultado, mostrarConsentimento, renderProva, renderResultado } from './questoesProva.js';
 
 let currentUser = null;
 let isStaff = false; // true se for Admin, Coordenacao ou Professor
@@ -125,6 +127,14 @@ function construirEstruturaInterface(container) {
                     <textarea id="aval-links" class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none custom-scroll min-h-[60px]" placeholder="https://site1.com, https://site2.com"></textarea>
                 </div>
 
+                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Questões da prova (opcional)</label>
+                        <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="aval-mostrar-gabarito" class="w-4 h-4 accent-blue-500"> Mostrar gabarito após o prazo</label>
+                    </div>
+                    <div id="container-editor-questoes"></div>
+                </div>
+
                 <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
                     <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
                     <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Atividade</button>
@@ -158,6 +168,7 @@ function setupEventosIniciais() {
     if (btnCancel && containerForm) {
         btnCancel.addEventListener('click', () => {
             form.reset();
+            limparEditor(document.getElementById('container-editor-questoes'));
             containerForm.classList.add('hidden');
         });
     }
@@ -165,6 +176,8 @@ function setupEventosIniciais() {
     if (form) {
         form.addEventListener('submit', salvarAvaliacao);
     }
+
+    iniciarEditor(document.getElementById('container-editor-questoes'));
     
     // Injetar disciplinas ativas quando alguma turma for selecionada
     document.getElementById('container-check-turmas').addEventListener('change', async (event) => {
@@ -357,6 +370,13 @@ async function salvarAvaliacao(e) {
         return;
     }
 
+    const questoes = coletarQuestoes();
+    const errosQuestoes = validarQuestoes(questoes);
+    if (errosQuestoes.length > 0) {
+        alert("Corrija as questões antes de publicar:\n\n" + errosQuestoes.join("\n"));
+        return;
+    }
+
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Publicando...';
     btn.disabled = true;
 
@@ -394,12 +414,15 @@ async function salvarAvaliacao(e) {
             criadoPor: currentUser.nome,
             professorUid: currentUser.uid,
             status: 'ativa',
-            linksUteis: linksArray
+            linksUteis: linksArray,
+            temProva: questoes.length > 0,
+            mostrarGabarito: document.getElementById('aval-mostrar-gabarito').checked
         };
 
         if (bannerUrl) payload.imagemBanner = bannerUrl;
         if (anexosUrls.length > 0) payload.materiaisAnexos = anexosUrls;
 
+        let avalId = idEdicao;
         if (idEdicao) {
             payload.dataAtualizacao = serverTimestamp();
             await updateDoc(doc(db, "avaliacoes_digitais", idEdicao), payload);
@@ -407,11 +430,15 @@ async function salvarAvaliacao(e) {
         } else {
             payload.dataCriacao = serverTimestamp();
             payload.oculta = false; 
-            await addDoc(collection(db, "avaliacoes_digitais"), payload);
+            const novaAval = await addDoc(collection(db, "avaliacoes_digitais"), payload);
+            avalId = novaAval.id;
             alert("Avaliação publicada com sucesso!");
         }
+
+        await salvarQuestoes(avalId, questoes);
         
         e.target.reset();
+        limparEditor(document.getElementById('container-editor-questoes'));
         document.getElementById('aval-id').value = '';
         document.getElementById('containerDisciplinas').innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
         document.getElementById('container-form-aval').classList.add('hidden');
@@ -451,7 +478,9 @@ async function renderGridAvaliacoes(avaliacoes) {
         try {
             const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid));
             const snapEntregas = await getDocs(qEntregas);
-            entregasAlunoIds = snapEntregas.docs.map(d => d.data().avaliacaoId);
+            entregasAlunoIds = snapEntregas.docs
+                .filter(d => d.data().finalizada === true || d.data().arquivoURL)
+                .map(d => d.data().avaliacaoId);
         } catch(e) {
             console.error("Erro ao buscar status de entregas:", e);
         }
@@ -567,6 +596,43 @@ async function renderGridAvaliacoes(avaliacoes) {
     }).join('');
 }
 
+async function montarAreaProva(aval, minhaEntrega) {
+    const area = document.getElementById('area-prova');
+    if (!area) return;
+
+    try {
+        if (minhaEntrega && minhaEntrega.finalizada === true) {
+            const [resultado, questoes] = await Promise.all([obterResultado(aval.id), buscarQuestoesAluno(aval.id)]);
+            renderResultado(area, resultado, questoes);
+            return;
+        }
+
+        const fechamento = aval.dataFechamento?.toDate ? aval.dataFechamento.toDate() : null;
+        if (fechamento && fechamento < new Date()) {
+            area.innerHTML = `<div class="bg-red-900/20 border border-red-500/30 rounded-xl p-5 text-red-300 text-sm font-bold text-center"><i class="fas fa-lock mr-2"></i> Prazo encerrado. Esta prova não foi enviada.</div>`;
+            return;
+        }
+
+        const questoes = await buscarQuestoesAluno(aval.id);
+        mostrarConsentimento(area, () => {
+            renderProva(area, {
+                avalId: aval.id,
+                uid: currentUser.uid,
+                aval,
+                questoes,
+                onTroca: () => registrarInfracao(aval.id, 'countTrocaAba'),
+                onEnviado: async () => {
+                    await window.avaliacoesAPI.abrirPainel(aval.id);
+                    renderGridAvaliacoes(avaliacoesCache);
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Erro ao montar a prova:", err);
+        area.innerHTML = `<p class="text-red-500 text-center text-sm">Não foi possível carregar a prova. Tente novamente.</p>`;
+    }
+}
+
 window.avaliacoesAPI = {
     toggleOcultar: async (id, estadoAtual) => {
         try {
@@ -590,6 +656,8 @@ window.avaliacoesAPI = {
         document.getElementById('aval-descricao').value = aval.descricao;
         
         if (aval.trimestre) document.getElementById('aval-trimestre').value = aval.trimestre;
+        document.getElementById('aval-mostrar-gabarito').checked = aval.mostrarGabarito === true;
+        await carregarEditor(document.getElementById('container-editor-questoes'), aval.id);
         
         const checkNotas = document.querySelectorAll('input[name="chkNota"]');
         checkNotas.forEach(cb => {
@@ -688,6 +756,10 @@ window.avaliacoesAPI = {
                         const countCopy = e.countCopy || 0;
                         const countPrint = e.countPrint || 0;
                         const countInspect = e.countInspect || 0;
+                        const countTroca = e.countTrocaAba || 0;
+                        const resumoProva = e.finalizada
+                            ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-list-check mr-1"></i> Prova objetiva: ${e.pontosObtidos ?? 0} de ${e.pontosCorrigidos ?? 0} pts${e.pendentes ? ` · ${e.pendentes} questão(ões) para corrigir` : ' · corrigida'}</p>`
+                            : '';
                         
                         const dEnvio = e.dataEnvio ? e.dataEnvio.toDate().toLocaleString('pt-BR') : 'Ainda não enviou';
                         const valorNota = e.notaAtribuida !== undefined ? e.notaAtribuida : '';
@@ -703,6 +775,7 @@ window.avaliacoesAPI = {
                                     <div class="flex-grow">
                                         <h5 class="text-white font-bold text-sm">${escapeHTML(e.alunoNome)} <span class="text-slate-500 text-[10px] ml-2 uppercase tracking-widest">${escapeHTML(e.turmaAluno)}</span></h5>
                                         <p class="${corStatus} text-xs mt-1"><i class="fas fa-check-circle"></i> ${txtStatus} em: ${dEnvio}</p>
+                                        ${resumoProva}
                                     </div>
                                     
                                     <!-- AQUI ESTÃO OS ALERTAS DO PROFESSOR -->
@@ -710,6 +783,7 @@ window.avaliacoesAPI = {
                                         <span title="Tentativas de Cópia (Ctrl+C)" class="text-orange-500 font-bold text-xs flex items-center gap-1 cursor-help"><i class="fas fa-copy"></i> ${countCopy}</span>
                                         <span title="Tentativas de Print Screen" class="text-yellow-500 font-bold text-xs flex items-center gap-1 cursor-help"><i class="fas fa-camera"></i> ${countPrint}</span>
                                         <span title="Tentativas de Inspecionar Elemento (F12)" class="text-red-500 font-bold text-xs flex items-center gap-1 cursor-help"><i class="fas fa-code"></i> ${countInspect}</span>
+                                        <span title="Saídas da aba durante a prova" class="text-fuchsia-400 font-bold text-xs flex items-center gap-1 cursor-help"><i class="fas fa-external-link-alt"></i> ${countTroca}</span>
                                     </div>
 
                                     <div class="flex gap-2 shrink-0">
@@ -770,6 +844,12 @@ window.avaliacoesAPI = {
                         </div>
                         ${extrasMuralHtml}
                     </div>`;
+
+                if (aval.temProva) {
+                    body.innerHTML = htmlAluno + '<div id="area-prova" class="mt-6"></div>';
+                    await montarAreaProva(aval, minhaEntrega);
+                    return;
+                }
 
                 if(minhaEntrega && minhaEntrega.status !== 'devolvido' && minhaEntrega.status !== 'pendente') {
                     const dEnvio = minhaEntrega.dataEnvio ? minhaEntrega.dataEnvio.toDate().toLocaleString('pt-BR') : '';

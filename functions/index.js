@@ -836,3 +836,6 @@ exports.publicarFonteGitHub = onCall({
         throw new HttpsError('internal', error.message || 'Erro interno ao publicar no GitHub.');
     }
 });
+
+// Avaliações: correção oficial no servidor (módulo avaliacoes.js)
+Object.assign(exports, require('./avaliacoes'));

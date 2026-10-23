@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exercícios de SQL · Kazenski</title>
+<style>
+    :root { --bg:#0f172a; --card:#1e293b; --borda:#334155; --txt:#e2e8f0; --muted:#94a3b8; --acc:#38bdf8; --ok:#4ade80; --erro:#f87171; --aviso:#fbbf24; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--txt); line-height:1.5; }
+    header { padding:24px 32px; border-bottom:1px solid var(--borda); display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+    h1 { margin:0; font-size:1.5rem; }
+    h2 { font-size:1.25rem; margin:32px 0 12px; color:var(--acc); border-bottom:1px solid var(--borda); padding-bottom:6px; }
+    h3 { margin:0 0 4px; font-size:1.05rem; }
+    main { max-width:1000px; margin:0 auto; padding:0 24px 64px; }
+    .muted { color:var(--muted); font-size:.9rem; }
+    .status { padding:6px 12px; border-radius:999px; font-size:.85rem; border:1px solid var(--borda); }
+    .status.ok { color:var(--ok); border-color:var(--ok); }
+    .status.erro { color:var(--erro); border-color:var(--erro); }
+    .card { background:var(--card); border:1px solid var(--borda); border-radius:12px; padding:20px; margin-bottom:16px; }
+    .card-head { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+    .badge { font-size:.75rem; color:var(--bg); background:var(--acc); padding:2px 8px; border-radius:6px; font-weight:700; }
+    .badge.teoria { background:var(--aviso); }
+    textarea { width:100%; min-height:110px; resize:vertical; background:#020617; color:#e2e8f0; border:1px solid var(--borda); border-radius:8px; padding:12px; font-family: Consolas, "Courier New", monospace; font-size:.95rem; margin-top:12px; }
+    textarea:focus { outline:2px solid var(--acc); }
+    .acoes { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    button { background:#0c4a6e; color:#e0f2fe; border:1px solid #0369a1; border-radius:8px; padding:7px 14px; cursor:pointer; font-size:.9rem; }
+    button:hover { background:#075985; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    button.sec { background:transparent; border-color:var(--borda); color:var(--muted); }
+    button.sec:hover { color:var(--txt); }
+    details { margin-top:10px; }
+    summary { cursor:pointer; color:var(--muted); font-size:.9rem; }
+    pre { background:#020617; border:1px solid var(--borda); border-radius:8px; padding:12px; overflow-x:auto; font-size:.9rem; margin:8px 0; }
+    .feedback { margin-top:10px; font-weight:600; }
+    .feedback.ok { color:var(--ok); }
+    .feedback.erro { color:var(--erro); }
+    .feedback.info { color:var(--aviso); }
+    .saida { overflow-x:auto; margin-top:10px; max-height:360px; overflow-y:auto; }
+    table { border-collapse:collapse; width:100%; font-size:.85rem; }
+    th, td { border:1px solid var(--borda); padding:4px 8px; text-align:left; white-space:nowrap; }
+    th { background:#0f172a; color:var(--acc); position:sticky; top:0; }
+    .explicacao { white-space:pre-line; background:#0b1f33; border-left:3px solid var(--acc); padding:12px 14px; border-radius:6px; margin-top:8px; }
+    .erro-msg { color:var(--erro); font-family:Consolas, monospace; font-size:.85rem; white-space:pre-wrap; }
+    .esquema code { color:var(--acc); }
+    .tools { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Exercícios de SQL</h1>
+        <div class="muted">Base: Diagnóstico de Convivência Digital (Supabase). Dados anônimos, sem nome dos alunos.</div>
+    </div>
+    <div class="tools">
+        <span id="status" class="status">Carregando banco...</span>
+        <button class="sec" id="btn-mostrar-todas">Mostrar todas as respostas</button>
+    </div>
+</header>
+
+<main>
+    <h2>Esquema do banco</h2>
+    <div class="card esquema">
+        <p class="muted">Tabelas disponíveis para as consultas. Uma cópia dos dados é carregada no seu navegador, então as consultas não alteram o banco original, e cada execução é desfeita ao final.</p>
+        <p><code>colegios</code>(<b>id</b>, nome, logo_path)</p>
+        <p><code>pesquisas_lista</code>(<b>id</b>, titulo, descricao, status, data_referencia, tabela_respostas_alvo)</p>
+        <p><code>perguntas_formulario</code>(campo_chave, ordem, label_texto, opcoes, tipo_sql, tamanho_max, colegio_id, pesquisa_id)</p>
+        <p><code>respostas_pesquisa</code>(<b>id</b>, data_resposta, serie, turno, idade, genero, tempo_telas, presenciou_bullying, foi_vitima, ambiente_risco, sabe_pedir_ajuda, motivo_frequente, colegio_id, colegio_nome)</p>
+        <p class="muted">Dica: <b>Ctrl + Enter</b> executa a consulta do campo em foco. Tab insere espaços.</p>
+    </div>
+
+    <h2>Área livre</h2>
+    <div class="card">
+        <p class="muted">Teste qualquer consulta aqui antes de resolver os exercícios.</p>
+        <textarea id="livre" spellcheck="false">SELECT serie, COUNT(*) AS total FROM respostas_pesquisa GROUP BY serie ORDER BY total DESC;</textarea>
+        <div class="acoes"><button id="btn-livre">Executar</button></div>
+        <div id="saida-livre" class="saida"></div>
+    </div>
+
+    <div id="lista"></div>
+</main>
+
+<script type="module">
+import { PGlite } from 'https://cdn.jsdelivr.net/npm/@electric-sql/pglite@0.5.11/dist/index.js';
+import { NIVEIS, EXERCICIOS } from './exercicios.js';
+
+const SUPABASE_URL = 'https://dmwbvydkogpnhmprezew.supabase.co/rest/v1/';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtd2J2eWRrb2dwbmhtcHJlemV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY5ODE4NDksImV4cCI6MjEwMjU1Nzg0OX0.bi15oVkl8n8veVCkKjryKtuPSzrPjKblJ9AMERymhFY';
+
+const SCHEMA = `
+CREATE TABLE colegios (id integer PRIMARY KEY, nome text, logo_path text);
+CREATE TABLE pesquisas_lista (id integer PRIMARY KEY, titulo text, descricao text, status text, data_referencia text, tabela_respostas_alvo text);
+CREATE TABLE perguntas_formulario (campo_chave text, ordem integer, label_texto text, opcoes text, tipo_sql text, tamanho_max integer, colegio_id integer, pesquisa_id integer);
+CREATE TABLE respostas_pesquisa (id integer PRIMARY KEY, data_resposta timestamp, serie text, turno text, idade integer, genero text, tempo_telas text, presenciou_bullying text, foi_vitima boolean, ambiente_risco text, sabe_pedir_ajuda boolean, motivo_frequente text, colegio_id integer, colegio_nome text);
+`;
+const TABELAS = ['colegios', 'pesquisas_lista', 'perguntas_formulario', 'respostas_pesquisa'];
+
+const statusEl = document.getElementById('status');
+let db = null;
+
+async function buscarTabela(tabela) {
+    const linhas = [];
+    for (let inicio = 0; ; inicio += 1000) {
+        const r = await fetch(`${SUPABASE_URL}${tabela}?select=*`, {
+            headers: {
+                apikey: SUPABASE_ANON_KEY,
+                Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+                Range: `${inicio}-${inicio + 999}`,
+                'Range-Unit': 'items'
+            }
+        });
+        if (!r.ok) throw new Error(`${tabela}: HTTP ${r.status}`);
+        const lote = await r.json();
+        linhas.push(...lote);
+        if (lote.length < 1000) break;
+    }
+    return linhas;
+}
+
+async function carregarBanco() {
+    const dados = {};
+    for (const t of TABELAS) dados[t] = await buscarTabela(t);
+    const novo = new PGlite();
+    await novo.exec(SCHEMA);
+    for (const t of TABELAS) {
+        for (const linha of dados[t]) {
+            const colunas = Object.keys(linha);
+            await novo.query(
+                `INSERT INTO ${t} (${colunas.join(', ')}) VALUES (${colunas.map((_, i) => '$' + (i + 1)).join(', ')})`,
+                colunas.map(c => linha[c])
+            );
+        }
+    }
+    return { db: novo, total: Object.fromEntries(TABELAS.map(t => [t, dados[t].length])) };
+}
+
+// Executa uma consulta dentro de uma transação que é sempre desfeita,
+// para que nada que o aluno faça altere os dados carregados.
+async function executarIsolado(sql) {
+    if (!db) throw new Error('O banco ainda está carregando. Aguarde a mensagem "Pronto" no topo.');
+    await db.exec('BEGIN');
+    try {
+        return await db.query(sql);
+    } finally {
+        await db.exec('ROLLBACK');
+    }
+}
+
+function valorFormatado(v) {
+    if (v === null) return 'NULL';
+    if (v instanceof Date) return v.toLocaleString('pt-BR');
+    return String(v);
+}
+
+function normalizarValor(v) {
+    if (v === null) return 'NULL';
+    if (v instanceof Date) return v.toISOString();
+    if (typeof v === 'string' && v.trim() !== '' && !isNaN(Number(v))) return String(Number(v));
+    return String(v);
+}
+
+function linhasComparaveis(res, ordenado) {
+    const linhas = res.rows.map(r => JSON.stringify(Object.values(r).map(normalizarValor)));
+    return ordenado ? linhas : linhas.sort();
+}
+
+function renderTabela(res) {
+    if (!res.fields || res.fields.length === 0) return `<p class="muted">Consulta executada sem retorno de linhas.</p>`;
+    const wrap = document.createElement('div');
+    wrap.className = 'saida';
+    if (res.rows.length === 0) {
+        wrap.innerHTML = '<p class="muted">Nenhuma linha retornada.</p>';
+        return wrap;
+    }
+    const tabela = document.createElement('table');
+    const thead = document.createElement('tr');
+    for (const f of res.fields) {
+        const th = document.createElement('th');
+        th.textContent = f.name;
+        thead.appendChild(th);
+    }
+    tabela.appendChild(thead);
+    for (const row of res.rows.slice(0, 200)) {
+        const tr = document.createElement('tr');
+        for (const f of res.fields) {
+            const td = document.createElement('td');
+            td.textContent = valorFormatado(row[f.name]);
+            tr.appendChild(td);
+        }
+        tabela.appendChild(tr);
+    }
+    wrap.appendChild(tabela);
+    if (res.rows.length > 200) {
+        const p = document.createElement('p');
+        p.className = 'muted';
+        p.textContent = `Mostrando 200 de ${res.rows.length} linhas.`;
+        wrap.appendChild(p);
+    }
+    return wrap;
+}
+
+function mostrarSaida(container, res) {
+    container.innerHTML = '';
+    container.appendChild(renderTabela(res));
+}
+
+function mostrarErro(container, mensagem) {
+    container.innerHTML = '';
+    const p = document.createElement('div');
+    p.className = 'erro-msg';
+    p.textContent = mensagem;
+    container.appendChild(p);
+}
+
+function setFeedback(el, tipo, texto) {
+    el.className = 'feedback ' + tipo;
+    el.textContent = texto;
+}
+
+async function executarLivre() {
+    const sql = document.getElementById('livre').value;
+    const saida = document.getElementById('saida-livre');
+    try {
+        mostrarSaida(saida, await executarIsolado(sql));
+    } catch (e) {
+        mostrarErro(saida, e.message);
+    }
+}
+
+async function verificar(ex, textarea, saida, feedback) {
+    const sql = textarea.value.trim();
+    if (!sql) {
+        setFeedback(feedback, 'info', 'Escreva uma consulta antes de verificar.');
+        return;
+    }
+    let resAluno;
+    try {
+        resAluno = await executarIsolado(sql);
+        mostrarSaida(saida, resAluno);
+    } catch (e) {
+        mostrarErro(saida, e.message);
+        setFeedback(feedback, 'erro', 'A consulta tem erro de sintaxe ou de nome. Veja a mensagem acima.');
+        return;
+    }
+    const resEsperado = await db.query(ex.gabarito);
+    const ordenado = /ORDER\s+BY/i.test(ex.gabarito);
+    const a = linhasComparaveis(resAluno, ordenado);
+    const e = linhasComparaveis(resEsperado, ordenado);
+    const colunasOk = resAluno.fields.length === resEsperado.fields.length;
+    if (colunasOk && a.length === e.length && a.every((l, i) => l === e[i])) {
+        setFeedback(feedback, 'ok', `✔ Correto! Seu resultado tem ${a.length} linha(s) e confere com o esperado.`);
+    } else {
+        const dica = !colunasOk
+            ? `Sua consulta retorna ${resAluno.fields.length} coluna(s), mas o esperado são ${resEsperado.fields.length}.`
+            : `Sua consulta retorna ${a.length} linha(s), e o esperado são ${e.length}.`;
+        setFeedback(feedback, 'erro', `✘ Ainda não é o resultado esperado. ${dica} Confira o enunciado e tente de novo.`);
+    }
+}
+
+function montarExercicio(ex) {
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    if (ex.tipo === 'teoria') {
+        card.innerHTML = `
+            <div class="card-head"><span class="badge teoria">TEORIA</span><h3>${ex.id} · ${ex.titulo}</h3></div>
+            <p>${ex.enunciado}</p>
+            <div class="acoes"><button class="sec btn-resp">Mostrar resposta explicada</button></div>
+            <div class="bloco-resp" hidden><div class="explicacao"></div></div>`;
+        card.querySelector('.explicacao').textContent = ex.explicacao;
+        const bloco = card.querySelector('.bloco-resp');
+        card.querySelector('.btn-resp').addEventListener('click', () => {
+            bloco.hidden = !bloco.hidden;
+        });
+        card.bloco = bloco;
+        return card;
+    }
+
+    card.innerHTML = `
+        <div class="card-head"><span class="badge">${ex.id}</span><h3>${ex.titulo}</h3></div>
+        <p>${ex.enunciado}</p>
+        <details><summary>Dica</summary><p class="muted">${ex.dica}</p></details>
+        <textarea spellcheck="false" placeholder="Escreva sua consulta SQL aqui..."></textarea>
+        <div class="acoes">
+            <button class="btn-exec">Executar</button>
+            <button class="btn-verif">Verificar</button>
+            <button class="sec btn-resp">Mostrar resposta explicada</button>
+        </div>
+        <div class="feedback"></div>
+        <div class="saida-ex"></div>
+        <div class="bloco-resp" hidden>
+            <pre class="sql-gab"></pre>
+            <div class="explicacao"></div>
+        </div>`;
+    card.querySelector('.sql-gab').textContent = ex.gabarito;
+    card.querySelector('.explicacao').textContent = ex.explicacao;
+
+    const textarea = card.querySelector('textarea');
+    const saida = card.querySelector('.saida-ex');
+    const feedback = card.querySelector('.feedback');
+    const bloco = card.querySelector('.bloco-resp');
+
+    card.querySelector('.btn-exec').addEventListener('click', async () => {
+        try {
+            mostrarSaida(saida, await executarIsolado(textarea.value));
+            feedback.textContent = '';
+        } catch (e) {
+            mostrarErro(saida, e.message);
+        }
+    });
+    card.querySelector('.btn-verif').addEventListener('click', () => verificar(ex, textarea, saida, feedback));
+    card.querySelector('.btn-resp').addEventListener('click', () => {
+        bloco.hidden = !bloco.hidden;
+    });
+    textarea.addEventListener('keydown', e => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const s = textarea.selectionStart;
+            textarea.value = textarea.value.slice(0, s) + '  ' + textarea.value.slice(textarea.selectionEnd);
+            textarea.selectionStart = textarea.selectionEnd = s + 2;
+        }
+        if (e.key === 'Enter' && e.ctrlKey) {
+            card.querySelector('.btn-verif').click();
+        }
+    });
+    card.bloco = bloco;
+    return card;
+}
+
+function montarLista() {
+    const lista = document.getElementById('lista');
+    const cards = [];
+    for (const nivel of Object.keys(NIVEIS)) {
+        const exs = EXERCICIOS.filter(e => String(e.nivel) === nivel);
+        if (exs.length === 0) continue;
+        const h = document.createElement('h2');
+        h.textContent = NIVEIS[nivel];
+        lista.appendChild(h);
+        for (const ex of exs) {
+            const card = montarExercicio(ex);
+            lista.appendChild(card);
+            cards.push(card);
+        }
+    }
+    document.getElementById('btn-mostrar-todas').addEventListener('click', () => {
+        const mostrar = cards.some(c => c.bloco.hidden);
+        cards.forEach(c => { c.bloco.hidden = !mostrar; });
+    });
+}
+
+document.getElementById('btn-livre').addEventListener('click', executarLivre);
+document.getElementById('livre').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.ctrlKey) executarLivre();
+});
+
+montarLista();
+
+try {
+    const { db: banco, total } = await carregarBanco();
+    db = banco;
+    statusEl.textContent = `Pronto · ${total.respostas_pesquisa} respostas, ${total.colegios} colégio(s)`;
+    statusEl.classList.add('ok');
+} catch (e) {
+    statusEl.textContent = 'Erro ao carregar o banco';
+    statusEl.classList.add('erro');
+    document.getElementById('lista').insertAdjacentHTML('afterbegin',
+        `<div class="card"><p class="erro-msg">${e.message}</p><p class="muted">Verifique a conexão com a internet e se o projeto Supabase está acessível.</p></div>`);
+}
+</script>
+</body>
+</html>
