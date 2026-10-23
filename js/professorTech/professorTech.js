@@ -3894,7 +3894,8 @@ window.profAPI = {
             const name = state.cache.disciplinesMap.get(discId) || discId;
             const trimestres = notas[discId] || {};
             const labels = [], data = [];
-            ['1','2','3'].forEach(trim => {
+            const trisSel = window.profAPI.getSelectedTris();
+            trisSel.forEach(trim => {
                 const tData = trimestres[trim] || {};
                 if (tData.nota1) { labels.push(`T${trim}-N1`); data.push(parseFloat(tData.nota1)); }
                 if (tData.nota2) { labels.push(`T${trim}-N2`); data.push(parseFloat(tData.nota2)); }
