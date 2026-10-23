@@ -130,7 +130,7 @@ export async function renderProfessorTab() {
     if (els.evolBtn) els.evolBtn.onclick = () => window.profAPI.loadEvolucaoAluno();
     if (els.evolBtnFaltas) els.evolBtnFaltas.onclick = () => window.profAPI.renderEvolucaoFaltas();
     if (els.evolBtnPeriodo) els.evolBtnPeriodo.onclick = () => window.profAPI.resetEvolucaoPeriodo();
-    if (els.evolTrimestre) els.evolTrimestre.onchange = () => window.profAPI.loadEvolucaoAluno();
+    // trimestre agora é multi-select (.tri-check); onchange tratado no dashboard unificado
     addSafeListener('aplicar-aval', () => window.profAPI.renderAplicarAvalTable());
     addSafeListener('analise-geral', () => window.profAPI.loadGeralDashboard());
 
@@ -4055,7 +4055,6 @@ window.profAPI = {
         list.forEach(s => els.evolAluno.add(new Option(s.nome, s.id)));
         if (anterior && list.some(s => s.id === anterior)) els.evolAluno.value = anterior;
 
-        els.evolTrimestre.value = state.filters.quarter || '1';
         if (!els.evolStart.value || !els.evolEnd.value) window.profAPI.resetEvolucaoPeriodo(false);
 
         els.evolMsg.textContent = list.length
