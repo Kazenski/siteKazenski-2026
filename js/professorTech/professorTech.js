@@ -7243,31 +7243,6 @@ window.profAPI.renderDashboardRankingECharts = () => {
     window.addEventListener('resize', () => chart.resize());
 };
 
-    const chart = echarts.init(canvas);
-    chart.setOption({
-        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-        grid: { left: '3%', right: '8%', bottom: '3%', top: '5%', containLabel: true },
-        xAxis: { type: 'value', min: 0, max: 10, axisLabel: { color: '#94a3b8' }, splitLine: { lineStyle: { color: '#334155' } } },
-        yAxis: { type: 'category', data: data.map(d => d.name).reverse(), axisLabel: { color: '#cbd5e1', fontSize: 10 } },
-        series: [{
-            type: 'bar',
-            data: data.map(d => d.value).reverse(),
-            itemStyle: {
-                color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                    { offset: 0, color: '#f59e0b' },
-                    { offset: 1, color: '#fbbf24' }
-                ]),
-                borderRadius: [0, 6, 6, 0]
-            },
-            label: { show: true, position: 'right', color: '#f1f5f9', fontSize: 10, formatter: '{c}' },
-            emphasis: { itemStyle: { color: '#fbbf24' } }
-        }],
-        backgroundColor: 'transparent'
-    });
-
-    window.addEventListener('resize', () => chart.resize());
-};
-
 // Scatter ECharts: Notas x Faltas (estilo Movida)
 window.profAPI.renderDashboardScatterECharts = () => {
     const host = document.getElementById('dashboard-unified-host');
