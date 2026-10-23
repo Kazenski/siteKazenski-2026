@@ -7379,6 +7379,19 @@ window.profAPI.renderDashboardDoraECharts = () => {
         block.style.minHeight = '260px';
         block.innerHTML = `
             <h3 class="kz-section-title">Métricas DORA da Turma (proxy)</h3>
+            <details class="text-xs text-slate-400 mb-4 bg-slate-900/50 border border-slate-700 rounded-xl p-3">
+                <summary class="cursor-pointer font-bold text-amber-400 flex items-center gap-2">
+                    <i class="fas fa-circle-info"></i> Como interpretar as métricas DORA
+                </summary>
+                <ul class="mt-2 space-y-1 list-disc list-inside">
+                    <li><b>Taxa de Falha</b>: % de notas abaixo de 6 (reprovadas). Quanto menor, melhor. Proxy do Change Failure Rate.</li>
+                    <li><b>Freq. Avaliações</b>: quantidade de avaliações aplicadas no trimestre. Proxy da Deploy Frequency.</li>
+                    <li><b>Lead Time</b>: dias médios entre a aplicação da avaliação e o lançamento da nota. Proxy do Lead Time for Changes.</li>
+                    <li><b>MTTR</b>: tempo médio para recuperar uma nota (reavaliação). Proxy do Mean Time to Recovery.</li>
+                    <li><b>Aging / WIP</b>: alunos com média &lt; 6 ou faltas ≥ 20% (pendências ≥ 14 dias). Requer atenção.</li>
+                    <li>Estas são métricas <b>proxy</b> adaptadas ao contexto escolar, inspiradas no DORA (DevOps Research and Assessment).</li>
+                </ul>
+            </details>
             <div id="dash-dora-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"></div>
             <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Aging / WIP — Alunos com pendências</h4>
             <ul id="dash-dora-aging" class="space-y-1 text-xs"></ul>
