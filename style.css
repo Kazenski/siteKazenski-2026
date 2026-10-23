@@ -2647,7 +2647,8 @@ html.theme-light #atualizacoes-content .kz-upd__headtitle,
 html.theme-light #atualizacoes-content .kz-upd__p,
 html.theme-light #atualizacoes-content .kz-upd__li,
 html.theme-light #atualizacoes-content .kz-upd__escopo { color: #1a1410 !important; }
-html.theme-light #atualizacoes-content .kz-upd__sectitle { color: #1d4ed8 !important; }
+html.theme-light #atualizacoes-content .kz-upd__sectitle,
+html.theme-light #atualizacoes-content .kz-upd__body .kz-upd__sectitle { color: #b45309 !important; }
 html.theme-light #atualizacoes-content [class*="text-slate-"],
 html.theme-light #atualizacoes-content [class*="text-sky-"],
 html.theme-light #atualizacoes-content [class*="text-blue-"] { color: #334155 !important; }
