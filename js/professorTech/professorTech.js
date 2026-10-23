@@ -7381,7 +7381,7 @@ window.profAPI.renderDashboardDoraECharts = () => {
             <h3 class="kz-section-title">Métricas DORA da Turma (proxy)</h3>
             <div id="dash-dora-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"></div>
             <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Aging / WIP — Alunos com pendências</h4>
-            <ul id="dash-dora-aging" class="space-y-1 max-h-64 overflow-y-auto custom-scroll text-xs"></ul>
+            <ul id="dash-dora-aging" class="space-y-1 text-xs"></ul>
         `;
         host.appendChild(block);
     }
