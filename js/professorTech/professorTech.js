@@ -4087,14 +4087,17 @@ window.profAPI = {
                 getDocs(query(collection(db, "presencas"), where("turma", "==", classId)))
             ]);
 
-            const trimestre = String(els.evolTrimestre.value || '1');
+            const trisSel = window.profAPI.getSelectedTris();
             const nome = els.evolAluno.options[els.evolAluno.selectedIndex]?.text || 'Aluno';
             const notasRaw = notasSnap.exists() ? (notasSnap.data().disciplinasComNotas || {}) : {};
 
-            // --- Notas do trimestre selecionado, por disciplina ---
+            // --- Notas dos trimestres selecionados, por disciplina (agregado) ---
             const porDisciplina = Object.entries(notasRaw).map(([discId, trimestres]) => {
-                const t = (trimestres || {})[trimestre] || {};
-                const brutos = [t.nota1, t.nota2, t.nota3, t.nota4];
+                const brutos = [];
+                trisSel.forEach(tr => {
+                    const t = (trimestres || {})[tr] || {};
+                    brutos.push(t.nota1, t.nota2, t.nota3, t.nota4);
+                });
                 const vals = brutos
                     .map(v => (v === null || v === undefined || v === '' ? null : parseFloat(v)))
                     .filter(v => Number.isFinite(v));
@@ -7028,6 +7031,14 @@ window.profAPI.initPainel = () => {
     window.profAPI.renderModeradoresAnalise();
 };
 
+// Helper: trimestres selecionados no dashboard unificado
+window.profAPI.getSelectedTris = () => {
+    const checks = document.querySelectorAll('.tri-check');
+    const sel = [];
+    checks.forEach(cb => { if (cb.checked) sel.push(cb.value); });
+    return sel.length ? sel : ['1','2','3'];
+};
+
 // ==========================================
 // TOGGLE DE TEMA CLARO/ESCURO (estilo Movida)
 // ==========================================
@@ -7115,17 +7126,35 @@ window.profAPI.initDashboardUnificado = () => {
     if (dashSel) {
         dashSel.innerHTML = '<option value="">Toda a turma</option>';
         (state.cache.students || []).forEach(s => dashSel.add(new Option(s.nome, s.id)));
-        dashSel.onchange = (e) => {
-            const uid = e.target.value;
+        const rerender = () => {
+            const uid = dashSel.value;
+            // Sincroniza Frequência Individual (ptab-analise-geral) com o aluno do topo
+            const geralSel = document.getElementById('geral-freq-student-select');
+            if (geralSel) { geralSel.value = uid; }
             if (uid) {
-                // Métricas atreladas ao aluno selecionado
                 try { window.profAPI.loadAnaliseDashboard(uid); } catch (err) { console.warn(err); }
-                try { window.profAPI.loadEvolucaoAluno && (els.evolAluno.value = uid, window.profAPI.loadEvolucaoAluno()); } catch (err) { console.warn(err); }
+                try { if (els.evolAluno) { els.evolAluno.value = uid; if (window.profAPI.loadEvolucaoAluno) window.profAPI.loadEvolucaoAluno(); } } catch (err) { console.warn(err); }
             } else {
-                // Por turma
                 try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (err) { console.warn(err); }
             }
+            try { window.profAPI.renderDashboardRankingECharts(); } catch (e) {}
+            try { window.profAPI.renderDashboardScatterECharts(); } catch (e) {}
+            try { window.profAPI.renderDashboardHeatmapECharts(); } catch (e) {}
+            try { window.profAPI.renderDashboardDoraECharts(); } catch (e) {}
         };
+        dashSel.onchange = rerender;
+        // Trimestres
+        document.querySelectorAll('.tri-check').forEach(cb => {
+            cb.onchange = () => {
+                // Re-render evolução se aluno selecionado
+                const uid = dashSel.value;
+                if (uid && els.evolAluno) {
+                    els.evolAluno.value = uid;
+                    if (window.profAPI.loadEvolucaoAluno) window.profAPI.loadEvolucaoAluno();
+                }
+                rerender();
+            };
+        });
     }
 
     // Carrega visão geral (por turma) por padrão
@@ -7547,33 +7576,36 @@ window.profAPI.exportDashboardPdf = async () => {
         y += 22;
     }
 
-    // Gráficos (canvas → imagem)
-    const graphBlocks = [
-        { id: 'dash-echarts-ranking-canvas', title: 'Ranking de Alunos por Média' },
-        { id: 'dash-echarts-scatter-canvas', title: 'Dispersão: Notas × Faltas' },
-        { id: 'dash-echarts-heatmap-canvas', title: 'Heatmap de Frequência (Alunos × Aulas)' },
-    ];
-    for (const gb of graphBlocks) {
-        const canvas = document.getElementById(gb.id);
-        if (canvas) {
-            if (y + 90 > pageH - M) { pdf.addPage(); y = M; }
-            pdf.setFont('helvetica', 'bold');
-            pdf.setFontSize(11);
-            pdf.setTextColor(30, 41, 59);
-            pdf.text(gb.title, M, y);
-            y += 4;
-            try {
-                const imgData = canvas.toDataURL('image/png');
-                const imgW = pageW - M*2;
-                const imgH = 80;
-                pdf.addImage(imgData, 'PNG', M, y, imgW, imgH);
-                y += imgH + 6;
-            } catch (e) {
-                pdf.setFontSize(9);
-                pdf.setTextColor(100, 100, 100);
-                pdf.text('(gráfico não pôde ser renderizado)', M, y);
-                y += 6;
-            }
+    // Gráficos (canvas → imagem): captura todos os canvases do dashboard unificado
+    const allCanvases = Array.from(document.querySelectorAll('#dashboard-unified-host canvas'));
+    const seen = new Set();
+    for (const canvas of allCanvases) {
+        if (seen.has(canvas)) continue;
+        seen.add(canvas);
+        if (y + 90 > pageH - M) { pdf.addPage(); y = M; }
+        // título aproximado pelo bloco pai
+        let title = 'Gráfico';
+        const parent = canvas.closest('.kz-chart-host, .kz-card, .evo-chart-block');
+        if (parent) {
+            const h = parent.querySelector('h3, h4, .kz-section-title');
+            if (h) title = h.textContent.trim();
+        }
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(title, M, y);
+        y += 4;
+        try {
+            const imgData = canvas.toDataURL('image/png');
+            const imgW = pageW - M*2;
+            const imgH = 80;
+            pdf.addImage(imgData, 'PNG', M, y, imgW, imgH);
+            y += imgH + 6;
+        } catch (e) {
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('(gráfico não pôde ser renderizado)', M, y);
+            y += 6;
         }
     }
 

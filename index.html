@@ -3774,13 +3774,12 @@
                             </div>
                             <div>
                                 <label
-                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Trimestre</label>
-                                <select id="evol-trimestre"
-                                    class="bg-slate-900 border border-slate-700 text-white text-xs font-bold uppercase rounded-xl p-3 outline-none focus:border-emerald-500">
-                                    <option value="1">1º</option>
-                                    <option value="2">2º</option>
-                                    <option value="3">3º</option>
-                                </select>
+                                    class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Trimestres</label>
+                                <div class="flex gap-3 bg-slate-900 border border-slate-700 text-white text-xs font-bold uppercase rounded-xl p-3">
+                                    <label class="flex items-center gap-1"><input type="checkbox" class="tri-check" value="1" checked> 1º</label>
+                                    <label class="flex items-center gap-1"><input type="checkbox" class="tri-check" value="2" checked> 2º</label>
+                                    <label class="flex items-center gap-1"><input type="checkbox" class="tri-check" value="3" checked> 3º</label>
+                                </div>
                             </div>
                             <button id="evol-btn"
                                 class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg transition-colors h-[42px]">
@@ -4252,11 +4251,15 @@
                             <h2 class="text-lg text-cyan-400 font-cinzel font-bold mb-1"><i class="fas fa-chart-pie mr-2"></i> Dashboard Unificado</h2>
                             <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Consolidação de Análise do Aluno, Evolução, Painel e Visão Geral em uma única visão.</p>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <label class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Aluno:</label>
                             <select id="dashboard-student-select" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 min-w-[200px]">
                                 <option value="">Toda a turma</option>
                             </select>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold ml-2">Tri:</span>
+                            <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="1" checked> 1º</label>
+                            <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="2" checked> 2º</label>
+                            <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="3" checked> 3º</label>
                             <button onclick="window.profAPI.exportDashboardPdf()" class="kz-btn-ghost h-[34px]" title="Exportar PDF impecável"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                         </div>
                     </div>

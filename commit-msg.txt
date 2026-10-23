@@ -1,0 +1,1 @@
+feat: tri multi-select, sync aluno, pdf completo com todos graficos
