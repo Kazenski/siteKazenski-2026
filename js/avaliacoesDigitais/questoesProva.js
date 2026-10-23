@@ -3,6 +3,12 @@ import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/
 import { app, db } from '../core/firebase.js';
 import { escapeHTML } from '../core/utils.js';
 import { TIPOS, novaQuestao, montarDocs, estadoDeQuestao } from './questoesCore.js';
+import { criarEditorCodigo, destacarCodigo } from './editorCodigo.js';
+
+let editoresProva = [];
+let editoresEditor = [];
+const destruirEditoresProva = () => { editoresProva.forEach(e => e.destroy()); editoresProva = []; };
+const destruirEditoresEditor = () => { editoresEditor.forEach(e => e.destroy()); editoresEditor = []; };
 
 const CLASSE_INPUT = 'w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2 text-sm outline-none focus:border-blue-500';
 const CLASSE_BTN = 'text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-blue-500 transition-colors';
@@ -44,11 +50,34 @@ export async function carregarEditor(container, avalId) {
 
 function renderEditor(container) {
     const cards = editorQuestoes.map((q, i) => cardQuestao(q, i)).join('');
+    destruirEditoresEditor();
     container.innerHTML = `
         <div class="space-y-4">
             ${cards || '<p class="text-slate-500 text-xs italic">Sem questões: a avaliação funciona como atividade com envio de arquivo.</p>'}
             <button type="button" data-acao="add-questao" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Adicionar questão</button>
         </div>`;
+    container.querySelectorAll('[data-editor-campo]').forEach(host => {
+        const q = editorQuestoes[qIdx(host)];
+        const campo = host.dataset.editorCampo;
+        editoresEditor.push(criarEditorCodigo(host, {
+            linguagem: host.dataset.editorLang,
+            valor: lerCampoCodigo(q, campo),
+            onChange: (v) => aplicarCampoCodigo(q, campo, v)
+        }));
+    });
+}
+
+function lerCampoCodigo(q, campo) {
+    if (campo === 'codigo-inicial') return q.codigoInicial || '';
+    if (campo === 'sql-inicial') return q.consultaInicial || '';
+    if (campo === 'sql-gabarito') return q.sql || '';
+    return '';
+}
+
+function aplicarCampoCodigo(q, campo, valor) {
+    if (campo === 'codigo-inicial') q.codigoInicial = valor;
+    if (campo === 'sql-inicial') q.consultaInicial = valor;
+    if (campo === 'sql-gabarito') q.sql = valor;
 }
 
 function cardQuestao(q, i) {
@@ -123,9 +152,9 @@ function corpoTipo(q, i) {
         case 'sql':
             return `<div class="space-y-3">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Consulta inicial (opcional)</label>
-                <textarea data-campo="sql-inicial" rows="2" placeholder="-- consulta que já aparece para o aluno" class="${CLASSE_INPUT} font-mono">${esc(q.consultaInicial)}</textarea>
+                <div data-editor-campo="sql-inicial" data-editor-lang="sql"></div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Consulta gabarito</label>
-                <textarea data-campo="sql-gabarito" rows="4" placeholder="SELECT ..." class="${CLASSE_INPUT} font-mono">${esc(q.sql)}</textarea>
+                <div data-editor-campo="sql-gabarito" data-editor-lang="sql"></div>
                 <p class="text-[10px] text-slate-500">A nota é dada se o resultado do aluno for igual ao do gabarito (nomes das colunas não contam). Se o gabarito tiver ORDER BY, a ordem das linhas também é exigida. A base é a das tabelas CSV enviadas na avaliação.</p>
             </div>`;
         case 'python': {
@@ -140,7 +169,7 @@ function corpoTipo(q, i) {
                 </div>`).join('');
             return `<div class="space-y-3">
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Código inicial (opcional)</label>
-                <textarea data-campo="codigo-inicial" rows="3" placeholder="# código que já aparece para o aluno" class="${CLASSE_INPUT} font-mono">${esc(q.codigoInicial)}</textarea>
+                <div data-editor-campo="codigo-inicial" data-editor-lang="python"></div>
                 <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Testes</label>
                 ${linhas}
                 <button type="button" data-acao="add-teste" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Teste</button>
@@ -358,6 +387,7 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
     };
 
     const pintar = () => {
+        destruirEditoresProva();
         area.innerHTML = `
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-6">
                 <div class="flex flex-wrap justify-between gap-3 items-center">
@@ -373,6 +403,16 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
                     <button type="button" id="btn-enviar-prova" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Enviar prova</button>
                 </div>
             </div>`;
+        questoes.forEach((q) => {
+            if (q.tipo !== 'python' && q.tipo !== 'sql') return;
+            const host = area.querySelector(`[data-editor-host="${q.id}"]`);
+            if (!host) return;
+            editoresProva.push(criarEditorCodigo(host, {
+                linguagem: q.tipo,
+                valor: respostas[q.id] || '',
+                onChange: (v) => { respostas[q.id] = v; salvar(); }
+            }));
+        });
     };
 
     area.onchange = (e) => {
@@ -540,7 +580,7 @@ function cardResposta(q, i, resp) {
             break;
         case 'sql':
             corpo = `
-                <textarea data-qid="${q.id}" data-tipo="sql" rows="6" spellcheck="false" placeholder="SELECT ..." class="${CLASSE_INPUT} font-mono">${esc(resp || q.consultaInicial || '')}</textarea>
+                <div data-editor-host="${q.id}" data-linguagem="sql"></div>
                 <div class="flex justify-end">
                     <button type="button" data-acao="executar-sql" data-qid="${q.id}" class="${CLASSE_BTN}"><i class="fas fa-play mr-1"></i> Executar consulta</button>
                 </div>
@@ -554,7 +594,7 @@ function cardResposta(q, i, resp) {
                 </div>`).join('');
             corpo = `
                 ${exemplos ? `<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Exemplos</p>${exemplos}` : ''}
-                <textarea data-qid="${q.id}" data-tipo="codigo" rows="10" spellcheck="false" placeholder="# escreva seu programa em Python aqui" class="${CLASSE_INPUT} font-mono">${esc(resp || q.codigoInicial || '')}</textarea>
+                <div data-editor-host="${q.id}" data-linguagem="python"></div>
                 <div class="flex flex-wrap items-start gap-2">
                     <textarea id="entrada-${q.id}" rows="2" placeholder="Entrada para testar (stdin)" class="${CLASSE_INPUT} font-mono md:w-1/2"></textarea>
                     <button type="button" data-acao="executar" data-qid="${q.id}" class="${CLASSE_BTN}"><i class="fas fa-play mr-1"></i> Executar</button>
@@ -633,7 +673,9 @@ export function renderResultado(area, res, questoes) {
                         <span class="text-slate-400">${pts}</span>
                     </div>
                     <p class="text-sm text-slate-200">${esc(q.enunciado)}</p>
-                    <p class="text-sm text-emerald-400"><b>Resposta:</b> ${esc(textoDoGabarito(docs[q.id] || { tipo: q.tipo }, q.gabarito))}</p>
+                    ${q.tipo === 'sql'
+                        ? `<div class="space-y-1"><p class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Consulta gabarito</p>${destacarCodigo(q.gabarito?.sql || '', 'sql')}</div>`
+                        : `<p class="text-sm text-emerald-400"><b>Resposta:</b> ${esc(textoDoGabarito(docs[q.id] || { tipo: q.tipo }, q.gabarito))}</p>`}
                     ${q.explicacao ? `<p class="text-sm text-slate-400 whitespace-pre-line border-l-2 border-blue-500 pl-3">${esc(q.explicacao)}</p>` : ''}
                 </div>`;
         }).join('')}`;
