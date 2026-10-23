@@ -2549,6 +2549,26 @@ html.theme-light .bg-pink-800 { background-color: #fdf2f8 !important; }
 html.theme-light .bg-rose-900 { background-color: #fff1f2 !important; }
 html.theme-light .bg-rose-800 { background-color: #fff1f2 !important; }
 
+
+/* ============================================================ */
+/* TEMA CLARO — superficies escuras hardcoded (atualizacoes/aura/aluno) */
+/* ============================================================ */
+html.theme-light .kz-panel { background: #ffffff !important; border-color: #e8ddd6 !important; box-shadow: 0 1px 2px rgba(26,20,16,0.06), 0 4px 12px rgba(26,20,16,0.08) !important; }
+html.theme-light .kz-panel:hover { border-color: #d6c9bf !important; }
+html.theme-light .kz-upd__entry { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .kz-upd__feed { background: #f7f5f3 !important; }
+html.theme-light .kz-toolbar { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .note-form-panel { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .kanban-card { background-color: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .calendar-grid { background: #f7f5f3 !important; border-color: #e8ddd6 !important; }
+html.theme-light .aviso-item { background: rgba(0,0,0,0.04) !important; }
+
+
+html.theme-light .kanban-column { background-color: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .note-card { background: #ffffff !important; border-color: #e8ddd6 !important; }
+html.theme-light .page-btn { background: #ffffff !important; border-color: #e8ddd6 !important; color: #1a1410 !important; }
+html.theme-light .kz-select option { background: #ffffff !important; color: #1a1410 !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
