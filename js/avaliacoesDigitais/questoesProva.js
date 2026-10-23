@@ -632,9 +632,12 @@ function textoDoGabarito(q, g) {
     }
 }
 
-export function renderResultado(area, res, questoes) {
+export function renderResultado(area, res, questoes, { treino = false, onRefazer = null } = {}) {
     const final = res.notaAtribuida !== null && res.notaAtribuida !== undefined;
     const nota = final ? res.notaAtribuida : res.notaParcial;
+    const rotuloNota = treino
+        ? `Treino: ${res.pontosObtidos} de ${res.pontosTotais} pts`
+        : `${final ? 'Nota final' : 'Nota parcial'}: ${nota ?? '—'}`;
     const pendencia = res.pendentes > 0
         ? `<p class="text-amber-400 text-sm"><i class="fas fa-hourglass-half mr-1"></i> ${res.pendentes} questão(ões) aguardam correção do professor. A nota será atualizada quando ele concluir.</p>`
         : '';
@@ -644,13 +647,23 @@ export function renderResultado(area, res, questoes) {
             <div class="flex flex-wrap justify-between items-center gap-3">
                 <h4 class="text-emerald-400 font-bold"><i class="fas fa-check mr-2"></i> Prova enviada</h4>
                 <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm font-bold">
-                    ${final ? 'Nota final' : 'Nota parcial'}: ${nota ?? '—'}
+                    ${rotuloNota}
                 </span>
             </div>
             <p class="text-slate-300 text-sm">Pontos nas questões corrigidas: ${res.pontosObtidos} de ${res.pontosCorrigidos}.</p>
             ${pendencia}
             <div id="area-gabarito" class="space-y-4"></div>
         </div>`;
+
+    if (treino && onRefazer) {
+        const botao = document.createElement('button');
+        botao.type = 'button';
+        botao.id = 'btn-refazer-treino';
+        botao.className = `${CLASSE_BTN} self-start`;
+        botao.innerHTML = '<i class="fas fa-redo mr-2"></i> Refazer exercício';
+        botao.addEventListener('click', onRefazer);
+        area.querySelector('#area-gabarito').insertAdjacentElement('beforebegin', botao);
+    }
 
     if (!res.gabaritoLiberado || !res.questoes) {
         const aviso = area.querySelector('#area-gabarito');

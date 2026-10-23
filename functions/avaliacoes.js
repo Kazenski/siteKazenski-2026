@@ -273,7 +273,8 @@ exports.corrigirAvaliacao = onCall({
   const entregaRef = entregasSnap.empty ?
     db.collection("avaliacoes_entregas").doc() :
     entregasSnap.docs[0].ref;
-  if (!entregasSnap.empty && entregasSnap.docs[0].data().finalizada === true) {
+  const ehTreino = aval.tipoAvaliacao === "treino";
+  if (!ehTreino && !entregasSnap.empty && entregasSnap.docs[0].data().finalizada === true) {
     throw new HttpsError("already-exists", "Você já enviou esta avaliação.");
   }
 
@@ -363,6 +364,7 @@ exports.corrigirAvaliacao = onCall({
     alunoNome: user.nome || "",
     turmaAluno: user.turma || "Sem Turma",
     finalizada: true,
+    tentativas: admin.firestore.FieldValue.increment(1),
     status: completa ? "avaliado" : "entregue",
     respostas,
     detalhes,

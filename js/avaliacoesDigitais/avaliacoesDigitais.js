@@ -12,6 +12,27 @@ let avaliacoesCache = [];
 let currentAvaliacaoAbertaId = null;
 let basesNovas = [];
 let basesAtuais = [];
+let abaAtiva = 'provas';
+
+function atualizarBotoesAba() {
+    document.querySelectorAll('[data-aba]').forEach(btn => {
+        const ativa = btn.dataset.aba === abaAtiva;
+        btn.classList.toggle('border-blue-500', ativa);
+        btn.classList.toggle('text-blue-400', ativa);
+        btn.classList.toggle('border-transparent', !ativa);
+        btn.classList.toggle('text-slate-500', !ativa);
+        btn.classList.toggle('hover:text-slate-300', !ativa);
+    });
+}
+
+function atualizarTipoForm() {
+    const treino = document.getElementById('aval-tipo')?.value === 'treino';
+    document.querySelectorAll('[data-so-prova]').forEach(el => el.classList.toggle('hidden', treino));
+    ['aval-trimestre', 'aval-nota'].forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) campo.required = !treino;
+    });
+}
 
 function renderBasesCsv() {
     const lista = document.getElementById('lista-bases-csv');
@@ -88,12 +109,29 @@ function construirEstruturaInterface(container) {
             ${btnNovaAvaliacao}
         </div>
 
+        <div class="flex gap-2 border-b border-slate-800 shrink-0">
+            <button type="button" data-aba="provas" class="px-5 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-widest transition-colors">
+                <i class="fas fa-file-signature mr-2"></i> Provas Avaliativas
+            </button>
+            <button type="button" data-aba="treino" class="px-5 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-widest transition-colors">
+                <i class="fas fa-dumbbell mr-2"></i> Exercícios Não Avaliativos
+            </button>
+        </div>
+
         <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0">
             <h3 class="text-lg font-cinzel font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">Registrar Nova Avaliação</h3>
             <form id="form-nova-aval" class="space-y-4">
                 <input type="hidden" id="aval-id">
+
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Tipo</label>
+                    <select id="aval-tipo" class="w-full md:w-1/2 bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        <option value="prova">Prova avaliativa (vale nota no boletim)</option>
+                        <option value="treino">Exercício de treino (sem nota)</option>
+                    </select>
+                </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div data-so-prova class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Título da Atividade</label>
                         <input type="text" id="aval-titulo" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
@@ -113,7 +151,7 @@ function construirEstruturaInterface(container) {
                     </div>
                 </div>
 
-                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                <div data-so-prova class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Notas Alvo (Afetará o boletim) *</label>
                     <div id="containerNotas" class="grid grid-cols-4 gap-3">
                         <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white"><input type="checkbox" name="chkNota" value="N1" class="w-4 h-4 accent-blue-500"> N1</label>
@@ -141,7 +179,7 @@ function construirEstruturaInterface(container) {
                     </div>
                 </div>
 
-                <div class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
+                <div data-so-prova class="bg-slate-950/50 border border-slate-800 rounded-xl p-4">
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 pl-1">Disciplinas Vinculadas *</label>
                     <div id="containerDisciplinas" class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma acima primeiro.</p>
@@ -229,6 +267,17 @@ function setupEventosIniciais() {
 
     iniciarEditor(document.getElementById('container-editor-questoes'));
     document.getElementById('aval-csv').addEventListener('change', (e) => lerBasesSelecionadas(Array.from(e.target.files)));
+    document.getElementById('aval-tipo').addEventListener('change', atualizarTipoForm);
+    if (form) form.addEventListener('reset', () => setTimeout(atualizarTipoForm, 0));
+    document.querySelectorAll('[data-aba]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            abaAtiva = btn.dataset.aba;
+            atualizarBotoesAba();
+            renderGridAvaliacoes(avaliacoesCache);
+        });
+    });
+    atualizarBotoesAba();
+    atualizarTipoForm();
     
     // Injetar disciplinas ativas quando alguma turma for selecionada
     document.getElementById('container-check-turmas').addEventListener('change', async (event) => {
@@ -416,7 +465,10 @@ async function salvarAvaliacao(e) {
         return; 
     }
 
-    if (!trimestreSelecionado || notasMarcadas.length === 0 || disciplinasMarcadas.length === 0) {
+    const tipoAval = document.getElementById('aval-tipo').value;
+    const ehProva = tipoAval === 'prova';
+
+    if (ehProva && (!trimestreSelecionado || notasMarcadas.length === 0 || disciplinasMarcadas.length === 0)) {
         alert("Preencha o trimestre e flegue pelo menos uma nota e uma disciplina.");
         return;
     }
@@ -459,10 +511,11 @@ async function salvarAvaliacao(e) {
         const idEdicao = document.getElementById('aval-id').value;
         const payload = {
             titulo: document.getElementById('aval-titulo').value,
-            notaMaxima: parseFloat(document.getElementById('aval-nota').value) || 0,
-            trimestre: trimestreSelecionado,
-            notasAtribuidas: notasMarcadas,
-            disciplinas: disciplinasMarcadas,
+            tipoAvaliacao: tipoAval,
+            notaMaxima: ehProva ? (parseFloat(document.getElementById('aval-nota').value) || 0) : 0,
+            trimestre: ehProva ? trimestreSelecionado : null,
+            notasAtribuidas: ehProva ? notasMarcadas : [],
+            disciplinas: ehProva ? disciplinasMarcadas : [],
             dataAbertura: new Date(document.getElementById('aval-abertura').value),
             dataFechamento: new Date(document.getElementById('aval-fechamento').value),
             turmasAlvo: turmas,
@@ -529,6 +582,8 @@ function ouvirAvaliacoes() {
 async function renderGridAvaliacoes(avaliacoes) {
     const grid = document.getElementById('grid-avaliacoes');
     if (!grid) return;
+
+    avaliacoes = avaliacoes.filter(a => (a.tipoAvaliacao === 'treino') === (abaAtiva === 'treino'));
 
     let visiveis = avaliacoes;
     let entregasAlunoIds = []; 
@@ -633,7 +688,9 @@ async function renderGridAvaliacoes(avaliacoes) {
                 </div>
                 
                 <div class="flex flex-wrap gap-2 mb-4">
-                    <span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>
+                    ${aval.tipoAvaliacao === 'treino'
+                        ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-dumbbell mr-1"></i> Treino · sem nota</span>`
+                        : `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>`}
                     <span class="bg-slate-900 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmasStr}</span>
                 </div>
                 
@@ -656,6 +713,20 @@ async function renderGridAvaliacoes(avaliacoes) {
     }).join('');
 }
 
+function abrirProvaNaArea(area, aval, questoes) {
+    renderProva(area, {
+        avalId: aval.id,
+        uid: currentUser.uid,
+        aval,
+        questoes,
+        onTroca: () => registrarInfracao(aval.id, 'countTrocaAba'),
+        onEnviado: async () => {
+            await window.avaliacoesAPI.abrirPainel(aval.id);
+            renderGridAvaliacoes(avaliacoesCache);
+        }
+    });
+}
+
 async function montarAreaProva(aval, minhaEntrega) {
     const area = document.getElementById('area-prova');
     if (!area) return;
@@ -663,7 +734,13 @@ async function montarAreaProva(aval, minhaEntrega) {
     try {
         if (minhaEntrega && minhaEntrega.finalizada === true) {
             const [resultado, questoes] = await Promise.all([obterResultado(aval.id), buscarQuestoesAluno(aval.id)]);
-            renderResultado(area, resultado, questoes);
+            renderResultado(area, resultado, questoes, {
+                treino: aval.tipoAvaliacao === 'treino',
+                onRefazer: () => {
+                    localStorage.removeItem(`prova_rascunho_${aval.id}_${currentUser.uid}`);
+                    abrirProvaNaArea(area, aval, questoes);
+                }
+            });
             return;
         }
 
@@ -674,19 +751,7 @@ async function montarAreaProva(aval, minhaEntrega) {
         }
 
         const questoes = await buscarQuestoesAluno(aval.id);
-        mostrarConsentimento(area, () => {
-            renderProva(area, {
-                avalId: aval.id,
-                uid: currentUser.uid,
-                aval,
-                questoes,
-                onTroca: () => registrarInfracao(aval.id, 'countTrocaAba'),
-                onEnviado: async () => {
-                    await window.avaliacoesAPI.abrirPainel(aval.id);
-                    renderGridAvaliacoes(avaliacoesCache);
-                }
-            });
-        });
+        mostrarConsentimento(area, () => abrirProvaNaArea(area, aval, questoes));
     } catch (err) {
         console.error("Erro ao montar a prova:", err);
         area.innerHTML = `<p class="text-red-500 text-center text-sm">Não foi possível carregar a prova. Tente novamente.</p>`;
@@ -717,6 +782,8 @@ window.avaliacoesAPI = {
         
         if (aval.trimestre) document.getElementById('aval-trimestre').value = aval.trimestre;
         document.getElementById('aval-mostrar-gabarito').checked = aval.mostrarGabarito === true;
+        document.getElementById('aval-tipo').value = aval.tipoAvaliacao === 'treino' ? 'treino' : 'prova';
+        atualizarTipoForm();
         basesAtuais = aval.bases || [];
         basesNovas = [];
         renderBasesCsv();
