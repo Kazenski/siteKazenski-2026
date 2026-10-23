@@ -7375,12 +7375,13 @@ window.profAPI.renderDashboardDoraECharts = () => {
     if (!block) {
         block = document.createElement('div');
         block.id = 'dash-dora';
-        block.className = 'kz-card';
+        block.className = 'kz-card w-full';
+        block.style.minHeight = '260px';
         block.innerHTML = `
             <h3 class="kz-section-title">Métricas DORA da Turma (proxy)</h3>
-            <div id="dash-dora-kpis" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"></div>
-            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Aging / WIP — Alunos com pendências ≥ 14 dias</h4>
-            <ul id="dash-dora-aging" class="space-y-1 max-h-48 overflow-y-auto custom-scroll text-xs"></ul>
+            <div id="dash-dora-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4"></div>
+            <h4 class="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Aging / WIP — Alunos com pendências</h4>
+            <ul id="dash-dora-aging" class="space-y-1 max-h-64 overflow-y-auto custom-scroll text-xs"></ul>
         `;
         host.appendChild(block);
     }
