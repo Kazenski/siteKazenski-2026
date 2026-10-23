@@ -2098,6 +2098,61 @@ html.theme-light .border-slate-800 {
     border-color: #e8ddd6 !important;
 }
 
+/* Inputs, selects, textareas */
+html.theme-light input,
+html.theme-light select,
+html.theme-light textarea {
+    background-color: #ffffff !important;
+    color: #1a1410 !important;
+    border-color: #e8ddd6 !important;
+}
+
+/* Tabelas */
+html.theme-light table thead {
+    background-color: #f3ebe6 !important;
+    color: #6b5e56 !important;
+}
+html.theme-light table tbody tr {
+    border-color: #e8ddd6 !important;
+}
+html.theme-light table tbody tr:hover {
+    background-color: #f3ebe6 !important;
+}
+
+/* Modais e painéis */
+html.theme-light .bg-slate-900\/50,
+html.theme-light .bg-slate-900\/80 {
+    background-color: rgba(255,255,255,0.8) !important;
+}
+
+/* Textos muted */
+html.theme-light .text-slate-400 { color: #6b5e56 !important; }
+html.theme-light .text-slate-500 { color: #94a3b8 !important; }
+
+/* Sombras mais suaves no claro */
+html.theme-light .shadow-lg,
+html.theme-light .shadow-xl,
+html.theme-light .shadow-2xl {
+    box-shadow: 0 1px 2px rgba(26,20,16,0.06), 0 8px 24px rgba(26,20,16,0.08) !important;
+}
+
+/* Botões primários mantêm accent */
+html.theme-light .bg-amber-600 { background-color: #f59e0b !important; color: #1a1410 !important; }
+html.theme-light .bg-blue-600 { background-color: #3b82f6 !important; color: #ffffff !important; }
+html.theme-light .bg-green-600 { background-color: #22c55e !important; color: #ffffff !important; }
+html.theme-light .bg-red-600 { background-color: #ef4444 !important; color: #ffffff !important; }
+
+/* Hover states */
+html.theme-light .hover\:bg-slate-800:hover,
+html.theme-light .hover\:bg-slate-700:hover {
+    background-color: #f3ebe6 !important;
+}
+
+/* Scrollbar no tema claro */
+html.theme-light ::-webkit-scrollbar-track { background: #f7f5f3; }
+html.theme-light ::-webkit-scrollbar-thumb { background: #e8ddd6; }
+html.theme-light ::-webkit-scrollbar-thumb:hover { background: #c43d00; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;

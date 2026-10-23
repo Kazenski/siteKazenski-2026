@@ -4039,11 +4039,11 @@
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300">
+                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300" open>
                                 <summary class="cursor-pointer font-bold text-rose-400 flex items-center gap-2"><i class="fas fa-list"></i> Alunos por Faixa de Nota (detalhe)</summary>
                                 <ul id="painel-notas-alunos" class="mt-2 space-y-1 max-h-48 overflow-y-auto custom-scroll"></ul>
                             </details>
-                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300">
+                            <details class="bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-xs text-slate-300" open>
                                 <summary class="cursor-pointer font-bold text-cyan-400 flex items-center gap-2"><i class="fas fa-list"></i> Alunos por Faixa de Frequência (detalhe)</summary>
                                 <ul id="painel-frequencia-alunos" class="mt-2 space-y-1 max-h-48 overflow-y-auto custom-scroll"></ul>
                             </details>
@@ -4260,6 +4260,10 @@
                             <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="1" checked> 1º</label>
                             <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="2" checked> 2º</label>
                             <label class="flex items-center gap-1 text-xs text-slate-300"><input type="checkbox" class="tri-check" value="3" checked> 3º</label>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold ml-2">Período:</span>
+                            <input type="date" id="dash-start-date" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-1.5">
+                            <span class="text-slate-500">-</span>
+                            <input type="date" id="dash-end-date" class="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-1.5">
                             <button onclick="window.profAPI.exportDashboardPdf()" class="kz-btn-ghost h-[34px]" title="Exportar PDF impecável"><i class="fas fa-file-pdf mr-1"></i> PDF</button>
                         </div>
                     </div>
