@@ -1,1 +1,0 @@
-feat: explicacao detalhada DORA no proprio bloco via details
