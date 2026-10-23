@@ -2688,6 +2688,29 @@ html.theme-light .kz-upd__file {
     color: #475569 !important;
 }
 
+/* Conteúdos: itens da lista (Músicas/Podcasts) em cor clara */
+html.theme-light .kz-track {
+    background: #ffffff !important;
+    border-color: #e8ddd6 !important;
+}
+html.theme-light .kz-track:hover { background: #f3ebe6 !important; }
+html.theme-light .kz-track.is-playing {
+    background: #fff7ed !important;
+    border-color: #f59e0b !important;
+}
+html.theme-light .kz-track__title { color: #1a1410 !important; }
+html.theme-light .kz-track.is-playing .kz-track__title { color: #b45309 !important; }
+html.theme-light .kz-track__sub,
+html.theme-light .kz-track__dur { color: #64748b !important; }
+html.theme-light .kz-track__art { background: #f3ebe6 !important; border-color: #e8ddd6 !important; }
+html.theme-light .kz-track__art i { color: #94a3b8 !important; }
+html.theme-light .kz-eq span { background: #f59e0b !important; }
+
+/* Aluno Tech: sem azul nos títulos, abas e destaques */
+html.theme-light #dashboard-aluno [class*="text-blue-"] { color: #334155 !important; }
+html.theme-light #dashboard-aluno .aluno-tab-btn.active { border-bottom-color: #b45309 !important; color: #1a1410 !important; }
+html.theme-light #dashboard-aluno #btn-edit-profile { background-color: #b45309 !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
