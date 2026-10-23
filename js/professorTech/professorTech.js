@@ -7180,13 +7180,13 @@ window.profAPI.initDashboardUnificado = async () => {
                 }
                 try { window.profAPI.loadAnaliseDashboard(uid); } catch (err) { console.warn(err); }
                 try { if (els.evolAluno) { els.evolAluno.value = uid; if (window.profAPI.loadEvolucaoAluno) window.profAPI.loadEvolucaoAluno(); } } catch (err) { console.warn(err); }
-                try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); }
+                if (state.filters && state.filters.school) { try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); } }
                 // Sincroniza Frequência Individual com o aluno do topo
                 const geralSel = document.getElementById('geral-freq-student-select');
                 if (geralSel) { geralSel.value = uid; if (uid) window.profAPI.renderIndividualFreqChartGeral && window.profAPI.renderIndividualFreqChartGeral(uid); }
             } else {
                 try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (err) { console.warn(err); }
-                try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); }
+                if (state.filters && state.filters.school) { try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (err) { console.warn(err); } }
             }
             try { window.profAPI.renderDashboardRankingECharts(); } catch (e) {}
             try { window.profAPI.renderDashboardScatterECharts(); } catch (e) {}
@@ -7212,8 +7212,10 @@ window.profAPI.initDashboardUnificado = async () => {
 
     // Carrega visão geral (por turma) por padrão
     try { if (window.profAPI.loadGeralDashboard) window.profAPI.loadGeralDashboard(); } catch (e) { console.warn(e); }
-    // Painel de dados carrega sozinho
-    try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (e) { console.warn(e); }
+    // Painel de dados carrega sozinho (se houver escola selecionada)
+    if (state.filters && state.filters.school) {
+        try { if (window.profAPI.loadPainel) window.profAPI.loadPainel(); } catch (e) { console.warn(e); }
+    }
 
     // Renderiza gráficos ECharts poderosos/interativos
     try { window.profAPI.renderDashboardRankingECharts(); } catch (e) { console.warn('ECharts ranking:', e); }
