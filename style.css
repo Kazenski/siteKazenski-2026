@@ -2743,6 +2743,27 @@ html.theme-light .aula-card {
 html.theme-light .aula-card h4 { color: #1a1410 !important; }
 html.theme-light .aula-card p { color: #6b5e56 !important; }
 
+/* Conteúdos: cards de material e paginação em modo claro */
+html.theme-light .kz-mcard {
+    background-color: #ffffff !important;
+    border-color: #e8ddd6 !important;
+    box-shadow: 0 1px 2px rgba(26,20,16,0.06), 0 4px 12px rgba(26,20,16,0.06) !important;
+}
+html.theme-light .kz-mcard:hover {
+    border-color: #f59e0b !important;
+    box-shadow: 0 10px 28px rgba(26,20,16,0.12) !important;
+}
+html.theme-light .kz-mcard__cover { background-color: #f3ebe6 !important; }
+html.theme-light .kz-mcard__cover::after {
+    background: linear-gradient(to top, rgba(255,255,255,0.95), transparent 62%) !important;
+}
+html.theme-light .kz-mcard__meta { color: #6b5e56 !important; }
+html.theme-light .kz-mcard__title { color: #1a1410 !important; }
+html.theme-light #cont-mat-pagination button { color: #b45309 !important; }
+html.theme-light #cont-mat-pagination button:hover { background-color: #fff7ed !important; color: #92400e !important; }
+html.theme-light #cont-mat-pagination button:disabled { color: #cbd5e1 !important; background-color: transparent !important; }
+html.theme-light #cont-mat-pagination .text-blue-400 { color: #b45309 !important; }
+
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
