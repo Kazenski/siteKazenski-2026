@@ -2601,6 +2601,7 @@ html.theme-light .custom-html-content h1, html.theme-light .custom-html-content 
 html.theme-light .custom-html-content h3 { color: #334155 !important; }
 html.theme-light .custom-html-content strong { color: #1a1410 !important; }
 
+html.theme-light .nav-item-btn.bg-slate-800\/50 { background-color: #f3ebe6 !important; }
 /* ---- Contador de 30s do modo imersivo ---- */
 .kz-immersive-timer {
     position: absolute;
