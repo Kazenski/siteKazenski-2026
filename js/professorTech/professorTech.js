@@ -2120,7 +2120,7 @@ async function generatePdf() {
 // ==========================================
 // EXPORT API GLOBAL
 // ==========================================
-window.profAPI = {
+window.profAPI = Object.assign(window.profAPI || {}, {
 
     setStatus: (uid, status, btn) => {
         state.chamada.registros[uid] = status;
@@ -6523,7 +6523,7 @@ window.profAPI = {
             btn.disabled = false;
         }
     }
-};
+});
 
 
 

@@ -4,6 +4,22 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.10.2] — 2026-10-26
+### Escopo
+Correção do painel do professor: botões de paginação da aba Notas e a função de salvar a Chamada não funcionavam.
+
+### Corrigido
+- `window.profAPI.notasNextPage is not a function` (paginação da aba Notas) e função `saveChamada` indisponíveis. O objeto global `window.profAPI` era substituído depois de as funções serem registradas, apagando-as. Agora é mesclado com `Object.assign`, preservando as funções já registradas.
+
+### Arquivos tocados
+- js/professorTech/professorTech.js
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Sintaxe do módulo (`node --check`)
+- Pendente: teste no navegador da paginação de Notas e da Chamada após o deploy
+
 ## [v1.10.1] — 2026-10-26
 ### Escopo
 Correção do editor de código (Python e SQL) da Central de Avaliações, que deixava de carregar.

@@ -1,8 +1,67 @@
 {
-  "geradoEm": "2026-10-26T14:56:50+00:00",
-  "versaoAtual": "1.10.1",
-  "totalEntradas": 31,
+  "geradoEm": "2026-10-26T15:22:03+00:00",
+  "versaoAtual": "1.10.2",
+  "totalEntradas": 32,
   "entradas": [
+    {
+      "versao": "1.10.2",
+      "data": "2026-10-26",
+      "autor": "",
+      "escopo": "Correção do painel do professor: botões de paginação da aba Notas e a função de salvar a Chamada não funcionavam.",
+      "arquivos": [
+        "js/professorTech/professorTech.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "`window.profAPI.notasNextPage is not a function` (paginação da aba Notas) e função `saveChamada` indisponíveis. O objeto global `window.profAPI` era substituído depois de as funções serem registradas, apagando-as. Agora é mesclado com `Object.assign`, preservando as funções já registradas."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe do módulo (`node --check`)"
+                ],
+                [
+                  "li",
+                  "Pendente: teste no navegador da paginação de Notas e da Chamada após o deploy"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.10.1",
       "data": "2026-10-26",
