@@ -1,8 +1,111 @@
 {
-  "geradoEm": "2026-10-26T17:24:28+00:00",
-  "versaoAtual": "1.10.3",
-  "totalEntradas": 33,
+  "geradoEm": "2026-10-26T18:57:55+00:00",
+  "versaoAtual": "1.10.4",
+  "totalEntradas": 34,
   "entradas": [
+    {
+      "versao": "1.10.4",
+      "data": "2026-10-26",
+      "autor": "",
+      "escopo": "Listagem de provas e exercícios reformulada: cards mais completos e que não perdem texto ao dar zoom, filtros para o professor, aba de arquivadas, e ações de arquivar e clonar.",
+      "arquivos": [
+        "js/avaliacoesDigitais/avaliacoesDigitais.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Cards detalhados**: banner, status, tipo, trimestre, notas, valor, turmas, disciplinas, abertura, prazo, questões, descrição e anexos/links. Para o professor, também entregues, a corrigir e média da turma."
+                ],
+                [
+                  "li",
+                  "**Filtros do professor** (barra acima da lista): busca por título, descrição ou disciplina; trimestre; turma; situação (abertas, encerradas, com correção pendente, ocultas), com contador \"Mostrando X de Y\" e botão Limpar."
+                ],
+                [
+                  "li",
+                  "**Aba Arquivadas** (professor): reúne provas e exercícios arquivados, com os mesmos filtros."
+                ],
+                [
+                  "li",
+                  "**Arquivar e desarquivar** atividades pelo card. Atividades arquivadas somem das abas principais e deixam de aparecer para os alunos."
+                ],
+                [
+                  "li",
+                  "**Clonar** provas e exercícios. A cópia copia questões, gabaritos, anexos, bases e configurações, fica oculta e abre direto no editor para ajustar datas e turmas."
+                ],
+                [
+                  "li",
+                  "**Campo `totalQuestoes`** salvo em cada avaliação, para mostrar o número de questões no card. Avaliações antigas mostram \"—\" até serem salvas de novo."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Alterado",
+          "chave": "alterado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Cards sem altura fixa e sem cortes de rodapé: o layout se adapta ao zoom e a grade preenche a largura disponível (`auto-fill`)."
+                ],
+                [
+                  "li",
+                  "Filtros e troca de aba redesenham a lista com os dados já carregados, sem nova consulta ao banco."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe do módulo (`node --check`)"
+                ],
+                [
+                  "li",
+                  "Regras do Firestore existentes cobrem a leitura das entregas, o arquivamento e a clonagem (sem alteração de regras)"
+                ],
+                [
+                  "li",
+                  "Pendente: teste no navegador da listagem, filtros, arquivar/desarquivar e clonar"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.10.3",
       "data": "2026-10-26",

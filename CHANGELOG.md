@@ -4,6 +4,32 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.10.4] — 2026-10-26
+### Escopo
+Listagem de provas e exercícios reformulada: cards mais completos e que não perdem texto ao dar zoom, filtros para o professor, aba de arquivadas, e ações de arquivar e clonar.
+
+### Adicionado
+- **Cards detalhados**: banner, status, tipo, trimestre, notas, valor, turmas, disciplinas, abertura, prazo, questões, descrição e anexos/links. Para o professor, também entregues, a corrigir e média da turma.
+- **Filtros do professor** (barra acima da lista): busca por título, descrição ou disciplina; trimestre; turma; situação (abertas, encerradas, com correção pendente, ocultas), com contador "Mostrando X de Y" e botão Limpar.
+- **Aba Arquivadas** (professor): reúne provas e exercícios arquivados, com os mesmos filtros.
+- **Arquivar e desarquivar** atividades pelo card. Atividades arquivadas somem das abas principais e deixam de aparecer para os alunos.
+- **Clonar** provas e exercícios. A cópia copia questões, gabaritos, anexos, bases e configurações, fica oculta e abre direto no editor para ajustar datas e turmas.
+- **Campo `totalQuestoes`** salvo em cada avaliação, para mostrar o número de questões no card. Avaliações antigas mostram "—" até serem salvas de novo.
+
+### Alterado
+- Cards sem altura fixa e sem cortes de rodapé: o layout se adapta ao zoom e a grade preenche a largura disponível (`auto-fill`).
+- Filtros e troca de aba redesenham a lista com os dados já carregados, sem nova consulta ao banco.
+
+### Arquivos tocados
+- js/avaliacoesDigitais/avaliacoesDigitais.js
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Sintaxe do módulo (`node --check`)
+- Regras do Firestore existentes cobrem a leitura das entregas, o arquivamento e a clonagem (sem alteração de regras)
+- Pendente: teste no navegador da listagem, filtros, arquivar/desarquivar e clonar
+
 ## [v1.10.3] — 2026-10-26
 ### Escopo
 Correção de provas pelo professor: o card de cada entrega passa a mostrar as respostas do aluno, questão por questão, com a referência ou o gabarito, para facilitar a correção manual.

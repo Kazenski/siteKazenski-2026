@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../core/firebase.js';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc, increment, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 import { validarQuestoes } from './questoesCore.js';
@@ -122,7 +122,36 @@ function construirEstruturaInterface(container) {
             <button type="button" data-aba="treino" class="px-5 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-widest transition-colors">
                 <i class="fas fa-dumbbell mr-2"></i> Exercícios Não Avaliativos
             </button>
+            ${isStaff ? `<button type="button" data-aba="arquivadas" class="px-5 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-widest transition-colors">
+                <i class="fas fa-archive mr-2"></i> Arquivadas
+            </button>` : ''}
         </div>
+
+        ${isStaff ? `
+        <div id="filtros-avaliacoes" class="shrink-0 flex flex-wrap items-center gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-3">
+            <div class="relative flex-grow min-w-[12rem]">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                <input id="filtro-busca" type="search" placeholder="Buscar por título, descrição ou disciplina" class="w-full bg-slate-950 border border-slate-700 text-white text-xs rounded-lg py-2 pl-8 pr-3 outline-none focus:border-blue-500">
+            </div>
+            <select id="filtro-trimestre" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg p-2 outline-none focus:border-blue-500">
+                <option value="">Todos os trimestres</option>
+                <option value="1">1º Trimestre</option>
+                <option value="2">2º Trimestre</option>
+                <option value="3">3º Trimestre</option>
+            </select>
+            <select id="filtro-turma" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg p-2 outline-none focus:border-blue-500">
+                <option value="">Todas as turmas</option>
+            </select>
+            <select id="filtro-situacao" class="bg-slate-950 border border-slate-700 text-white text-xs rounded-lg p-2 outline-none focus:border-blue-500">
+                <option value="">Qualquer situação</option>
+                <option value="abertas">Abertas</option>
+                <option value="encerradas">Encerradas</option>
+                <option value="corrigir">Com correção pendente</option>
+                <option value="ocultas">Ocultas</option>
+            </select>
+            <span id="filtros-contador" class="text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap"></span>
+            <button id="filtro-limpar" type="button" class="text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-blue-500 transition-colors">Limpar</button>
+        </div>` : ''}
 
         <div id="container-form-aval" class="hidden flex-col flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden fade-in">
             <form id="form-nova-aval" class="flex flex-col flex-grow min-h-0">
@@ -242,7 +271,7 @@ function construirEstruturaInterface(container) {
             </form>
         </div>
 
-        <div id="grid-avaliacoes" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 content-start flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl overflow-y-auto custom-scroll">
+        <div id="grid-avaliacoes" class="grid grid-cols-[repeat(auto-fill,minmax(19rem,1fr))] gap-5 content-start flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl overflow-y-auto custom-scroll">
             <div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
                 <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
                 <p class="font-bold uppercase tracking-widest text-xs">Carregando quadro de atividades...</p>
@@ -253,7 +282,7 @@ function construirEstruturaInterface(container) {
 
 // Cadastro ocupa a área toda: some a lista e as abas enquanto ele está aberto.
 function alternarFormulario(abrir) {
-    ['avaliacoes-topo', 'avaliacoes-abas', 'grid-avaliacoes'].forEach(id => {
+    ['avaliacoes-topo', 'avaliacoes-abas', 'filtros-avaliacoes', 'grid-avaliacoes'].forEach(id => {
         document.getElementById(id)?.classList.toggle('hidden', abrir);
     });
     document.getElementById('container-form-aval')?.classList.toggle('hidden', !abrir);
@@ -326,11 +355,30 @@ function setupEventosIniciais() {
         btn.addEventListener('click', () => {
             abaAtiva = btn.dataset.aba;
             atualizarBotoesAba();
-            renderGridAvaliacoes(avaliacoesCache);
+            desenharGrade();
         });
     });
     atualizarBotoesAba();
     atualizarTipoForm();
+
+    if (isStaff) {
+        const ligarFiltro = (id, evento, campo) => document.getElementById(id)?.addEventListener(evento, (e) => {
+            filtros[campo] = e.target.value;
+            desenharGrade();
+        });
+        ligarFiltro('filtro-busca', 'input', 'busca');
+        ligarFiltro('filtro-trimestre', 'change', 'trimestre');
+        ligarFiltro('filtro-turma', 'change', 'turma');
+        ligarFiltro('filtro-situacao', 'change', 'situacao');
+        document.getElementById('filtro-limpar')?.addEventListener('click', () => {
+            filtros = { busca: '', trimestre: '', turma: '', situacao: '' };
+            ['filtro-busca', 'filtro-trimestre', 'filtro-turma', 'filtro-situacao'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            desenharGrade();
+        });
+    }
     
     // Injetar disciplinas ativas quando alguma turma for selecionada
     document.getElementById('container-check-turmas').addEventListener('change', async (event) => {
@@ -579,6 +627,7 @@ async function salvarAvaliacao(e) {
             status: 'ativa',
             linksUteis: linksArray,
             temProva: questoes.length > 0,
+            totalQuestoes: questoes.length,
             mostrarGabarito: document.getElementById('aval-mostrar-gabarito').checked
         };
 
@@ -627,121 +676,250 @@ function ouvirAvaliacoes() {
     });
 }
 
-async function renderGridAvaliacoes(avaliacoes) {
+// ============================================================
+// LISTAGEM DE CARDS (provas, exercícios e arquivadas)
+// ============================================================
+let entregasDoGrid = [];
+let filtros = { busca: '', trimestre: '', turma: '', situacao: '' };
+
+const fmtDataHora = (d) => d
+    ? `${d.toLocaleDateString('pt-BR')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    : '—';
+const prazoDe = (a) => { const d = a.dataAplicacao || a.dataFechamento; return d?.toDate ? d.toDate() : null; };
+const aberturaDe = (a) => a.dataAbertura?.toDate ? a.dataAbertura.toDate() : null;
+const tituloDe = (a) => a.titulo || `Avaliação de ${(a.disciplinas || []).join(', ') || 'Geral'} - ${a.trimestre || '?'}º Tri`;
+
+function pertenceAba(a) {
+    if (isStaff && abaAtiva === 'arquivadas') return a.arquivada === true;
+    if (a.arquivada === true) return false;
+    return (a.tipoAvaliacao === 'treino') === (abaAtiva === 'treino');
+}
+
+function estatisticasEntregas(avalId) {
+    const entregas = entregasDoGrid.filter(e => e.avaliacaoId === avalId && (e.finalizada === true || e.arquivoURL));
+    const notas = entregas.map(e => e.notaAtribuida).filter(n => typeof n === 'number');
+    return {
+        entregues: entregas.length,
+        corrigir: entregas.filter(e => e.status === 'entregue').length,
+        media: notas.length ? (notas.reduce((soma, n) => soma + n, 0) / notas.length).toFixed(1) : null
+    };
+}
+
+function filtrarStaff(a) {
+    const { busca, trimestre, turma, situacao } = filtros;
+    if (busca) {
+        const texto = `${tituloDe(a)} ${a.descricao || ''} ${(a.disciplinas || []).join(' ')}`.toLowerCase();
+        if (!texto.includes(busca.trim().toLowerCase())) return false;
+    }
+    if (trimestre && String(a.trimestre || '') !== trimestre) return false;
+    if (turma && !(a.turmasAlvo || []).includes(turma)) return false;
+    const prazo = prazoDe(a);
+    const expirou = !!prazo && prazo < new Date();
+    switch (situacao) {
+        case 'abertas': return !a.oculta && !expirou;
+        case 'encerradas': return expirou;
+        case 'ocultas': return !!a.oculta;
+        case 'corrigir': return estatisticasEntregas(a.id).corrigir > 0;
+        default: return true;
+    }
+}
+
+function atualizarOpcoesTurma() {
+    const sel = document.getElementById('filtro-turma');
+    if (!sel) return;
+    const turmas = [...new Set(avaliacoesCache.flatMap(a => a.turmasAlvo || []))].sort();
+    const assinatura = turmas.join('|');
+    if (sel.dataset.assinatura !== assinatura) {
+        sel.dataset.assinatura = assinatura;
+        sel.innerHTML = '<option value="">Todas as turmas</option>' +
+            turmas.map(t => `<option value="${escapeHTML(t)}">${escapeHTML(t)}</option>`).join('');
+    }
+    sel.value = filtros.turma || '';
+    if (sel.value !== filtros.turma) filtros.turma = '';
+}
+
+const pillCard = (classe, icone, texto) => `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest shadow-lg ${classe}"><i class="fas ${icone}"></i> ${texto}</span>`;
+const chipCard = (texto, icone) => `<span class="inline-flex items-center gap-1 bg-slate-900 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas ${icone}"></i> ${escapeHTML(texto)}</span>`;
+const infoCard = (rotulo, valor, classe = 'text-slate-200') => `<div class="bg-slate-950/60 border border-slate-700/60 rounded-lg px-2.5 py-2 min-w-0"><p class="text-[9px] font-bold uppercase tracking-widest text-slate-500">${rotulo}</p><p class="text-xs font-bold ${classe} break-words">${escapeHTML(String(valor))}</p></div>`;
+const acaoCard = (titulo, acao, icone, texto, cor) => `<button type="button" onclick="event.stopPropagation(); ${acao}" title="${texto}" aria-label="${texto}" class="h-8 px-2.5 inline-flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors ${cor}"><i class="fas ${icone}"></i> <span>${titulo}</span></button>`;
+const capaAval = (a, ehTreino) => a.imagemBanner
+    ? `<img src="${escapeHTML(a.imagemBanner)}" alt="" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">`
+    : `<div class="w-full h-full flex items-center justify-center ${ehTreino ? 'bg-gradient-to-br from-emerald-900/60 to-slate-900' : 'bg-gradient-to-br from-blue-900/60 to-slate-900'}"><i class="fas ${ehTreino ? 'fa-dumbbell text-emerald-400/60' : 'fa-file-signature text-blue-400/60'} text-4xl"></i></div>`;
+const extrasAval = (a) => [
+    a.materiaisAnexos?.length ? `<span class="text-indigo-400"><i class="fas fa-paperclip mr-1"></i>${a.materiaisAnexos.length} anexo(s)</span>` : '',
+    a.linksUteis?.length ? `<span class="text-blue-400"><i class="fas fa-link mr-1"></i>${a.linksUteis.length} link(s)</span>` : ''
+].filter(Boolean).join('');
+
+function cardStaff(a, agora) {
+    const prazo = prazoDe(a);
+    const expirou = !!prazo && prazo < agora;
+    const ehTreino = a.tipoAvaliacao === 'treino';
+    const st = estatisticasEntregas(a.id);
+
+    const [classeStatus, iconeStatus, textoStatus] = a.arquivada
+        ? ['bg-slate-700 text-slate-100 border-slate-500', 'fa-archive', 'Arquivada']
+        : a.oculta
+            ? ['bg-slate-950 text-slate-300 border-slate-600', 'fa-eye-slash', 'Oculta']
+            : expirou
+                ? ['bg-red-900/90 text-red-100 border-red-700', 'fa-lock', 'Encerrada']
+                : ['bg-emerald-600 text-white border-emerald-400', 'fa-play-circle', 'Aberta'];
+    const borda = expirou && !a.arquivada ? 'border-red-500/30' : 'border-slate-700';
+    const opacidade = a.oculta && !a.arquivada ? 'opacity-70' : '';
+
+    const pillTipo = ehTreino
+        ? pillCard('bg-emerald-600 text-white border-emerald-400', 'fa-dumbbell', 'Treino')
+        : pillCard('bg-blue-600 text-white border-blue-400', 'fa-file-signature', 'Prova');
+    const pillCorrigir = st.corrigir
+        ? pillCard('bg-amber-500 text-amber-950 border-amber-300', 'fa-hourglass-half', `${st.corrigir} a corrigir`)
+        : '';
+
+    const chips = [
+        !ehTreino && a.trimestre ? chipCard(`${a.trimestre}º Trimestre`, 'fa-calendar-alt') : '',
+        !ehTreino && (a.notasAtribuidas || []).length ? chipCard(`Notas ${a.notasAtribuidas.join(', ')}`, 'fa-star') : '',
+        !ehTreino ? chipCard(`Vale ${a.notaMaxima ?? '—'}`, 'fa-calculator') : '',
+        chipCard((a.turmasAlvo || []).join(', ') || 'Sem turma', 'fa-users')
+    ].join('');
+
+    const info = [
+        infoCard('Abertura', fmtDataHora(aberturaDe(a))),
+        infoCard('Prazo', fmtDataHora(prazo), expirou ? 'text-red-400' : 'text-emerald-400'),
+        infoCard('Questões', a.temProva ? (a.totalQuestoes ?? '—') : 'Arquivo'),
+        infoCard('Entregues', st.entregues),
+        infoCard('Média', st.media ?? '—'),
+        infoCard('A corrigir', st.corrigir, st.corrigir ? 'text-amber-400' : 'text-slate-200')
+    ].join('');
+
+    const acoes = [
+        acaoCard('Editar', `window.avaliacoesAPI.editar('${a.id}')`, 'fa-edit', 'Editar', 'text-blue-400 hover:border-blue-500'),
+        acaoCard('Clonar', `window.avaliacoesAPI.clonar('${a.id}')`, 'fa-copy', 'Clonar', 'text-fuchsia-400 hover:border-fuchsia-500'),
+        acaoCard(a.oculta ? 'Mostrar' : 'Ocultar', `window.avaliacoesAPI.toggleOcultar('${a.id}', ${!!a.oculta})`, a.oculta ? 'fa-eye' : 'fa-eye-slash', a.oculta ? 'Mostrar aos alunos' : 'Ocultar dos alunos', a.oculta ? 'text-emerald-400 hover:border-emerald-500' : 'text-amber-400 hover:border-amber-500'),
+        acaoCard(a.arquivada ? 'Desarquivar' : 'Arquivar', `window.avaliacoesAPI.arquivar('${a.id}', ${!a.arquivada})`, a.arquivada ? 'fa-undo' : 'fa-archive', a.arquivada ? 'Desarquivar' : 'Arquivar', 'text-slate-300 hover:border-slate-400'),
+        acaoCard('Excluir', `window.avaliacoesAPI.excluir('${a.id}')`, 'fa-trash', 'Excluir', 'text-red-400 hover:border-red-500')
+    ].join('');
+
+    return `
+        <article onclick="window.avaliacoesAPI.abrirPainel('${a.id}')" class="group flex flex-col bg-slate-800/90 border ${borda} rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all cursor-pointer ${opacidade}">
+            <div class="relative h-32 shrink-0 overflow-hidden rounded-t-2xl border-b border-slate-700">
+                ${capaAval(a, ehTreino)}
+                <div class="absolute top-2 left-2 flex flex-wrap gap-1.5">${pillCard(classeStatus, iconeStatus, textoStatus)}${pillCorrigir}</div>
+                <div class="absolute top-2 right-2">${pillTipo}</div>
+            </div>
+            <div class="flex flex-col flex-grow gap-3 p-4">
+                <div>
+                    <h4 class="text-sm md:text-base font-bold text-blue-400 font-cinzel leading-snug break-words">${escapeHTML(tituloDe(a))}</h4>
+                    ${(a.disciplinas || []).length ? `<p class="text-[11px] text-slate-400 mt-0.5 break-words">${escapeHTML(a.disciplinas.join(', '))}</p>` : ''}
+                </div>
+                <div class="flex flex-wrap gap-1.5">${chips}</div>
+                <div class="grid grid-cols-3 gap-2">${info}</div>
+                ${a.descricao ? `<p class="text-xs text-slate-400 line-clamp-3 leading-relaxed">${escapeHTML(a.descricao)}</p>` : ''}
+                ${extrasAval(a) ? `<div class="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">${extrasAval(a)}</div>` : ''}
+                <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-700/50">
+                    <div class="flex flex-wrap gap-1.5">${acoes}</div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400 group-hover:text-blue-300">Abrir painel <i class="fas fa-arrow-right ml-1"></i></span>
+                </div>
+            </div>
+        </article>`;
+}
+
+function cardAluno(a, agora) {
+    const prazo = prazoDe(a);
+    const expirou = !!prazo && prazo < agora;
+    const ehTreino = a.tipoAvaliacao === 'treino';
+    const entrega = entregasDoGrid.find(e => e.avaliacaoId === a.id);
+    const entregue = !!entrega && (entrega.finalizada === true || !!entrega.arquivoURL);
+
+    const [classeStatus, iconeStatus, textoStatus, borda] = entregue
+        ? ['bg-emerald-600 text-white border-emerald-400', 'fa-check-double', 'Entregue', 'border-emerald-500/40']
+        : expirou
+            ? ['bg-red-600 text-white border-red-400', 'fa-exclamation-triangle', 'Encerrado', 'border-red-500/30']
+            : ['bg-amber-500 text-amber-950 border-amber-300', 'fa-clock', 'Pendente', 'border-amber-500/40'];
+    const nota = ehTreino
+        ? 'Sem nota'
+        : entregue && typeof entrega.notaAtribuida === 'number'
+            ? `${entrega.notaAtribuida} / ${a.notaMaxima ?? '—'}`
+            : entregue ? 'Em correção' : '—';
+
+    const pillTipo = ehTreino
+        ? pillCard('bg-emerald-600 text-white border-emerald-400', 'fa-dumbbell', 'Treino')
+        : pillCard('bg-blue-600 text-white border-blue-400', 'fa-file-signature', 'Prova');
+    const chips = [
+        !ehTreino && a.trimestre ? chipCard(`${a.trimestre}º Trimestre`, 'fa-calendar-alt') : '',
+        !ehTreino ? chipCard(`Vale ${a.notaMaxima ?? '—'}`, 'fa-calculator') : ''
+    ].join('');
+    const info = [
+        infoCard('Prazo', fmtDataHora(prazo), expirou && !entregue ? 'text-red-400' : 'text-emerald-400'),
+        infoCard('Questões', a.temProva ? (a.totalQuestoes ?? '—') : 'Arquivo'),
+        infoCard('Nota', nota)
+    ].join('');
+
+    return `
+        <article onclick="window.avaliacoesAPI.abrirPainel('${a.id}')" class="group flex flex-col bg-slate-800/90 border ${borda} rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all cursor-pointer">
+            <div class="relative h-32 shrink-0 overflow-hidden rounded-t-2xl border-b border-slate-700">
+                ${capaAval(a, ehTreino)}
+                <div class="absolute top-2 left-2">${pillCard(classeStatus, iconeStatus, textoStatus)}</div>
+                <div class="absolute top-2 right-2">${pillTipo}</div>
+            </div>
+            <div class="flex flex-col flex-grow gap-3 p-4">
+                <div>
+                    <h4 class="text-sm md:text-base font-bold text-blue-400 font-cinzel leading-snug break-words">${escapeHTML(tituloDe(a))}</h4>
+                    ${(a.disciplinas || []).length ? `<p class="text-[11px] text-slate-400 mt-0.5 break-words">${escapeHTML(a.disciplinas.join(', '))}</p>` : ''}
+                </div>
+                ${chips ? `<div class="flex flex-wrap gap-1.5">${chips}</div>` : ''}
+                <div class="grid grid-cols-3 gap-2">${info}</div>
+                ${a.descricao ? `<p class="text-xs text-slate-400 line-clamp-3 leading-relaxed">${escapeHTML(a.descricao)}</p>` : ''}
+                ${extrasAval(a) ? `<div class="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest">${extrasAval(a)}</div>` : ''}
+                <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-700/50">
+                    <span class="text-[11px] text-slate-400">${a.temProva ? 'Prova com questões' : 'Envio de arquivo'}</span>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400 group-hover:text-blue-300">Abrir <i class="fas fa-arrow-right ml-1"></i></span>
+                </div>
+            </div>
+        </article>`;
+}
+
+// Desenha a grade com os dados em memória (sem consultar o banco), para os filtros reagirem na hora.
+function desenharGrade() {
     const grid = document.getElementById('grid-avaliacoes');
     if (!grid) return;
+    const agora = new Date();
+    const daAba = avaliacoesCache.filter(pertenceAba);
+    let lista;
 
-    avaliacoes = avaliacoes.filter(a => (a.tipoAvaliacao === 'treino') === (abaAtiva === 'treino'));
-
-    let visiveis = avaliacoes;
-    let entregasAlunoIds = []; 
-    
-    // Filtro e Busca para o Aluno
-    if (!isStaff && currentUser) {
-        try {
-            const qEntregas = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid));
-            const snapEntregas = await getDocs(qEntregas);
-            entregasAlunoIds = snapEntregas.docs
-                .filter(d => d.data().finalizada === true || d.data().arquivoURL)
-                .map(d => d.data().avaliacaoId);
-        } catch(e) {
-            console.error("Erro ao buscar status de entregas:", e);
-        }
-
-        const turmaAluno = currentUser.turma;
-        const agora = new Date();
-        visiveis = avaliacoes.filter(a => {
+    if (isStaff) {
+        atualizarOpcoesTurma();
+        lista = daAba.filter(filtrarStaff);
+        const contador = document.getElementById('filtros-contador');
+        if (contador) contador.textContent = `Mostrando ${lista.length} de ${daAba.length}`;
+    } else {
+        const turma = currentUser?.turma;
+        lista = daAba.filter(a => {
             if (a.oculta) return false;
-            if (!a.turmasAlvo || !a.turmasAlvo.includes(turmaAluno)) return false;
-            
-            // Retrocompatibilidade (caso haja cards antigos) + dataAplicacao
-            const dataBase = a.dataAplicacao ? a.dataAplicacao.toDate() : (a.dataAbertura ? a.dataAbertura.toDate() : null);
-            if (dataBase && a.dataAbertura && a.dataAbertura.toDate() > agora) return false;
-            return true;
+            if (!(a.turmasAlvo || []).includes(turma)) return false;
+            const abertura = aberturaDe(a);
+            return !(abertura && abertura > agora);
         });
     }
 
-    if (visiveis.length === 0) {
-        grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500"><i class="fas fa-box-open text-4xl mb-4 opacity-50"></i><p class="font-bold uppercase tracking-widest text-xs text-center">Nenhuma avaliação disponível.</p></div>`;
+    if (lista.length === 0) {
+        const msg = isStaff && daAba.length > 0 ? 'Nenhuma atividade com esses filtros.' : 'Nenhuma avaliação disponível.';
+        grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500"><i class="fas fa-box-open text-4xl mb-4 opacity-50"></i><p class="font-bold uppercase tracking-widest text-xs text-center">${msg}</p></div>`;
         return;
     }
 
-    grid.innerHTML = visiveis.map(aval => {
-        const dPrazo = aval.dataAplicacao ? aval.dataAplicacao.toDate() : (aval.dataFechamento ? aval.dataFechamento.toDate() : null);
-        const strPrazo = dPrazo ? `${dPrazo.toLocaleDateString('pt-BR')} às ${dPrazo.getHours().toString().padStart(2,'0')}:${dPrazo.getMinutes().toString().padStart(2,'0')}` : 'N/A';
-        const expirou = dPrazo && (dPrazo < new Date());
-        const ehTreino = aval.tipoAvaliacao === 'treino';
-        const entregue = !isStaff && entregasAlunoIds.includes(aval.id);
-        const opacidade = aval.oculta ? 'opacity-60 grayscale hover:grayscale-0' : '';
-        const corPrazo = expirou && !entregue ? 'text-red-400' : 'text-emerald-400';
+    grid.innerHTML = lista.map(a => isStaff ? cardStaff(a, agora) : cardAluno(a, agora)).join('');
+}
 
-        let borda = 'border-slate-700';
-        let estado = null;
-        if (aval.oculta) {
-            estado = { classe: 'bg-slate-950/90 text-slate-300 border-slate-600', icone: 'fa-eye-slash', texto: 'Oculta' };
-        } else if (isStaff) {
-            if (expirou) estado = { classe: 'bg-red-900/90 text-red-100 border-red-700', icone: 'fa-lock', texto: 'Prazo encerrado' };
-        } else if (entregue) {
-            borda = 'border-emerald-500/40';
-            estado = { classe: 'bg-emerald-600 text-white border-emerald-400', icone: 'fa-check-double', texto: 'Entregue' };
-        } else if (expirou) {
-            borda = 'border-red-500/30';
-            estado = { classe: 'bg-red-600 text-white border-red-400', icone: 'fa-exclamation-triangle', texto: 'Encerrado' };
-        } else {
-            borda = 'border-amber-500/40';
-            estado = { classe: 'bg-amber-500 text-amber-950 border-amber-300', icone: 'fa-clock', texto: 'Pendente' };
-        }
-
-        const disciplinasStr = (aval.disciplinas || []).join(', ');
-        const tituloFinal = aval.titulo || `Avaliação de ${disciplinasStr || 'Geral'} - ${aval.trimestre || '?'}º Tri`;
-        const descricaoFinal = aval.conteudo || aval.descricao || '';
-        const turmasStr = (aval.turmasAlvo || []).join(', ');
-        const notasStr = (aval.notasAtribuidas || []).join(', ');
-
-        const capa = aval.imagemBanner
-            ? `<img src="${escapeHTML(aval.imagemBanner)}" alt="" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">`
-            : `<div class="w-full h-full flex items-center justify-center ${ehTreino ? 'bg-gradient-to-br from-emerald-900/60 to-slate-900' : 'bg-gradient-to-br from-blue-900/60 to-slate-900'}"><i class="fas ${ehTreino ? 'fa-dumbbell text-emerald-400/60' : 'fa-file-signature text-blue-400/60'} text-4xl"></i></div>`;
-
-        const btnStaffHtml = isStaff ? `
-            <div class="absolute bottom-2 right-2 flex gap-1.5" onclick="event.stopPropagation()">
-                <button onclick="event.stopPropagation(); window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
-                <button onclick="event.stopPropagation(); window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400'} text-xs"></i></button>
-                <button onclick="event.stopPropagation(); window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
-            </div>` : '';
-
-        const chipTipo = ehTreino
-            ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-dumbbell mr-1"></i> Treino · sem nota</span>`
-            : `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${escapeHTML(notasStr)}</span>`;
-        const chipValor = !ehTreino && aval.notaMaxima !== undefined
-            ? `<span class="bg-slate-900 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-calculator mr-1"></i> Vale ${aval.notaMaxima}</span>`
-            : '';
-        const chipTurmas = `<span class="bg-slate-900 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${escapeHTML(turmasStr)}</span>`;
-
-        const rodape = [
-            aval.temProva ? `<span><i class="fas fa-list-ol mr-1"></i>Questões</span>` : '',
-            aval.materiaisAnexos?.length ? `<span class="text-indigo-400"><i class="fas fa-paperclip mr-1"></i>${aval.materiaisAnexos.length} anexo(s)</span>` : '',
-            aval.linksUteis?.length ? `<span class="text-blue-400"><i class="fas fa-link mr-1"></i>${aval.linksUteis.length} link(s)</span>` : ''
-        ].filter(Boolean).join('');
-
-        return `
-            <article onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="group flex flex-col bg-slate-800/90 border ${borda} rounded-2xl overflow-hidden shadow-lg hover:border-blue-500/60 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer ${opacidade}">
-                <div class="relative h-28 overflow-hidden shrink-0 border-b border-slate-700">
-                    ${capa}
-                    ${estado ? `<span class="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest shadow-lg ${estado.classe}"><i class="fas ${estado.icone}"></i> ${estado.texto}</span>` : ''}
-                    ${btnStaffHtml}
-                </div>
-                <div class="flex flex-col flex-grow gap-3 p-4">
-                    <h4 class="text-sm md:text-base font-bold text-blue-400 font-cinzel leading-snug line-clamp-2" title="${escapeHTML(tituloFinal)}">${escapeHTML(tituloFinal)}</h4>
-                    <div class="flex flex-wrap gap-1.5">${chipTipo}${chipValor}${chipTurmas}</div>
-                    <p class="text-xs ${corPrazo} flex items-center gap-2"><i class="far fa-clock w-3 shrink-0"></i> <span class="font-bold">Prazo:</span> ${strPrazo}</p>
-                    ${descricaoFinal ? `<p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${escapeHTML(descricaoFinal)}</p>` : ''}
-                    <div class="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-slate-700/50">
-                        <span class="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">${rodape}</span>
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400 group-hover:text-blue-300 whitespace-nowrap">Abrir <i class="fas fa-arrow-right ml-1"></i></span>
-                    </div>
-                </div>
-            </article>`;
-    }).join('');
+// Busca as entregas (todas, para a equipe; as próprias, para o aluno) e redesenha.
+async function renderGridAvaliacoes() {
+    try {
+        let snap = null;
+        if (isStaff) snap = await getDocs(collection(db, "avaliacoes_entregas"));
+        else if (currentUser) snap = await getDocs(query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid)));
+        entregasDoGrid = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() })) : [];
+    } catch (e) {
+        console.error("Erro ao buscar entregas da listagem:", e);
+        entregasDoGrid = [];
+    }
+    desenharGrade();
 }
 
 function abrirProvaNaArea(area, aval, questoes) {
@@ -797,6 +975,44 @@ window.avaliacoesAPI = {
         } catch(e) { console.error(e); alert("Erro ao alterar visibilidade."); }
     },
     
+    arquivar: async (id, arquivar) => {
+        if (arquivar && !confirm("Arquivar esta atividade? Ela sai das abas principais e os alunos deixam de vê-la. Você pode desarquivar depois.")) return;
+        try {
+            await updateDoc(doc(db, "avaliacoes_digitais", id), { arquivada: arquivar });
+        } catch (e) { console.error(e); alert("Erro ao arquivar."); }
+    },
+
+    clonar: async (id) => {
+        const original = avaliacoesCache.find(a => a.id === id);
+        if (!original) return;
+        if (!confirm(`Clonar "${tituloDe(original)}"?\n\nA cópia fica oculta para os alunos. Ajuste datas e turmas antes de publicar.`)) return;
+        try {
+            const { id: _idOriginal, ...dados } = original;
+            const novo = await addDoc(collection(db, "avaliacoes_digitais"), {
+                ...dados,
+                titulo: `Cópia de ${tituloDe(original)}`,
+                oculta: true,
+                arquivada: false,
+                dataCriacao: serverTimestamp(),
+                criadoPor: currentUser.nome,
+                professorUid: currentUser.uid
+            });
+            const [questoesSnap, gabaritosSnap] = await Promise.all([
+                getDocs(collection(db, "avaliacoes_digitais", id, "questoes")),
+                getDocs(collection(db, "avaliacoes_digitais", id, "gabaritos"))
+            ]);
+            const lote = writeBatch(db);
+            questoesSnap.forEach(d => lote.set(doc(db, "avaliacoes_digitais", novo.id, "questoes", d.id), d.data()));
+            gabaritosSnap.forEach(d => lote.set(doc(db, "avaliacoes_digitais", novo.id, "gabaritos", d.id), d.data()));
+            await lote.commit();
+            alert("Cópia criada (oculta). Vou abrir para você ajustar.");
+            window.avaliacoesAPI.editar(novo.id);
+        } catch (err) {
+            console.error("Erro ao clonar:", err);
+            alert("Não foi possível clonar a atividade.");
+        }
+    },
+
     excluir: async (id) => {
         if(confirm("ATENÇÃO: Deseja apagar esta avaliação permanentemente? As entregas dos alunos serão perdidas.")) {
             try { await deleteDoc(doc(db, "avaliacoes_digitais", id)); } 
@@ -805,8 +1021,12 @@ window.avaliacoesAPI = {
     },
     
     editar: async (id) => {
-        const aval = avaliacoesCache.find(a => a.id === id);
-        if(!aval) return;
+        let aval = avaliacoesCache.find(a => a.id === id);
+        if (!aval) {
+            const snapAval = await getDoc(doc(db, "avaliacoes_digitais", id));
+            if (!snapAval.exists()) return;
+            aval = { id: snapAval.id, ...snapAval.data() };
+        }
         
         document.getElementById('aval-id').value = aval.id;
         document.getElementById('aval-titulo').value = aval.titulo;
