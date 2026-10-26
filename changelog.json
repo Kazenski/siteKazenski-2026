@@ -1,8 +1,67 @@
 {
-  "geradoEm": "2026-10-26T14:29:57+00:00",
-  "versaoAtual": "1.10.0",
-  "totalEntradas": 30,
+  "geradoEm": "2026-10-26T14:53:53+00:00",
+  "versaoAtual": "1.10.1",
+  "totalEntradas": 31,
   "entradas": [
+    {
+      "versao": "1.10.1",
+      "data": "2026-10-26",
+      "autor": "",
+      "escopo": "Correção do editor de código (Python e SQL) da Central de Avaliações, que deixava de carregar.",
+      "arquivos": [
+        "js/avaliacoesDigitais/editorCodigo.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Corrigido",
+          "chave": "corrigido",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Erro `The requested module 'https://esm.sh/codemirror@6' does not provide an export named 'EditorView'`: a faixa `@6` passou a resolver para a build antiga do CodeMirror 5 no esm.sh. O import agora usa `codemirror@6.0.1` (CodeMirror 6)."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Import de `codemirror@6.0.1` confirmado: exporta `EditorView` e `basicSetup`"
+                ],
+                [
+                  "li",
+                  "Teste no navegador do editor após o deploy"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.10.0",
       "data": "2026-10-26",

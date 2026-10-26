@@ -2,7 +2,7 @@
 // numeração de linhas e tema claro ou escuro conforme o site.
 // Destaque somente leitura (highlight.js) para exemplos e gabaritos.
 
-import { EditorView, basicSetup } from "https://esm.sh/codemirror@6";
+import { EditorView, basicSetup } from "https://esm.sh/codemirror@6.0.1";
 import { python } from "https://esm.sh/@codemirror/lang-python@6";
 import { sql, PostgreSQL } from "https://esm.sh/@codemirror/lang-sql@6";
 import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark@6";

@@ -4,6 +4,22 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.10.1] — 2026-10-26
+### Escopo
+Correção do editor de código (Python e SQL) da Central de Avaliações, que deixava de carregar.
+
+### Corrigido
+- Erro `The requested module 'https://esm.sh/codemirror@6' does not provide an export named 'EditorView'`: a faixa `@6` passou a resolver para a build antiga do CodeMirror 5 no esm.sh. O import agora usa `codemirror@6.0.1` (CodeMirror 6).
+
+### Arquivos tocados
+- js/avaliacoesDigitais/editorCodigo.js
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Import de `codemirror@6.0.1` confirmado: exporta `EditorView` e `basicSetup`
+- Teste no navegador do editor após o deploy
+
 ## [v1.10.0] — 2026-10-26
 ### Escopo
 Central de Avaliações reformulada: listagem em cards, cadastro de questões em tela cheia, imagens nas questões, prova aplicada uma questão por vez com navegação e marcação de saídas da aba por questão, e nota máxima calculada pelas questões. Regras de segurança das entregas revisadas.
