@@ -1,5 +1,5 @@
 import { db, storage, auth } from '../core/firebase.js';
-import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDocs, setDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { escapeHTML } from '../core/utils.js';
 import { validarQuestoes } from './questoesCore.js';
@@ -13,6 +13,12 @@ let currentAvaliacaoAbertaId = null;
 let basesNovas = [];
 let basesAtuais = [];
 let abaAtiva = 'provas';
+
+const somaPontos = (lista) => Number(lista.reduce((soma, q) => soma + (Number(q.pontos) || 0), 0).toFixed(2));
+
+const rotuloSalvar = () => document.getElementById('aval-id')?.value
+    ? '<i class="fas fa-sync-alt mr-2"></i> Atualizar Avaliação'
+    : 'Publicar Atividade';
 
 function atualizarBotoesAba() {
     document.querySelectorAll('[data-aba]').forEach(btn => {
@@ -101,7 +107,7 @@ function construirEstruturaInterface(container) {
         : '';
 
     container.innerHTML = `
-        <div class="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl shrink-0">
+        <div id="avaliacoes-topo" class="flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl shrink-0">
             <div>
                 <h2 class="text-2xl font-cinzel font-bold text-white flex items-center"><i class="fas fa-chalkboard-teacher text-blue-500 mr-3"></i> Central de Avaliações</h2>
                 <p class="text-slate-400 text-xs mt-1 uppercase tracking-widest">Acompanhe e entregue suas atividades digitais</p>
@@ -109,7 +115,7 @@ function construirEstruturaInterface(container) {
             ${btnNovaAvaliacao}
         </div>
 
-        <div class="flex gap-2 border-b border-slate-800 shrink-0">
+        <div id="avaliacoes-abas" class="flex gap-2 border-b border-slate-800 shrink-0">
             <button type="button" data-aba="provas" class="px-5 py-2.5 -mb-px border-b-2 text-xs font-bold uppercase tracking-widest transition-colors">
                 <i class="fas fa-file-signature mr-2"></i> Provas Avaliativas
             </button>
@@ -118,10 +124,15 @@ function construirEstruturaInterface(container) {
             </button>
         </div>
 
-        <div id="container-form-aval" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl fade-in shrink-0">
-            <h3 class="text-lg font-cinzel font-bold text-blue-400 mb-4 border-b border-slate-800 pb-2">Registrar Nova Avaliação</h3>
-            <form id="form-nova-aval" class="space-y-4">
+        <div id="container-form-aval" class="hidden flex-col flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden fade-in">
+            <form id="form-nova-aval" class="flex flex-col flex-grow min-h-0">
                 <input type="hidden" id="aval-id">
+                <div class="flex items-center justify-between gap-3 px-6 py-4 border-b border-slate-800 shrink-0">
+                    <h3 class="text-lg font-cinzel font-bold text-blue-400">Registrar Nova Avaliação</h3>
+                    <button type="button" id="btn-fechar-form-aval" class="w-9 h-9 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-600 text-slate-400 hover:text-white transition-colors" title="Fechar sem salvar"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="form-aval-corpo" class="flex-grow min-h-0 overflow-y-auto custom-scroll p-6">
+                <div class="max-w-6xl mx-auto w-full space-y-5">
 
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Tipo</label>
@@ -148,6 +159,7 @@ function construirEstruturaInterface(container) {
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 pl-1">Valor (Nota Máx)</label>
                         <input type="number" id="aval-nota" step="0.1" min="0" required class="w-full bg-slate-950 border border-slate-700 text-white rounded-xl p-3 focus:border-blue-500 outline-none">
+                        <p id="aval-nota-ajuda" class="text-[10px] text-slate-500 mt-1 pl-1"></p>
                     </div>
                 </div>
 
@@ -220,20 +232,66 @@ function construirEstruturaInterface(container) {
                     <div id="container-editor-questoes"></div>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                </div>
+                </div>
+
+                <div class="flex justify-end gap-3 px-6 py-4 border-t border-slate-800 shrink-0 bg-slate-900">
                     <button type="button" id="btn-cancel-aval" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition-colors">Cancelar</button>
                     <button type="submit" id="btn-submit-aval" class="px-8 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-colors shadow-lg">Publicar Atividade</button>
                 </div>
             </form>
         </div>
 
-        <div id="grid-avaliacoes" class="flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl overflow-y-auto custom-scroll">
-            <div class="flex flex-col items-center justify-center h-full text-slate-500">
+        <div id="grid-avaliacoes" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 content-start flex-grow min-h-0 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl overflow-y-auto custom-scroll">
+            <div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500">
                 <i class="fas fa-layer-group text-4xl mb-4 opacity-50"></i>
                 <p class="font-bold uppercase tracking-widest text-xs">Carregando quadro de atividades...</p>
             </div>
         </div>
     `;
+}
+
+// Cadastro ocupa a área toda: some a lista e as abas enquanto ele está aberto.
+function alternarFormulario(abrir) {
+    ['avaliacoes-topo', 'avaliacoes-abas', 'grid-avaliacoes'].forEach(id => {
+        document.getElementById(id)?.classList.toggle('hidden', abrir);
+    });
+    document.getElementById('container-form-aval')?.classList.toggle('hidden', !abrir);
+    document.getElementById('container-form-aval')?.classList.toggle('flex', abrir);
+}
+
+// Com questões cadastradas, a nota máxima é a soma dos pontos delas.
+function atualizarNotaMaxima() {
+    const notaInput = document.getElementById('aval-nota');
+    if (!notaInput) return;
+    const questoes = coletarQuestoes();
+    const comQuestoes = questoes.length > 0;
+    if (comQuestoes) notaInput.value = somaPontos(questoes);
+    notaInput.readOnly = comQuestoes;
+    notaInput.classList.toggle('opacity-70', comQuestoes);
+    const ajuda = document.getElementById('aval-nota-ajuda');
+    if (ajuda) {
+        ajuda.textContent = comQuestoes
+            ? 'Calculado pela soma dos pontos das questões. Para mudar, edite os pontos de cada questão.'
+            : 'Sem questões cadastradas: informe o valor total da atividade.';
+    }
+}
+
+function limparFormulario() {
+    document.getElementById('form-nova-aval').reset();
+    limparEditor(document.getElementById('container-editor-questoes'));
+    basesNovas = [];
+    basesAtuais = [];
+    renderBasesCsv();
+    document.getElementById('aval-id').value = '';
+    document.getElementById('containerDisciplinas').innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
+    document.getElementById('btn-submit-aval').innerHTML = rotuloSalvar();
+    atualizarNotaMaxima();
+}
+
+function fecharFormulario() {
+    limparFormulario();
+    alternarFormulario(false);
 }
 
 function setupEventosIniciais() {
@@ -244,31 +302,26 @@ function setupEventosIniciais() {
 
     if (btnToggle && containerForm) {
         btnToggle.addEventListener('click', () => {
-            const isVisible = !containerForm.classList.contains('hidden');
-            if (!isVisible) carregarTurmasDisponiveis(); // Recarrega as turmas ao abrir
-            containerForm.classList.toggle('hidden');
+            carregarTurmasDisponiveis(); // Recarrega as turmas ao abrir
+            alternarFormulario(true);
         });
     }
 
     if (btnCancel && containerForm) {
-        btnCancel.addEventListener('click', () => {
-            form.reset();
-            limparEditor(document.getElementById('container-editor-questoes'));
-            basesNovas = [];
-            basesAtuais = [];
-            renderBasesCsv();
-            containerForm.classList.add('hidden');
-        });
+        btnCancel.addEventListener('click', fecharFormulario);
     }
+    document.getElementById('btn-fechar-form-aval')?.addEventListener('click', fecharFormulario);
 
     if (form) {
         form.addEventListener('submit', salvarAvaliacao);
     }
 
-    iniciarEditor(document.getElementById('container-editor-questoes'));
+    const editorEl = document.getElementById('container-editor-questoes');
+    iniciarEditor(editorEl);
+    ['input', 'change', 'click'].forEach(evento => editorEl.addEventListener(evento, atualizarNotaMaxima));
     document.getElementById('aval-csv').addEventListener('change', (e) => lerBasesSelecionadas(Array.from(e.target.files)));
     document.getElementById('aval-tipo').addEventListener('change', atualizarTipoForm);
-    if (form) form.addEventListener('reset', () => setTimeout(atualizarTipoForm, 0));
+    if (form) form.addEventListener('reset', () => setTimeout(() => { atualizarTipoForm(); atualizarNotaMaxima(); }, 0));
     document.querySelectorAll('[data-aba]').forEach(btn => {
         btn.addEventListener('click', () => {
             abaAtiva = btn.dataset.aba;
@@ -328,7 +381,7 @@ function setupEventosIniciais() {
 }
 
 
-async function registrarInfracao(avaliacaoId, campo) {
+async function registrarInfracao(avaliacaoId, campo, questaoId = null) {
     if (!currentUser || !avaliacaoId || isStaff) return;
     try {
         const q = query(collection(db, "avaliacoes_entregas"), where("alunoUid", "==", currentUser.uid), where("avaliacaoId", "==", avaliacaoId));
@@ -337,7 +390,8 @@ async function registrarInfracao(avaliacaoId, campo) {
             const docRef = snap.docs[0].ref;
             const data = snap.docs[0].data();
             const newVal = (data[campo] || 0) + 1;
-            await updateDoc(docRef, { [campo]: newVal });
+            const porQuestao = questaoId ? { [`saidasQuestoes.${questaoId}`]: increment(1) } : {};
+            await updateDoc(docRef, { [campo]: newVal, ...porQuestao });
             
             const el = document.getElementById(`badge-${campo}`);
             if (el) el.innerHTML = `<i class="fas ${campo === 'countCopy' ? 'fa-copy' : campo === 'countPrint' ? 'fa-camera' : 'fa-code'}"></i> ${newVal}`;
@@ -349,7 +403,8 @@ async function registrarInfracao(avaliacaoId, campo) {
                 alunoNome: currentUser.nome,
                 turmaAluno: currentUser.turma || "Sem Turma",
                 status: 'pendente',
-                [campo]: 1
+                [campo]: 1,
+                ...(questaoId ? { saidasQuestoes: { [questaoId]: 1 } } : {})
             });
             const el = document.getElementById(`badge-${campo}`);
             if (el) el.innerHTML = `<i class="fas ${campo === 'countCopy' ? 'fa-copy' : campo === 'countPrint' ? 'fa-camera' : 'fa-code'}"></i> 1`;
@@ -449,7 +504,6 @@ async function carregarTurmasDisponiveis() {
 async function salvarAvaliacao(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-submit-aval');
-    const orig = btn.innerHTML;
     
     const turmas = Array.from(document.querySelectorAll('input[name="turmas-selecionadas"]:checked')).map(cb => cb.value);
     const trimestreSelecionado = document.getElementById('aval-trimestre').value;
@@ -512,7 +566,7 @@ async function salvarAvaliacao(e) {
         const payload = {
             titulo: document.getElementById('aval-titulo').value,
             tipoAvaliacao: tipoAval,
-            notaMaxima: ehProva ? (parseFloat(document.getElementById('aval-nota').value) || 0) : 0,
+            notaMaxima: ehProva ? (questoes.length > 0 ? somaPontos(questoes) : (parseFloat(document.getElementById('aval-nota').value) || 0)) : 0,
             trimestre: ehProva ? trimestreSelecionado : null,
             notasAtribuidas: ehProva ? notasMarcadas : [],
             disciplinas: ehProva ? disciplinasMarcadas : [],
@@ -547,19 +601,13 @@ async function salvarAvaliacao(e) {
         await salvarQuestoes(avalId, questoes);
         await enviarBasesCsv(avalId);
         
-        e.target.reset();
-        limparEditor(document.getElementById('container-editor-questoes'));
-        basesNovas = [];
-        basesAtuais = [];
-        renderBasesCsv();
-        document.getElementById('aval-id').value = '';
-        document.getElementById('containerDisciplinas').innerHTML = '<p class="text-slate-500 text-xs italic col-span-full">Selecione uma turma primeiro.</p>';
-        document.getElementById('container-form-aval').classList.add('hidden');
+        limparFormulario();
+        alternarFormulario(false);
     } catch (err) {
         console.error("Erro ao publicar:", err);
         alert("Falha ao salvar no Grimório.");
     } finally {
-        btn.innerHTML = orig;
+        btn.innerHTML = rotuloSalvar();
         btn.disabled = false;
     }
 }
@@ -614,57 +662,34 @@ async function renderGridAvaliacoes(avaliacoes) {
     }
 
     if (visiveis.length === 0) {
-        grid.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 mt-10"><i class="fas fa-box-open text-4xl mb-4 opacity-50"></i><p class="font-bold uppercase tracking-widest text-xs text-center">Nenhuma avaliação disponível.</p></div>`;
+        grid.innerHTML = `<div class="col-span-full flex flex-col items-center justify-center py-16 text-slate-500"><i class="fas fa-box-open text-4xl mb-4 opacity-50"></i><p class="font-bold uppercase tracking-widest text-xs text-center">Nenhuma avaliação disponível.</p></div>`;
         return;
     }
 
     grid.innerHTML = visiveis.map(aval => {
-        // Data unificada para o novo formulário
         const dPrazo = aval.dataAplicacao ? aval.dataAplicacao.toDate() : (aval.dataFechamento ? aval.dataFechamento.toDate() : null);
         const strPrazo = dPrazo ? `${dPrazo.toLocaleDateString('pt-BR')} às ${dPrazo.getHours().toString().padStart(2,'0')}:${dPrazo.getMinutes().toString().padStart(2,'0')}` : 'N/A';
-        
         const expirou = dPrazo && (dPrazo < new Date());
+        const ehTreino = aval.tipoAvaliacao === 'treino';
+        const entregue = !isStaff && entregasAlunoIds.includes(aval.id);
         const opacidade = aval.oculta ? 'opacity-60 grayscale hover:grayscale-0' : '';
-        
-        let bordaCard = 'border-slate-700';
-        let badgeStatus = '';
-        let corPrazo = expirou ? 'text-red-400' : 'text-emerald-400';
-        let extraPt = 'pt-2'; 
+        const corPrazo = expirou && !entregue ? 'text-red-400' : 'text-emerald-400';
 
+        let borda = 'border-slate-700';
+        let estado = null;
         if (aval.oculta) {
-            badgeStatus = `<div class="absolute top-0 left-0 bg-slate-950 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg border-b border-r border-slate-700"><i class="fas fa-eye-slash"></i> Oculta</div>`;
-            extraPt = 'pt-4';
-        } else if (!isStaff) {
-            extraPt = 'pt-4'; 
-            const estaEntregue = entregasAlunoIds.includes(aval.id);
-            
-            if (estaEntregue) {
-                bordaCard = 'border-emerald-500/50 bg-emerald-900/10'; 
-                badgeStatus = `<div class="absolute top-0 left-0 bg-emerald-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-check-double mr-1"></i> Entregue</div>`;
-                corPrazo = 'text-emerald-400'; 
-            } else if (expirou) {
-                bordaCard = 'border-red-500/30';
-                badgeStatus = `<div class="absolute top-0 left-0 bg-red-600 text-white text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-exclamation-triangle mr-1"></i> Pendente / Encerrado</div>`;
-            } else {
-                bordaCard = 'border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/5'; 
-                badgeStatus = `<div class="absolute top-0 left-0 bg-amber-500 text-amber-950 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-br-lg z-10 shadow-lg"><i class="fas fa-clock mr-1"></i> Pendente</div>`;
-            }
+            estado = { classe: 'bg-slate-950/90 text-slate-300 border-slate-600', icone: 'fa-eye-slash', texto: 'Oculta' };
+        } else if (isStaff) {
+            if (expirou) estado = { classe: 'bg-red-900/90 text-red-100 border-red-700', icone: 'fa-lock', texto: 'Prazo encerrado' };
+        } else if (entregue) {
+            borda = 'border-emerald-500/40';
+            estado = { classe: 'bg-emerald-600 text-white border-emerald-400', icone: 'fa-check-double', texto: 'Entregue' };
+        } else if (expirou) {
+            borda = 'border-red-500/30';
+            estado = { classe: 'bg-red-600 text-white border-red-400', icone: 'fa-exclamation-triangle', texto: 'Encerrado' };
         } else {
-            if (expirou) {
-                badgeStatus = `<div class="absolute top-0 right-0 bg-red-900/80 text-red-100 text-[9px] font-bold uppercase tracking-widest px-3 py-1 rounded-bl-lg z-10 shadow-lg">Prazo Encerrado</div>`;
-            }
-        }
-
-        let btnStaffHtml = '';
-        if (isStaff) {
-            const iconOc = aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400';
-            btnStaffHtml = `
-                <div class="flex gap-1.5 shrink-0" onclick="event.stopPropagation()">
-                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
-                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${iconOc} text-xs"></i></button>
-                    <button onclick="event.stopPropagation(); window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/80 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
-                </div>
-            `;
+            borda = 'border-amber-500/40';
+            estado = { classe: 'bg-amber-500 text-amber-950 border-amber-300', icone: 'fa-clock', texto: 'Pendente' };
         }
 
         const disciplinasStr = (aval.disciplinas || []).join(', ');
@@ -673,43 +698,49 @@ async function renderGridAvaliacoes(avaliacoes) {
         const turmasStr = (aval.turmasAlvo || []).join(', ');
         const notasStr = (aval.notasAtribuidas || []).join(', ');
 
-        const bannerHtml = aval.imagemBanner 
-            ? `<div class="w-full h-32 mb-4 -mx-5 -mt-5 overflow-hidden border-b border-slate-700 shrink-0"><img src="${aval.imagemBanner}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"></div>` 
+        const capa = aval.imagemBanner
+            ? `<img src="${escapeHTML(aval.imagemBanner)}" alt="" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105">`
+            : `<div class="w-full h-full flex items-center justify-center ${ehTreino ? 'bg-gradient-to-br from-emerald-900/60 to-slate-900' : 'bg-gradient-to-br from-blue-900/60 to-slate-900'}"><i class="fas ${ehTreino ? 'fa-dumbbell text-emerald-400/60' : 'fa-file-signature text-blue-400/60'} text-4xl"></i></div>`;
+
+        const btnStaffHtml = isStaff ? `
+            <div class="absolute bottom-2 right-2 flex gap-1.5" onclick="event.stopPropagation()">
+                <button onclick="event.stopPropagation(); window.avaliacoesAPI.editar('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg transition-colors" title="Editar"><i class="fas fa-edit text-xs"></i></button>
+                <button onclick="event.stopPropagation(); window.avaliacoesAPI.toggleOcultar('${aval.id}', ${!!aval.oculta})" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-amber-500 rounded-lg transition-colors" title="Visibilidade"><i class="fas ${aval.oculta ? 'fa-eye text-emerald-400' : 'fa-eye-slash text-amber-400'} text-xs"></i></button>
+                <button onclick="event.stopPropagation(); window.avaliacoesAPI.excluir('${aval.id}')" class="w-8 h-8 flex items-center justify-center bg-slate-900/90 border border-slate-700 hover:border-red-500 text-red-400 rounded-lg transition-colors" title="Excluir"><i class="fas fa-trash text-xs"></i></button>
+            </div>` : '';
+
+        const chipTipo = ehTreino
+            ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-dumbbell mr-1"></i> Treino · sem nota</span>`
+            : `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${escapeHTML(notasStr)}</span>`;
+        const chipValor = !ehTreino && aval.notaMaxima !== undefined
+            ? `<span class="bg-slate-900 text-slate-300 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-calculator mr-1"></i> Vale ${aval.notaMaxima}</span>`
             : '';
-        if (aval.imagemBanner) extraPt = 'pt-0';
+        const chipTurmas = `<span class="bg-slate-900 text-slate-400 border border-slate-700 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${escapeHTML(turmasStr)}</span>`;
+
+        const rodape = [
+            aval.temProva ? `<span><i class="fas fa-list-ol mr-1"></i>Questões</span>` : '',
+            aval.materiaisAnexos?.length ? `<span class="text-indigo-400"><i class="fas fa-paperclip mr-1"></i>${aval.materiaisAnexos.length} anexo(s)</span>` : '',
+            aval.linksUteis?.length ? `<span class="text-blue-400"><i class="fas fa-link mr-1"></i>${aval.linksUteis.length} link(s)</span>` : ''
+        ].filter(Boolean).join('');
 
         return `
-            <div onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="bg-slate-800/90 border ${bordaCard} p-5 md:p-6 rounded-2xl shadow-lg hover:border-blue-500/60 hover:shadow-xl transition-all relative overflow-hidden group ${opacidade} cursor-pointer">
-                ${badgeStatus}
-                
-                <div class="flex justify-between items-start gap-3 mb-4 ${extraPt}">
-                    <h4 class="text-base md:text-lg font-bold text-blue-400 font-cinzel leading-snug pr-2">${escapeHTML(tituloFinal)}</h4>
+            <article onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="group flex flex-col bg-slate-800/90 border ${borda} rounded-2xl overflow-hidden shadow-lg hover:border-blue-500/60 hover:shadow-xl hover:-translate-y-0.5 transition-all cursor-pointer ${opacidade}">
+                <div class="relative h-28 overflow-hidden shrink-0 border-b border-slate-700">
+                    ${capa}
+                    ${estado ? `<span class="absolute top-2 left-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-widest shadow-lg ${estado.classe}"><i class="fas ${estado.icone}"></i> ${estado.texto}</span>` : ''}
                     ${btnStaffHtml}
                 </div>
-                
-                <div class="flex flex-wrap gap-2 mb-4">
-                    ${aval.tipoAvaliacao === 'treino'
-                        ? `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-dumbbell mr-1"></i> Treino · sem nota</span>`
-                        : `<span class="bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-star mr-1"></i> Notas: ${notasStr}</span>`}
-                    <span class="bg-slate-900 text-slate-400 border border-slate-700 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest"><i class="fas fa-users mr-1"></i> ${turmasStr}</span>
+                <div class="flex flex-col flex-grow gap-3 p-4">
+                    <h4 class="text-sm md:text-base font-bold text-blue-400 font-cinzel leading-snug line-clamp-2" title="${escapeHTML(tituloFinal)}">${escapeHTML(tituloFinal)}</h4>
+                    <div class="flex flex-wrap gap-1.5">${chipTipo}${chipValor}${chipTurmas}</div>
+                    <p class="text-xs ${corPrazo} flex items-center gap-2"><i class="far fa-clock w-3 shrink-0"></i> <span class="font-bold">Prazo:</span> ${strPrazo}</p>
+                    ${descricaoFinal ? `<p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${escapeHTML(descricaoFinal)}</p>` : ''}
+                    <div class="mt-auto flex items-center justify-between gap-2 pt-3 border-t border-slate-700/50">
+                        <span class="flex flex-wrap gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">${rodape}</span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-blue-400 group-hover:text-blue-300 whitespace-nowrap">Abrir <i class="fas fa-arrow-right ml-1"></i></span>
+                    </div>
                 </div>
-                
-                <div class="text-xs text-slate-400 mb-4 bg-slate-900/60 p-3 rounded-xl border border-slate-700/50">
-                    <p class="${corPrazo} flex items-center gap-2"><i class="far fa-clock w-4 shrink-0"></i> <span class="font-bold">Prazo:</span> ${strPrazo}</p>
-                </div>
-                
-                <p class="text-sm text-slate-300 line-clamp-2 mb-3 leading-relaxed">${escapeHTML(descricaoFinal)}</p>
-                
-                ${(aval.materiaisAnexos && aval.materiaisAnexos.length > 0) ? `<div class="flex items-center gap-1.5 text-[10px] text-indigo-400 font-bold uppercase tracking-widest mb-4"><i class="fas fa-paperclip"></i> ${aval.materiaisAnexos.length} anexo(s)</div>` : ''}
-                ${(aval.linksUteis && aval.linksUteis.length > 0) ? `<div class="flex items-center gap-1.5 text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-4"><i class="fas fa-link"></i> ${aval.linksUteis.length} link(s)</div>` : ''}
-                
-                <div class="mt-auto flex justify-end pt-4 border-t border-slate-700/50">
-                    <button onclick="window.avaliacoesAPI.abrirPainel('${aval.id}')" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center gap-2">
-                        <i class="fas fa-folder-open"></i> Abrir Painel
-                    </button>
-                </div>
-            </div>
-        `;
+            </article>`;
     }).join('');
 }
 
@@ -719,7 +750,7 @@ function abrirProvaNaArea(area, aval, questoes) {
         uid: currentUser.uid,
         aval,
         questoes,
-        onTroca: () => registrarInfracao(aval.id, 'countTrocaAba'),
+        onTroca: (questaoId) => registrarInfracao(aval.id, 'countTrocaAba', questaoId),
         onEnviado: async () => {
             await window.avaliacoesAPI.abrirPainel(aval.id);
             renderGridAvaliacoes(avaliacoesCache);
@@ -738,6 +769,7 @@ async function montarAreaProva(aval, minhaEntrega) {
                 treino: aval.tipoAvaliacao === 'treino',
                 onRefazer: () => {
                     localStorage.removeItem(`prova_rascunho_${aval.id}_${currentUser.uid}`);
+                    localStorage.removeItem(`prova_nav_${aval.id}_${currentUser.uid}`);
                     abrirProvaNaArea(area, aval, questoes);
                 }
             });
@@ -787,7 +819,9 @@ window.avaliacoesAPI = {
         basesAtuais = aval.bases || [];
         basesNovas = [];
         renderBasesCsv();
+        document.getElementById('aval-nota').value = aval.notaMaxima ?? '';
         await carregarEditor(document.getElementById('container-editor-questoes'), aval.id);
+        atualizarNotaMaxima();
         
         const checkNotas = document.querySelectorAll('input[name="chkNota"]');
         checkNotas.forEach(cb => {
@@ -804,10 +838,9 @@ window.avaliacoesAPI = {
         document.getElementById('aval-abertura').value = formatData(aval.dataAbertura);
         document.getElementById('aval-fechamento').value = formatData(aval.dataFechamento);
         
-        const formContainer = document.getElementById('container-form-aval');
-        if(formContainer.classList.contains('hidden')) {
+        if (document.getElementById('container-form-aval').classList.contains('hidden')) {
             await carregarTurmasDisponiveis();
-            formContainer.classList.remove('hidden');
+            alternarFormulario(true);
         }
         
         // Timeout para dar tempo de renderizar o HTML antes de checar as caixas
@@ -828,8 +861,8 @@ window.avaliacoesAPI = {
             }
         }, 500);
 
-        document.getElementById('btn-submit-aval').innerHTML = '<i class="fas fa-sync-alt mr-2"></i> Atualizar Avaliação';
-        formContainer.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('btn-submit-aval').innerHTML = rotuloSalvar();
+        document.getElementById('form-aval-corpo').scrollTop = 0;
     },
 
     abrirPainel: async (id) => {
@@ -891,6 +924,12 @@ window.avaliacoesAPI = {
                             ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-list-check mr-1"></i> Prova objetiva: ${e.pontosObtidos ?? 0} de ${e.pontosCorrigidos ?? 0} pts${e.pendentes ? ` · ${e.pendentes} questão(ões) para corrigir` : ' · corrigida'}</p>`
                             : '';
                         
+                        const saidasOrdenadas = Object.entries(e.saidasQuestoes || {})
+                            .sort(([a], [b]) => Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')));
+                        const resumoSaidas = saidasOrdenadas.length
+                            ? `<p class="text-xs text-red-400 mt-1"><i class="fas fa-exclamation-triangle mr-1"></i> Saiu da página durante: ${saidasOrdenadas.map(([qid, n]) => `Questão ${qid.replace(/\D/g, '')}${n > 1 ? ` (${n}x)` : ''}`).join(', ')}</p>`
+                            : '';
+
                         const dEnvio = e.dataEnvio ? e.dataEnvio.toDate().toLocaleString('pt-BR') : 'Ainda não enviou';
                         const valorNota = e.notaAtribuida !== undefined ? e.notaAtribuida : '';
                         const valorFeed = e.feedbackProfessor || '';
@@ -906,6 +945,7 @@ window.avaliacoesAPI = {
                                         <h5 class="text-white font-bold text-sm">${escapeHTML(e.alunoNome)} <span class="text-slate-500 text-[10px] ml-2 uppercase tracking-widest">${escapeHTML(e.turmaAluno)}</span></h5>
                                         <p class="${corStatus} text-xs mt-1"><i class="fas fa-check-circle"></i> ${txtStatus} em: ${dEnvio}</p>
                                         ${resumoProva}
+                                        ${resumoSaidas}
                                     </div>
                                     
                                     <!-- AQUI ESTÃO OS ALERTAS DO PROFESSOR -->

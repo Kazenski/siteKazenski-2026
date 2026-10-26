@@ -1,6 +1,7 @@
 import { collection, doc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
-import { app, db } from '../core/firebase.js';
+import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { app, db, storage } from '../core/firebase.js';
 import { escapeHTML } from '../core/utils.js';
 import { TIPOS, novaQuestao, montarDocs, estadoDeQuestao } from './questoesCore.js';
 import { criarEditorCodigo, destacarCodigo } from './editorCodigo.js';
@@ -12,7 +13,10 @@ const destruirEditoresEditor = () => { editoresEditor.forEach(e => e.destroy());
 
 const CLASSE_INPUT = 'w-full bg-slate-950 border border-slate-700 text-white rounded-lg p-2 text-sm outline-none focus:border-blue-500';
 const CLASSE_BTN = 'text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-600 text-slate-300 hover:text-white hover:border-blue-500 transition-colors';
+const CLASSE_BTN_PROVA = 'px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-colors disabled:opacity-30 disabled:cursor-not-allowed';
+const CLASSE_ARQUIVO = 'text-[10px] text-slate-400 cursor-pointer file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:uppercase file:bg-slate-700 file:text-white hover:file:bg-slate-600';
 const esc = (s) => escapeHTML(String(s ?? ''));
+const LIMITE_IMAGEM_BYTES = 5 * 1024 * 1024;
 
 // ============================================================
 // EDITOR (PROFESSOR)
@@ -50,9 +54,15 @@ export async function carregarEditor(container, avalId) {
 
 function renderEditor(container) {
     const cards = editorQuestoes.map((q, i) => cardQuestao(q, i)).join('');
+    const total = editorQuestoes.reduce((soma, q) => soma + (Number(q.pontos) || 0), 0);
     destruirEditoresEditor();
     container.innerHTML = `
         <div class="space-y-4">
+            ${editorQuestoes.length ? `
+                <div class="flex flex-wrap justify-between gap-2 text-xs">
+                    <span class="text-slate-400">${editorQuestoes.length} questão(ões) cadastrada(s)</span>
+                    <span class="font-bold text-blue-400">Total da prova: ${Number(total.toFixed(2))} pt(s)</span>
+                </div>` : ''}
             ${cards || '<p class="text-slate-500 text-xs italic">Sem questões: a avaliação funciona como atividade com envio de arquivo.</p>'}
             <button type="button" data-acao="add-questao" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Adicionar questão</button>
         </div>`;
@@ -94,8 +104,25 @@ function cardQuestao(q, i) {
                 </div>
             </div>
             <textarea data-campo="enunciado" rows="2" placeholder="Enunciado da questão" class="${CLASSE_INPUT}">${esc(q.enunciado)}</textarea>
+            ${seletorImagem(q.imagem, 'imagem-questao', 'rm-imagem', null, 'Imagem da questão (opcional)')}
             ${corpoTipo(q, i)}
             <textarea data-campo="explicacao" rows="2" placeholder="Explicação da resposta (o aluno só vê se você liberar o gabarito)" class="${CLASSE_INPUT}">${esc(q.explicacao)}</textarea>
+        </div>`;
+}
+
+function seletorImagem(src, campo, acaoRemover, idx, rotulo) {
+    const atributoIdx = idx === null ? '' : `data-idx="${idx}"`;
+    const preview = src
+        ? `<div class="flex flex-wrap items-center gap-3">
+                <img src="${esc(src)}" alt="${esc(rotulo)}" class="max-h-48 max-w-full rounded-lg border border-slate-700 bg-slate-950 object-contain">
+                <button type="button" data-acao="${acaoRemover}" ${atributoIdx} class="${CLASSE_BTN} hover:border-red-500 hover:text-red-400"><i class="fas fa-trash mr-1"></i> Remover imagem</button>
+           </div>`
+        : '';
+    return `
+        <div class="bg-slate-950/60 border border-dashed border-slate-700 rounded-lg p-3 space-y-2">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">${rotulo}</label>
+            ${preview}
+            <input type="file" accept="image/*" data-campo="${campo}" ${atributoIdx} class="${CLASSE_ARQUIVO} block w-full">
         </div>`;
 }
 
@@ -105,14 +132,17 @@ function corpoTipo(q, i) {
         case 'multipla_selecao': {
             const tipoInput = q.tipo === 'multipla_escolha' ? 'radio' : 'checkbox';
             const linhas = q.opcoes.map((o, k) => `
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2 bg-slate-950/40 border border-slate-800 rounded-lg p-2">
                     <input type="${tipoInput}" name="corr-${i}" data-campo="opcao-correta" data-idx="${k}" ${o.correta ? 'checked' : ''} class="accent-emerald-500 w-4 h-4" title="Correta">
-                    <input type="text" data-campo="opcao-texto" data-idx="${k}" value="${esc(o.texto)}" placeholder="Opção ${k + 1}" class="${CLASSE_INPUT}">
+                    <input type="text" data-campo="opcao-texto" data-idx="${k}" value="${esc(o.texto)}" placeholder="Opção ${k + 1}" class="${CLASSE_INPUT} flex-1 min-w-[12rem]">
+                    ${o.imagem ? `<img src="${esc(o.imagem)}" alt="Imagem da opção ${k + 1}" class="h-12 max-w-[6rem] rounded border border-slate-700 bg-slate-950 object-contain">` : ''}
+                    <input type="file" accept="image/*" data-campo="imagem-opcao" data-idx="${k}" title="Imagem da opção" class="${CLASSE_ARQUIVO} w-44">
+                    ${o.imagem ? `<button type="button" data-acao="rm-imagem-opcao" data-idx="${k}" class="${CLASSE_BTN}" title="Remover imagem da opção"><i class="fas fa-image"></i></button>` : ''}
                     <button type="button" data-acao="rm-opcao" data-idx="${k}" class="${CLASSE_BTN}" title="Remover opção"><i class="fas fa-times"></i></button>
                 </div>`).join('');
             return `<div class="space-y-2">${linhas}
                 <button type="button" data-acao="add-opcao" class="${CLASSE_BTN}"><i class="fas fa-plus mr-1"></i> Opção</button>
-                <p class="text-[10px] text-slate-500">Marque a(s) opção(ões) correta(s).</p></div>`;
+                <p class="text-[10px] text-slate-500">Marque a(s) opção(ões) correta(s). Cada opção pode ter sua própria imagem.</p></div>`;
         }
         case 'verdadeiro_falso': {
             const linhas = q.afirmacoes.map((a, k) => `
@@ -176,12 +206,42 @@ function corpoTipo(q, i) {
                 <p class="text-[10px] text-slate-500">Cada teste envia a entrada ao programa do aluno e compara a saída. Testes ocultos não aparecem para o aluno. A nota é proporcional aos testes aprovados.</p>
             </div>`;
         }
+        case 'dissertativa':
+            return `<div class="space-y-2">
+                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Resposta esperada (referência para correção)</label>
+                <textarea data-campo="referencia" rows="3" placeholder="Resposta de referência para você corrigir manualmente" class="${CLASSE_INPUT}">${esc(q.referencia)}</textarea>
+                <p class="text-[10px] text-slate-500">Esta questão é corrigida por você no painel da entrega. A referência fica no servidor e só aparece no gabarito, se você liberá-lo após o prazo.</p>
+            </div>`;
         default:
             return `<p class="text-[10px] text-slate-500">Correção manual: você atribui a nota no painel da entrega.</p>`;
     }
 }
 
 const qIdx = (t) => Number(t.closest('[data-q]').dataset.q);
+
+const LIMITE_MB = LIMITE_IMAGEM_BYTES / (1024 * 1024);
+
+async function enviarImagem(file) {
+    if (!file.type.startsWith('image/')) throw new Error('O arquivo precisa ser uma imagem (PNG, JPG, GIF ou WebP).');
+    if (file.size > LIMITE_IMAGEM_BYTES) throw new Error(`A imagem passa de ${LIMITE_MB} MB. Reduza o tamanho e tente de novo.`);
+    const nome = file.name.replace(/[^\w.-]+/g, '_');
+    const arquivo = ref(storage, `avaliacoes_questoes/${Date.now()}_${nome}`);
+    await uploadBytes(arquivo, file);
+    return getDownloadURL(arquivo);
+}
+
+async function anexarImagem(input, container, aplicar) {
+    const file = input.files[0];
+    if (!file) return;
+    input.disabled = true;
+    try {
+        aplicar(await enviarImagem(file));
+    } catch (err) {
+        console.error('Falha ao enviar imagem da questão:', err);
+        alert(err.message || 'Não foi possível enviar a imagem.');
+    }
+    renderEditor(container);
+}
 
 function onInput(e, container) {
     const t = e.target;
@@ -193,6 +253,7 @@ function onInput(e, container) {
         case 'enunciado': q.enunciado = t.value; break;
         case 'explicacao': q.explicacao = t.value; break;
         case 'pontos': q.pontos = t.value; break;
+        case 'referencia': q.referencia = t.value; break;
         case 'opcao-texto': q.opcoes[idx].texto = t.value; break;
         case 'afirm-texto': q.afirmacoes[idx].texto = t.value; break;
         case 'par-a': q.pares[idx].a = t.value; break;
@@ -227,6 +288,12 @@ function onChange(e, container) {
         case 'teste-oculto':
             q.testes[idx].oculto = t.checked;
             break;
+        case 'imagem-questao':
+            anexarImagem(t, container, (url) => { q.imagem = url; });
+            break;
+        case 'imagem-opcao':
+            anexarImagem(t, container, (url) => { q.opcoes[idx].imagem = url; });
+            break;
     }
 }
 
@@ -240,7 +307,9 @@ function onClick(e, container) {
     switch (acao) {
         case 'add-questao': editorQuestoes.push(novaQuestao()); break;
         case 'rm-questao': editorQuestoes.splice(qIdx(btn), 1); break;
-        case 'add-opcao': q.opcoes.push({ texto: '', correta: false }); break;
+        case 'rm-imagem': q.imagem = ''; break;
+        case 'rm-imagem-opcao': q.opcoes[idx].imagem = ''; break;
+        case 'add-opcao': q.opcoes.push({ texto: '', correta: false, imagem: '' }); break;
         case 'rm-opcao': q.opcoes.splice(idx, 1); break;
         case 'add-afirm': q.afirmacoes.push({ texto: '', valor: true }); break;
         case 'rm-afirm': q.afirmacoes.splice(idx, 1); break;
@@ -340,7 +409,7 @@ export function mostrarConsentimento(area, onAceitar) {
         <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-5 space-y-4">
             <h4 class="text-amber-400 font-bold"><i class="fas fa-shield-alt mr-2"></i> Antes de começar</h4>
             <p class="text-sm text-slate-300">Durante a prova, o sistema registra quando você sai desta janela ou troca de aba. Esses registros ficam visíveis para o professor.</p>
-            <p class="text-sm text-slate-300">Suas respostas são salvas automaticamente. A prova só é enviada quando você clicar em "Enviar prova".</p>
+            <p class="text-sm text-slate-300">A prova é feita uma questão por vez. Você pode voltar às questões já respondidas para revisar. Suas respostas são salvas automaticamente, e a prova só é enviada quando você clicar em "Enviar prova".</p>
             <label class="flex items-start gap-2 text-sm text-slate-200 cursor-pointer">
                 <input type="checkbox" id="consent-prova" class="mt-1 w-4 h-4 accent-amber-500">
                 <span>Li e concordo com o registro dessas saídas durante a prova.</span>
@@ -368,15 +437,43 @@ function estadoInicial(q) {
     }
 }
 
+// Questão ainda sem resposta completa (usado só para avisar antes do envio).
+function respostaPendente(q, r) {
+    switch (q.tipo) {
+        case 'multipla_escolha': return r === null || r === undefined || r === '';
+        case 'multipla_selecao': return !Array.isArray(r) || r.length === 0;
+        case 'verdadeiro_falso': return (q.afirmacoes || []).some(a => r?.[a.id] === undefined);
+        case 'ligar_colunas': return (q.colunaA || []).some(a => !r?.[a.id]);
+        case 'ordenar': return false;
+        default: return !String(r ?? '').trim();
+    }
+}
+
+const lerJson = (chave, padrao) => {
+    try { return JSON.parse(localStorage.getItem(chave) || 'null') ?? padrao; } catch (_) { return padrao; }
+};
+
+let removerListenersProva = null;
+
 export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnviado }) {
     const chave = `prova_rascunho_${avalId}_${uid}`;
-    let respostas = {};
-    try { respostas = JSON.parse(localStorage.getItem(chave) || '{}'); } catch (_) { respostas = {}; }
+    const chaveNav = `prova_nav_${avalId}_${uid}`;
+    const total = questoes.length;
+    const ultimo = Math.max(total - 1, 0);
+
+    const respostas = lerJson(chave, {});
     questoes.forEach(q => { if (respostas[q.id] === undefined) respostas[q.id] = estadoInicial(q); });
+
+    const nav = lerJson(chaveNav, {});
+    let atual = Math.min(Math.max(Number(nav.atual) || 0, 0), ultimo);
+    let maxVisitada = Math.min(Math.max(Number(nav.maxVisitada) || 0, atual), ultimo);
+    const saidas = nav.saidas && typeof nav.saidas === 'object' ? nav.saidas : {};
 
     let trocas = 0;
     let ultimoEvento = 0;
     let statusTxt = 'Respostas salvas automaticamente';
+
+    const salvarNav = () => localStorage.setItem(chaveNav, JSON.stringify({ atual, maxVisitada, saidas }));
 
     const salvar = () => {
         localStorage.setItem(chave, JSON.stringify(respostas));
@@ -386,10 +483,42 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
         if (el) el.textContent = statusTxt;
     };
 
+    const irPara = (k) => {
+        if (k < 0 || k > ultimo || k > maxVisitada + 1 || k === atual) return;
+        atual = k;
+        maxVisitada = Math.max(maxVisitada, k);
+        salvarNav();
+        pintar();
+        area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
     const pintar = () => {
         destruirEditoresProva();
+        const q = questoes[atual];
+        const faltam = ultimo - maxVisitada;
+        const vezesSaiu = saidas[q.id] || 0;
+
+        const quadradinhos = questoes.map((item, k) => {
+            const saiuAqui = saidas[item.id] ? ' ring-2 ring-red-500 ring-offset-2 ring-offset-slate-900' : '';
+            const titulo = `Questão ${k + 1}${saidas[item.id] ? ' · saída da página registrada' : ''}`;
+            if (k === atual) {
+                return `<span title="${titulo}" class="w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold bg-emerald-500 text-white shadow-lg shadow-emerald-500/30${saiuAqui}">${k + 1}</span>`;
+            }
+            if (k <= maxVisitada) {
+                return `<button type="button" data-acao="ir" data-idx="${k}" title="${titulo}" class="w-9 h-9 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-500 transition-colors${saiuAqui}">${k + 1}</button>`;
+            }
+            return `<span title="${titulo}" class="w-9 h-9 flex items-center justify-center rounded-lg text-xs font-bold bg-slate-700 text-slate-400 cursor-not-allowed${saiuAqui}">${k + 1}</span>`;
+        }).join('');
+
+        const marca = vezesSaiu > 0
+            ? `<div class="flex items-start gap-3 bg-red-900/30 border border-red-500/50 rounded-xl p-4 text-red-200 text-sm font-bold">
+                    <i class="fas fa-exclamation-triangle text-red-400 mt-0.5"></i>
+                    <span>Aluno saiu da página da prova sem autorização.${vezesSaiu > 1 ? ` (${vezesSaiu} vezes nesta questão)` : ''}</span>
+               </div>`
+            : '';
+
         area.innerHTML = `
-            <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-6">
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-5 space-y-5">
                 <div class="flex flex-wrap justify-between gap-3 items-center">
                     <h4 class="text-white font-bold"><i class="fas fa-pen-alt text-blue-500 mr-2"></i> Prova</h4>
                     <div class="text-xs text-slate-400">
@@ -398,21 +527,40 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
                     </div>
                 </div>
                 ${blocoEsquema(aval.bases)}
-                <div class="space-y-6">${questoes.map((q, i) => cardResposta(q, i, respostas[q.id])).join('')}</div>
-                <div class="flex justify-end pt-4 border-t border-slate-700">
-                    <button type="button" id="btn-enviar-prova" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors shadow-lg">Enviar prova</button>
+                <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm font-bold text-white">Questão ${atual + 1} <span class="text-slate-400 font-normal">de ${total}</span></p>
+                        <p class="text-xs font-bold ${faltam > 0 ? 'text-slate-300' : 'text-emerald-400'}">${faltam > 0 ? `Faltam ${faltam} questão(ões)` : 'Você chegou à última questão'}</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">${quadradinhos}</div>
+                    <div class="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <span><i class="fas fa-square text-emerald-500 mr-1"></i> Atual</span>
+                        <span><i class="fas fa-square text-blue-600 mr-1"></i> Já passou</span>
+                        <span><i class="fas fa-square text-slate-600 mr-1"></i> Faltam</span>
+                        <span><i class="far fa-square text-red-500 mr-1"></i> Saída registrada</span>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    ${marca}
+                    ${cardResposta(q, atual, respostas[q.id])}
+                </div>
+                <div class="flex flex-wrap justify-between gap-3 pt-4 border-t border-slate-700">
+                    <button type="button" data-acao="anterior" ${atual === 0 ? 'disabled' : ''} class="${CLASSE_BTN_PROVA} bg-slate-700 hover:bg-slate-600 text-white"><i class="fas fa-arrow-left mr-2"></i> Anterior</button>
+                    <div class="flex flex-wrap gap-3">
+                        <button type="button" id="btn-enviar-prova" class="${CLASSE_BTN_PROVA} bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg">Enviar prova</button>
+                        ${atual === ultimo ? '' : `<button type="button" data-acao="proxima" class="${CLASSE_BTN_PROVA} bg-blue-600 hover:bg-blue-500 text-white shadow-lg">Próxima <i class="fas fa-arrow-right ml-2"></i></button>`}
+                    </div>
                 </div>
             </div>`;
-        questoes.forEach((q) => {
-            if (q.tipo !== 'python' && q.tipo !== 'sql') return;
-            const host = area.querySelector(`[data-editor-host="${q.id}"]`);
-            if (!host) return;
+
+        const host = area.querySelector('[data-editor-host]');
+        if (host && (q.tipo === 'python' || q.tipo === 'sql')) {
             editoresProva.push(criarEditorCodigo(host, {
                 linguagem: q.tipo,
                 valor: respostas[q.id] || '',
                 onChange: (v) => { respostas[q.id] = v; salvar(); }
             }));
-        });
+        }
     };
 
     area.onchange = (e) => {
@@ -422,8 +570,8 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
         switch (t.dataset.tipo) {
             case 'mc': respostas[qid] = t.value; break;
             case 'ms': {
-                const atual = respostas[qid] || [];
-                respostas[qid] = t.checked ? [...atual, t.value] : atual.filter(v => v !== t.value);
+                const atualResp = respostas[qid] || [];
+                respostas[qid] = t.checked ? [...atualResp, t.value] : atualResp.filter(v => v !== t.value);
                 break;
             }
             case 'vf': respostas[qid] = { ...(respostas[qid] || {}), [t.dataset.aid]: t.value === 'true' }; break;
@@ -443,9 +591,12 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
 
     area.onclick = (e) => {
         const btn = e.target.closest('button');
-        if (!btn) return;
+        if (!btn || btn.disabled) return;
         if (btn.id === 'btn-enviar-prova') return enviar(btn);
         const acao = btn.dataset.acao;
+        if (acao === 'anterior') return irPara(atual - 1);
+        if (acao === 'proxima') return irPara(atual + 1);
+        if (acao === 'ir') return irPara(Number(btn.dataset.idx));
         if (acao === 'executar-sql') {
             const qid = btn.dataset.qid;
             const saidaEl = area.querySelector(`#exec-${qid}`);
@@ -487,8 +638,7 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
 
     const aoSair = () => {
         if (!area.isConnected) {
-            document.removeEventListener('visibilitychange', aoSair);
-            window.removeEventListener('blur', aoSair);
+            if (removerListenersProva) removerListenersProva();
             return;
         }
         if (!document.hidden && document.hasFocus()) return;
@@ -496,21 +646,34 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
         if (agora - ultimoEvento < 1500) return;
         ultimoEvento = agora;
         trocas++;
-        const el = area.querySelector('#prova-trocas');
-        if (el) el.textContent = `Saídas da aba: ${trocas}`;
-        if (onTroca) onTroca();
+        const qid = questoes[atual]?.id;
+        if (qid) {
+            saidas[qid] = (saidas[qid] || 0) + 1;
+            salvarNav();
+        }
+        if (onTroca) onTroca(qid);
+        pintar();
+    };
+
+    if (removerListenersProva) removerListenersProva();
+    removerListenersProva = () => {
+        document.removeEventListener('visibilitychange', aoSair);
+        window.removeEventListener('blur', aoSair);
     };
     document.addEventListener('visibilitychange', aoSair);
     window.addEventListener('blur', aoSair);
 
     async function enviar(btn) {
-        if (!confirm('Enviar a prova? Depois do envio as respostas não podem ser alteradas.')) return;
+        const pendentes = questoes.filter(q => respostaPendente(q, respostas[q.id])).length;
+        const aviso = pendentes > 0 ? `\n\nAtenção: ${pendentes} questão(ões) estão sem resposta completa.` : '';
+        if (!confirm(`Enviar a prova?${aviso}\n\nDepois do envio as respostas não podem ser alteradas.`)) return;
         const textoOriginal = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
         try {
             const resultado = await enviarProva(avalId, respostas);
             localStorage.removeItem(chave);
+            localStorage.removeItem(chaveNav);
             onEnviado(resultado);
         } catch (err) {
             alert(err.message || 'Não foi possível enviar a prova. Tente novamente.');
@@ -523,26 +686,32 @@ export function renderProva(area, { avalId, uid, aval, questoes, onTroca, onEnvi
 }
 
 function cardResposta(q, i, resp) {
+    const imagemQuestao = q.imagem
+        ? `<img src="${esc(q.imagem)}" alt="Imagem da questão ${i + 1}" class="max-h-96 max-w-full mx-auto rounded-lg border border-slate-700 bg-slate-950 object-contain">`
+        : '';
+    const imagemOpcao = (o) => o.imagem
+        ? `<img src="${esc(o.imagem)}" alt="" class="max-h-48 max-w-full rounded border border-slate-700 bg-slate-950 object-contain">`
+        : '';
+
     const cabecalho = `
-        <div class="flex justify-between gap-3 items-start">
-            <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Questão ${i + 1} · ${q.pontos} pt(s)</span>
-        </div>
-        <p class="text-slate-200 text-sm whitespace-pre-wrap">${esc(q.enunciado)}</p>`;
+        <span class="text-xs font-bold text-blue-400 uppercase tracking-widest">Questão ${i + 1} · ${q.pontos} pt(s)</span>
+        <p class="text-slate-200 text-sm whitespace-pre-wrap">${esc(q.enunciado)}</p>
+        ${imagemQuestao}`;
 
     let corpo = '';
     switch (q.tipo) {
         case 'multipla_escolha':
             corpo = (q.opcoes || []).map(o => `
-                <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input type="radio" name="r-${q.id}" data-qid="${q.id}" data-tipo="mc" value="${esc(o.id)}" ${resp === o.id ? 'checked' : ''} class="w-4 h-4 accent-blue-500">
-                    <span>${esc(o.texto)}</span>
+                <label class="flex items-start gap-3 bg-slate-950/60 border border-slate-800 hover:border-blue-500/60 rounded-lg p-3 text-sm text-slate-300 cursor-pointer transition-colors">
+                    <input type="radio" name="r-${q.id}" data-qid="${q.id}" data-tipo="mc" value="${esc(o.id)}" ${resp === o.id ? 'checked' : ''} class="w-4 h-4 mt-0.5 accent-blue-500 shrink-0">
+                    <span class="flex-1 flex flex-col gap-2"><span>${esc(o.texto)}</span>${imagemOpcao(o)}</span>
                 </label>`).join('');
             break;
         case 'multipla_selecao':
             corpo = (q.opcoes || []).map(o => `
-                <label class="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                    <input type="checkbox" data-qid="${q.id}" data-tipo="ms" value="${esc(o.id)}" ${(resp || []).includes(o.id) ? 'checked' : ''} class="w-4 h-4 accent-blue-500">
-                    <span>${esc(o.texto)}</span>
+                <label class="flex items-start gap-3 bg-slate-950/60 border border-slate-800 hover:border-blue-500/60 rounded-lg p-3 text-sm text-slate-300 cursor-pointer transition-colors">
+                    <input type="checkbox" data-qid="${q.id}" data-tipo="ms" value="${esc(o.id)}" ${(resp || []).includes(o.id) ? 'checked' : ''} class="w-4 h-4 mt-0.5 accent-blue-500 shrink-0">
+                    <span class="flex-1 flex flex-col gap-2"><span>${esc(o.texto)}</span>${imagemOpcao(o)}</span>
                 </label>`).join('');
             break;
         case 'verdadeiro_falso':
@@ -603,10 +772,10 @@ function cardResposta(q, i, resp) {
             break;
         }
         default:
-            corpo = `<textarea data-qid="${q.id}" data-tipo="texto" rows="4" placeholder="Escreva sua resposta" class="${CLASSE_INPUT}">${esc(resp || '')}</textarea>`;
+            corpo = `<textarea data-qid="${q.id}" data-tipo="texto" rows="6" placeholder="Escreva sua resposta" class="${CLASSE_INPUT}">${esc(resp || '')}</textarea>`;
     }
 
-    return `<div class="space-y-3 border-b border-slate-800 pb-5 last:border-0">${cabecalho}<div class="space-y-2">${corpo}</div></div>`;
+    return `<div class="space-y-3">${cabecalho}<div class="space-y-2">${corpo}</div></div>`;
 }
 
 function textoDoGabarito(q, g) {
@@ -627,6 +796,8 @@ function textoDoGabarito(q, g) {
             return (g || []).map((id, k) => `${k + 1}. ${(q.itens || []).find(i => i.id === id)?.texto ?? ''}`).join('  ');
         case 'python':
             return `Programa avaliado por ${(g?.testes || []).length} teste(s). Veja a explicação do professor.`;
+        case 'dissertativa':
+            return g?.referencia ? g.referencia : 'Questão dissertativa: correção do professor.';
         default:
             return 'Questão dissertativa: correção do professor.';
     }
@@ -686,6 +857,7 @@ export function renderResultado(area, res, questoes, { treino = false, onRefazer
                         <span class="text-slate-400">${pts}</span>
                     </div>
                     <p class="text-sm text-slate-200">${esc(q.enunciado)}</p>
+                    ${q.imagem ? `<img src="${esc(q.imagem)}" alt="Imagem da questão ${i + 1}" class="max-h-72 max-w-full rounded-lg border border-slate-700 bg-slate-950 object-contain">` : ''}
                     ${q.tipo === 'sql'
                         ? `<div class="space-y-1"><p class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Consulta gabarito</p>${destacarCodigo(q.gabarito?.sql || '', 'sql')}</div>`
                         : `<p class="text-sm text-emerald-400"><b>Resposta:</b> ${esc(textoDoGabarito(docs[q.id] || { tipo: q.tipo }, q.gabarito))}</p>`}

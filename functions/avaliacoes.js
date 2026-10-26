@@ -447,6 +447,7 @@ exports.obterResultadoAvaliacao = onCall({
       id: q.id,
       tipo: q.tipo,
       enunciado: q.enunciado || "",
+      imagem: q.imagem || null,
       pontos: Number(q.pontos) || 0,
       explicacao: explicacoes[q.id] || "",
       gabarito: gabaritos[q.id] ?? null,

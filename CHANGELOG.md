@@ -4,6 +4,105 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.10.0] — 2026-10-26
+### Escopo
+Central de Avaliações reformulada: listagem em cards, cadastro de questões em tela cheia, imagens nas questões, prova aplicada uma questão por vez com navegação e marcação de saídas da aba por questão, e nota máxima calculada pelas questões. Regras de segurança das entregas revisadas.
+
+### Adicionado
+#### Listagem em cards
+- Provas Avaliativas e Exercícios Não Avaliativos agora aparecem em cards compactos e uniformes, em grade de 1 a 4 colunas conforme a tela.
+- Cada card mostra status (Pendente, Entregue, Encerrado, Oculta), tipo, valor, turmas, prazo e contagem de anexos, questões e links.
+
+#### Cadastro de questões em tela cheia
+- O formulário de nova avaliação ocupa a área toda. A lista de avaliações e as abas somem enquanto ele está aberto, sem a lista espremida embaixo.
+
+#### Imagens nas questões
+- Qualquer tipo de questão aceita imagem no enunciado.
+- Múltipla escolha e múltipla seleção aceitam imagem em cada opção.
+- Imagens são enviadas para o Storage (`avaliacoes_questoes/`), com limite de 5 MB.
+- O gabarito liberado mostra a imagem da questão.
+
+#### Dissertativa com resposta de referência
+- Campo "Resposta esperada (referência)" para orientar a correção manual. Fica no gabarito do servidor e só aparece para o aluno após a liberação.
+
+#### Prova uma questão por vez
+- Botões Anterior e Próxima. O aluno só avança, e pode voltar às questões já passadas para revisar.
+- Quadradinhos de progresso: verde para a questão atual, azul para as já passadas (clicáveis) e cinza para as que faltam (bloqueadas).
+- Indicador "Faltam X questão(ões)" e botão Enviar prova sempre disponível, com aviso de questões incompletas.
+- Progresso salvo no navegador, então o F5 mantém a questão em que o aluno estava.
+
+#### Saídas da aba por questão
+- Se o aluno troca de aba ou sai da janela, a questão ativa recebe a marca "Aluno saiu da página da prova sem autorização."
+- A saída é gravada na entrega (`saidasQuestoes`) e aparece no card da entrega, para o professor, indicando a questão.
+
+### Alterado
+- Com questões cadastradas, o "Valor (Nota Máx)" é a soma dos pontos das questões e fica travado. Sem questões, continua editável.
+- Regras do Firestore de `avaliacoes_entregas`: o aluno só cria a própria entrega e só incrementa contadores de saída ou reenvia o arquivo quando a entrega está pendente ou devolvida. Nota, status de correção e finalização não podem mais ser alterados pelo cliente.
+- Regras de `avaliacoes_digitais` consolidadas em um único bloco, com `gabaritos` restrito a professores.
+
+### Corrigido
+- Ao editar uma avaliação, o campo de nota máxima não era preenchido.
+- O botão continuava com "Atualizar Avaliação" depois de publicar uma nova avaliação.
+
+### Arquivos tocados
+- js/avaliacoesDigitais/avaliacoesDigitais.js
+- js/avaliacoesDigitais/questoesProva.js
+- js/avaliacoesDigitais/questoesCore.js
+- functions/avaliacoes.js
+- index.html
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Sintaxe dos módulos alterados (`node --check`) e lógica de montagem das questões (gabarito separado da questão pública, ida e volta de imagem e referência) testadas isoladamente
+- Regras do Firestore aplicadas e revisadas manualmente
+- Pendente de teste no navegador: fluxo completo de prova (navegação, saída de aba, envio e correção)
+
+### Deploy
+- Site: push para `main` (GitHub Pages).
+- Funções: `firebase deploy --only functions` (necessário para a imagem no gabarito liberado).
+- Regras: Firestore e Storage (`avaliacoes_questoes/`) são aplicados manualmente no console.
+
+## [v1.9.0] — 2026-10-23
+### Escopo
+Dashboard Unificado de métricas do professor: consolidação de Análise do Aluno, Evolução, Painel e Visão Geral; gráficos ECharts (ranking, scatter, heatmap); métricas DORA da turma; tema claro/escuro; exportação PDF.
+
+### Adicionado
+#### Dashboard Unificado
+- **Nova aba 'Dashboard Unificado'** que consolida as 4 abas de métricas (Análise do Aluno, Evolução, Painel e Visão Geral) em uma única visão, com reparenting automático do DOM.
+- **Seletor de aluno e trimestres (multi-select)** no topo: métricas atreladas ao aluno selecionado; sem seleção, visão por turma.
+- **Seletor de período (data início/fim)** no topo, sincronizado com todos os blocos que usam datas.
+- **Gráficos ECharts**: Ranking de Alunos por Média (barras horizontais), Dispersão Notas × Faltas (scatter) e Heatmap de Frequência (Alunos × Aulas).
+- **Métricas DORA da Turma (proxy)**: Taxa de Falha, Frequência de Avaliações, Lead Time, MTTR e Atividades Extra (entregues vs cadastradas).
+- **Aging / WIP**: lista de alunos com média < 6 ou faltas ≥ 20%.
+- **Score do Aluno (0–100)** com notas A/B/C/D (40% volume + 30% conclusão + 30% evolução).
+- **Exportação PDF** do dashboard unificado com todos os gráficos e KPIs.
+- **Toggle de tema claro/escuro** com persistência em localStorage.
+- **Views salvas** (filtros) em localStorage com dropdown de carregamento.
+- **Indicador de sync** (última atualização) no topo.
+- **Paginação e ordenação** na tabela de notas (10/25/50 por página).
+
+### Alterado
+- **Evolução por disciplina**: um gráfico separado para cada disciplina do aluno, com métricas (média, min, max, variação %, tendência).
+- **Diferenças por Trimestre**: gráfico alterado de barras para linha com pontos coloridos.
+- **Expansores de faixas** (nota e frequência) ficam abertos por padrão.
+- **Frequência Individual** e **Visão Geral** sincronizadas com o aluno e período do topo.
+- **Auto-logout por inatividade** desativado para usuários logados com Google (validados no Firebase).
+- **Design tokens** estilo Movida (CSS variables --kz-*) e classes reutilizáveis.
+
+### Corrigido
+- Erro 'Cannot set properties of null (setting value)' em initEvolucaoTab (remoção do select evol-trimestre).
+- Layout do dashboard unificado ocupando a altura disponível (sem bloco vazio).
+- Remoção dos scrolls internos do dashboard unificado.
+
+### Arquivos tocados
+- index.html
+- style.css
+- js/professorTech/professorTech.js
+- js/main.js
+- changelog.json
+- CHANGELOG.md
+
 ## [v1.8.3] — 2026-10-14
 ### Escopo
 **Modo de manutenção apenas manual** + correções no aviso de versão diferente na barra superior.

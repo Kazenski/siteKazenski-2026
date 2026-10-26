@@ -17,9 +17,11 @@ export function novaQuestao(tipo = 'multipla_escolha') {
     return {
         tipo,
         enunciado: '',
+        imagem: '',
         pontos: 1,
         explicacao: '',
-        opcoes: [{ texto: '', correta: false }, { texto: '', correta: false }],
+        referencia: '',
+        opcoes: [{ texto: '', correta: false, imagem: '' }, { texto: '', correta: false, imagem: '' }],
         afirmacoes: [{ texto: '', valor: true }],
         pares: [{ a: '', b: '' }, { a: '', b: '' }],
         itens: ['', ''],
@@ -99,7 +101,8 @@ export function montarDocs(lista, rnd = Math.random) {
             ordem: i + 1,
             tipo: q.tipo,
             enunciado: limpo(q.enunciado),
-            pontos: Number(q.pontos) || 0
+            pontos: Number(q.pontos) || 0,
+            ...(q.imagem ? { imagem: q.imagem } : {})
         };
         const explicacao = limpo(q.explicacao);
 
@@ -108,13 +111,13 @@ export function montarDocs(lista, rnd = Math.random) {
             case 'multipla_selecao': {
                 const ops = q.opcoes
                     .filter(o => limpo(o.texto))
-                    .map((o, k) => ({ id: `o${k + 1}`, texto: limpo(o.texto), correta: !!o.correta }));
+                    .map((o, k) => ({ id: `o${k + 1}`, texto: limpo(o.texto), correta: !!o.correta, imagem: o.imagem || '' }));
                 const gabarito = q.tipo === 'multipla_escolha'
                     ? (ops.find(o => o.correta)?.id ?? null)
                     : ops.filter(o => o.correta).map(o => o.id);
                 return {
                     id,
-                    questao: { ...base, opcoes: ops.map(({ id, texto }) => ({ id, texto })) },
+                    questao: { ...base, opcoes: ops.map(({ id, texto, imagem }) => (imagem ? { id, texto, imagem } : { id, texto })) },
                     gabarito,
                     explicacao
                 };
@@ -182,6 +185,16 @@ export function montarDocs(lista, rnd = Math.random) {
                 };
             }
 
+            case 'dissertativa': {
+                const referencia = limpo(q.referencia);
+                return {
+                    id,
+                    questao: base,
+                    gabarito: referencia ? { referencia } : null,
+                    explicacao
+                };
+            }
+
             default:
                 return { id, questao: base, gabarito: null, explicacao };
         }
@@ -193,15 +206,19 @@ export function estadoDeQuestao(qd, gabDoc) {
     const g = gabDoc?.gabarito;
     const estado = novaQuestao(qd.tipo);
     estado.enunciado = qd.enunciado || '';
+    estado.imagem = qd.imagem || '';
     estado.pontos = qd.pontos ?? 1;
     estado.explicacao = gabDoc?.explicacao || '';
 
     switch (qd.tipo) {
         case 'multipla_escolha':
-            estado.opcoes = (qd.opcoes || []).map(o => ({ texto: o.texto, correta: o.id === g }));
+            estado.opcoes = (qd.opcoes || []).map(o => ({ texto: o.texto, correta: o.id === g, imagem: o.imagem || '' }));
             break;
         case 'multipla_selecao':
-            estado.opcoes = (qd.opcoes || []).map(o => ({ texto: o.texto, correta: Array.isArray(g) && g.includes(o.id) }));
+            estado.opcoes = (qd.opcoes || []).map(o => ({ texto: o.texto, correta: Array.isArray(g) && g.includes(o.id), imagem: o.imagem || '' }));
+            break;
+        case 'dissertativa':
+            estado.referencia = g?.referencia || '';
             break;
         case 'verdadeiro_falso':
             estado.afirmacoes = (qd.afirmacoes || []).map(a => ({ texto: a.texto, valor: g?.[a.id] === true }));
