@@ -4,7 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 import { escapeHTML } from '../core/utils.js';
 import { validarQuestoes } from './questoesCore.js';
 import { lerCsv, nomeDaTabela } from './csvLeitor.js';
-import { iniciarEditor, limparEditor, carregarEditor, coletarQuestoes, salvarQuestoes, buscarQuestoesAluno, obterResultado, mostrarConsentimento, renderProva, renderResultado } from './questoesProva.js';
+import { iniciarEditor, limparEditor, carregarEditor, coletarQuestoes, salvarQuestoes, buscarQuestoesAluno, obterResultado, mostrarConsentimento, renderProva, renderResultado, carregarContextoProva, htmlRespostasEntrega } from './questoesProva.js';
 
 let currentUser = null;
 let isStaff = false; // true se for Admin, Coordenacao ou Professor
@@ -914,6 +914,9 @@ window.avaliacoesAPI = {
                     htmlProf += '<p class="text-slate-500 italic text-sm">Nenhum aluno enviou arquivo ainda.</p>';
                 } else {
                     htmlProf += '<div class="space-y-4">';
+                    const contextoProva = aval.temProva && entregas.some(e => e.finalizada)
+                        ? await carregarContextoProva(aval.id)
+                        : null;
                     entregas.forEach(e => {
                         // Resgata os contadores do banco para o professor ver
                         const countCopy = e.countCopy || 0;
@@ -924,6 +927,7 @@ window.avaliacoesAPI = {
                             ? `<p class="text-xs text-slate-400 mt-1"><i class="fas fa-list-check mr-1"></i> Prova objetiva: ${e.pontosObtidos ?? 0} de ${e.pontosCorrigidos ?? 0} pts${e.pendentes ? ` · ${e.pendentes} questão(ões) para corrigir` : ' · corrigida'}</p>`
                             : '';
                         
+                        const respostasHtml = contextoProva ? htmlRespostasEntrega(contextoProva, e) : '';
                         const saidasOrdenadas = Object.entries(e.saidasQuestoes || {})
                             .sort(([a], [b]) => Number(a.replace(/\D/g, '')) - Number(b.replace(/\D/g, '')));
                         const resumoSaidas = saidasOrdenadas.length
@@ -962,6 +966,7 @@ window.avaliacoesAPI = {
                                     </div>
                                 </div>
                                 
+                                ${respostasHtml}
                                 <div class="bg-slate-950 p-3 rounded-lg border border-slate-800">
                                     <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                                         <div class="md:col-span-1">

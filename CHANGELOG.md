@@ -4,6 +4,25 @@ Todos as alterações relevantes neste projeto são documentadas neste arquivo (
 
 ## [Unreleased] - Em desenvolvimento
 
+## [v1.10.3] — 2026-10-26
+### Escopo
+Correção de provas pelo professor: o card de cada entrega passa a mostrar as respostas do aluno, questão por questão, com a referência ou o gabarito, para facilitar a correção manual.
+
+### Adicionado
+- **Seção "Respostas e correção"** no card da entrega (Painel → Entregas), recolhida por padrão. Para cada questão mostra o enunciado, a resposta do aluno (código Python/SQL, texto da dissertativa, opções marcadas, pares ligados e ordem escolhida), a referência da dissertativa, o gabarito das objetivas, a consulta gabarito de SQL e os testes aprovados de Python, além dos pontos obtidos.
+- Questões dissertativas ficam marcadas como "a corrigir", e a nota final é informada como soma das objetivas com os pontos atribuídos às dissertativas.
+- Nenhum campo novo no cadastro: usa os dados já salvos nas entregas e nos gabaritos.
+
+### Arquivos tocados
+- js/avaliacoesDigitais/avaliacoesDigitais.js
+- js/avaliacoesDigitais/questoesProva.js
+- CHANGELOG.md
+- changelog.json
+
+### Verificado
+- Sintaxe dos módulos alterados (`node --check`)
+- Pendente: teste no navegador com uma entrega real de prova com dissertativa e Python
+
 ## [v1.10.2] — 2026-10-26
 ### Escopo
 Correção do painel do professor: botões de paginação da aba Notas e a função de salvar a Chamada não funcionavam.

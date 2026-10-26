@@ -865,3 +865,101 @@ export function renderResultado(area, res, questoes, { treino = false, onRefazer
                 </div>`;
         }).join('')}`;
 }
+
+// ============================================================
+// PROFESSOR: RESPOSTAS DA ENTREGA (para correção)
+// ============================================================
+export async function carregarContextoProva(avalId) {
+    const [questoes, gabaritos] = await Promise.all([buscarQuestoesProfessor(avalId), buscarGabaritos(avalId)]);
+    return { questoes, gabaritos };
+}
+
+function textoResposta(q, r) {
+    switch (q.tipo) {
+        case 'multipla_escolha':
+            return (q.opcoes || []).find(o => o.id === r)?.texto ?? null;
+        case 'multipla_selecao': {
+            const marcadas = (q.opcoes || []).filter(o => (r || []).includes(o.id)).map(o => o.texto);
+            return marcadas.length ? marcadas.join('; ') : null;
+        }
+        case 'verdadeiro_falso':
+            return (q.afirmacoes || []).map(a => {
+                const v = r?.[a.id];
+                return `${a.texto}: ${v === true ? 'Verdadeiro' : v === false ? 'Falso' : '—'}`;
+            }).join(' | ');
+        case 'ligar_colunas':
+            return (q.colunaA || []).map(a => {
+                const b = (q.colunaB || []).find(x => x.id === r?.[a.id]);
+                return `${a.texto} → ${b ? b.texto : '—'}`;
+            }).join(' | ');
+        case 'ordenar':
+            return (r || []).map((id, k) => `${k + 1}. ${(q.itens || []).find(i => i.id === id)?.texto ?? ''}`).join('  ');
+        default:
+            return null;
+    }
+}
+
+const BLOCO_CODIGO = 'bg-slate-950 border border-slate-800 rounded p-2 text-xs font-mono text-slate-300 whitespace-pre-wrap max-h-48 overflow-auto';
+
+function blocoResposta(q, r) {
+    if (q.tipo === 'python' || q.tipo === 'sql') return `<pre class="${BLOCO_CODIGO}">${esc(String(r ?? '').trim() || '(vazio)')}</pre>`;
+    if (q.tipo === 'dissertativa') return `<p class="text-sm text-slate-200 whitespace-pre-wrap">${esc(String(r ?? '').trim() || '(sem resposta)')}</p>`;
+    const texto = textoResposta(q, r);
+    return `<p class="text-sm text-slate-200">${texto ? esc(texto) : '<span class="text-slate-500 italic">Sem resposta</span>'}</p>`;
+}
+
+function referenciaQuestao(q, gab, d) {
+    if (q.tipo === 'dissertativa') {
+        return gab?.referencia
+            ? `<p class="text-xs text-emerald-400"><b>Referência:</b> ${esc(gab.referencia)}</p>`
+            : `<p class="text-xs text-slate-500 italic">Sem referência cadastrada.</p>`;
+    }
+    if (q.tipo === 'python') {
+        return d?.total !== undefined ? `<p class="text-xs text-slate-400">Testes: ${d.aprovados} de ${d.total} aprovados</p>` : '';
+    }
+    if (q.tipo === 'sql') {
+        return gab?.sql ? `<details><summary class="text-xs text-emerald-400 cursor-pointer">Consulta gabarito</summary>${destacarCodigo(gab.sql, 'sql')}</details>` : '';
+    }
+    return `<p class="text-xs text-emerald-400"><b>Gabarito:</b> ${esc(textoDoGabarito(q, gab))}</p>`;
+}
+
+function situacaoQuestao(d) {
+    if (!d) return '';
+    if (d.erroCorrecao) return '<span class="text-red-400">erro na correção automática: corrigir manualmente</span>';
+    if (d.pendente) return '<span class="text-amber-400">a corrigir</span>';
+    if (d.obtidos === undefined) return '';
+    return d.correta ? '<span class="text-emerald-400">correta</span>' : '<span class="text-red-400">incorreta</span>';
+}
+
+export function htmlRespostasEntrega({ questoes, gabaritos }, entrega) {
+    if (!entrega.finalizada || !questoes.length) return '';
+    const respostas = entrega.respostas || {};
+    const detalhes = Object.fromEntries((entrega.detalhes || []).map(d => [d.questaoId, d]));
+
+    const blocos = questoes.map((q, i) => {
+        const d = detalhes[q.id];
+        const pts = d && d.obtidos !== undefined ? `${d.obtidos} de ${q.pontos} pt(s)` : `${q.pontos} pt(s)`;
+        return `
+            <div class="bg-slate-900/80 border border-slate-800 rounded-lg p-3 space-y-2">
+                <div class="flex flex-wrap justify-between gap-2 text-[11px] font-bold uppercase tracking-widest">
+                    <span class="text-blue-400">Questão ${i + 1} · ${esc(TIPOS[q.tipo] || q.tipo)}</span>
+                    <span class="text-slate-400">${pts} ${situacaoQuestao(d)}</span>
+                </div>
+                <p class="text-xs text-slate-400 whitespace-pre-wrap">${esc(q.enunciado)}</p>
+                <div>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Resposta do aluno</p>
+                    ${blocoResposta(q, respostas[q.id])}
+                </div>
+                ${referenciaQuestao(q, gabaritos[q.id]?.gabarito, d)}
+            </div>`;
+    }).join('');
+
+    return `
+        <details class="bg-slate-950 border border-slate-800 rounded-lg p-3">
+            <summary class="cursor-pointer text-xs font-bold text-blue-400 uppercase tracking-widest">Respostas e correção (${questoes.length} questão(ões))</summary>
+            <div class="mt-3 space-y-3">
+                ${blocos}
+                <p class="text-[10px] text-slate-500">A nota final é a soma dos pontos das objetivas com os pontos que você atribuir às dissertativas. Digite essa nota no campo Nota abaixo.</p>
+            </div>
+        </details>`;
+}

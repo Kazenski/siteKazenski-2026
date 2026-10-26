@@ -1,8 +1,76 @@
 {
-  "geradoEm": "2026-10-26T15:22:03+00:00",
-  "versaoAtual": "1.10.2",
-  "totalEntradas": 32,
+  "geradoEm": "2026-10-26T17:24:28+00:00",
+  "versaoAtual": "1.10.3",
+  "totalEntradas": 33,
   "entradas": [
+    {
+      "versao": "1.10.3",
+      "data": "2026-10-26",
+      "autor": "",
+      "escopo": "Correção de provas pelo professor: o card de cada entrega passa a mostrar as respostas do aluno, questão por questão, com a referência ou o gabarito, para facilitar a correção manual.",
+      "arquivos": [
+        "js/avaliacoesDigitais/avaliacoesDigitais.js",
+        "js/avaliacoesDigitais/questoesProva.js",
+        "CHANGELOG.md",
+        "changelog.json"
+      ],
+      "secoes": [
+        {
+          "titulo": "Escopo",
+          "chave": "escopo",
+          "blocos": []
+        },
+        {
+          "titulo": "Adicionado",
+          "chave": "adicionado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "**Seção \"Respostas e correção\"** no card da entrega (Painel → Entregas), recolhida por padrão. Para cada questão mostra o enunciado, a resposta do aluno (código Python/SQL, texto da dissertativa, opções marcadas, pares ligados e ordem escolhida), a referência da dissertativa, o gabarito das objetivas, a consulta gabarito de SQL e os testes aprovados de Python, além dos pontos obtidos."
+                ],
+                [
+                  "li",
+                  "Questões dissertativas ficam marcadas como \"a corrigir\", e a nota final é informada como soma das objetivas com os pontos atribuídos às dissertativas."
+                ],
+                [
+                  "li",
+                  "Nenhum campo novo no cadastro: usa os dados já salvos nas entregas e nos gabaritos."
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "titulo": "Arquivos tocados",
+          "chave": "arquivos tocados",
+          "blocos": []
+        },
+        {
+          "titulo": "Verificado",
+          "chave": "verificado",
+          "blocos": [
+            {
+              "titulo": "",
+              "nivel": null,
+              "linhas": [
+                [
+                  "li",
+                  "Sintaxe dos módulos alterados (`node --check`)"
+                ],
+                [
+                  "li",
+                  "Pendente: teste no navegador com uma entrega real de prova com dissertativa e Python"
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "versao": "1.10.2",
       "data": "2026-10-26",
