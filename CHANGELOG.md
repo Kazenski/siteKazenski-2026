@@ -18,7 +18,7 @@ Correção do editor de código (Python e SQL) da Central de Avaliações, que d
 
 ### Verificado
 - Import de `codemirror@6.0.1` confirmado: exporta `EditorView` e `basicSetup`
-- Teste no navegador do editor após o deploy
+- Pendente: teste no navegador do editor (Python e SQL) após o deploy
 
 ## [v1.10.0] — 2026-10-26
 ### Escopo
