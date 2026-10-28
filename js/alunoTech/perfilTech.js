@@ -253,8 +253,7 @@ function setupEventListeners() {
                 const url = prompt('URL do link:');
                 if (url) document.execCommand('createLink', false, url);
             } else if (format === 'insertImage') {
-                const url = prompt('URL da imagem:');
-                if (url) document.execCommand('insertImage', false, url);
+                abrirSeletorImagemNota();
             } else if (format === 'insertTable') {
                 const rows = parseInt(prompt('Linhas:', '3')) || 3;
                 const cols = parseInt(prompt('Colunas:', '3')) || 3;
@@ -308,38 +307,6 @@ function setupEventListeners() {
     document.getElementById('al-note-font-size')?.addEventListener('change', (e) => {
         const editor = document.getElementById('al-note-editor');
         if (editor) editor.style.fontSize = e.target.value;
-    });
-
-    // Toolbar format buttons
-    document.querySelectorAll('#al-note-toolbar [data-format]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const format = btn.dataset.format;
-            if (format === 'createLink') {
-                const url = prompt('URL do link:');
-                if (url) document.execCommand('createLink', false, url);
-            } else if (format === 'insertImage') {
-                const url = prompt('URL da imagem:');
-                if (url) document.execCommand('insertImage', false, url);
-            } else if (format === 'insertTable') {
-                const rows = parseInt(prompt('Linhas:', '3')) || 3;
-                const cols = parseInt(prompt('Colunas:', '3')) || 3;
-                let table = '<table class="w-full border-collapse border border-slate-600">';
-                for (let r = 0; r < rows; r++) {
-                    table += '<tr>';
-                    for (let c = 0; c < cols; c++) {
-                        table += '<td class="border border-slate-600 p-2 min-w-[80px]"></td>';
-                    }
-                    table += '</tr>';
-                }
-                table += '</table>';
-                document.execCommand('insertHTML', false, table);
-            } else if (format === 'insertHorizontalRule') {
-                document.execCommand('insertHorizontalRule', false, null);
-            } else {
-                document.execCommand(format, false, null);
-            }
-            document.getElementById('al-note-editor')?.focus();
-        });
     });
 
     // More menu toggle
@@ -1782,36 +1749,105 @@ function setTagFilterFast(tag) {
 }
 
 // 5. Salvar a nota atual
+const NOTE_IMG_MAX_BYTES = 5 * 1024 * 1024;
+const NOTE_IMG_MAX_SIDE = 1600;
+const NOTE_TEXTO_MAX = 8000;
+
+function abrirSeletorImagemNota() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+        const file = input.files?.[0];
+        if (!file) return;
+        if (file.size > NOTE_IMG_MAX_BYTES) return alert("A imagem passou de 5 MB.");
+        const reader = new FileReader();
+        reader.onload = () => {
+            document.getElementById('al-note-editor')?.focus();
+            document.execCommand('insertImage', false, reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+    input.click();
+}
+
+async function comprimirImagemNota(blob) {
+    if (blob.type === 'image/gif') return blob;
+    try {
+        const bitmap = await createImageBitmap(blob);
+        const escala = Math.min(1, NOTE_IMG_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bitmap.width * escala);
+        canvas.height = Math.round(bitmap.height * escala);
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close?.();
+        const out = await new Promise(resolve => canvas.toBlob(resolve, 'image/webp', 0.85));
+        return out || blob;
+    } catch (_) {
+        return blob;
+    }
+}
+
+async function enviarImagensDaNota(editor) {
+    const imagens = [...editor.querySelectorAll('img[src^="data:"]')];
+    for (const img of imagens) {
+        const original = await (await fetch(img.src)).blob();
+        if (original.size > NOTE_IMG_MAX_BYTES) throw new Error("Imagem maior que 5 MB.");
+        const blob = await comprimirImagemNota(original);
+        const ext = blob.type.split('/')[1] || 'bin';
+        const nome = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const storageRef = ref(storage, `anotacoes_imagens/${currentUser.uid}/${nome}`);
+        const snap = await uploadBytes(storageRef, blob, { contentType: blob.type });
+        img.src = await getDownloadURL(snap.ref);
+    }
+}
+
 async function saveNote() {
     const titulo = document.getElementById('al-note-active-title')?.value?.trim() || '';
     const editor = document.getElementById('al-note-editor');
-    const conteudo = editor?.innerHTML?.trim() || '';
-    const tagsInput = document.getElementById('al-note-active-tags')?.value || '';
+    const textoVisivel = editor?.innerText?.trim() || '';
+    const temImagem = !!editor?.querySelector('img');
 
-    if (!titulo && !conteudo) return alert("Escreva algo na anotação!");
+    if (!titulo && !textoVisivel && !temImagem) return alert("Escreva algo na anotação!");
 
-    // Nova barreira de moderação
+    if (textoVisivel.length > NOTE_TEXTO_MAX) {
+        return alert(`O texto da anotação passou de ${NOTE_TEXTO_MAX} caracteres (você digitou ${textoVisivel.length}).`);
+    }
+
+    // Imagens coladas (data:) são enviadas ao Storage; a moderação checa o HTML sem elas
+    const copia = editor.cloneNode(true);
+    copia.querySelectorAll('img[src^="data:"]').forEach(img => img.removeAttribute('src'));
+
     if (!aprovar(
         [
-            { nome: 'titulo', valor: titulo, rotulo: 'Título da anotação', max: 120 },
-            { nome: 'conteudo', valor: conteudo, rotulo: 'Conteúdo da anotação', max: 8000 }
+            { nome: 'titulo', valor: titulo, rotulo: 'Título da anotação', max: 120, obrigatorio: false },
+            { nome: 'conteudo', valor: copia.innerHTML.trim(), rotulo: 'Conteúdo da anotação', max: 200000 }
         ],
         { origem: 'perfilTech:anotacao', permitirStaff: true }
     )) return;
 
-    const payload = {
-        titulo: titulo,
-        conteudo: conteudo,
-        userId: currentUser.uid,
-        color: selectedNoteColor,
-        favorita: formIsPinned,
-        updatedAt: serverTimestamp(),
-        tags: document.getElementById('al-note-active-tags')?.value?.split(',').map(t => t.trim()).filter(t => t) || []
-    };
-
-    const id = document.getElementById('al-note-active-id')?.value || '';
+    const btn = document.getElementById('btn-note-save');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
 
     try {
+        if (temImagem) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando imagens...';
+            await enviarImagensDaNota(editor);
+        }
+
+        const payload = {
+            titulo: titulo,
+            conteudo: editor.innerHTML.trim(),
+            userId: currentUser.uid,
+            color: selectedNoteColor,
+            favorita: formIsPinned,
+            updatedAt: serverTimestamp(),
+            tags: document.getElementById('al-note-active-tags')?.value?.split(',').map(t => t.trim()).filter(t => t) || []
+        };
+
+        const id = document.getElementById('al-note-active-id')?.value || '';
+
         if (id) {
             await updateDoc(doc(db, "anotacoes_pessoais", id), payload);
             window.registrarLogAtividade("Editou anotação", `Título: ${titulo}`);
@@ -1823,9 +1859,6 @@ async function saveNote() {
             window.registrarLogAtividade("Criou anotação", `Título: ${titulo}`);
         }
 
-        // Efeito de Botão Salvo
-        const btn = document.getElementById('btn-note-save');
-        const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
         btn.classList.replace('bg-blue-600', 'bg-green-600');
         setTimeout(() => {
@@ -1833,7 +1866,13 @@ async function saveNote() {
             btn.classList.replace('bg-green-600', 'bg-blue-600');
         }, 2000);
 
-    } catch (e) { alert("Erro ao salvar anotação."); }
+    } catch (e) {
+        console.error("Erro ao salvar anotação:", e);
+        btn.innerHTML = originalText;
+        alert(`Não foi possível salvar a anotação.\n\nMotivo: ${e.code || e.message || e}`);
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 // 6. Excluir nota atual
