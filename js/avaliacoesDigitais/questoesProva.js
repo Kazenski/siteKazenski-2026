@@ -4,7 +4,9 @@ import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/fireba
 import { app, db, storage } from '../core/firebase.js';
 import { escapeHTML } from '../core/utils.js';
 import { TIPOS, novaQuestao, montarDocs, estadoDeQuestao } from './questoesCore.js';
-import { criarEditorCodigo, destacarCodigo } from './editorCodigo.js';
+let criarEditorCodigo = (host) => host;
+let destacarCodigo = (code) => `<pre>${code||''}</pre>`;
+import('./editorCodigo.js').then(m => { criarEditorCodigo = m.criarEditorCodigo; destacarCodigo = m.destacarCodigo; }).catch(e => console.warn('editorCodigo unavailable', e));
 
 let editoresProva = [];
 let editoresEditor = [];
